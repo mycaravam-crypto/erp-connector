@@ -133,7 +133,7 @@ public sealed class DemoErpReaderTests : IDisposable
     {
         var sut = new DemoErpReader(_db, NullLogger<DemoErpReader>.Instance);
         using var cts = new CancellationTokenSource();
-        cts.Cancel();
+        await cts.CancelAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => sut.ReadMaintainableCIsAsync(cts.Token));

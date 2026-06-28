@@ -265,6 +265,57 @@ POST /api/exports/{seqNo}/release
 
 ---
 
+## Code Quality
+
+Static analysis and formatting run automatically — no manual setup required beyond a normal `dotnet restore`.
+
+### Static analysis
+
+[Directory.Build.props](Directory.Build.props) applies to every project in the solution:
+
+| Setting | Effect |
+|---|---|
+| `AnalysisLevel=latest` | All Roslyn / CA rules at the latest rule set |
+| `EnforceCodeStyleInBuild=true` | IDE code-style rules (IDE*) are enforced at build time |
+| `TreatWarningsAsErrors` (Release only, non-test projects) | Any analyzer warning fails the Release build — this is the CI gate |
+| `SonarAnalyzer.CSharp` | Sonar bug and code-smell rules |
+| `Roslynator.Analyzers` | Additional idiomatic C# rules |
+
+The Debug build keeps warnings as warnings so the inner dev loop stays fast.
+
+### Formatting (CSharpier)
+
+CSharpier is installed as a local dotnet tool (`.config/dotnet-tools.json`). Restore it once:
+
+```bash
+dotnet tool restore
+```
+
+Check formatting (what CI does):
+
+```bash
+dotnet csharpier --check .
+```
+
+Apply formatting:
+
+```bash
+dotnet csharpier .
+```
+
+Print width is 120 (see `.csharpierrc.json`).
+
+### CI pipeline
+
+GitHub Actions ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs on every push and PR to `main`:
+
+1. `dotnet tool restore` — restores CSharpier
+2. `dotnet csharpier --check .` — fails if any file is not formatted
+3. `dotnet build -c Release` — fails on any analyzer warning or code-style violation
+4. `dotnet test -c Release` — runs the full test suite
+
+---
+
 ## Open Development Tasks
 
 These track items from the concept document that directly block or affect the implementation:

@@ -1,3 +1,4 @@
+using Connector.Api;
 using Connector.Core.Interfaces;
 using Connector.Erp.DemoErp;
 using Connector.Export;
@@ -37,11 +38,11 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var erpDb = scope.ServiceProvider.GetRequiredService<DemoErpDbContext>();
-    erpDb.Database.EnsureCreated();
+    await erpDb.Database.EnsureCreatedAsync();
     DemoErpSeed.Seed(erpDb);
 
     var exportLogDb = scope.ServiceProvider.GetRequiredService<ExportLogDbContext>();
-    exportLogDb.Database.EnsureCreated();
+    await exportLogDb.Database.EnsureCreatedAsync();
 }
 
 // API-Endpunkte — nur was die Release-UI braucht.
@@ -52,7 +53,7 @@ app.MapGet("/api/exports", async (ExportLogDbContext db) =>
         .OrderByDescending(r => r.SequenceNo)
         .Select(r => new ExportRunSummary(
             r.SequenceNo, r.ExtractedAt, r.RecordCount,
-            r.Sha256[..Math.Min(12, r.Sha256.Length)],
+            r.Sha256.Substring(0, 12),
             r.Status, r.DataFileName))
         .ToListAsync());
 
@@ -91,15 +92,18 @@ app.MapPost("/api/exports/{seqNo:int}/release", async (
     return Results.Ok();
 });
 
-app.Run();
+await app.RunAsync();
 
 // DTOs — direkt in Program.cs, da zu einfach für eigene Dateien (YAGNI).
-record ExportRunSummary(
-    int SequenceNo,
-    string ExtractedAt,
-    int RecordCount,
-    string Sha256Short,
-    string Status,
-    string DataFileName);
+namespace Connector.Api
+{
+    record ExportRunSummary(
+        int SequenceNo,
+        string ExtractedAt,
+        int RecordCount,
+        string Sha256Short,
+        string Status,
+        string DataFileName);
 
-record ReleaseRequest(string Operator, string Approver);
+    record ReleaseRequest(string Operator, string Approver);
+}

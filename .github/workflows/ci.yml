@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.x"
+
+      - name: Restore tool manifest
+        run: dotnet tool restore
+
+      - name: Check formatting (CSharpier)
+        run: dotnet csharpier --check .
+
+      - name: Restore packages
+        run: dotnet restore Connector.sln
+
+      - name: Build (Release — warnings treated as errors)
+        run: dotnet build Connector.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test Connector.sln -c Release --no-build --verbosity normal

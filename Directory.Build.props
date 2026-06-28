@@ -1,0 +1,28 @@
+<Project>
+  <PropertyGroup>
+    <!-- Enable all latest Roslyn analyzers (CA, IDE rules) across every project. -->
+    <AnalysisLevel>latest</AnalysisLevel>
+    <!-- Code-style rules (IDE*) are enforced at build time, not just in the IDE. -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!--
+      Treat warnings as errors only in Release builds on non-test projects.
+      This keeps the inner dev loop friction-free while making the CI gate strict.
+    -->
+    <TreatWarningsAsErrors Condition="'$(Configuration)' == 'Release' AND '$(IsTestProject)' != 'true'">true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <!--
+    Third-party analyzers added once here apply to every project in the solution.
+    PrivateAssets=all prevents them from leaking into consuming packages.
+  -->
+  <ItemGroup>
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="10.27.0.140913">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Roslynator.Analyzers" Version="4.15.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>
