@@ -29,8 +29,10 @@ function authHeaders(): Record<string, string> {
   return headers
 }
 
-export async function runNow(): Promise<{ ok: boolean; data?: RunNowResult; error?: string }> {
-  const res = await fetch('/api/pipeline/run', {
+export async function runNow(
+  format: 'xlsx' | 'csv' | 'json' = 'xlsx',
+): Promise<{ ok: boolean; data?: RunNowResult; error?: string }> {
+  const res = await fetch(`/api/pipeline/run?format=${format}`, {
     method: 'POST',
     headers: authHeaders(),
   })

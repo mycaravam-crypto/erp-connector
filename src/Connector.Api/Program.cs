@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Connector.Api;
+using Connector.Core.Domain;
 using Connector.Core.Interfaces;
 using Connector.Core.Schema;
 using Connector.Erp.DemoErp;
@@ -196,6 +197,7 @@ app.MapPost(
 // ── On-demand pipeline trigger ────────────────────────────────────────────────
 
 app.MapPost("/api/pipeline/run", async (
+    string? format,
     ExportLogDbContext db,
     IErpReader erpReader,
     IExportFilter filter,
@@ -206,6 +208,8 @@ app.MapPost("/api/pipeline/run", async (
     ILogger<Program> logger,
     CancellationToken ct) =>
 {
+    var fmt = format?.ToLowerInvariant() switch { "csv" => "csv", "json" => "json", _ => "xlsx" };
+
     var sequenceNo = (await db.ExportRuns.MaxAsync(r => (int?)r.SequenceNo, ct) ?? 0) + 1;
     var run = new ExportRunEntity
     {
@@ -222,7 +226,32 @@ app.MapPost("/api/pipeline/run", async (
         var filtered = filter.Filter(rawItems);
         var minimized = filtered.Select(minimizer.Minimize).ToList();
         var mapped = minimized.Select(mapper.Map).ToList();
-        var package = await packager.PackageAsync(mapped, sequenceNo, ct);
+
+        ExportPackage package;
+        var extractedAt = DateTimeOffset.UtcNow;
+        if (fmt == "csv")
+        {
+            var bytes = BuildCsvBytes(mapped, ExportSchema.Version, extractedAt);
+            var checksum = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
+            var fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "csv");
+            package = new ExportPackage(
+                new ExportManifest(sequenceNo, ExportSchema.Version, extractedAt, mapped.Count, checksum),
+                bytes, fileName);
+        }
+        else if (fmt == "json")
+        {
+            var bytes = BuildJsonBytes(mapped, ExportSchema.Version, extractedAt);
+            var checksum = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
+            var fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "json");
+            package = new ExportPackage(
+                new ExportManifest(sequenceNo, ExportSchema.Version, extractedAt, mapped.Count, checksum),
+                bytes, fileName);
+        }
+        else
+        {
+            package = await packager.PackageAsync(mapped, sequenceNo, ct);
+        }
+
         await sink.WriteAsync(package, ct);
 
         run.RecordCount = package.Manifest.RecordCount;
@@ -230,7 +259,7 @@ app.MapPost("/api/pipeline/run", async (
         run.DataFileName = package.DataFileName;
         await db.SaveChangesAsync(ct);
 
-        logger.LogInformation("Run Now: Export #{Seq} abgeschlossen, {Count} Records", sequenceNo, run.RecordCount);
+        logger.LogInformation("Run Now: Export #{Seq} ({Fmt}) abgeschlossen, {Count} Records", sequenceNo, fmt, run.RecordCount);
 
         var sha256Short = run.Sha256.Length >= 12 ? run.Sha256[..12] : run.Sha256;
         return Results.Ok(new RunNowResult(sequenceNo, run.RecordCount, sha256Short));
@@ -243,6 +272,53 @@ app.MapPost("/api/pipeline/run", async (
         return Results.Problem(ex.Message, statusCode: 500);
     }
 }).RequireAuthorization();
+
+byte[] BuildCsvBytes(IReadOnlyList<MappedExportRecord> records, string schemaVersion, DateTimeOffset extractedAt)
+{
+    var sb = new System.Text.StringBuilder();
+    sb.AppendLine($"# schema_version={schemaVersion},extracted_at={extractedAt:O}");
+    sb.AppendLine("guid,serial_number,part_number,parent_serial_number,model_reference,commissioning_date,maintenance_state");
+    foreach (var r in records)
+    {
+        sb.Append(CsvEscape(r.Guid)).Append(',');
+        sb.Append(CsvEscape(r.SerialNumber)).Append(',');
+        sb.Append(CsvEscape(r.PartNumber)).Append(',');
+        sb.Append(CsvEscape(r.ParentSerialNumber ?? "")).Append(',');
+        sb.Append(CsvEscape(r.ModelReference)).Append(',');
+        sb.Append(CsvEscape(r.CommissioningDateIso8601)).Append(',');
+        sb.AppendLine(CsvEscape(r.MaintenanceState));
+    }
+    return System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+}
+
+byte[] BuildJsonBytes(IReadOnlyList<MappedExportRecord> records, string schemaVersion, DateTimeOffset extractedAt)
+{
+    var obj = new
+    {
+        schema_version = schemaVersion,
+        extracted_at = extractedAt.ToString("O"),
+        records = records.Select(r => new
+        {
+            guid = r.Guid,
+            serial_number = r.SerialNumber,
+            part_number = r.PartNumber,
+            parent_serial_number = r.ParentSerialNumber,
+            model_reference = r.ModelReference,
+            commissioning_date = r.CommissioningDateIso8601,
+            maintenance_state = r.MaintenanceState,
+        }).ToList()
+    };
+    return System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(obj,
+        new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+}
+
+string CsvEscape(string? value)
+{
+    if (string.IsNullOrEmpty(value)) return "";
+    if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+        return '"' + value.Replace("\"", "\"\"") + '"';
+    return value;
+}
 
 // ── Export preview (read-only, no side effects) ────────────────────────────────
 
@@ -308,6 +384,50 @@ app.MapGet("/api/erp/records", async (DemoErpDbContext erpDb) =>
     return Results.Ok(records);
 }).RequireAuthorization();
 
+// ── Source database schema ────────────────────────────────────────────────────
+
+app.MapGet("/api/source-schema", () =>
+{
+    var tables = new SourceTableDto[]
+    {
+        new("systemconfiguration", "Installed CI instances — one row per physical unit",
+            new SourceColumnDto[]
+            {
+                new("id", "uuid", Nullable: false, PrimaryKey: true),
+                new("serial", "character varying(100)", Nullable: true, PrimaryKey: false),
+                new("article_id", "uuid", Nullable: true, PrimaryKey: false),
+                new("status", "character varying(50)", Nullable: true, PrimaryKey: false),
+                new("commission_date", "date", Nullable: true, PrimaryKey: false),
+                new("technician_name", "character varying(100)", Nullable: true, PrimaryKey: false),
+                new("storage_location", "character varying(200)", Nullable: true, PrimaryKey: false),
+            }),
+        new("masterdata", "Article/model master records — one row per model type",
+            new SourceColumnDto[]
+            {
+                new("id", "uuid", Nullable: false, PrimaryKey: true),
+                new("article_name", "character varying(200)", Nullable: true, PrimaryKey: false),
+                new("part_number", "character varying(100)", Nullable: true, PrimaryKey: false),
+                new("manufacturer", "character varying(100)", Nullable: true, PrimaryKey: false),
+            }),
+        new("maintenance_plan", "Maintenance plan assignments — drives scope filter",
+            new SourceColumnDto[]
+            {
+                new("id", "uuid", Nullable: false, PrimaryKey: true),
+                new("system_configuration_id", "uuid", Nullable: false, PrimaryKey: false),
+                new("status", "character varying(50)", Nullable: false, PrimaryKey: false),
+                new("allocation_chart_ref", "character varying(100)", Nullable: true, PrimaryKey: false),
+            }),
+        new("articlestructure", "BOM parent–child relationships",
+            new SourceColumnDto[]
+            {
+                new("id", "uuid", Nullable: false, PrimaryKey: true),
+                new("parent_id", "uuid", Nullable: true, PrimaryKey: false),
+                new("child_id", "uuid", Nullable: true, PrimaryKey: false),
+            }),
+    };
+    return Results.Ok(new SourceSchemaDto("demo-erp (SQLite in dev · PostgreSQL in prod)", tables));
+}).RequireAuthorization();
+
 // ── Export schema definition ───────────────────────────────────────────────────
 
 app.MapGet("/api/schema", () =>
@@ -368,6 +488,10 @@ namespace Connector.Api
 
     record SchemaColumnDto(string Name, string ErpSource, string Type, string Notes, bool Active);
     record SchemaDto(string Version, SchemaColumnDto[] Columns);
+
+    record SourceColumnDto(string Name, string Type, bool Nullable, bool PrimaryKey);
+    record SourceTableDto(string Name, string Description, SourceColumnDto[] Columns);
+    record SourceSchemaDto(string ConnectionLabel, SourceTableDto[] Tables);
 
     record RunNowResult(int SequenceNo, int RecordCount, string Sha256Short);
     record PreviewRecord(string Guid, string SerialNumber, string PartNumber, string? ParentSerialNumber,

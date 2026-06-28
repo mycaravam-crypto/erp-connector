@@ -8,9 +8,9 @@ import type { SchemaDefinition } from '@/api/erp'
 function buildRouter() {
   const r = createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: '/schema', name: 'schema', component: SchemaView }],
+    routes: [{ path: '/export-schema', name: 'export-schema', component: SchemaView }],
   })
-  r.push('/schema')
+  r.push('/export-schema')
   return r
 }
 
@@ -50,18 +50,17 @@ describe('SchemaView', () => {
     expect(w.text()).toContain('no data')
   })
 
-  it('renders schema version badge', async () => {
+  it('renders schema version in header chip', async () => {
     vi.spyOn(erpApi, 'getSchema').mockResolvedValueOnce(SCHEMA)
     const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
-    expect(w.find('.version-badge').text()).toBe('v2.0')
+    expect(w.find('.version-chip').text()).toContain('v2.0')
   })
 
   it('renders one row per column', async () => {
     vi.spyOn(erpApi, 'getSchema').mockResolvedValueOnce(SCHEMA)
     const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
-    // first table is the active columns table; filter only its tbody rows
     const firstTbody = w.find('table tbody')
     expect(firstTbody.findAll('tr')).toHaveLength(7)
   })
@@ -75,21 +74,37 @@ describe('SchemaView', () => {
     expect(w.text()).toContain('commissioning_date')
   })
 
-  it('shows pending section with Open Point #4 and GDPR entries', async () => {
+  it('shows excluded fields section with Open Point #4 and GDPR entries', async () => {
     vi.spyOn(erpApi, 'getSchema').mockResolvedValueOnce(SCHEMA)
     const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
     expect(w.text()).toContain('Open Point #4')
     expect(w.text()).toContain('GDPR')
-    expect(w.text()).toContain('storagelocation.location_id')
+    expect(w.text()).toContain('systemconfiguration.storage_location')
     expect(w.text()).toContain('technician_name')
   })
 
-  it('shows the coalesce key explanation', async () => {
+  it('shows format selection buttons', async () => {
     vi.spyOn(erpApi, 'getSchema').mockResolvedValueOnce(SCHEMA)
     const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
-    expect(w.text()).toContain('Coalesce Key')
-    expect(w.text()).toContain('coalesce')
+    const fmts = w.findAll('.format-btn')
+    expect(fmts.length).toBeGreaterThanOrEqual(3)
+    const labels = fmts.map((b) => b.text())
+    expect(labels.some((l) => l.includes('xlsx'))).toBe(true)
+    expect(labels.some((l) => l.includes('csv'))).toBe(true)
+    expect(labels.some((l) => l.includes('json'))).toBe(true)
+  })
+
+  it('toggles a column off when checkbox is unchecked', async () => {
+    vi.spyOn(erpApi, 'getSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+    const checkboxes = w.findAll('input[type="checkbox"]')
+    expect(checkboxes.length).toBe(7)
+    const chip = w.find('.active-chip')
+    expect(chip.text()).toContain('7 / 7')
+    await checkboxes[0].setValue(false)
+    expect(w.find('.active-chip').text()).toContain('6 / 7')
   })
 })

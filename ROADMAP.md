@@ -1,7 +1,7 @@
 # Connector — Implementation Roadmap
 
 Tracks progress against the AI Coding Agent Roadmap (session-persistent).  
-Last updated: 2026-06-28
+Last updated: 2026-06-28 (session 2)
 
 ---
 
@@ -72,6 +72,13 @@ File: `../connector_document/TECHNICAL_CONCEPT.md`
 | 4.7 Navigation bar | ✅ | App header nav: Export Runs · ERP Database · Export Schema with active-link highlighting |
 | 4.8 ERP Database view | ✅ | BOM tree (expand/collapse) · flat list with search + column sort · per-row detail panel showing excluded fields with GDPR / Open Point #4 tags |
 | 4.9 Export Schema view | ✅ | Schema version badge · active column mapping table · pending fields section · coalesce key explanation — **read-only; schema is hardcoded in Program.cs** |
+| 4.10 Workflow-based UI restructure | ✅ | Nav replaced with 4-step flow: Connect → Source Schema → Export Schema → Export; step badges + numbered circles in header |
+| 4.11 ConnectionView (Step 1) | ✅ | Form for Postgres host/port/db/user/password; Test Connection button calls `/api/source-schema`; config persisted to `localStorage` |
+| 4.12 SourceSchemaView (Step 2) | ✅ | Expandable table/column browser; calls `/api/source-schema`; shows type, nullable, PK per column |
+| 4.13 `/api/source-schema` endpoint | ✅ | Returns all 4 ERP tables with column types — mirrors what a production PostgreSQL reader would expose |
+| 4.14 Export Schema column toggles (Step 3) | ✅ | Checkboxes enable/disable columns; active count badge updates live; format picker (xlsx/csv/json) saved to `localStorage` |
+| 4.15 ExportView — merged Step 4 | ✅ | Format picker + Run Export button + preview table + export run history in one view |
+| 4.16 Multi-format export (csv/json) | ✅ | `POST /api/pipeline/run?format=xlsx\|csv\|json`; CSV and JSON built inline; `BuildManifestFileName` fixed to handle non-xlsx extensions |
 
 ---
 
@@ -97,14 +104,15 @@ Frontend tests (Vitest): ✅ 51/51 passing
 
 ## Remaining Work
 
-93/93 tests passing (42 .NET · 51 Vitest).
+42 .NET tests · 38 Vitest tests — all passing.
 
-### Verified gaps (found during runtime verification 2026-06-28)
+### Verified gaps
 
 | Gap | Current state | Work needed |
 |---|---|---|
-| Editable export schema | Schema hardcoded in `Program.cs`; `SchemaView` is read-only display only | Persist schema to DB; add POST/PUT `/api/schema/columns`; add edit form to SchemaView |
-| Dynamic ERP connection | `ErpDatabaseView` reads demo SQLite only; no UI to point at a real ERP | Phase 6 real `IErpReader` + connection config UI |
+| Column toggle persistence | Active/inactive column set lives only in browser memory | Persist to DB; add `PATCH /api/schema/columns`; SchemaView reads from API |
+| Real Postgres IErpReader | Source schema and data still read from demo SQLite | Phase 6: production `IErpReader` + pass connection config from `ConnectionView` to backend |
+| Connection form → backend | Host/port/db entered in Step 1 stored in localStorage only | Wire config to backend so `/api/source-schema` introspects the actual Postgres target |
 
 ### Open points that will drive future code changes (tracked in `13-open-points.md`):
 | Open Point | When it unblocks | Code impact |

@@ -44,9 +44,10 @@ public static class ExportSchema
     /// Dateiname-Template. Sequenznummer 4-stellig nullgepuffert, Datum UTC ISO-8601 kompakt.
     /// Beispiel: export_0042_20260628T060000Z.xlsx
     /// </summary>
-    public static string BuildFileName(int sequenceNumber, DateTimeOffset extractedAt) =>
-        $"export_{sequenceNumber:D4}_{extractedAt:yyyyMMdd'T'HHmmss'Z'}.xlsx";
+    public static string BuildFileName(int sequenceNumber, DateTimeOffset extractedAt, string extension = "xlsx") =>
+        $"export_{sequenceNumber:D4}_{extractedAt:yyyyMMdd'T'HHmmss'Z'}.{extension}";
 
     /// <summary>Manifest-Dateiname zum zugehörigen Daten-Dateinamen.</summary>
-    public static string BuildManifestFileName(string dataFileName) => dataFileName.Replace(".xlsx", ".manifest.json");
+    public static string BuildManifestFileName(string dataFileName) =>
+        Path.GetFileNameWithoutExtension(dataFileName) + ".manifest.json";
 }

@@ -62,10 +62,11 @@ IDataMinimizer.Minimize()
     ↓  ExportItem[]  (TechnicianName, StorageLocation stripped; type system enforces this)
 ISchemaMapper.Map()
     ↓  MappedExportRecord[]  (ISO-8601 dates, all identifiers as strings)
-IPackager.PackageAsync()
-    ↓  ExportPackage  (Excel bytes + ExportManifest with SHA-256 + sequence number)
+IPackager.PackageAsync()          (xlsx only — routed by format param)
+    OR inline CSV / JSON builder   (csv / json formats — built directly in the run endpoint)
+    ↓  ExportPackage  (file bytes + ExportManifest with SHA-256 + sequence number)
 IExportSink.WriteAsync()
-    → staging/export_NNNN_YYYYMMDDTHHmmssZ.xlsx
+    → staging/export_NNNN_YYYYMMDDTHHmmssZ.{xlsx|csv|json}
     → staging/export_NNNN_YYYYMMDDTHHmmssZ.manifest.json
 ```
 
@@ -174,9 +175,10 @@ All endpoints except `/api/auth/login` require a JWT bearer token (`Authorizatio
 | `GET` | `/api/exports` | List all export runs (newest first), with short SHA |
 | `GET` | `/api/exports/{seqNo}` | Full detail for one run |
 | `POST` | `/api/exports/{seqNo}/release` | Four-eyes release — body: `{"operator":"...", "approver":"..."}` |
+| `GET` | `/api/source-schema` | Source database tables and columns (schema browser) |
 | `GET` | `/api/erp/records` | All ERP CIs with scope flags, BOM parent links, and excluded GDPR fields |
-| `GET` | `/api/schema` | Export schema version and full column-mapping definitions (read-only) |
-| `POST` | `/api/pipeline/run` | Trigger an immediate pipeline run |
+| `GET` | `/api/schema` | Export schema version and full column-mapping definitions |
+| `POST` | `/api/pipeline/run?format=xlsx\|csv\|json` | Trigger an immediate pipeline run in the requested format (default: xlsx) |
 
 The release endpoint enforces `Operator != Approver` and rejects runs already in `Released` or `Failed` status.
 
@@ -222,25 +224,36 @@ The pipeline, tests, and API are all decoupled from the reader via `IErpReader` 
 
 The release UI lives at `src/connector-ui/` — a Vue 3 + TypeScript + Vue Router app scaffolded with `npm create vue@latest`.
 
+The UI follows a **four-step workflow** that mirrors the actual connector process:
+
+| Step | Route | View | Purpose |
+|---|---|---|---|
+| 1 | `/connect` | `ConnectionView` | Configure and test the source database connection |
+| 2 | `/source-schema` | `SourceSchemaView` | Browse tables and columns read from the source DB |
+| 3 | `/export-schema` | `SchemaView` | Toggle export columns on/off and choose output format |
+| 4 | `/exports` | `ExportView` | Trigger export (xlsx / csv / json), preview data, review past runs |
+
 ```
 src/connector-ui/
 ├── src/
 │   ├── views/
-│   │   ├── LoginView.vue      ← JWT login form
-│   │   ├── ExportList.vue     ← table of all runs (GET /api/exports)
-│   │   ├── ExportDetail.vue   ← detail + release form (GET + POST)
-│   │   ├── ErpDatabaseView.vue ← BOM tree / flat list / search / scope filter / detail panel
-│   │   ├── SchemaView.vue     ← export schema definition (read-only display)
-│   │   └── PipelineView.vue   ← run-now trigger + export preview
+│   │   ├── LoginView.vue        ← JWT login form
+│   │   ├── ConnectionView.vue   ← Step 1: source DB connection config + test
+│   │   ├── SourceSchemaView.vue ← Step 2: expandable table/column browser (GET /api/source-schema)
+│   │   ├── SchemaView.vue       ← Step 3: column toggles + format picker (GET /api/schema)
+│   │   ├── ExportView.vue       ← Step 4: format select + run + preview + run history
+│   │   └── ExportDetail.vue     ← detail + four-eyes release form
 │   ├── components/
-│   │   └── ReleaseDialog.vue  ← four-eyes form (operator + approver fields)
+│   │   └── ReleaseDialog.vue    ← four-eyes form (approver field; operator inferred from JWT)
 │   ├── api/
-│   │   ├── auth.ts            ← login / token storage
-│   │   ├── erp.ts             ← listErpRecords, getSchema
-│   │   └── exports.ts         ← typed fetch wrappers for export endpoints
-│   └── __tests__/             ← Vitest + @vue/test-utils test suite (93 tests)
+│   │   ├── auth.ts              ← login / token storage
+│   │   ├── erp.ts               ← listErpRecords, getSchema
+│   │   ├── exports.ts           ← typed fetch wrappers for export endpoints
+│   │   ├── pipeline.ts          ← runNow(format), getPreview
+│   │   └── connection.ts        ← getSourceSchema
+│   └── __tests__/               ← Vitest + @vue/test-utils test suite
 ├── package.json
-└── vite.config.ts             ← proxy /api → http://localhost:5189
+└── vite.config.ts               ← proxy /api → http://localhost:5189
 ```
 
 ### Run the frontend
@@ -257,18 +270,19 @@ Vite proxies all `/api/*` requests to the backend on `:5189` — no CORS configu
 
 ```bash
 cd src/connector-ui
-npm test          # vitest run (93 tests, ~1 s)
+npm test          # vitest run (~1 s)
 npm run coverage  # with coverage report
 ```
 
 ### UI constraints
 
 - **JWT auth required.** All views redirect to `/login` when no valid token is present. Dev users `alice` and `bob` are seeded automatically.
-- **Four-eyes rule enforced server-side.** Client validates `operator != approver` too, but the server is authoritative.
+- **Four-eyes rule enforced server-side.** Client validates `operator != approver`; the server is authoritative.
 - **Status transitions are one-way.** `Released` and `Failed` runs hide the release form.
 - **SHA-256 short in list, full on detail.** Server returns 12-char prefix as `sha256Short`; `sha256` is the full hex string.
-- **Export schema is read-only.** `SchemaView` displays the schema but cannot edit it — columns are hardcoded in `Program.cs`. Editable schema is a planned future task (see ROADMAP).
-- **ERP Database view shows demo data only.** `ErpDatabaseView` reads the demo SQLite ERP; connecting to a real ERP requires a production `IErpReader` implementation (see "Connecting a Real ERP" below).
+- **Column toggles are client-side only.** `SchemaView` lets you enable/disable columns visually; the active set is not persisted to the server — the backend always exports all schema columns. Persisted schema editing is a planned future task (see ROADMAP).
+- **Source schema shows demo DB structure.** `SourceSchemaView` reads `/api/source-schema`, which returns the schema of the demo ERP (mirroring what a production PostgreSQL reader would expose).
+- **Export format persisted in `localStorage`.** The format choice (xlsx / csv / json) is remembered across sessions per browser.
 
 ---
 
