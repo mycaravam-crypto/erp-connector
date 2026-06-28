@@ -1,0 +1,20 @@
+namespace Connector.Core.Domain;
+
+/// <summary>
+/// Fertig gemappter Exportdatensatz — alle Felder sind export-bereit formatiert.
+/// </summary>
+/// <remarks>
+/// Alle Datumsfelder als ISO-8601-String, alle Identifikatoren als String (niemals numeric).
+/// Excel konvertiert numerisch aussehende Strings sonst lautlos in Zahlen und korrumpiert
+/// führende Nullen und lange Seriennummern — der Korrelationsschlüssel würde kaputt gehen.
+/// </remarks>
+public sealed record MappedExportRecord(
+    /// <summary>Hersteller-Seriennummer als Text. Coalesce-Feld auf ServiceNow-Seite.</summary>
+    string SerialNumber,
+    string PartNumber,
+    /// <summary>Null bei Wurzelelementen der BOM-Hierarchie.</summary>
+    string? ParentSerialNumber,
+    string ModelReference,
+    /// <summary>ISO-8601-Datum (yyyy-MM-dd) oder leerer String wenn nicht erfasst.</summary>
+    string CommissioningDateIso8601,
+    string MaintenanceState);

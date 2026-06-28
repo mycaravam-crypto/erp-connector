@@ -1,0 +1,40 @@
+# .NET build output
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/
+
+# SQLite runtime databases (generated at startup — not source artefacts)
+*.db
+*.db-shm
+*.db-wal
+
+# Staging folder (export files written at runtime)
+src/Connector.Api/staging/
+
+# Test result artefacts
+TestResults/
+*.trx
+*.coverage
+coverage*/
+
+# NuGet
+*.nupkg
+.nuget/
+
+# Node / Vue frontend (future)
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
