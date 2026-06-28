@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getExport, type ExportDetail } from '@/api/exports'
 import ReleaseDialog from '@/components/ReleaseDialog.vue'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -24,20 +25,7 @@ async function load() {
   loading.value = false
 }
 
-async function onReleased() {
-  await load()
-}
-
 onMounted(load)
-
-function statusClass(status: string) {
-  return {
-    badge: true,
-    'badge-pending': status === 'Pending',
-    'badge-released': status === 'Released',
-    'badge-failed': status === 'Failed',
-  }
-}
 </script>
 
 <template>
@@ -50,7 +38,7 @@ function statusClass(status: string) {
     <template v-else-if="run">
       <div class="header-row">
         <h1>Export Run #{{ run.sequenceNo }}</h1>
-        <span :class="statusClass(run.status)">{{ run.status }}</span>
+        <StatusBadge :status="run.status" />
       </div>
 
       <table class="detail-table">
@@ -93,7 +81,7 @@ function statusClass(status: string) {
       <ReleaseDialog
         v-if="run.status === 'Pending'"
         :seqNo="run.sequenceNo"
-        @released="onReleased"
+        @released="load"
       />
     </template>
   </div>
@@ -150,18 +138,6 @@ h1 {
   font-size: 0.8rem;
   word-break: break-all;
 }
-
-.badge {
-  display: inline-block;
-  padding: 0.2rem 0.6rem;
-  border-radius: 9999px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.badge-pending  { background: #fef9c3; color: #854d0e; }
-.badge-released { background: #dcfce7; color: #166534; }
-.badge-failed   { background: #fee2e2; color: #991b1b; }
 
 .info  { color: #64748b; }
 .error { color: #dc2626; }

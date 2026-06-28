@@ -67,5 +67,9 @@ public sealed class FileSystemExportSink(
 
 public sealed class ExportSinkOptions
 {
+    /// <summary>
+    /// Absoluter oder relativer Pfad zum Staging-Verzeichnis.
+    /// Das Gateway-System muss Leserecht auf diesen Pfad haben; der Dienst benötigt Schreibrecht.
+    /// </summary>
     public string StagingPath { get; set; } = string.Empty;
 }

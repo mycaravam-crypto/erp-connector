@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { listExports, type ExportSummary } from '@/api/exports'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const runs = ref<ExportSummary[]>([])
 const error = ref<string | null>(null)
@@ -13,22 +14,13 @@ async function load() {
   try {
     runs.value = await listExports()
   } catch {
-    error.value = 'Could not reach the API. Is the backend running on :5000?'
+    error.value = 'Could not reach the API. Is the backend running on :5189?'
   } finally {
     loading.value = false
   }
 }
 
 onMounted(load)
-
-function statusClass(status: string) {
-  return {
-    badge: true,
-    'badge-pending': status === 'Pending',
-    'badge-released': status === 'Released',
-    'badge-failed': status === 'Failed',
-  }
-}
 </script>
 
 <template>
@@ -63,7 +55,7 @@ function statusClass(status: string) {
           <td>{{ run.extractedAt }}</td>
           <td>{{ run.recordCount }}</td>
           <td><code>{{ run.sha256Short }}</code></td>
-          <td><span :class="statusClass(run.status)">{{ run.status }}</span></td>
+          <td><StatusBadge :status="run.status" /></td>
           <td>{{ run.dataFileName }}</td>
         </tr>
       </tbody>
@@ -107,18 +99,6 @@ th {
 tr:hover td {
   background: #f1f5f9;
 }
-
-.badge {
-  display: inline-block;
-  padding: 0.15rem 0.5rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.badge-pending  { background: #fef9c3; color: #854d0e; }
-.badge-released { background: #dcfce7; color: #166534; }
-.badge-failed   { background: #fee2e2; color: #991b1b; }
 
 .info  { color: #64748b; }
 .error { color: #dc2626; }

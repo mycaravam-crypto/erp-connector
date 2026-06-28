@@ -11,10 +11,13 @@ namespace Connector.Core.Domain;
 public sealed record MappedExportRecord(
     /// <summary>Hersteller-Seriennummer als Text. Coalesce-Feld auf ServiceNow-Seite.</summary>
     string SerialNumber,
+    /// <summary>Artikel-/Teilenummer des Modells.</summary>
     string PartNumber,
     /// <summary>Null bei Wurzelelementen der BOM-Hierarchie.</summary>
     string? ParentSerialNumber,
+    /// <summary>Referenz auf den Modellartikel (Masterdaten).</summary>
     string ModelReference,
     /// <summary>ISO-8601-Datum (yyyy-MM-dd) oder leerer String wenn nicht erfasst.</summary>
     string CommissioningDateIso8601,
+    /// <summary>Wartungsrelevanter Zustand aus dem ERP, z.B. "Active", "InRepair".</summary>
     string MaintenanceState);

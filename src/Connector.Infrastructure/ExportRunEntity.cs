@@ -14,6 +14,7 @@ public sealed class ExportRunEntity
     /// <summary>UTC-Zeitpunkt des ERP-Laufs als ISO-8601-String (SQLite kennt kein DateTimeOffset nativ).</summary>
     public string ExtractedAt { get; set; } = string.Empty;
 
+    /// <summary>Anzahl der exportierten CI-Datensätze. 0 bei Status Failed.</summary>
     public int RecordCount { get; set; }
 
     /// <summary>SHA-256 der Export-Datei, Hex lowercase. Leer bei Status Failed.</summary>
@@ -31,6 +32,7 @@ public sealed class ExportRunEntity
     /// <summary>Benutzername des Approvers (Freigabe). Muss verschieden von OperatedBy sein.</summary>
     public string? ApprovedBy { get; set; }
 
+    /// <summary>Dateiname der Excel-Datei auf dem Staging-Pfad. Leer bei Status Failed.</summary>
     public string DataFileName { get; set; } = string.Empty;
 }
 

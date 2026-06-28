@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import ExportList from '../views/ExportList.vue'
+import ExportDetail from '../views/ExportDetail.vue'
 
+// Iteration 1: zwei Seiten, direktes Import ohne Lazy-Chunks (YAGNI).
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -12,7 +14,7 @@ const router = createRouter({
     {
       path: '/exports/:seqNo',
       name: 'export-detail',
-      component: () => import('../views/ExportDetail.vue'),
+      component: ExportDetail,
     },
   ],
 })

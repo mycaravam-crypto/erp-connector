@@ -46,15 +46,17 @@ using (var scope = app.Services.CreateScope())
 
 // API-Endpunkte — nur was die Release-UI braucht.
 
+/// <summary>Gibt alle ExportRun-Einträge zurück, neueste zuerst.</summary>
 app.MapGet("/api/exports", async (ExportLogDbContext db) =>
     await db.ExportRuns
         .OrderByDescending(r => r.SequenceNo)
         .Select(r => new ExportRunSummary(
             r.SequenceNo, r.ExtractedAt, r.RecordCount,
-            r.Sha256.Substring(0, r.Sha256.Length >= 12 ? 12 : r.Sha256.Length),
+            r.Sha256[..Math.Min(12, r.Sha256.Length)],
             r.Status, r.DataFileName))
         .ToListAsync());
 
+/// <summary>Gibt den vollständigen ExportRun inkl. Manifest-Metadaten zurück.</summary>
 app.MapGet("/api/exports/{seqNo:int}", async (int seqNo, ExportLogDbContext db) =>
 {
     var run = await db.ExportRuns.FirstOrDefaultAsync(r => r.SequenceNo == seqNo);

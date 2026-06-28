@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using Connector.Core.Domain;
+using Connector.Core.Schema;
 using Connector.Erp.DemoErp;
 using Connector.Export;
 using Connector.Infrastructure;
@@ -96,7 +97,7 @@ public sealed class PipelineIntegrationTests : IDisposable
         await _sink.WriteAsync(package, CancellationToken.None);
 
         var dataFile     = Path.Combine(_stagingDir, package.DataFileName);
-        var manifestFile = Path.Combine(_stagingDir, package.DataFileName.Replace(".xlsx", ".manifest.json"));
+        var manifestFile = Path.Combine(_stagingDir, ExportSchema.BuildManifestFileName(package.DataFileName));
 
         Assert.True(File.Exists(dataFile),     $"Datendatei fehlt: {dataFile}");
         Assert.True(File.Exists(manifestFile), $"Manifest fehlt:   {manifestFile}");
@@ -108,7 +109,7 @@ public sealed class PipelineIntegrationTests : IDisposable
         var package = await RunPipelineAsync(sequenceNumber: 4);
         await _sink.WriteAsync(package, CancellationToken.None);
 
-        var manifestFile = Path.Combine(_stagingDir, package.DataFileName.Replace(".xlsx", ".manifest.json"));
+        var manifestFile = Path.Combine(_stagingDir, ExportSchema.BuildManifestFileName(package.DataFileName));
         var json = await File.ReadAllTextAsync(manifestFile);
 
         // Wirft bei ungültigem JSON
