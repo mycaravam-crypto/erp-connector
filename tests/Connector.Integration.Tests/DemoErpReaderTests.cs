@@ -20,9 +20,7 @@ public sealed class DemoErpReaderTests : IDisposable
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
 
-        var options = new DbContextOptionsBuilder<DemoErpDbContext>()
-            .UseSqlite(_connection)
-            .Options;
+        var options = new DbContextOptionsBuilder<DemoErpDbContext>().UseSqlite(_connection).Options;
 
         _db = new DemoErpDbContext(options);
         _db.Database.EnsureCreated();
@@ -135,8 +133,7 @@ public sealed class DemoErpReaderTests : IDisposable
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => sut.ReadMaintainableCIsAsync(cts.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => sut.ReadMaintainableCIsAsync(cts.Token));
     }
 
     public void Dispose()

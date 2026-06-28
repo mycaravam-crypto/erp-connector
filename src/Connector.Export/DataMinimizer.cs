@@ -14,13 +14,16 @@ namespace Connector.Export;
 /// </remarks>
 public sealed class DataMinimizer : IDataMinimizer
 {
-    public ExportItem Minimize(ErpConfigurationItem source) => new(
-        SerialNumber: source.SerialNumber!,      // Filter hat null bereits ausgeschlossen
-        PartNumber: source.PartNumber ?? string.Empty,
-        ParentSerialNumber: source.ParentSerialNumber,
-        ModelReference: source.ModelReference ?? string.Empty,
-        CommissioningDate: source.CommissioningDate,
-        MaintenanceState: source.MaintenanceState);
+    public ExportItem Minimize(ErpConfigurationItem source) =>
+        new(
+            Guid: source.Guid!, // Filter hat null bereits ausgeschlossen
+            SerialNumber: source.SerialNumber, // Kann fehlen — blockiert Export nicht
+            PartNumber: source.PartNumber ?? string.Empty,
+            ParentSerialNumber: source.ParentSerialNumber,
+            ModelReference: source.ModelReference ?? string.Empty,
+            CommissioningDate: source.CommissioningDate,
+            MaintenanceState: source.MaintenanceState
+        );
     // TechnicianName: nicht übertragen (DSGVO)
     // StorageLocation: nicht übertragen (Open Point #4 ungeklärt)
 }

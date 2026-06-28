@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
-
   <ItemGroup>
     <ProjectReference Include="..\Connector.Core\Connector.Core.csproj" />
     <ProjectReference Include="..\Connector.Infrastructure\Connector.Infrastructure.csproj" />
@@ -19,5 +18,4 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
-
 </Project>

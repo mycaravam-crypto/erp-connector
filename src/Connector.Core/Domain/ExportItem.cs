@@ -11,9 +11,13 @@ namespace Connector.Core.Domain;
 /// nicht nur in der Laufzeitlogik von <c>DataMinimizer</c>.
 /// </remarks>
 public sealed record ExportItem(
-    string SerialNumber,
+    /// <summary>Interne PostgreSQL-UUID — Coalesce-Schlüssel. Filter hat null ausgeschlossen.</summary>
+    string Guid,
+    /// <summary>Hersteller-Seriennummer. Kann fehlen — blockiert den Export nicht.</summary>
+    string? SerialNumber,
     string PartNumber,
     string? ParentSerialNumber,
     string ModelReference,
     DateOnly? CommissioningDate,
-    string? MaintenanceState);
+    string? MaintenanceState
+);

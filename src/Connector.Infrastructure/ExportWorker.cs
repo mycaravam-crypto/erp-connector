@@ -22,8 +22,12 @@ public sealed class ExportWorker(
     IPackager packager,
     IExportSink sink,
     IOptions<ExportWorkerOptions> options,
-    ILogger<ExportWorker> logger) : BackgroundService
+    IOptions<ExportSinkOptions> sinkOptions,
+    ILogger<ExportWorker> logger
+) : BackgroundService
 {
+    private readonly string _stagingPath = sinkOptions.Value.StagingPath;
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation("ExportWorker gestartet. Geplante Zeit: {Time}", options.Value.ScheduledTimeUtc);
@@ -36,7 +40,10 @@ public sealed class ExportWorker(
             await Task.Delay(delay, stoppingToken);
 
             if (!stoppingToken.IsCancellationRequested)
+            {
                 await RunExportAsync(stoppingToken);
+                await RunRetentionCleanupAsync(stoppingToken);
+            }
         }
     }
 
@@ -76,7 +83,10 @@ public sealed class ExportWorker(
 
             logger.LogInformation(
                 "Export #{Seq} abgeschlossen: {Count} Records, SHA-256={Hash}",
-                sequenceNo, package.Manifest.RecordCount, package.Manifest.Sha256Checksum);
+                sequenceNo,
+                package.Manifest.RecordCount,
+                package.Manifest.Sha256Checksum
+            );
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -92,6 +102,85 @@ public sealed class ExportWorker(
         return (max ?? 0) + 1;
     }
 
+    private async Task RunRetentionCleanupAsync(CancellationToken ct)
+    {
+        var retentionDays = options.Value.RetentionDays;
+        if (retentionDays <= 0)
+            return;
+
+        var cutoff = DateTimeOffset.UtcNow.AddDays(-retentionDays);
+        logger.LogInformation(
+            "Retention: Bereinige Artefakte älter als {Cutoff:yyyy-MM-dd} (RetentionDays={Days})",
+            cutoff,
+            retentionDays
+        );
+
+        try
+        {
+            PurgeStagingFiles(cutoff);
+
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<ExportLogDbContext>();
+            await PurgeExportRunRecordsAsync(db, cutoff, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Retention-Fehler dürfen den nächsten Export nicht blockieren.
+            logger.LogError(ex, "Retention-Bereinigung fehlgeschlagen");
+        }
+    }
+
+    private void PurgeStagingFiles(DateTimeOffset cutoff)
+    {
+        if (!Directory.Exists(_stagingPath))
+            return;
+
+        var deleted = 0;
+        foreach (var file in Directory.EnumerateFiles(_stagingPath))
+        {
+            try
+            {
+                if (File.GetLastWriteTimeUtc(file) < cutoff.UtcDateTime)
+                {
+                    File.Delete(file);
+                    deleted++;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Retention: Datei konnte nicht gelöscht werden: {File}", file);
+            }
+        }
+
+        if (deleted > 0)
+            logger.LogInformation("Retention: {Count} Staging-Dateien gelöscht", deleted);
+    }
+
+    private async Task PurgeExportRunRecordsAsync(ExportLogDbContext db, DateTimeOffset cutoff, CancellationToken ct)
+    {
+        // Nur abgeschlossene Runs löschen — Pending-Runs sind noch aktiv (warten auf Freigabe).
+        var candidates = await db.ExportRuns.Where(r => r.Status != ExportRunStatus.Pending).ToListAsync(ct);
+
+        var toDelete = candidates
+            .Where(r =>
+                DateTimeOffset.TryParse(
+                    r.ExtractedAt,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.RoundtripKind,
+                    out var ts
+                )
+                && ts < cutoff
+            )
+            .ToList();
+
+        if (toDelete.Count > 0)
+        {
+            db.ExportRuns.RemoveRange(toDelete);
+            await db.SaveChangesAsync(ct);
+            logger.LogInformation("Retention: {Count} ExportRun-Einträge gelöscht", toDelete.Count);
+        }
+    }
+
     private TimeSpan ComputeDelayUntilNextRun()
     {
         var now = DateTimeOffset.UtcNow;
@@ -105,4 +194,10 @@ public sealed class ExportWorkerOptions
 {
     /// <summary>UTC-Zeit, zu der der tägliche Export läuft. Konfigurierbar via appsettings.json.</summary>
     public TimeSpan ScheduledTimeUtc { get; set; } = new(6, 0, 0); // Default: 06:00 UTC
+
+    /// <summary>
+    /// Anzahl der Tage, nach denen Staging-Dateien und abgeschlossene ExportRun-Einträge gelöscht werden.
+    /// 0 = Retention-Bereinigung deaktiviert.
+    /// </summary>
+    public int RetentionDays { get; set; } = 30;
 }

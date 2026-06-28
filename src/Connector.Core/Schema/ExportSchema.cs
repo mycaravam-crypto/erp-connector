@@ -14,11 +14,12 @@ namespace Connector.Core.Schema;
 public static class ExportSchema
 {
     /// <summary>Aktuelle Schema-Version. Reist im Manifest mit jeder Export-Datei mit.</summary>
-    public const string Version = "1.0";
+    public const string Version = "2.0";
 
     /// <summary>Spaltenköpfe in der Reihenfolge, wie sie in der Excel-Datei erscheinen.</summary>
     public static readonly IReadOnlyList<string> Columns =
     [
+        ColumnNames.Guid,
         ColumnNames.SerialNumber,
         ColumnNames.PartNumber,
         ColumnNames.ParentSerialNumber,
@@ -30,6 +31,7 @@ public static class ExportSchema
     /// <summary>Spaltennamen als typsichere Konstanten — verhindert Tippfehler bei der Zuordnung.</summary>
     public static class ColumnNames
     {
+        public const string Guid = "guid";
         public const string SerialNumber = "serial_number";
         public const string PartNumber = "part_number";
         public const string ParentSerialNumber = "parent_serial_number";
@@ -46,6 +48,5 @@ public static class ExportSchema
         $"export_{sequenceNumber:D4}_{extractedAt:yyyyMMdd'T'HHmmss'Z'}.xlsx";
 
     /// <summary>Manifest-Dateiname zum zugehörigen Daten-Dateinamen.</summary>
-    public static string BuildManifestFileName(string dataFileName) =>
-        dataFileName.Replace(".xlsx", ".manifest.json");
+    public static string BuildManifestFileName(string dataFileName) => dataFileName.Replace(".xlsx", ".manifest.json");
 }

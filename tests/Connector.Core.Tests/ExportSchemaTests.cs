@@ -11,10 +11,11 @@ public sealed class ExportSchemaTests
     [Fact]
     public void Schema_HasExpectedColumns()
     {
-        // Snapshot der erwarteten Spalten für Schema-Version 1.0.
+        // Snapshot der erwarteten Spalten für Schema-Version 2.0.
         // Änderungen hier = ICD-Änderung = Abstimmung mit Hersteller erforderlich.
         var expected = new[]
         {
+            "guid",
             "serial_number",
             "part_number",
             "parent_serial_number",
@@ -27,9 +28,9 @@ public sealed class ExportSchemaTests
     }
 
     [Fact]
-    public void Schema_Version_Is_1_0()
+    public void Schema_Version_Is_2_0()
     {
-        Assert.Equal("1.0", ExportSchema.Version);
+        Assert.Equal("2.0", ExportSchema.Version);
     }
 
     [Fact]

@@ -8,7 +8,8 @@
       Treat warnings as errors only in Release builds on non-test projects.
       This keeps the inner dev loop friction-free while making the CI gate strict.
     -->
-    <TreatWarningsAsErrors Condition="'$(Configuration)' == 'Release' AND '$(IsTestProject)' != 'true'">true</TreatWarningsAsErrors>
+    <TreatWarningsAsErrors Condition="'$(Configuration)' == 'Release' AND '$(IsTestProject)' != 'true'"
+      >true</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <!--

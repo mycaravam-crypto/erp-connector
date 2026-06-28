@@ -29,9 +29,20 @@ public sealed class SchemaMapperTests
     }
 
     [Fact]
+    public void Map_GuidPreservedAsString()
+    {
+        // Kritisch: GUID ist der Coalesce-Schlüssel — muss exakt als String erhalten bleiben.
+        var item = MakeItem(guid: "sc-rack-0001");
+
+        var result = _sut.Map(item);
+
+        Assert.Equal("sc-rack-0001", result.Guid);
+    }
+
+    [Fact]
     public void Map_SerialNumberPreservedAsString()
     {
-        // Kritisch: Seriennummern mit führenden Nullen dürfen nicht zu int konvertiert werden.
+        // Seriennummern mit führenden Nullen dürfen nicht zu int konvertiert werden.
         var item = MakeItem(serial: "0042-A");
 
         var result = _sut.Map(item);
@@ -40,20 +51,32 @@ public sealed class SchemaMapperTests
     }
 
     [Fact]
-    public void Map_EmptySerial_ThrowsInvalidCorrelationKeyException()
+    public void Map_NullSerial_ReturnsEmptyString()
     {
-        var item = MakeItem(serial: "");
+        // Missing serial is allowed — it maps to empty string (not null) to keep Excel cells consistent.
+        var item = MakeItem(serial: null);
+
+        var result = _sut.Map(item);
+
+        Assert.Equal(string.Empty, result.SerialNumber);
+    }
+
+    [Fact]
+    public void Map_EmptyGuid_ThrowsInvalidCorrelationKeyException()
+    {
+        var item = MakeItem(guid: "");
 
         Assert.Throws<InvalidCorrelationKeyException>(() => _sut.Map(item));
     }
 
-    private static ExportItem MakeItem(
-        string serial = "SN-001",
-        DateOnly? date = null) => new(
+    private static ExportItem MakeItem(string guid = "sc-001", string? serial = "SN-001", DateOnly? date = null) =>
+        new(
+            Guid: guid,
             SerialNumber: serial,
             PartNumber: "P-001",
             ParentSerialNumber: null,
             ModelReference: "MODEL-A",
             CommissioningDate: date,
-            MaintenanceState: "InBetrieb");
+            MaintenanceState: "InBetrieb"
+        );
 }

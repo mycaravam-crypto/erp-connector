@@ -34,9 +34,7 @@ public sealed class PipelineIntegrationTests : IDisposable
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
 
-        var dbOptions = new DbContextOptionsBuilder<DemoErpDbContext>()
-            .UseSqlite(_connection)
-            .Options;
+        var dbOptions = new DbContextOptionsBuilder<DemoErpDbContext>().UseSqlite(_connection).Options;
         _erpDb = new DemoErpDbContext(dbOptions);
         _erpDb.Database.EnsureCreated();
         DemoErpSeed.Seed(_erpDb);
@@ -44,14 +42,15 @@ public sealed class PipelineIntegrationTests : IDisposable
         _stagingDir = Path.Combine(Path.GetTempPath(), $"connector-test-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_stagingDir);
 
-        _reader   = new DemoErpReader(_erpDb, NullLogger<DemoErpReader>.Instance);
-        _filter   = new ExportFilter(NullLogger<ExportFilter>.Instance);
+        _reader = new DemoErpReader(_erpDb, NullLogger<DemoErpReader>.Instance);
+        _filter = new ExportFilter(NullLogger<ExportFilter>.Instance);
         _minimizer = new DataMinimizer();
-        _mapper   = new SchemaMapper();
+        _mapper = new SchemaMapper();
         _packager = new ExcelPackager();
-        _sink     = new FileSystemExportSink(
+        _sink = new FileSystemExportSink(
             Options.Create(new ExportSinkOptions { StagingPath = _stagingDir }),
-            NullLogger<FileSystemExportSink>.Instance);
+            NullLogger<FileSystemExportSink>.Instance
+        );
     }
 
     [Fact]
@@ -67,18 +66,17 @@ public sealed class PipelineIntegrationTests : IDisposable
     {
         var package = await RunPipelineAsync(sequenceNumber: 1);
 
-        var computed = Convert.ToHexString(SHA256.HashData(package.DataFileBytes))
-            .ToLowerInvariant();
+        var computed = Convert.ToHexString(SHA256.HashData(package.DataFileBytes)).ToLowerInvariant();
 
         Assert.Equal(computed, package.Manifest.Sha256Checksum);
     }
 
     [Fact]
-    public async Task FullPipeline_ManifestSchemaVersionIs1_0()
+    public async Task FullPipeline_ManifestSchemaVersionIs2_0()
     {
         var package = await RunPipelineAsync(sequenceNumber: 1);
 
-        Assert.Equal("1.0", package.Manifest.SchemaVersion);
+        Assert.Equal("2.0", package.Manifest.SchemaVersion);
     }
 
     [Fact]
@@ -96,10 +94,10 @@ public sealed class PipelineIntegrationTests : IDisposable
         var package = await RunPipelineAsync(sequenceNumber: 3);
         await _sink.WriteAsync(package, CancellationToken.None);
 
-        var dataFile     = Path.Combine(_stagingDir, package.DataFileName);
+        var dataFile = Path.Combine(_stagingDir, package.DataFileName);
         var manifestFile = Path.Combine(_stagingDir, ExportSchema.BuildManifestFileName(package.DataFileName));
 
-        Assert.True(File.Exists(dataFile),     $"Datendatei fehlt: {dataFile}");
+        Assert.True(File.Exists(dataFile), $"Datendatei fehlt: {dataFile}");
         Assert.True(File.Exists(manifestFile), $"Manifest fehlt:   {manifestFile}");
     }
 
@@ -124,9 +122,22 @@ public sealed class PipelineIntegrationTests : IDisposable
         var mapped = await RunPipelineToMappedAsync();
 
         // MappedExportRecord hat kein TechnicianName-Feld — das ist die statische Garantie.
-        // Hier prüfen wir, dass alle fünf in-scope CIs im Ergebnis erscheinen.
+        // Hier prüfen wir, dass alle fünf in-scope CIs im Ergebnis erscheinen und jeder eine GUID hat.
         Assert.Equal(5, mapped.Count);
-        Assert.All(mapped, r => Assert.False(string.IsNullOrEmpty(r.SerialNumber)));
+        Assert.All(mapped, r => Assert.False(string.IsNullOrEmpty(r.Guid)));
+    }
+
+    [Fact]
+    public async Task FullPipeline_Guid_MatchesErpId()
+    {
+        // Der GUID im Export muss exakt dem systemconfiguration.id im ERP entsprechen.
+        var mapped = await RunPipelineToMappedAsync();
+
+        var rack = mapped.Single(r => r.SerialNumber == DemoErpSeed.Ids.SnRack1);
+        Assert.Equal(DemoErpSeed.Ids.ScRack1, rack.Guid);
+
+        var blade = mapped.Single(r => r.SerialNumber == DemoErpSeed.Ids.SnBlade1);
+        Assert.Equal(DemoErpSeed.Ids.ScBlade1, blade.Guid);
     }
 
     [Fact]
@@ -134,7 +145,7 @@ public sealed class PipelineIntegrationTests : IDisposable
     {
         var mapped = await RunPipelineToMappedAsync();
 
-        var rack  = mapped.Single(r => r.SerialNumber == DemoErpSeed.Ids.SnRack1);
+        var rack = mapped.Single(r => r.SerialNumber == DemoErpSeed.Ids.SnRack1);
         var blade = mapped.Single(r => r.SerialNumber == DemoErpSeed.Ids.SnBlade1);
 
         Assert.Null(rack.ParentSerialNumber);
@@ -168,12 +179,12 @@ public sealed class PipelineIntegrationTests : IDisposable
     {
         var missingSink = new FileSystemExportSink(
             Options.Create(new ExportSinkOptions { StagingPath = "/nonexistent/path/xyz" }),
-            NullLogger<FileSystemExportSink>.Instance);
+            NullLogger<FileSystemExportSink>.Instance
+        );
 
         var package = await RunPipelineAsync(sequenceNumber: 99);
 
-        await Assert.ThrowsAsync<ExportSinkException>(
-            () => missingSink.WriteAsync(package, CancellationToken.None));
+        await Assert.ThrowsAsync<ExportSinkException>(() => missingSink.WriteAsync(package, CancellationToken.None));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -186,8 +197,8 @@ public sealed class PipelineIntegrationTests : IDisposable
 
     private async Task<IReadOnlyList<MappedExportRecord>> RunPipelineToMappedAsync()
     {
-        var rawItems  = await _reader.ReadMaintainableCIsAsync(CancellationToken.None);
-        var filtered  = _filter.Filter(rawItems);
+        var rawItems = await _reader.ReadMaintainableCIsAsync(CancellationToken.None);
+        var filtered = _filter.Filter(rawItems);
         var minimized = filtered.Select(_minimizer.Minimize).ToList();
         return minimized.Select(_mapper.Map).ToList();
     }
@@ -196,6 +207,12 @@ public sealed class PipelineIntegrationTests : IDisposable
     {
         _erpDb.Dispose();
         _connection.Dispose();
-        try { Directory.Delete(_stagingDir, recursive: true); } catch { /* best-effort cleanup */ }
+        try
+        {
+            Directory.Delete(_stagingDir, recursive: true);
+        }
+        catch
+        { /* best-effort cleanup */
+        }
     }
 }

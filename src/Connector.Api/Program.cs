@@ -22,14 +22,16 @@ builder.Services.Configure<ExportWorkerOptions>(builder.Configuration.GetSection
 builder.Services.AddSingleton<IExportSink, FileSystemExportSink>();
 
 builder.Services.AddDbContext<ExportLogDbContext>(opt =>
-    opt.UseSqlite(builder.Configuration.GetConnectionString("ExportLog")));
+    opt.UseSqlite(builder.Configuration.GetConnectionString("ExportLog"))
+);
 
 builder.Services.AddHostedService<ExportWorker>();
 
 // Demo-ERP-Datenbank (SQLite) — wird beim Start erstellt und mit Testdaten befüllt.
 // Für Produktion: DemoErpReader durch echten PostgreSQL-Reader ersetzen.
 builder.Services.AddDbContext<DemoErpDbContext>(opt =>
-    opt.UseSqlite(builder.Configuration.GetConnectionString("DemoErp")));
+    opt.UseSqlite(builder.Configuration.GetConnectionString("DemoErp"))
+);
 builder.Services.AddScoped<IErpReader, DemoErpReader>();
 
 var app = builder.Build();
@@ -48,49 +50,60 @@ using (var scope = app.Services.CreateScope())
 // API-Endpunkte — nur was die Release-UI braucht.
 
 /// <summary>Gibt alle ExportRun-Einträge zurück, neueste zuerst.</summary>
-app.MapGet("/api/exports", async (ExportLogDbContext db) =>
-    await db.ExportRuns
-        .OrderByDescending(r => r.SequenceNo)
-        .Select(r => new ExportRunSummary(
-            r.SequenceNo, r.ExtractedAt, r.RecordCount,
-            r.Sha256.Substring(0, 12),
-            r.Status, r.DataFileName))
-        .ToListAsync());
+app.MapGet(
+    "/api/exports",
+    async (ExportLogDbContext db) =>
+        await db
+            .ExportRuns.OrderByDescending(r => r.SequenceNo)
+            .Select(r => new ExportRunSummary(
+                r.SequenceNo,
+                r.ExtractedAt,
+                r.RecordCount,
+                r.Sha256.Substring(0, 12),
+                r.Status,
+                r.DataFileName
+            ))
+            .ToListAsync()
+);
 
 /// <summary>Gibt den vollständigen ExportRun inkl. Manifest-Metadaten zurück.</summary>
-app.MapGet("/api/exports/{seqNo:int}", async (int seqNo, ExportLogDbContext db) =>
-{
-    var run = await db.ExportRuns.FirstOrDefaultAsync(r => r.SequenceNo == seqNo);
-    return run is null ? Results.NotFound() : Results.Ok(run);
-});
+app.MapGet(
+    "/api/exports/{seqNo:int}",
+    async (int seqNo, ExportLogDbContext db) =>
+    {
+        var run = await db.ExportRuns.FirstOrDefaultAsync(r => r.SequenceNo == seqNo);
+        return run is null ? Results.NotFound() : Results.Ok(run);
+    }
+);
 
 /// <summary>
 /// Vier-Augen-Freigabe. Operator und Approver müssen verschiedene Benutzer sein.
 /// </summary>
-app.MapPost("/api/exports/{seqNo:int}/release", async (
-    int seqNo,
-    ReleaseRequest request,
-    ExportLogDbContext db) =>
-{
-    if (string.IsNullOrWhiteSpace(request.Operator) || string.IsNullOrWhiteSpace(request.Approver))
-        return Results.BadRequest("Operator und Approver sind Pflichtfelder.");
+app.MapPost(
+    "/api/exports/{seqNo:int}/release",
+    async (int seqNo, ReleaseRequest request, ExportLogDbContext db) =>
+    {
+        if (string.IsNullOrWhiteSpace(request.Operator) || string.IsNullOrWhiteSpace(request.Approver))
+            return Results.BadRequest("Operator und Approver sind Pflichtfelder.");
 
-    if (string.Equals(request.Operator, request.Approver, StringComparison.OrdinalIgnoreCase))
-        return Results.BadRequest("Operator und Approver müssen verschiedene Personen sein (Vier-Augen-Prinzip).");
+        if (string.Equals(request.Operator, request.Approver, StringComparison.OrdinalIgnoreCase))
+            return Results.BadRequest("Operator und Approver müssen verschiedene Personen sein (Vier-Augen-Prinzip).");
 
-    var run = await db.ExportRuns.FirstOrDefaultAsync(r => r.SequenceNo == seqNo);
-    if (run is null) return Results.NotFound();
-    if (run.Status != ExportRunStatus.Pending)
-        return Results.Conflict($"Run #{seqNo} ist bereits {run.Status}.");
+        var run = await db.ExportRuns.FirstOrDefaultAsync(r => r.SequenceNo == seqNo);
+        if (run is null)
+            return Results.NotFound();
+        if (run.Status != ExportRunStatus.Pending)
+            return Results.Conflict($"Run #{seqNo} ist bereits {run.Status}.");
 
-    run.Status = ExportRunStatus.Released;
-    run.OperatedBy = request.Operator;
-    run.ApprovedBy = request.Approver;
-    run.ReleasedAt = DateTimeOffset.UtcNow.ToString("O");
-    await db.SaveChangesAsync();
+        run.Status = ExportRunStatus.Released;
+        run.OperatedBy = request.Operator;
+        run.ApprovedBy = request.Approver;
+        run.ReleasedAt = DateTimeOffset.UtcNow.ToString("O");
+        await db.SaveChangesAsync();
 
-    return Results.Ok();
-});
+        return Results.Ok();
+    }
+);
 
 await app.RunAsync();
 
@@ -103,7 +116,8 @@ namespace Connector.Api
         int RecordCount,
         string Sha256Short,
         string Status,
-        string DataFileName);
+        string DataFileName
+    );
 
     record ReleaseRequest(string Operator, string Approver);
 }

@@ -19,6 +19,16 @@ public sealed class DataMinimizerTests
     }
 
     [Fact]
+    public void Minimize_PreservesGuid()
+    {
+        var item = MakeItem(guid: "sc-rack-0001");
+
+        var result = _sut.Minimize(item);
+
+        Assert.Equal("sc-rack-0001", result.Guid);
+    }
+
+    [Fact]
     public void Minimize_PreservesSerialNumber()
     {
         var item = MakeItem(serial: "SN-12345");
@@ -26,6 +36,17 @@ public sealed class DataMinimizerTests
         var result = _sut.Minimize(item);
 
         Assert.Equal("SN-12345", result.SerialNumber);
+    }
+
+    [Fact]
+    public void Minimize_NullSerial_RemainsNull()
+    {
+        // Missing serial is allowed — it does not block the export.
+        var item = MakeItem(serial: null);
+
+        var result = _sut.Minimize(item);
+
+        Assert.Null(result.SerialNumber);
     }
 
     [Fact]
@@ -49,9 +70,13 @@ public sealed class DataMinimizerTests
     }
 
     private static ErpConfigurationItem MakeItem(
-        string serial = "SN-001",
+        string guid = "sc-001",
+        string? serial = "SN-001",
         string? parent = null,
-        string technicianName = "Erika Mustermann") => new(
+        string technicianName = "Erika Mustermann"
+    ) =>
+        new(
+            Guid: guid,
             SerialNumber: serial,
             PartNumber: "P-001",
             ParentSerialNumber: parent,
@@ -59,5 +84,6 @@ public sealed class DataMinimizerTests
             CommissioningDate: new DateOnly(2024, 1, 15),
             MaintenanceState: "InBetrieb",
             TechnicianName: technicianName,
-            StorageLocation: "Halle 2");
+            StorageLocation: "Halle 2"
+        );
 }

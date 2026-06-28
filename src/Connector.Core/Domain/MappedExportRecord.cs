@@ -9,7 +9,9 @@ namespace Connector.Core.Domain;
 /// führende Nullen und lange Seriennummern — der Korrelationsschlüssel würde kaputt gehen.
 /// </remarks>
 public sealed record MappedExportRecord(
-    /// <summary>Hersteller-Seriennummer als Text. Coalesce-Feld auf ServiceNow-Seite.</summary>
+    /// <summary>Interne PostgreSQL-UUID als Text. Coalesce-Feld auf ServiceNow-Seite.</summary>
+    string Guid,
+    /// <summary>Hersteller-Seriennummer als Text. Identifikationsattribut — kein Coalesce-Schlüssel.</summary>
     string SerialNumber,
     /// <summary>Artikel-/Teilenummer des Modells.</summary>
     string PartNumber,
@@ -20,4 +22,5 @@ public sealed record MappedExportRecord(
     /// <summary>ISO-8601-Datum (yyyy-MM-dd) oder leerer String wenn nicht erfasst.</summary>
     string CommissioningDateIso8601,
     /// <summary>Wartungsrelevanter Zustand aus dem ERP, z.B. "Active", "InRepair".</summary>
-    string MaintenanceState);
+    string MaintenanceState
+);

@@ -15,7 +15,8 @@ public sealed class ExcelPackager : IPackager
     public Task<ExportPackage> PackageAsync(
         IReadOnlyList<MappedExportRecord> records,
         int sequenceNumber,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         ct.ThrowIfCancellationRequested();
 
@@ -30,7 +31,8 @@ public sealed class ExcelPackager : IPackager
             SchemaVersion: ExportSchema.Version,
             ExtractedAt: extractedAt,
             RecordCount: records.Count,
-            Sha256Checksum: checksum);
+            Sha256Checksum: checksum
+        );
 
         return Task.FromResult(new ExportPackage(manifest, fileBytes, dataFileName));
     }
@@ -78,12 +80,13 @@ public sealed class ExcelPackager : IPackager
         {
             var r = records[row];
             var excelRow = row + 3; // Zeile 1 = Metadaten, Zeile 2 = Header
-            sheet.Cell(excelRow, 1).Value = r.SerialNumber;
-            sheet.Cell(excelRow, 2).Value = r.PartNumber;
-            sheet.Cell(excelRow, 3).Value = r.ParentSerialNumber ?? string.Empty;
-            sheet.Cell(excelRow, 4).Value = r.ModelReference;
-            sheet.Cell(excelRow, 5).Value = r.CommissioningDateIso8601;
-            sheet.Cell(excelRow, 6).Value = r.MaintenanceState;
+            sheet.Cell(excelRow, 1).Value = r.Guid;
+            sheet.Cell(excelRow, 2).Value = r.SerialNumber;
+            sheet.Cell(excelRow, 3).Value = r.PartNumber;
+            sheet.Cell(excelRow, 4).Value = r.ParentSerialNumber ?? string.Empty;
+            sheet.Cell(excelRow, 5).Value = r.ModelReference;
+            sheet.Cell(excelRow, 6).Value = r.CommissioningDateIso8601;
+            sheet.Cell(excelRow, 7).Value = r.MaintenanceState;
         }
     }
 

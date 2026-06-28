@@ -14,4 +14,5 @@ public sealed record ExportManifest(
     /// <summary>Anzahl der Datensätze in der Datendatei — muss mit der tatsächlichen Zeilenzahl übereinstimmen.</summary>
     int RecordCount,
     /// <summary>SHA-256 über die Datendatei (Hex, lowercase). Wird vom Gateway vor USB-Freigabe geprüft.</summary>
-    string Sha256Checksum);
+    string Sha256Checksum
+);

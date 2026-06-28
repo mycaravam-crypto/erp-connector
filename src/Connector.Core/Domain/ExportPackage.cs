@@ -10,4 +10,5 @@ public sealed record ExportPackage(
     /// <summary>Inhalt der Datendatei (Iteration 1: .xlsx).</summary>
     byte[] DataFileBytes,
     /// <summary>Dateiname ohne Pfad, z.B. "export_0042_20260628T060000Z.xlsx".</summary>
-    string DataFileName);
+    string DataFileName
+);

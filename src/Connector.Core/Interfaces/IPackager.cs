@@ -20,5 +20,6 @@ public interface IPackager
     Task<ExportPackage> PackageAsync(
         IReadOnlyList<MappedExportRecord> records,
         int sequenceNumber,
-        CancellationToken ct);
+        CancellationToken ct
+    );
 }

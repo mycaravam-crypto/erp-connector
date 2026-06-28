@@ -15,9 +15,8 @@ namespace Connector.Infrastructure;
 /// dann umbenannt — so sieht das Gateway nie eine halbfertige Datei.
 /// Das Manifest wird erst geschrieben, nachdem die Datendatei vollständig ist.
 /// </remarks>
-public sealed class FileSystemExportSink(
-    IOptions<ExportSinkOptions> options,
-    ILogger<FileSystemExportSink> logger) : IExportSink
+public sealed class FileSystemExportSink(IOptions<ExportSinkOptions> options, ILogger<FileSystemExportSink> logger)
+    : IExportSink
 {
     private readonly string _stagingPath = options.Value.StagingPath;
 
@@ -28,9 +27,7 @@ public sealed class FileSystemExportSink(
 
         var dataFilePath = Path.Combine(_stagingPath, package.DataFileName);
         var tmpFilePath = dataFilePath + ".tmp";
-        var manifestPath = Path.Combine(
-            _stagingPath,
-            ExportSchema.BuildManifestFileName(package.DataFileName));
+        var manifestPath = Path.Combine(_stagingPath, ExportSchema.BuildManifestFileName(package.DataFileName));
 
         try
         {
@@ -43,8 +40,11 @@ public sealed class FileSystemExportSink(
 
             logger.LogInformation(
                 "Export #{Seq} geschrieben: {File} ({Bytes} Bytes, {Count} Records)",
-                package.Manifest.SequenceNumber, package.DataFileName,
-                package.DataFileBytes.Length, package.Manifest.RecordCount);
+                package.Manifest.SequenceNumber,
+                package.DataFileName,
+                package.DataFileBytes.Length,
+                package.Manifest.RecordCount
+            );
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -58,8 +58,14 @@ public sealed class FileSystemExportSink(
 
     private void TryDelete(string path)
     {
-        try { File.Delete(path); }
-        catch (Exception ex) { logger.LogWarning(ex, "Aufräumen fehlgeschlagen: {Path}", path); }
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Aufräumen fehlgeschlagen: {Path}", path);
+        }
     }
 
     private static readonly JsonSerializerOptions ManifestJsonOptions = new() { WriteIndented = true };

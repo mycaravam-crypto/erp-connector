@@ -10,8 +10,7 @@ namespace Connector.Infrastructure;
 /// Migrations werden nicht automatisch beim Start angewendet.
 /// Expliziter CLI-Befehl: dotnet ef database update
 /// </remarks>
-public sealed class ExportLogDbContext(DbContextOptions<ExportLogDbContext> options)
-    : DbContext(options)
+public sealed class ExportLogDbContext(DbContextOptions<ExportLogDbContext> options) : DbContext(options)
 {
     public DbSet<ExportRunEntity> ExportRuns => Set<ExportRunEntity>();
 

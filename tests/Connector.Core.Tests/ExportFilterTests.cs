@@ -9,14 +9,9 @@ public sealed class ExportFilterTests
     private readonly ExportFilter _sut = new(NullLogger<ExportFilter>.Instance);
 
     [Fact]
-    public void Filter_ExcludesItemsWithoutSerialNumber()
+    public void Filter_ExcludesItemsWithoutGuid()
     {
-        var items = new[]
-        {
-            MakeItem(serial: null),
-            MakeItem(serial: ""),
-            MakeItem(serial: "  "),
-        };
+        var items = new[] { MakeItem(guid: null), MakeItem(guid: ""), MakeItem(guid: "  ") };
 
         var result = _sut.Filter(items);
 
@@ -24,13 +19,9 @@ public sealed class ExportFilterTests
     }
 
     [Fact]
-    public void Filter_KeepsItemsWithSerialNumber()
+    public void Filter_KeepsItemsWithGuid()
     {
-        var items = new[]
-        {
-            MakeItem(serial: "SN-001"),
-            MakeItem(serial: "SN-002"),
-        };
+        var items = new[] { MakeItem(guid: "sc-rack-0001"), MakeItem(guid: "sc-blade-0001") };
 
         var result = _sut.Filter(items);
 
@@ -40,26 +31,35 @@ public sealed class ExportFilterTests
     [Fact]
     public void Filter_MixedItems_ReturnsOnlyValid()
     {
-        var items = new[]
-        {
-            MakeItem(serial: "SN-001"),
-            MakeItem(serial: null),
-            MakeItem(serial: "SN-003"),
-        };
+        var items = new[] { MakeItem(guid: "sc-rack-0001"), MakeItem(guid: null), MakeItem(guid: "sc-blade-0001") };
 
         var result = _sut.Filter(items);
 
         Assert.Equal(2, result.Count);
-        Assert.All(result, r => Assert.NotNull(r.SerialNumber));
+        Assert.All(result, r => Assert.NotNull(r.Guid));
     }
 
-    private static ErpConfigurationItem MakeItem(string? serial) => new(
-        SerialNumber: serial,
-        PartNumber: "P-001",
-        ParentSerialNumber: null,
-        ModelReference: "MODEL-A",
-        CommissioningDate: null,
-        MaintenanceState: null,
-        TechnicianName: "Hans Mustermann",
-        StorageLocation: "Halle 1");
+    [Fact]
+    public void Filter_AllowsItemsWithMissingSerialNumber()
+    {
+        // A missing serial does not block the export — only a missing GUID does.
+        var items = new[] { MakeItem(guid: "sc-rack-0001", serial: null) };
+
+        var result = _sut.Filter(items);
+
+        Assert.Single(result);
+    }
+
+    private static ErpConfigurationItem MakeItem(string? guid = "sc-rack-0001", string? serial = "SN-001") =>
+        new(
+            Guid: guid,
+            SerialNumber: serial,
+            PartNumber: "P-001",
+            ParentSerialNumber: null,
+            ModelReference: "MODEL-A",
+            CommissioningDate: null,
+            MaintenanceState: null,
+            TechnicianName: "Hans Mustermann",
+            StorageLocation: "Halle 1"
+        );
 }

@@ -9,7 +9,9 @@ namespace Connector.Core.Domain;
 /// Nur <see cref="ExportItem"/> darf persistiert oder weitergegeben werden.
 /// </remarks>
 public sealed record ErpConfigurationItem(
-    /// <summary>Hersteller-Seriennummer / Equipmentnummer. Pflichtfeld für den Korrelationsschlüssel.</summary>
+    /// <summary>Interne PostgreSQL-UUID aus systemconfiguration.id. Coalesce-Schlüssel auf ServiceNow-Seite.</summary>
+    string? Guid,
+    /// <summary>Hersteller-Seriennummer / Equipmentnummer. Identifikationsattribut — kein Coalesce-Schlüssel.</summary>
     string? SerialNumber,
     /// <summary>Artikel- / Teilenummer des Modells.</summary>
     string? PartNumber,
@@ -25,4 +27,5 @@ public sealed record ErpConfigurationItem(
     /// <summary>Techniker-Name — wird durch Minimierung entfernt (DSGVO Art. 5 Abs. 1 lit. c).</summary>
     string? TechnicianName,
     /// <summary>Lagerort — Aufnahme in Scope ist noch offen (Open Point #4).</summary>
-    string? StorageLocation);
+    string? StorageLocation
+);

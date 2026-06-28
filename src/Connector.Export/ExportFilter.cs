@@ -9,8 +9,9 @@ namespace Connector.Export;
 /// </summary>
 /// <remarks>
 /// Iteration 1: Ein CI ist im Scope, wenn es wartbar ist (durch den ERP-Reader bereits
-/// sichergestellt) und eine nicht-leere Seriennummer hat. CIs ohne Seriennummer werden
-/// ausgeschlossen und protokolliert — sie können den Korrelationsschlüssel nicht erfüllen.
+/// sichergestellt) und eine nicht-leere GUID hat. CIs ohne GUID werden ausgeschlossen und
+/// protokolliert — sie können den Coalesce-Schlüssel auf ServiceNow-Seite nicht erfüllen.
+/// Eine fehlende Seriennummer blockiert den Export nicht.
 /// </remarks>
 public sealed class ExportFilter(ILogger<ExportFilter> logger) : IExportFilter
 {
@@ -20,12 +21,14 @@ public sealed class ExportFilter(ILogger<ExportFilter> logger) : IExportFilter
 
         foreach (var item in items)
         {
-            if (string.IsNullOrWhiteSpace(item.SerialNumber))
+            if (string.IsNullOrWhiteSpace(item.Guid))
             {
-                // Korrelationsschlüssel fehlt — CI kann auf ServiceNow-Seite keinem Asset zugeordnet werden.
+                // Coalesce-Schlüssel fehlt — CI kann auf ServiceNow-Seite keinem Asset zugeordnet werden.
                 logger.LogWarning(
-                    "CI ausgeschlossen (kein Korrelationsschlüssel): PartNumber={PartNumber}",
-                    item.PartNumber);
+                    "CI ausgeschlossen (keine GUID): PartNumber={PartNumber}, Serial={Serial}",
+                    item.PartNumber,
+                    item.SerialNumber
+                );
                 continue;
             }
 
@@ -34,7 +37,10 @@ public sealed class ExportFilter(ILogger<ExportFilter> logger) : IExportFilter
 
         logger.LogInformation(
             "Filter: {Total} CIs gelesen, {Included} im Scope, {Excluded} ausgeschlossen",
-            items.Count, result.Count, items.Count - result.Count);
+            items.Count,
+            result.Count,
+            items.Count - result.Count
+        );
 
         return result;
     }

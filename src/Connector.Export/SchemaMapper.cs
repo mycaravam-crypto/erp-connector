@@ -11,17 +11,20 @@ public sealed class SchemaMapper : ISchemaMapper
 {
     public MappedExportRecord Map(ExportItem item)
     {
-        if (string.IsNullOrWhiteSpace(item.SerialNumber))
+        if (string.IsNullOrWhiteSpace(item.Guid))
             throw new InvalidCorrelationKeyException(
-                $"SerialNumber fehlt für PartNumber '{item.PartNumber}' — Record kann nicht exportiert werden.");
+                $"GUID fehlt für PartNumber '{item.PartNumber}' — Record kann nicht exportiert werden."
+            );
 
         return new MappedExportRecord(
-            SerialNumber: item.SerialNumber,
+            Guid: item.Guid,
+            // Leerer String statt null, damit Excel-Zellen nicht leer bleiben und Formeln brechen.
+            SerialNumber: item.SerialNumber ?? string.Empty,
             PartNumber: item.PartNumber,
             ParentSerialNumber: item.ParentSerialNumber,
             ModelReference: item.ModelReference,
-            // Leerer String statt null, damit Excel-Zellen nicht leer bleiben und Formeln brechen.
             CommissioningDateIso8601: item.CommissioningDate?.ToString("yyyy-MM-dd") ?? string.Empty,
-            MaintenanceState: item.MaintenanceState ?? string.Empty);
+            MaintenanceState: item.MaintenanceState ?? string.Empty
+        );
     }
 }
