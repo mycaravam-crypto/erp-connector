@@ -11,6 +11,8 @@ mkdir -p "$REPO/src/Connector.Api/staging"
 cleanup() { printf "\n${B}Stopping…${R}\n"; kill 0 2>/dev/null || true; }
 trap cleanup INT TERM EXIT
 
+existing=$(lsof -ti:5189 2>/dev/null); [ -n "$existing" ] && kill $existing 2>/dev/null && sleep 1
+
 printf "${B}connector dev${R}  —  Ctrl-C to stop\n"
 printf "  ${BLUE}[api]${R}  http://localhost:5189\n"
 printf "  ${GREEN}[ui] ${R}  http://localhost:5173\n\n"

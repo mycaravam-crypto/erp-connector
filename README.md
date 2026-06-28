@@ -109,7 +109,15 @@ dotnet build Connector.sln
 dotnet test Connector.sln
 ```
 
-### Run the API (demo mode)
+### Run the full stack (recommended)
+
+```bash
+./dev.sh
+```
+
+Starts API (`:5189`) and UI (`:5173`) in one terminal. Ctrl-C stops both. If either port is already in use the script kills the existing process first.
+
+### Run the API only
 
 ```bash
 # Create staging directory on first run (one-time):
@@ -122,6 +130,8 @@ dotnet run
 The API starts on **`http://localhost:5189`** (see `Properties/launchSettings.json`).
 
 On first start in `Development` mode the demo ERP databases are created and seeded automatically. The export worker fires at the UTC time set in `ExportWorker.ScheduledTimeUtc` (default `00:00:01` — midnight + 1 s). To trigger an immediate run during development, temporarily set the value to ~2 minutes from now and restart.
+
+**Dev credentials:** `alice / alice123` and `bob / bob123` (seeded automatically in Development mode).
 
 ---
 
@@ -156,11 +166,17 @@ Each `systemconfiguration` record also carries `TechnicianName` (personal data) 
 
 ## API Endpoints
 
+All endpoints except `/api/auth/login` require a JWT bearer token (`Authorization: Bearer <token>`).
+
 | Method | Path | Description |
 |---|---|---|
+| `POST` | `/api/auth/login` | Authenticate — body: `{"username":"...","password":"..."}` → `{"token":"..."}` |
 | `GET` | `/api/exports` | List all export runs (newest first), with short SHA |
 | `GET` | `/api/exports/{seqNo}` | Full detail for one run |
 | `POST` | `/api/exports/{seqNo}/release` | Four-eyes release — body: `{"operator":"...", "approver":"..."}` |
+| `GET` | `/api/erp/records` | All ERP CIs with scope flags, BOM parent links, and excluded GDPR fields |
+| `GET` | `/api/schema` | Export schema version and full column-mapping definitions (read-only) |
+| `POST` | `/api/pipeline/run` | Trigger an immediate pipeline run |
 
 The release endpoint enforces `Operator != Approver` and rejects runs already in `Released` or `Failed` status.
 
@@ -210,13 +226,19 @@ The release UI lives at `src/connector-ui/` — a Vue 3 + TypeScript + Vue Route
 src/connector-ui/
 ├── src/
 │   ├── views/
+│   │   ├── LoginView.vue      ← JWT login form
 │   │   ├── ExportList.vue     ← table of all runs (GET /api/exports)
-│   │   └── ExportDetail.vue   ← detail + release form (GET + POST)
+│   │   ├── ExportDetail.vue   ← detail + release form (GET + POST)
+│   │   ├── ErpDatabaseView.vue ← BOM tree / flat list / search / scope filter / detail panel
+│   │   ├── SchemaView.vue     ← export schema definition (read-only display)
+│   │   └── PipelineView.vue   ← run-now trigger + export preview
 │   ├── components/
 │   │   └── ReleaseDialog.vue  ← four-eyes form (operator + approver fields)
 │   ├── api/
-│   │   └── exports.ts         ← typed fetch wrappers for the three API endpoints
-│   └── __tests__/             ← Vitest + @vue/test-utils test suite (25 tests)
+│   │   ├── auth.ts            ← login / token storage
+│   │   ├── erp.ts             ← listErpRecords, getSchema
+│   │   └── exports.ts         ← typed fetch wrappers for export endpoints
+│   └── __tests__/             ← Vitest + @vue/test-utils test suite (93 tests)
 ├── package.json
 └── vite.config.ts             ← proxy /api → http://localhost:5189
 ```
@@ -235,33 +257,18 @@ Vite proxies all `/api/*` requests to the backend on `:5189` — no CORS configu
 
 ```bash
 cd src/connector-ui
-npm test          # vitest run (25 tests, ~1 s)
+npm test          # vitest run (93 tests, ~1 s)
 npm run coverage  # with coverage report
-```
-
-### API the UI consumes
-
-All field names are camelCase (ASP.NET Core default JSON serialisation).
-
-```
-GET  /api/exports
-     → [{ sequenceNo, extractedAt, recordCount, sha256Short, status, dataFileName }]
-
-GET  /api/exports/{seqNo}
-     → { id, sequenceNo, extractedAt, recordCount, sha256, status,
-         releasedAt, operatedBy, approvedBy, dataFileName }
-
-POST /api/exports/{seqNo}/release
-     body: { "operator": "...", "approver": "..." }
-     → 200 OK  |  400 Bad Request  |  404 Not Found  |  409 Conflict
 ```
 
 ### UI constraints
 
+- **JWT auth required.** All views redirect to `/login` when no valid token is present. Dev users `alice` and `bob` are seeded automatically.
 - **Four-eyes rule enforced server-side.** Client validates `operator != approver` too, but the server is authoritative.
 - **Status transitions are one-way.** `Released` and `Failed` runs hide the release form.
 - **SHA-256 short in list, full on detail.** Server returns 12-char prefix as `sha256Short`; `sha256` is the full hex string.
-- **No auth yet.** Operator/approver are free-text strings — auth is Iteration 2+.
+- **Export schema is read-only.** `SchemaView` displays the schema but cannot edit it — columns are hardcoded in `Program.cs`. Editable schema is a planned future task (see ROADMAP).
+- **ERP Database view shows demo data only.** `ErpDatabaseView` reads the demo SQLite ERP; connecting to a real ERP requires a production `IErpReader` implementation (see "Connecting a Real ERP" below).
 
 ---
 

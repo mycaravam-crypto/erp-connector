@@ -1,7 +1,7 @@
 # Connector — Implementation Roadmap
 
 Tracks progress against the AI Coding Agent Roadmap (session-persistent).  
-Last updated: 2026-06-29
+Last updated: 2026-06-28
 
 ---
 
@@ -71,7 +71,7 @@ File: `../connector_document/TECHNICAL_CONCEPT.md`
 | 4.6 Schema API | ✅ | GET /api/schema — schema version + full column mapping definitions |
 | 4.7 Navigation bar | ✅ | App header nav: Export Runs · ERP Database · Export Schema with active-link highlighting |
 | 4.8 ERP Database view | ✅ | BOM tree (expand/collapse) · flat list with search + column sort · per-row detail panel showing excluded fields with GDPR / Open Point #4 tags |
-| 4.9 Export Schema view | ✅ | Schema version badge · active column mapping table · pending fields section · coalesce key explanation |
+| 4.9 Export Schema view | ✅ | Schema version badge · active column mapping table · pending fields section · coalesce key explanation — **read-only; schema is hardcoded in Program.cs** |
 
 ---
 
@@ -97,7 +97,14 @@ Frontend tests (Vitest): ✅ 51/51 passing
 
 ## Remaining Work
 
-**All roadmap tasks complete.** 93/93 tests passing (42 .NET · 51 Vitest).
+93/93 tests passing (42 .NET · 51 Vitest).
+
+### Verified gaps (found during runtime verification 2026-06-28)
+
+| Gap | Current state | Work needed |
+|---|---|---|
+| Editable export schema | Schema hardcoded in `Program.cs`; `SchemaView` is read-only display only | Persist schema to DB; add POST/PUT `/api/schema/columns`; add edit form to SchemaView |
+| Dynamic ERP connection | `ErpDatabaseView` reads demo SQLite only; no UI to point at a real ERP | Phase 6 real `IErpReader` + connection config UI |
 
 ### Open points that will drive future code changes (tracked in `13-open-points.md`):
 | Open Point | When it unblocks | Code impact |
