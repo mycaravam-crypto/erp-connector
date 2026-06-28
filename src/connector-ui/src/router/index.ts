@@ -5,6 +5,7 @@ import ExportDetail from '../views/ExportDetail.vue'
 import LoginView from '../views/LoginView.vue'
 import ErpDatabaseView from '../views/ErpDatabaseView.vue'
 import SchemaView from '../views/SchemaView.vue'
+import PipelineView from '../views/PipelineView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -33,6 +34,11 @@ const router = createRouter({
       path: '/schema',
       name: 'schema',
       component: SchemaView,
+    },
+    {
+      path: '/pipeline',
+      name: 'pipeline',
+      component: PipelineView,
     },
   ],
 })

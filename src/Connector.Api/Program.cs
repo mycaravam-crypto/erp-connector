@@ -193,6 +193,78 @@ app.MapPost(
     }
 ).RequireAuthorization();
 
+// ── On-demand pipeline trigger ────────────────────────────────────────────────
+
+app.MapPost("/api/pipeline/run", async (
+    ExportLogDbContext db,
+    IErpReader erpReader,
+    IExportFilter filter,
+    IDataMinimizer minimizer,
+    ISchemaMapper mapper,
+    IPackager packager,
+    IExportSink sink,
+    ILogger<Program> logger,
+    CancellationToken ct) =>
+{
+    var sequenceNo = (await db.ExportRuns.MaxAsync(r => (int?)r.SequenceNo, ct) ?? 0) + 1;
+    var run = new ExportRunEntity
+    {
+        SequenceNo = sequenceNo,
+        ExtractedAt = DateTimeOffset.UtcNow.ToString("O"),
+        Status = ExportRunStatus.Pending,
+    };
+    db.ExportRuns.Add(run);
+    await db.SaveChangesAsync(ct);
+
+    try
+    {
+        var rawItems = await erpReader.ReadMaintainableCIsAsync(ct);
+        var filtered = filter.Filter(rawItems);
+        var minimized = filtered.Select(minimizer.Minimize).ToList();
+        var mapped = minimized.Select(mapper.Map).ToList();
+        var package = await packager.PackageAsync(mapped, sequenceNo, ct);
+        await sink.WriteAsync(package, ct);
+
+        run.RecordCount = package.Manifest.RecordCount;
+        run.Sha256 = package.Manifest.Sha256Checksum;
+        run.DataFileName = package.DataFileName;
+        await db.SaveChangesAsync(ct);
+
+        logger.LogInformation("Run Now: Export #{Seq} abgeschlossen, {Count} Records", sequenceNo, run.RecordCount);
+
+        var sha256Short = run.Sha256.Length >= 12 ? run.Sha256[..12] : run.Sha256;
+        return Results.Ok(new RunNowResult(sequenceNo, run.RecordCount, sha256Short));
+    }
+    catch (Exception ex) when (ex is not OperationCanceledException)
+    {
+        logger.LogError(ex, "Run Now: Export #{Seq} fehlgeschlagen", sequenceNo);
+        run.Status = ExportRunStatus.Failed;
+        await db.SaveChangesAsync(CancellationToken.None);
+        return Results.Problem(ex.Message, statusCode: 500);
+    }
+}).RequireAuthorization();
+
+// ── Export preview (read-only, no side effects) ────────────────────────────────
+
+app.MapGet("/api/pipeline/preview", async (
+    IErpReader erpReader,
+    IExportFilter filter,
+    IDataMinimizer minimizer,
+    ISchemaMapper mapper,
+    CancellationToken ct) =>
+{
+    var rawItems = await erpReader.ReadMaintainableCIsAsync(ct);
+    var filtered = filter.Filter(rawItems);
+    var minimized = filtered.Select(minimizer.Minimize).ToList();
+    var records = minimized
+        .Select(item => mapper.Map(item))
+        .Select(r => new PreviewRecord(
+            r.Guid, r.SerialNumber, r.PartNumber, r.ParentSerialNumber,
+            r.ModelReference, r.CommissioningDateIso8601, r.MaintenanceState))
+        .ToList();
+    return Results.Ok(new PreviewResult(records.Count, ExportSchema.Version, records));
+}).RequireAuthorization();
+
 // ── ERP demo database ─────────────────────────────────────────────────────────
 
 app.MapGet("/api/erp/records", async (DemoErpDbContext erpDb) =>
@@ -296,4 +368,9 @@ namespace Connector.Api
 
     record SchemaColumnDto(string Name, string ErpSource, string Type, string Notes, bool Active);
     record SchemaDto(string Version, SchemaColumnDto[] Columns);
+
+    record RunNowResult(int SequenceNo, int RecordCount, string Sha256Short);
+    record PreviewRecord(string Guid, string SerialNumber, string PartNumber, string? ParentSerialNumber,
+        string ModelReference, string CommissioningDate, string MaintenanceState);
+    record PreviewResult(int RecordCount, string SchemaVersion, IList<PreviewRecord> Records);
 }

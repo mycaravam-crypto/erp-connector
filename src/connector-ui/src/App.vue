@@ -20,6 +20,7 @@ function logout() {
       <RouterLink :to="{ name: 'exports' }" class="nav-link">Export Runs</RouterLink>
       <RouterLink :to="{ name: 'erp-database' }" class="nav-link">ERP Database</RouterLink>
       <RouterLink :to="{ name: 'schema' }" class="nav-link">Export Schema</RouterLink>
+      <RouterLink :to="{ name: 'pipeline' }" class="nav-link">Pipeline</RouterLink>
     </nav>
     <div v-if="loggedIn" class="user-row">
       <span class="user-name">{{ username }}</span>
