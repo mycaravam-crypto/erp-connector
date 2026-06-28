@@ -1,5 +1,6 @@
 using Connector.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -14,13 +15,12 @@ namespace Connector.Infrastructure;
 /// Der nächste Vollsnapshot heilt den Ausfall idempotent, daher kein Retry-Loop.
 /// </remarks>
 public sealed class ExportWorker(
-    IErpReader erpReader,
+    IServiceScopeFactory scopeFactory,
     IExportFilter filter,
     IDataMinimizer minimizer,
     ISchemaMapper mapper,
     IPackager packager,
     IExportSink sink,
-    ExportLogDbContext db,
     IOptions<ExportWorkerOptions> options,
     ILogger<ExportWorker> logger) : BackgroundService
 {
@@ -42,7 +42,11 @@ public sealed class ExportWorker(
 
     private async Task RunExportAsync(CancellationToken ct)
     {
-        var sequenceNo = await NextSequenceNumberAsync(ct);
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<ExportLogDbContext>();
+        var erpReader = scope.ServiceProvider.GetRequiredService<IErpReader>();
+
+        var sequenceNo = await NextSequenceNumberAsync(db, ct);
         var run = new ExportRunEntity
         {
             SequenceNo = sequenceNo,
@@ -82,7 +86,7 @@ public sealed class ExportWorker(
         }
     }
 
-    private async Task<int> NextSequenceNumberAsync(CancellationToken ct)
+    private static async Task<int> NextSequenceNumberAsync(ExportLogDbContext db, CancellationToken ct)
     {
         var max = await db.ExportRuns.MaxAsync(r => (int?)r.SequenceNo, ct);
         return (max ?? 0) + 1;

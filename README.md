@@ -91,6 +91,11 @@ Every run is logged to the export-log SQLite database (`ExportRun` table). After
 
 - .NET 9 SDK — `dotnet --version` should show `9.x.x`
 
+> **WSL / non-global install:** the SDK lives at `/home/mycaravam/.dotnet/dotnet`.  
+> Add to PATH: `export PATH="$HOME/.dotnet:$PATH"` (or use the full path in every command below).
+
+- Node.js ≥ 18 — for the Vue 3 frontend
+
 ### Build
 
 ```bash
@@ -98,7 +103,7 @@ cd /home/mycaravam/connector
 dotnet build Connector.sln
 ```
 
-### Run tests
+### Run .NET tests
 
 ```bash
 dotnet test Connector.sln
@@ -107,13 +112,16 @@ dotnet test Connector.sln
 ### Run the API (demo mode)
 
 ```bash
+# Create staging directory on first run (one-time):
+mkdir -p src/Connector.Api/staging
+
 cd src/Connector.Api
 dotnet run
 ```
 
-The API starts on `http://localhost:5000` (see `Properties/launchSettings.json`).
+The API starts on **`http://localhost:5189`** (see `Properties/launchSettings.json`).
 
-On first start in `Development` mode the demo ERP database is created and seeded automatically. The export worker runs its first export ~1 second after startup (configured in `appsettings.Development.json`).
+On first start in `Development` mode the demo ERP databases are created and seeded automatically. The export worker fires at the UTC time set in `ExportWorker.ScheduledTimeUtc` (default `00:00:01` — midnight + 1 s). To trigger an immediate run during development, temporarily set the value to ~2 minutes from now and restart.
 
 ---
 
@@ -194,39 +202,50 @@ The pipeline, tests, and API are all decoupled from the reader via `IErpReader` 
 
 ---
 
-## Frontend (Vue 3) — Next Development Session
+## Frontend (Vue 3)
 
-The release UI does not exist yet. A new session should scaffold it here:
+The release UI lives at `src/connector-ui/` — a Vue 3 + TypeScript + Vue Router app scaffolded with `npm create vue@latest`.
 
 ```
-Connector.sln
+src/connector-ui/
 ├── src/
-│   └── connector-ui/          ← Vue 3 app lives here (to be created)
-│       ├── src/
-│       │   ├── views/
-│       │   │   ├── ExportList.vue     ← table of all runs (GET /api/exports)
-│       │   │   └── ExportDetail.vue   ← detail + release form (GET + POST)
-│       │   ├── components/
-│       │   │   └── ReleaseDialog.vue  ← four-eyes form (operator + approver fields)
-│       │   └── api/
-│       │       └── exports.ts         ← typed fetch wrappers for the three API endpoints
-│       ├── package.json
-│       └── vite.config.ts             ← proxy /api → http://localhost:5000
+│   ├── views/
+│   │   ├── ExportList.vue     ← table of all runs (GET /api/exports)
+│   │   └── ExportDetail.vue   ← detail + release form (GET + POST)
+│   ├── components/
+│   │   └── ReleaseDialog.vue  ← four-eyes form (operator + approver fields)
+│   ├── api/
+│   │   └── exports.ts         ← typed fetch wrappers for the three API endpoints
+│   └── __tests__/             ← Vitest + @vue/test-utils test suite (25 tests)
+├── package.json
+└── vite.config.ts             ← proxy /api → http://localhost:5189
 ```
 
-### What the UI must do
+### Run the frontend
 
-| Screen | Behaviour |
-|---|---|
-| Export list | Polls or loads `GET /api/exports`; shows sequence number, date, record count, short SHA, status badge |
-| Export detail | `GET /api/exports/{seqNo}`; shows full manifest fields |
-| Release | `POST /api/exports/{seqNo}/release` with `{ operator, approver }`; blocks if operator == approver (also enforced server-side); only shown for `Pending` runs |
+```bash
+cd src/connector-ui
+npm install       # first time only
+npm run dev       # dev server on http://localhost:5173
+```
+
+Vite proxies all `/api/*` requests to the backend on `:5189` — no CORS configuration needed.
+
+### Run frontend tests
+
+```bash
+cd src/connector-ui
+npm test          # vitest run (25 tests, ~1 s)
+npm run coverage  # with coverage report
+```
 
 ### API the UI consumes
 
+All field names are camelCase (ASP.NET Core default JSON serialisation).
+
 ```
 GET  /api/exports
-     → [{ seqNo, extractedAt, recordCount, sha256Short, status, dataFileName }]
+     → [{ sequenceNo, extractedAt, recordCount, sha256Short, status, dataFileName }]
 
 GET  /api/exports/{seqNo}
      → { id, sequenceNo, extractedAt, recordCount, sha256, status,
@@ -237,38 +256,12 @@ POST /api/exports/{seqNo}/release
      → 200 OK  |  400 Bad Request  |  404 Not Found  |  409 Conflict
 ```
 
-### Setup instructions for the new session
+### UI constraints
 
-```bash
-# From repo root
-cd src
-npm create vue@latest connector-ui
-# Choose: TypeScript, Vue Router, no Pinia, no Vitest for now
-cd connector-ui
-npm install
-npm run dev          # dev server on :5173, proxies /api → :5000
-```
-
-Add to `vite.config.ts`:
-```ts
-server: {
-  proxy: {
-    '/api': 'http://localhost:5000'
-  }
-}
-```
-
-Run the backend alongside:
-```bash
-cd src/Connector.Api && dotnet run   # keeps the API + worker running on :5000
-```
-
-### Constraints to keep in mind
-
-- **Four-eyes rule is enforced server-side.** The UI should validate client-side too but must not rely on it — the server rejects `operator == approver`.
-- **Status transitions are one-way.** A `Released` or `Failed` run cannot be re-released. The UI should hide the release button for those states.
-- **SHA-256 displayed shortened** in the list view (server already returns 12-char prefix via `Sha256Short`). Show full SHA on the detail page.
-- **No auth yet.** The operator/approver fields are free-text strings for Iteration 1. Auth is an Iteration 2+ concern.
+- **Four-eyes rule enforced server-side.** Client validates `operator != approver` too, but the server is authoritative.
+- **Status transitions are one-way.** `Released` and `Failed` runs hide the release form.
+- **SHA-256 short in list, full on detail.** Server returns 12-char prefix as `sha256Short`; `sha256` is the full hex string.
+- **No auth yet.** Operator/approver are free-text strings — auth is Iteration 2+.
 
 ---
 
