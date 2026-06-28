@@ -1,34 +1,30 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { getUsername } from '@/api/auth'
 import { releaseExport } from '@/api/exports'
 
 const props = defineProps<{ seqNo: number }>()
 const emit = defineEmits<{ (e: 'released'): void }>()
 
-const operator = ref('')
+const currentUser = computed(() => getUsername() ?? '')
 const approver = ref('')
 const submitting = ref(false)
 const serverError = ref<string | null>(null)
 
 const sameUser = computed(
   () =>
-    operator.value.trim() !== '' &&
-    operator.value.trim().toLowerCase() === approver.value.trim().toLowerCase(),
+    approver.value.trim() !== '' &&
+    approver.value.trim().toLowerCase() === currentUser.value.toLowerCase(),
 )
 
-const valid = computed(
-  () => operator.value.trim() !== '' && approver.value.trim() !== '' && !sameUser.value,
-)
+const valid = computed(() => approver.value.trim() !== '' && !sameUser.value)
 
 async function submit() {
   if (!valid.value) return
   submitting.value = true
   serverError.value = null
 
-  const result = await releaseExport(props.seqNo, {
-    operator: operator.value.trim(),
-    approver: approver.value.trim(),
-  })
+  const result = await releaseExport(props.seqNo, { approver: approver.value.trim() })
 
   submitting.value = false
 
@@ -43,16 +39,13 @@ async function submit() {
 <template>
   <div class="release-dialog">
     <h2>Four-Eyes Release — Run #{{ seqNo }}</h2>
-    <p class="hint">Operator and approver must be different people.</p>
+    <p class="hint">
+      Releasing as <strong>{{ currentUser }}</strong>. Approver must be a different registered user.
+    </p>
 
     <div class="field">
-      <label for="operator">Operator</label>
-      <input id="operator" v-model="operator" placeholder="Operator name" autocomplete="off" />
-    </div>
-
-    <div class="field">
-      <label for="approver">Approver</label>
-      <input id="approver" v-model="approver" placeholder="Approver name" autocomplete="off" />
+      <label for="approver">Approver username</label>
+      <input id="approver" v-model="approver" placeholder="Approver username" autocomplete="off" />
     </div>
 
     <p v-if="sameUser" class="error">Operator and approver must be different people.</p>

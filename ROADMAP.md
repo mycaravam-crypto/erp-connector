@@ -1,7 +1,7 @@
 # Connector — Implementation Roadmap
 
 Tracks progress against the AI Coding Agent Roadmap (session-persistent).  
-Last updated: 2026-06-28
+Last updated: 2026-06-29
 
 ---
 
@@ -67,6 +67,11 @@ File: `../connector_document/TECHNICAL_CONCEPT.md`
 | 4.2 Vue.js UI scaffolding | ✅ | Vite + Vue 3 + TypeScript; proxy to :5189 |
 | 4.3 ExportList view | ✅ | Traffic-light status badges |
 | 4.4 4-Eyes Release Dialog | ✅ | Operator ≠ Approver enforced client + server side |
+| 4.5 ERP database API | ✅ | GET /api/erp/records — all CIs with scope flags, BOM links, excluded fields surfaced |
+| 4.6 Schema API | ✅ | GET /api/schema — schema version + full column mapping definitions |
+| 4.7 Navigation bar | ✅ | App header nav: Export Runs · ERP Database · Export Schema with active-link highlighting |
+| 4.8 ERP Database view | ✅ | BOM tree (expand/collapse) · flat list with search + column sort · per-row detail panel showing excluded fields with GDPR / Open Point #4 tags |
+| 4.9 Export Schema view | ✅ | Schema version badge · active column mapping table · pending fields section · coalesce key explanation |
 
 ---
 
@@ -83,11 +88,16 @@ Integration tests: ✅
 - `FullPipeline_Guid_MatchesErpId` added
 - `ExportSchemaTests` snapshot updated (7 columns incl. `guid`)
 
+Frontend tests (Vitest): ✅ 51/51 passing
+- `erp-api.test.ts` — `listErpRecords`, `getSchema` API wrappers
+- `ErpDatabaseView.test.ts` — BOM tree, expand/collapse, search, scope filter, detail panel (20 tests)
+- `SchemaView.test.ts` — version badge, column table, pending fields, coalesce note (8 tests)
+
 ---
 
 ## Remaining Work
 
-**All roadmap tasks complete.** 42/42 tests passing.
+**All roadmap tasks complete.** 93/93 tests passing (42 .NET · 51 Vitest).
 
 ### Open points that will drive future code changes (tracked in `13-open-points.md`):
 | Open Point | When it unblocks | Code impact |
