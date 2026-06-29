@@ -17,23 +17,32 @@ human-controlled process.
 2. An Operator opens the release UI and reviews the run details (`GET /api/exports/{seqNo}`).
 3. The Operator verifies:
    - Record count looks correct.
-   - Sequence number is contiguous with the previous released run (no gaps).
+   - Sequence number is contiguous with the previous released run (no gaps). The UI surfaces a `SequenceGapWarning` banner if a gap is detected.
    - SHA-256 in the UI matches the `.manifest.json` on disk.
-4. The Operator submits their name and the Approver's name via `POST /api/exports/{seqNo}/release`.
-5. The server validates `Operator != Approver` (case-insensitive). Rejects if identical.
+4. The Operator submits the Approver's username via `POST /api/exports/{seqNo}/release`. The Operator identity is inferred from the JWT — it cannot be supplied in the body.
+5. The server validates `Operator != Approver` (case-insensitive) and that the Approver is a registered user. Rejects if either check fails.
 6. Status advances to `Released`. `ReleasedAt`, `OperatedBy`, `ApprovedBy` are persisted.
 7. The file at `staging/export_NNNN_...xlsx` may now be physically transferred.
+8. After handover, the Operator records the delivery via `POST /api/exports/{seqNo}/deliver` (optional import count and notes). This closes the custody chain.
 
 # API
 
 ```
 POST /api/exports/{seqNo}/release
-Body: { "operator": "alice", "approver": "bob" }
+Body: { "approver": "bob" }          ← operator is inferred from JWT
 
-200 OK         — released successfully
-400 Bad Request — missing fields or operator == approver
-404 Not Found  — unknown sequence number
-409 Conflict   — run already Released or Failed
+200 OK          — released successfully
+400 Bad Request — approver missing, operator == approver, or approver unknown
+404 Not Found   — unknown sequence number
+409 Conflict    — run already Released or Failed
+
+POST /api/exports/{seqNo}/deliver
+Body: { "importedRecordCount": 5, "notes": "USB-007, J. Smith" }   ← all fields optional
+
+200 OK          — delivery recorded
+400 Bad Request — run is not in Released status
+404 Not Found   — unknown sequence number
+409 Conflict    — run already marked as delivered
 ```
 
 # Status Transitions
