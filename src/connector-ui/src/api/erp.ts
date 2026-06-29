@@ -49,3 +49,14 @@ export async function getSchema(): Promise<SchemaDefinition | null> {
   if (!res.ok) return null
   return res.json() as Promise<SchemaDefinition>
 }
+
+/** Persists the active column set server-side. Returns the validated list actually saved. */
+export async function patchSchemaColumns(columns: string[]): Promise<string[]> {
+  const res = await fetch('/api/schema/columns', {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify({ columns }),
+  })
+  if (!res.ok) return columns
+  return res.json() as Promise<string[]>
+}

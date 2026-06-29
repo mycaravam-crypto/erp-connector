@@ -7,6 +7,8 @@ export interface ExportSummary {
   sha256Short: string
   status: string
   dataFileName: string
+  /** True when the run has been Pending for more than 24 hours. */
+  isStale: boolean
 }
 
 export interface ExportDetail {
@@ -20,10 +22,22 @@ export interface ExportDetail {
   operatedBy: string | null
   approvedBy: string | null
   dataFileName: string
+  // Delivery fields — null until POST …/deliver is called
+  deliveredAt: string | null
+  deliveredBy: string | null
+  importedRecordCount: number | null
+  deliveryNotes: string | null
+  /** Non-null when a gap is detected between this run and the last released run. */
+  sequenceGapWarning: string | null
 }
 
 export interface ReleaseRequest {
   approver: string
+}
+
+export interface DeliverRequest {
+  importedRecordCount?: number | null
+  notes?: string | null
 }
 
 function authHeaders(): Record<string, string> {
@@ -54,6 +68,19 @@ export async function releaseExport(
   body: ReleaseRequest,
 ): Promise<{ ok: boolean; status: number; message: string }> {
   const res = await fetch(`/api/exports/${seqNo}/release`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  })
+  const message = res.ok ? '' : await res.text()
+  return { ok: res.ok, status: res.status, message }
+}
+
+export async function deliverExport(
+  seqNo: number,
+  body: DeliverRequest,
+): Promise<{ ok: boolean; status: number; message: string }> {
+  const res = await fetch(`/api/exports/${seqNo}/deliver`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify(body),

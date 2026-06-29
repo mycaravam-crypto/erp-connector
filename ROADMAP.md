@@ -102,9 +102,31 @@ Frontend tests (Vitest): ✅ 51/51 passing
 
 ---
 
+## Phase 6 — Operational Enhancements (current)
+
+Goal: close the loop between export and vendor import; make the daily workflow safer and more observable.
+YAGNI constraint: no premature abstraction; each item is the minimum that delivers value.
+
+| Task | Status | Notes |
+|---|---|---|
+| 6.1 Health check endpoint | ✅ | `GET /api/health` — ERP DB, log DB, staging writability; no auth |
+| 6.2 Stale pending indicator | ✅ | `IsStale` on `ExportRunSummary`; ExportView shows callout when Pending > 24h |
+| 6.3 Sequence gap detection | ✅ | `GET /api/exports/{seqNo}` returns `SequenceGapWarning`; ExportDetail shows banner |
+| 6.4 Delivery acknowledgement | ✅ | `POST /api/exports/{seqNo}/deliver`; delivery fields on `ExportRunEntity`; closes custody chain |
+| 6.5 Schema column persistence | ✅ | `AppSetting` table; `PATCH /api/schema/columns`; SchemaView toggles now saved server-side |
+
+### Not in scope (Iteration 2)
+
+| Item | Reason deferred |
+|---|---|
+| Real Postgres IErpReader | Requires ICD + connection config wired to backend |
+| Delta/incremental export | Requires ERP change-tracking field and volume assessment (Open Point #5) |
+
+---
+
 ## Remaining Work
 
-42 .NET tests · 38 Vitest tests — all passing.
+42 .NET tests · 48 Vitest tests — all passing.
 
 ### Verified gaps
 

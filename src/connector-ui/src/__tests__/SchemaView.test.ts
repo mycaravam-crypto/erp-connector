@@ -14,7 +14,11 @@ function buildRouter() {
   return r
 }
 
-beforeEach(() => vi.restoreAllMocks())
+// patchSchemaColumns is called on every toggle; mock it globally so tests don't hit the network.
+beforeEach(() => {
+  vi.restoreAllMocks()
+  vi.spyOn(erpApi, 'patchSchemaColumns').mockResolvedValue([])
+})
 
 const SCHEMA: SchemaDefinition = {
   version: '2.0',
@@ -106,5 +110,18 @@ describe('SchemaView', () => {
     expect(chip.text()).toContain('7 / 7')
     await checkboxes[0].setValue(false)
     expect(w.find('.active-chip').text()).toContain('6 / 7')
+  })
+
+  it('calls patchSchemaColumns when a column is toggled', async () => {
+    vi.spyOn(erpApi, 'getSchema').mockResolvedValueOnce(SCHEMA)
+    const patchSpy = vi.spyOn(erpApi, 'patchSchemaColumns').mockResolvedValue([])
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+    await w.findAll('input[type="checkbox"]')[0].setValue(false)
+    await flushPromises()
+    expect(patchSpy).toHaveBeenCalled()
+    // Should not include 'guid' since we unchecked it
+    const [cols] = patchSpy.mock.calls[0]
+    expect(cols).not.toContain('guid')
   })
 })

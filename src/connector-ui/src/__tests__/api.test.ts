@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { listExports, getExport, releaseExport } from '@/api/exports'
+import { listExports, getExport, releaseExport, deliverExport } from '@/api/exports'
 
 function mockFetch(body: unknown, status = 200) {
   return vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
@@ -14,7 +14,12 @@ beforeEach(() => vi.restoreAllMocks())
 
 describe('listExports', () => {
   it('fetches /api/exports and returns the array', async () => {
-    const payload = [{ sequenceNo: 1, status: 'Pending', recordCount: 5, sha256Short: 'abc', extractedAt: '', dataFileName: '' }]
+    const payload = [
+      {
+        sequenceNo: 1, status: 'Pending', recordCount: 5, sha256Short: 'abc',
+        extractedAt: '', dataFileName: '', isStale: false,
+      },
+    ]
     mockFetch(payload)
     const result = await listExports()
     expect(result).toEqual(payload)
@@ -23,11 +28,17 @@ describe('listExports', () => {
 })
 
 describe('getExport', () => {
+  const detail = {
+    id: 1, sequenceNo: 1, status: 'Pending', recordCount: 5, sha256: 'full',
+    extractedAt: '', dataFileName: '', releasedAt: null, operatedBy: null, approvedBy: null,
+    deliveredAt: null, deliveredBy: null, importedRecordCount: null, deliveryNotes: null,
+    sequenceGapWarning: null,
+  }
+
   it('returns the detail object on 200', async () => {
-    const payload = { id: 1, sequenceNo: 1, status: 'Pending', recordCount: 5, sha256: 'full', extractedAt: '', dataFileName: '', releasedAt: null, operatedBy: null, approvedBy: null }
-    mockFetch(payload, 200)
+    mockFetch(detail, 200)
     const result = await getExport(1)
-    expect(result).toEqual(payload)
+    expect(result).toEqual(detail)
   })
 
   it('returns null on 404', async () => {
@@ -42,7 +53,7 @@ describe('releaseExport', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
       ok: true, status: 200, text: async () => '',
     } as Response)
-    const result = await releaseExport(1, { operator: 'alice', approver: 'bob' })
+    const result = await releaseExport(1, { approver: 'bob' })
     expect(result.ok).toBe(true)
     expect(result.status).toBe(200)
   })
@@ -51,19 +62,49 @@ describe('releaseExport', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
       ok: false, status: 400, text: async () => 'Operator und Approver müssen verschiedene Personen sein.',
     } as Response)
-    const result = await releaseExport(1, { operator: 'x', approver: 'x' })
+    const result = await releaseExport(1, { approver: 'alice' })
     expect(result.ok).toBe(false)
     expect(result.message).toContain('verschiedene')
   })
 
-  it('sends correct JSON body', async () => {
+  it('sends correct JSON body (approver only — operator inferred from JWT)', async () => {
     const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
       ok: true, status: 200, text: async () => '',
     } as Response)
-    await releaseExport(3, { operator: 'alice', approver: 'bob' })
+    await releaseExport(3, { approver: 'bob' })
     const [url, init] = spy.mock.calls[0]
     expect(url).toBe('/api/exports/3/release')
     expect(init?.method).toBe('POST')
-    expect(JSON.parse(init?.body as string)).toEqual({ operator: 'alice', approver: 'bob' })
+    expect(JSON.parse(init?.body as string)).toEqual({ approver: 'bob' })
+  })
+})
+
+describe('deliverExport', () => {
+  it('returns ok:true on 200', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true, status: 200, text: async () => '',
+    } as Response)
+    const result = await deliverExport(1, { importedRecordCount: 5, notes: 'USB-007' })
+    expect(result.ok).toBe(true)
+  })
+
+  it('returns ok:false with message on 400', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: false, status: 400, text: async () => 'Only released runs can be marked as delivered.',
+    } as Response)
+    const result = await deliverExport(1, {})
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('released')
+  })
+
+  it('sends correct JSON body to POST …/deliver', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true, status: 200, text: async () => '',
+    } as Response)
+    await deliverExport(5, { importedRecordCount: 3, notes: 'ref-42' })
+    const [url, init] = spy.mock.calls[0]
+    expect(url).toBe('/api/exports/5/deliver')
+    expect(init?.method).toBe('POST')
+    expect(JSON.parse(init?.body as string)).toEqual({ importedRecordCount: 3, notes: 'ref-42' })
   })
 })

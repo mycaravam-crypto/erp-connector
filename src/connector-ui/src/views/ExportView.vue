@@ -211,6 +211,16 @@ function previewVal(rec: PreviewResult['records'][number], col: string): string 
         <button class="icon-btn" :disabled="runsLoading" @click="loadRuns">Refresh</button>
       </div>
 
+      <!-- Stale-pending banner: shown when any run has been awaiting release for > 24 h -->
+      <div
+        v-if="!runsLoading && runs.some((r) => r.isStale)"
+        class="stale-banner"
+        role="alert"
+      >
+        <strong>Action required:</strong> one or more export runs have been pending for over 24 hours.
+        Please review and release or investigate.
+      </div>
+
       <p v-if="runsLoading" class="info">Loading…</p>
       <p v-else-if="runsError" class="error">{{ runsError }}</p>
       <p v-else-if="runs.length === 0" class="info">No export runs yet.</p>
@@ -236,7 +246,10 @@ function previewVal(rec: PreviewResult['records'][number], col: string): string 
             <td>{{ run.extractedAt }}</td>
             <td>{{ run.recordCount }}</td>
             <td><code class="sha-short">{{ run.sha256Short }}</code></td>
-            <td><StatusBadge :status="run.status" /></td>
+            <td>
+              <StatusBadge :status="run.status" />
+              <span v-if="run.isStale" class="stale-tag" title="Pending for over 24 hours">overdue</span>
+            </td>
             <td class="file-name">{{ run.dataFileName }}</td>
           </tr>
         </tbody>
@@ -467,6 +480,31 @@ tr:hover td { background: #f8fafc; }
 .state-active        { background: #dcfce7; color: #166534; }
 .state-inrepair      { background: #fef9c3; color: #854d0e; }
 .state-decommissioned { background: #f1f5f9; color: #64748b; }
+
+.stale-banner {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 0.375rem;
+  padding: 0.65rem 1rem;
+  font-size: 0.875rem;
+  color: #92400e;
+  margin-bottom: 0.75rem;
+}
+
+.stale-tag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.35rem;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 9999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #92400e;
+  vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
 
 .info  { color: #64748b; }
 .error { color: #dc2626; }

@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 using Connector.Api;
 using Connector.Core.Domain;
 using Connector.Core.Interfaces;
@@ -10,6 +11,7 @@ using Connector.Export;
 using Connector.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,11 +21,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth"));
 
 var jwtSecret =
-    builder.Configuration["Auth:JwtSecret"]
-    ?? throw new InvalidOperationException("Auth:JwtSecret is not configured.");
+    builder.Configuration["Auth:JwtSecret"] ?? throw new InvalidOperationException("Auth:JwtSecret is not configured.");
 
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+builder
+    .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(opts =>
         opts.TokenValidationParameters = new TokenValidationParameters
         {
@@ -78,6 +79,21 @@ using (var scope = app.Services.CreateScope())
 
     var exportLogDb = scope.ServiceProvider.GetRequiredService<ExportLogDbContext>();
     await exportLogDb.Database.EnsureCreatedAsync();
+
+    // Additive schema migrations — safe to run on every start; no-op if column/table already exists.
+    // We do not use EF migrations to keep the setup dependency-free.
+    await exportLogDb.Database.ExecuteSqlRawAsync(
+        """
+        ALTER TABLE ExportRun ADD COLUMN IF NOT EXISTS DeliveredAt TEXT;
+        ALTER TABLE ExportRun ADD COLUMN IF NOT EXISTS DeliveredBy TEXT;
+        ALTER TABLE ExportRun ADD COLUMN IF NOT EXISTS ImportedRecordCount INTEGER;
+        ALTER TABLE ExportRun ADD COLUMN IF NOT EXISTS DeliveryNotes TEXT;
+        CREATE TABLE IF NOT EXISTS AppSetting (
+            Key TEXT PRIMARY KEY NOT NULL,
+            Value TEXT NOT NULL
+        );
+        """
+    );
 }
 
 // ── User store ────────────────────────────────────────────────────────────────
@@ -93,191 +109,361 @@ if (app.Environment.IsDevelopment())
 else
 {
     var authUsers = app.Configuration.GetSection("Auth:Users").Get<List<AuthUser>>() ?? [];
-    userStore = authUsers.ToDictionary(
-        u => u.Username,
-        u => u.PasswordHash,
-        StringComparer.OrdinalIgnoreCase
-    );
+    userStore = authUsers.ToDictionary(u => u.Username, u => u.PasswordHash, StringComparer.OrdinalIgnoreCase);
+}
+
+// ── Health check (no auth — used by monitoring and Step 1 connection test) ────
+
+app.MapGet(
+    "/api/health",
+    async (DemoErpDbContext erpDb, ExportLogDbContext logDb, IOptions<ExportSinkOptions> sinkOpts) =>
+    {
+        var staging = sinkOpts.Value.StagingPath;
+        var stagingOk = Directory.Exists(staging) && IsStagingWritable(staging);
+        var erpOk = false;
+        var logOk = false;
+
+        try
+        {
+            erpOk = await erpDb.Database.CanConnectAsync();
+        }
+        catch
+        { /* degraded */
+        }
+        try
+        {
+            logOk = await logDb.Database.CanConnectAsync();
+        }
+        catch
+        { /* degraded */
+        }
+
+        var checks = new
+        {
+            erp_db = erpOk,
+            log_db = logOk,
+            staging = stagingOk,
+        };
+        var healthy = erpOk && logOk && stagingOk;
+        var result = new { status = healthy ? "healthy" : "degraded", checks };
+        return healthy ? Results.Ok(result) : Results.Json(result, statusCode: 503);
+    }
+);
+
+// Write a temp file to confirm the staging directory is writable, not just readable.
+bool IsStagingWritable(string path)
+{
+    try
+    {
+        var probe = Path.Combine(path, ".health_probe");
+        File.WriteAllText(probe, "");
+        File.Delete(probe);
+        return true;
+    }
+    catch
+    {
+        return false;
+    }
 }
 
 // ── Auth endpoints ────────────────────────────────────────────────────────────
 
-app.MapPost("/api/auth/login", (LoginRequest req) =>
-{
-    if (
-        string.IsNullOrWhiteSpace(req.Username)
-        || !userStore.TryGetValue(req.Username, out var hash)
-        || !BCrypt.Net.BCrypt.Verify(req.Password ?? "", hash)
-    )
-        return Results.Unauthorized();
+app.MapPost(
+    "/api/auth/login",
+    (LoginRequest req) =>
+    {
+        if (
+            string.IsNullOrWhiteSpace(req.Username)
+            || !userStore.TryGetValue(req.Username, out var hash)
+            || !BCrypt.Net.BCrypt.Verify(req.Password ?? "", hash)
+        )
+            return Results.Unauthorized();
 
-    var expiry = app.Configuration.GetValue<int>("Auth:JwtExpiryHours", defaultValue: 8);
-    var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
-    var token = new JwtSecurityToken(
-        claims: [new Claim(ClaimTypes.Name, req.Username)],
-        expires: DateTime.UtcNow.AddHours(expiry),
-        signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
-    );
-    return Results.Ok(new LoginResponse(new JwtSecurityTokenHandler().WriteToken(token), req.Username));
-});
+        var expiry = app.Configuration.GetValue<int>("Auth:JwtExpiryHours", defaultValue: 8);
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
+        var token = new JwtSecurityToken(
+            claims: [new Claim(ClaimTypes.Name, req.Username)],
+            expires: DateTime.UtcNow.AddHours(expiry),
+            signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
+        );
+        return Results.Ok(new LoginResponse(new JwtSecurityTokenHandler().WriteToken(token), req.Username));
+    }
+);
 
 // Dev-only: returns a BCrypt hash for a plaintext password (to seed appsettings for production users).
 if (app.Environment.IsDevelopment())
 {
-    app.MapPost("/api/auth/hash", (HashRequest req) =>
-        Results.Ok(new { Hash = BCrypt.Net.BCrypt.HashPassword(req.Password, workFactor: 11) })
+    app.MapPost(
+        "/api/auth/hash",
+        (HashRequest req) => Results.Ok(new { Hash = BCrypt.Net.BCrypt.HashPassword(req.Password, workFactor: 11) })
     );
 }
 
 // ── Export API (all routes require a valid JWT) ───────────────────────────────
 
+// Returns the run list with an IsStale flag so the UI can warn about long-pending runs.
 app.MapGet(
-    "/api/exports",
-    async (ExportLogDbContext db) =>
-        await db
-            .ExportRuns.OrderByDescending(r => r.SequenceNo)
-            .Select(r => new ExportRunSummary(
-                r.SequenceNo,
-                r.ExtractedAt,
-                r.RecordCount,
-                r.Sha256.Substring(0, 12),
-                r.Status,
-                r.DataFileName
-            ))
-            .ToListAsync()
-).RequireAuthorization();
+        "/api/exports",
+        async (ExportLogDbContext db) =>
+        {
+            var now = DateTimeOffset.UtcNow;
+            var runs = await db.ExportRuns.OrderByDescending(r => r.SequenceNo).ToListAsync();
 
+            return runs.Select(r =>
+                {
+                    // Pending runs stale after 24 h — operator should investigate or release.
+                    var isStale =
+                        r.Status == ExportRunStatus.Pending
+                        && DateTimeOffset.TryParse(
+                            r.ExtractedAt,
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            System.Globalization.DateTimeStyles.RoundtripKind,
+                            out var ts
+                        )
+                        && (now - ts).TotalHours > 24;
+
+                    var sha256Short = r.Sha256.Length >= 12 ? r.Sha256[..12] : r.Sha256;
+                    return new ExportRunSummary(
+                        r.SequenceNo,
+                        r.ExtractedAt,
+                        r.RecordCount,
+                        sha256Short,
+                        r.Status,
+                        r.DataFileName,
+                        isStale
+                    );
+                })
+                .ToList();
+        }
+    )
+    .RequireAuthorization();
+
+// Returns full detail including a gap warning when the preceding run has not been released.
 app.MapGet(
-    "/api/exports/{seqNo:int}",
-    async (int seqNo, ExportLogDbContext db) =>
-    {
-        var run = await db.ExportRuns.FirstOrDefaultAsync(r => r.SequenceNo == seqNo);
-        return run is null ? Results.NotFound() : Results.Ok(run);
-    }
-).RequireAuthorization();
+        "/api/exports/{seqNo:int}",
+        async (int seqNo, ExportLogDbContext db) =>
+        {
+            var run = await db.ExportRuns.FirstOrDefaultAsync(r => r.SequenceNo == seqNo);
+            if (run is null)
+                return Results.NotFound();
+
+            // Gap check: only meaningful for Pending runs that are candidates for release.
+            string? gapWarning = null;
+            if (run.Status == ExportRunStatus.Pending)
+            {
+                var lastReleasedSeq = await db
+                    .ExportRuns.Where(r => r.Status == ExportRunStatus.Released)
+                    .OrderByDescending(r => r.SequenceNo)
+                    .Select(r => (int?)r.SequenceNo)
+                    .FirstOrDefaultAsync();
+
+                // Gap = a released run exists and it is not the immediate predecessor.
+                if (lastReleasedSeq.HasValue && lastReleasedSeq.Value != seqNo - 1)
+                    gapWarning =
+                        $"Sequence gap detected: last released run is #{lastReleasedSeq.Value}, "
+                        + $"but #{seqNo} is next in line. "
+                        + $"Investigate run #{lastReleasedSeq.Value + 1} before releasing.";
+            }
+
+            return Results.Ok(
+                new ExportDetailDto(
+                    run.Id,
+                    run.SequenceNo,
+                    run.ExtractedAt,
+                    run.RecordCount,
+                    run.Sha256,
+                    run.Status,
+                    run.ReleasedAt,
+                    run.OperatedBy,
+                    run.ApprovedBy,
+                    run.DataFileName,
+                    run.DeliveredAt,
+                    run.DeliveredBy,
+                    run.ImportedRecordCount,
+                    run.DeliveryNotes,
+                    gapWarning
+                )
+            );
+        }
+    )
+    .RequireAuthorization();
 
 /// <summary>
-/// Vier-Augen-Freigabe. Operator comes from the JWT; approver must be a different registered user.
+/// Four-eyes release. Operator is read from the JWT (cannot be spoofed).
+/// Approver must be a different registered user supplied in the request body.
 /// </summary>
 app.MapPost(
-    "/api/exports/{seqNo:int}/release",
-    async (int seqNo, ReleaseRequest request, HttpContext httpContext, ExportLogDbContext db) =>
-    {
-        if (string.IsNullOrWhiteSpace(request.Approver))
-            return Results.BadRequest("Approver ist ein Pflichtfeld.");
+        "/api/exports/{seqNo:int}/release",
+        async (int seqNo, ReleaseRequest request, HttpContext httpContext, ExportLogDbContext db) =>
+        {
+            if (string.IsNullOrWhiteSpace(request.Approver))
+                return Results.BadRequest("Approver ist ein Pflichtfeld.");
 
-        var operatorName = httpContext.User.Identity!.Name!;
+            var operatorName = httpContext.User.Identity!.Name!;
 
-        if (string.Equals(operatorName, request.Approver, StringComparison.OrdinalIgnoreCase))
-            return Results.BadRequest(
-                "Operator und Approver müssen verschiedene Personen sein (Vier-Augen-Prinzip)."
-            );
+            if (string.Equals(operatorName, request.Approver, StringComparison.OrdinalIgnoreCase))
+                return Results.BadRequest(
+                    "Operator und Approver müssen verschiedene Personen sein (Vier-Augen-Prinzip)."
+                );
 
-        if (!userStore.ContainsKey(request.Approver))
-            return Results.BadRequest(
-                $"Unbekannter Approver: '{request.Approver}'. Nur registrierte Benutzer können freigeben."
-            );
+            if (!userStore.ContainsKey(request.Approver))
+                return Results.BadRequest(
+                    $"Unbekannter Approver: '{request.Approver}'. Nur registrierte Benutzer können freigeben."
+                );
 
-        var run = await db.ExportRuns.FirstOrDefaultAsync(r => r.SequenceNo == seqNo);
-        if (run is null)
-            return Results.NotFound();
-        if (run.Status != ExportRunStatus.Pending)
-            return Results.Conflict($"Run #{seqNo} ist bereits {run.Status}.");
+            var run = await db.ExportRuns.FirstOrDefaultAsync(r => r.SequenceNo == seqNo);
+            if (run is null)
+                return Results.NotFound();
+            if (run.Status != ExportRunStatus.Pending)
+                return Results.Conflict($"Run #{seqNo} ist bereits {run.Status}.");
 
-        run.Status = ExportRunStatus.Released;
-        run.OperatedBy = operatorName;
-        run.ApprovedBy = request.Approver;
-        run.ReleasedAt = DateTimeOffset.UtcNow.ToString("O");
-        await db.SaveChangesAsync();
+            run.Status = ExportRunStatus.Released;
+            run.OperatedBy = operatorName;
+            run.ApprovedBy = request.Approver;
+            run.ReleasedAt = DateTimeOffset.UtcNow.ToString("O");
+            await db.SaveChangesAsync();
 
-        return Results.Ok();
-    }
-).RequireAuthorization();
+            return Results.Ok();
+        }
+    )
+    .RequireAuthorization();
+
+/// <summary>
+/// Delivery acknowledgement. Closes the custody chain after the export file has been
+/// physically transferred to the vendor. Only valid for Released runs; idempotent per run.
+/// </summary>
+app.MapPost(
+        "/api/exports/{seqNo:int}/deliver",
+        async (int seqNo, DeliverRequest request, HttpContext httpContext, ExportLogDbContext db) =>
+        {
+            var run = await db.ExportRuns.FirstOrDefaultAsync(r => r.SequenceNo == seqNo);
+            if (run is null)
+                return Results.NotFound();
+            if (run.Status != ExportRunStatus.Released)
+                return Results.BadRequest("Only released runs can be marked as delivered.");
+            if (run.DeliveredAt is not null)
+                return Results.Conflict($"Run #{seqNo} has already been recorded as delivered.");
+
+            run.DeliveredAt = DateTimeOffset.UtcNow.ToString("O");
+            run.DeliveredBy = httpContext.User.Identity!.Name!;
+            run.ImportedRecordCount = request.ImportedRecordCount;
+            run.DeliveryNotes = request.Notes;
+            await db.SaveChangesAsync();
+
+            return Results.Ok();
+        }
+    )
+    .RequireAuthorization();
 
 // ── On-demand pipeline trigger ────────────────────────────────────────────────
 
-app.MapPost("/api/pipeline/run", async (
-    string? format,
-    ExportLogDbContext db,
-    IErpReader erpReader,
-    IExportFilter filter,
-    IDataMinimizer minimizer,
-    ISchemaMapper mapper,
-    IPackager packager,
-    IExportSink sink,
-    ILogger<Program> logger,
-    CancellationToken ct) =>
-{
-    var fmt = format?.ToLowerInvariant() switch { "csv" => "csv", "json" => "json", _ => "xlsx" };
-
-    var sequenceNo = (await db.ExportRuns.MaxAsync(r => (int?)r.SequenceNo, ct) ?? 0) + 1;
-    var run = new ExportRunEntity
-    {
-        SequenceNo = sequenceNo,
-        ExtractedAt = DateTimeOffset.UtcNow.ToString("O"),
-        Status = ExportRunStatus.Pending,
-    };
-    db.ExportRuns.Add(run);
-    await db.SaveChangesAsync(ct);
-
-    try
-    {
-        var rawItems = await erpReader.ReadMaintainableCIsAsync(ct);
-        var filtered = filter.Filter(rawItems);
-        var minimized = filtered.Select(minimizer.Minimize).ToList();
-        var mapped = minimized.Select(mapper.Map).ToList();
-
-        ExportPackage package;
-        var extractedAt = DateTimeOffset.UtcNow;
-        if (fmt == "csv")
+app.MapPost(
+        "/api/pipeline/run",
+        async (
+            string? format,
+            ExportLogDbContext db,
+            IErpReader erpReader,
+            IExportFilter filter,
+            IDataMinimizer minimizer,
+            ISchemaMapper mapper,
+            IPackager packager,
+            IExportSink sink,
+            ILogger<Program> logger,
+            CancellationToken ct
+        ) =>
         {
-            var bytes = BuildCsvBytes(mapped, ExportSchema.Version, extractedAt);
-            var checksum = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
-            var fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "csv");
-            package = new ExportPackage(
-                new ExportManifest(sequenceNo, ExportSchema.Version, extractedAt, mapped.Count, checksum),
-                bytes, fileName);
+            var fmt = format?.ToLowerInvariant() switch
+            {
+                "csv" => "csv",
+                "json" => "json",
+                _ => "xlsx",
+            };
+
+            var sequenceNo = (await db.ExportRuns.MaxAsync(r => (int?)r.SequenceNo, ct) ?? 0) + 1;
+            var run = new ExportRunEntity
+            {
+                SequenceNo = sequenceNo,
+                ExtractedAt = DateTimeOffset.UtcNow.ToString("O"),
+                Status = ExportRunStatus.Pending,
+            };
+            db.ExportRuns.Add(run);
+            await db.SaveChangesAsync(ct);
+
+            try
+            {
+                var rawItems = await erpReader.ReadMaintainableCIsAsync(ct);
+                var filtered = filter.Filter(rawItems);
+                var minimized = filtered.Select(minimizer.Minimize).ToList();
+                var mapped = minimized.Select(mapper.Map).ToList();
+
+                ExportPackage package;
+                var extractedAt = DateTimeOffset.UtcNow;
+                if (fmt == "csv")
+                {
+                    var bytes = BuildCsvBytes(mapped, ExportSchema.Version, extractedAt);
+                    var checksum = Convert
+                        .ToHexString(System.Security.Cryptography.SHA256.HashData(bytes))
+                        .ToLowerInvariant();
+                    var fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "csv");
+                    package = new ExportPackage(
+                        new ExportManifest(sequenceNo, ExportSchema.Version, extractedAt, mapped.Count, checksum),
+                        bytes,
+                        fileName
+                    );
+                }
+                else if (fmt == "json")
+                {
+                    var bytes = BuildJsonBytes(mapped, ExportSchema.Version, extractedAt);
+                    var checksum = Convert
+                        .ToHexString(System.Security.Cryptography.SHA256.HashData(bytes))
+                        .ToLowerInvariant();
+                    var fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "json");
+                    package = new ExportPackage(
+                        new ExportManifest(sequenceNo, ExportSchema.Version, extractedAt, mapped.Count, checksum),
+                        bytes,
+                        fileName
+                    );
+                }
+                else
+                {
+                    package = await packager.PackageAsync(mapped, sequenceNo, ct);
+                }
+
+                await sink.WriteAsync(package, ct);
+
+                run.RecordCount = package.Manifest.RecordCount;
+                run.Sha256 = package.Manifest.Sha256Checksum;
+                run.DataFileName = package.DataFileName;
+                await db.SaveChangesAsync(ct);
+
+                logger.LogInformation(
+                    "Run Now: Export #{Seq} ({Fmt}) abgeschlossen, {Count} Records",
+                    sequenceNo,
+                    fmt,
+                    run.RecordCount
+                );
+
+                var sha256Short = run.Sha256.Length >= 12 ? run.Sha256[..12] : run.Sha256;
+                return Results.Ok(new RunNowResult(sequenceNo, run.RecordCount, sha256Short));
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex, "Run Now: Export #{Seq} fehlgeschlagen", sequenceNo);
+                run.Status = ExportRunStatus.Failed;
+                await db.SaveChangesAsync(CancellationToken.None);
+                return Results.Problem(ex.Message, statusCode: 500);
+            }
         }
-        else if (fmt == "json")
-        {
-            var bytes = BuildJsonBytes(mapped, ExportSchema.Version, extractedAt);
-            var checksum = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
-            var fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "json");
-            package = new ExportPackage(
-                new ExportManifest(sequenceNo, ExportSchema.Version, extractedAt, mapped.Count, checksum),
-                bytes, fileName);
-        }
-        else
-        {
-            package = await packager.PackageAsync(mapped, sequenceNo, ct);
-        }
-
-        await sink.WriteAsync(package, ct);
-
-        run.RecordCount = package.Manifest.RecordCount;
-        run.Sha256 = package.Manifest.Sha256Checksum;
-        run.DataFileName = package.DataFileName;
-        await db.SaveChangesAsync(ct);
-
-        logger.LogInformation("Run Now: Export #{Seq} ({Fmt}) abgeschlossen, {Count} Records", sequenceNo, fmt, run.RecordCount);
-
-        var sha256Short = run.Sha256.Length >= 12 ? run.Sha256[..12] : run.Sha256;
-        return Results.Ok(new RunNowResult(sequenceNo, run.RecordCount, sha256Short));
-    }
-    catch (Exception ex) when (ex is not OperationCanceledException)
-    {
-        logger.LogError(ex, "Run Now: Export #{Seq} fehlgeschlagen", sequenceNo);
-        run.Status = ExportRunStatus.Failed;
-        await db.SaveChangesAsync(CancellationToken.None);
-        return Results.Problem(ex.Message, statusCode: 500);
-    }
-}).RequireAuthorization();
+    )
+    .RequireAuthorization();
 
 byte[] BuildCsvBytes(IReadOnlyList<MappedExportRecord> records, string schemaVersion, DateTimeOffset extractedAt)
 {
     var sb = new System.Text.StringBuilder();
     sb.AppendLine($"# schema_version={schemaVersion},extracted_at={extractedAt:O}");
-    sb.AppendLine("guid,serial_number,part_number,parent_serial_number,model_reference,commissioning_date,maintenance_state");
+    sb.AppendLine(
+        "guid,serial_number,part_number,parent_serial_number,model_reference,commissioning_date,maintenance_state"
+    );
     foreach (var r in records)
     {
         sb.Append(CsvEscape(r.Guid)).Append(',');
@@ -297,24 +483,26 @@ byte[] BuildJsonBytes(IReadOnlyList<MappedExportRecord> records, string schemaVe
     {
         schema_version = schemaVersion,
         extracted_at = extractedAt.ToString("O"),
-        records = records.Select(r => new
-        {
-            guid = r.Guid,
-            serial_number = r.SerialNumber,
-            part_number = r.PartNumber,
-            parent_serial_number = r.ParentSerialNumber,
-            model_reference = r.ModelReference,
-            commissioning_date = r.CommissioningDateIso8601,
-            maintenance_state = r.MaintenanceState,
-        }).ToList()
+        records = records
+            .Select(r => new
+            {
+                guid = r.Guid,
+                serial_number = r.SerialNumber,
+                part_number = r.PartNumber,
+                parent_serial_number = r.ParentSerialNumber,
+                model_reference = r.ModelReference,
+                commissioning_date = r.CommissioningDateIso8601,
+                maintenance_state = r.MaintenanceState,
+            })
+            .ToList(),
     };
-    return System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(obj,
-        new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+    return JsonSerializer.SerializeToUtf8Bytes(obj, new JsonSerializerOptions { WriteIndented = true });
 }
 
 string CsvEscape(string? value)
 {
-    if (string.IsNullOrEmpty(value)) return "";
+    if (string.IsNullOrEmpty(value))
+        return "";
     if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
         return '"' + value.Replace("\"", "\"\"") + '"';
     return value;
@@ -322,135 +510,238 @@ string CsvEscape(string? value)
 
 // ── Export preview (read-only, no side effects) ────────────────────────────────
 
-app.MapGet("/api/pipeline/preview", async (
-    IErpReader erpReader,
-    IExportFilter filter,
-    IDataMinimizer minimizer,
-    ISchemaMapper mapper,
-    CancellationToken ct) =>
-{
-    var rawItems = await erpReader.ReadMaintainableCIsAsync(ct);
-    var filtered = filter.Filter(rawItems);
-    var minimized = filtered.Select(minimizer.Minimize).ToList();
-    var records = minimized
-        .Select(item => mapper.Map(item))
-        .Select(r => new PreviewRecord(
-            r.Guid, r.SerialNumber, r.PartNumber, r.ParentSerialNumber,
-            r.ModelReference, r.CommissioningDateIso8601, r.MaintenanceState))
-        .ToList();
-    return Results.Ok(new PreviewResult(records.Count, ExportSchema.Version, records));
-}).RequireAuthorization();
+app.MapGet(
+        "/api/pipeline/preview",
+        async (
+            IErpReader erpReader,
+            IExportFilter filter,
+            IDataMinimizer minimizer,
+            ISchemaMapper mapper,
+            CancellationToken ct
+        ) =>
+        {
+            var rawItems = await erpReader.ReadMaintainableCIsAsync(ct);
+            var filtered = filter.Filter(rawItems);
+            var minimized = filtered.Select(minimizer.Minimize).ToList();
+            var records = minimized
+                .Select(item => mapper.Map(item))
+                .Select(r => new PreviewRecord(
+                    r.Guid,
+                    r.SerialNumber,
+                    r.PartNumber,
+                    r.ParentSerialNumber,
+                    r.ModelReference,
+                    r.CommissioningDateIso8601,
+                    r.MaintenanceState
+                ))
+                .ToList();
+            return Results.Ok(new PreviewResult(records.Count, ExportSchema.Version, records));
+        }
+    )
+    .RequireAuthorization();
 
 // ── ERP demo database ─────────────────────────────────────────────────────────
 
-app.MapGet("/api/erp/records", async (DemoErpDbContext erpDb) =>
-{
-    var configs = await erpDb.SystemConfigurations
-        .AsNoTracking()
-        .Include(sc => sc.Article)
-        .Include(sc => sc.MaintenancePlans)
-        .Include(sc => sc.ParentLinks).ThenInclude(l => l.Parent)
-        .OrderBy(sc => sc.Id)
-        .ToListAsync();
+app.MapGet(
+        "/api/erp/records",
+        async (DemoErpDbContext erpDb) =>
+        {
+            var configs = await erpDb
+                .SystemConfigurations.AsNoTracking()
+                .Include(sc => sc.Article)
+                .Include(sc => sc.MaintenancePlans)
+                .Include(sc => sc.ParentLinks)
+                    .ThenInclude(l => l.Parent)
+                .OrderBy(sc => sc.Id)
+                .ToListAsync();
 
-    var records = configs.Select(sc =>
-    {
-        var activePlan = sc.MaintenancePlans.FirstOrDefault(mp => mp.Status == "Active");
-        var anyPlan = sc.MaintenancePlans.FirstOrDefault();
-        bool inScope = activePlan != null;
-        string? exclusionReason = null;
-        if (!inScope)
-            exclusionReason = sc.MaintenancePlans.Any() ? "Inactive maintenance plan" : "No maintenance plan";
+            var records = configs
+                .Select(sc =>
+                {
+                    var activePlan = sc.MaintenancePlans.FirstOrDefault(mp => mp.Status == "Active");
+                    var anyPlan = sc.MaintenancePlans.FirstOrDefault();
+                    bool inScope = activePlan != null;
+                    string? exclusionReason = null;
+                    if (!inScope)
+                        exclusionReason = sc.MaintenancePlans.Any()
+                            ? "Inactive maintenance plan"
+                            : "No maintenance plan";
 
-        return new ErpCiRecord(
-            Id: sc.Id,
-            Serial: sc.Serial,
-            Status: sc.Status,
-            CommissionDate: sc.CommissionDate?.ToString("yyyy-MM-dd"),
-            ArticleName: sc.Article?.ArticleName,
-            PartNumber: sc.Article?.PartNumber,
-            Manufacturer: sc.Article?.Manufacturer,
-            MaintenancePlanStatus: activePlan?.Status ?? anyPlan?.Status,
-            AllocationChartRef: activePlan?.AllocationChartRef ?? anyPlan?.AllocationChartRef,
-            ParentId: sc.ParentLinks.FirstOrDefault()?.ParentId,
-            ParentSerial: sc.ParentLinks.FirstOrDefault()?.Parent?.Serial,
-            InScope: inScope,
-            ExclusionReason: exclusionReason,
-            TechnicianName: sc.TechnicianName,
-            StorageLocation: sc.StorageLocation
-        );
-    }).ToList();
+                    return new ErpCiRecord(
+                        Id: sc.Id,
+                        Serial: sc.Serial,
+                        Status: sc.Status,
+                        CommissionDate: sc.CommissionDate?.ToString("yyyy-MM-dd"),
+                        ArticleName: sc.Article?.ArticleName,
+                        PartNumber: sc.Article?.PartNumber,
+                        Manufacturer: sc.Article?.Manufacturer,
+                        MaintenancePlanStatus: activePlan?.Status ?? anyPlan?.Status,
+                        AllocationChartRef: activePlan?.AllocationChartRef ?? anyPlan?.AllocationChartRef,
+                        ParentId: sc.ParentLinks.FirstOrDefault()?.ParentId,
+                        ParentSerial: sc.ParentLinks.FirstOrDefault()?.Parent?.Serial,
+                        InScope: inScope,
+                        ExclusionReason: exclusionReason,
+                        TechnicianName: sc.TechnicianName,
+                        StorageLocation: sc.StorageLocation
+                    );
+                })
+                .ToList();
 
-    return Results.Ok(records);
-}).RequireAuthorization();
+            return Results.Ok(records);
+        }
+    )
+    .RequireAuthorization();
 
 // ── Source database schema ────────────────────────────────────────────────────
 
-app.MapGet("/api/source-schema", () =>
-{
-    var tables = new SourceTableDto[]
-    {
-        new("systemconfiguration", "Installed CI instances — one row per physical unit",
-            new SourceColumnDto[]
+app.MapGet(
+        "/api/source-schema",
+        () =>
+        {
+            var tables = new SourceTableDto[]
             {
-                new("id", "uuid", Nullable: false, PrimaryKey: true),
-                new("serial", "character varying(100)", Nullable: true, PrimaryKey: false),
-                new("article_id", "uuid", Nullable: true, PrimaryKey: false),
-                new("status", "character varying(50)", Nullable: true, PrimaryKey: false),
-                new("commission_date", "date", Nullable: true, PrimaryKey: false),
-                new("technician_name", "character varying(100)", Nullable: true, PrimaryKey: false),
-                new("storage_location", "character varying(200)", Nullable: true, PrimaryKey: false),
-            }),
-        new("masterdata", "Article/model master records — one row per model type",
-            new SourceColumnDto[]
-            {
-                new("id", "uuid", Nullable: false, PrimaryKey: true),
-                new("article_name", "character varying(200)", Nullable: true, PrimaryKey: false),
-                new("part_number", "character varying(100)", Nullable: true, PrimaryKey: false),
-                new("manufacturer", "character varying(100)", Nullable: true, PrimaryKey: false),
-            }),
-        new("maintenance_plan", "Maintenance plan assignments — drives scope filter",
-            new SourceColumnDto[]
-            {
-                new("id", "uuid", Nullable: false, PrimaryKey: true),
-                new("system_configuration_id", "uuid", Nullable: false, PrimaryKey: false),
-                new("status", "character varying(50)", Nullable: false, PrimaryKey: false),
-                new("allocation_chart_ref", "character varying(100)", Nullable: true, PrimaryKey: false),
-            }),
-        new("articlestructure", "BOM parent–child relationships",
-            new SourceColumnDto[]
-            {
-                new("id", "uuid", Nullable: false, PrimaryKey: true),
-                new("parent_id", "uuid", Nullable: true, PrimaryKey: false),
-                new("child_id", "uuid", Nullable: true, PrimaryKey: false),
-            }),
-    };
-    return Results.Ok(new SourceSchemaDto("demo-erp (SQLite in dev · PostgreSQL in prod)", tables));
-}).RequireAuthorization();
+                new(
+                    "systemconfiguration",
+                    "Installed CI instances — one row per physical unit",
+                    new SourceColumnDto[]
+                    {
+                        new("id", "uuid", Nullable: false, PrimaryKey: true),
+                        new("serial", "character varying(100)", Nullable: true, PrimaryKey: false),
+                        new("article_id", "uuid", Nullable: true, PrimaryKey: false),
+                        new("status", "character varying(50)", Nullable: true, PrimaryKey: false),
+                        new("commission_date", "date", Nullable: true, PrimaryKey: false),
+                        new("technician_name", "character varying(100)", Nullable: true, PrimaryKey: false),
+                        new("storage_location", "character varying(200)", Nullable: true, PrimaryKey: false),
+                    }
+                ),
+                new(
+                    "masterdata",
+                    "Article/model master records — one row per model type",
+                    new SourceColumnDto[]
+                    {
+                        new("id", "uuid", Nullable: false, PrimaryKey: true),
+                        new("article_name", "character varying(200)", Nullable: true, PrimaryKey: false),
+                        new("part_number", "character varying(100)", Nullable: true, PrimaryKey: false),
+                        new("manufacturer", "character varying(100)", Nullable: true, PrimaryKey: false),
+                    }
+                ),
+                new(
+                    "maintenance_plan",
+                    "Maintenance plan assignments — drives scope filter",
+                    new SourceColumnDto[]
+                    {
+                        new("id", "uuid", Nullable: false, PrimaryKey: true),
+                        new("system_configuration_id", "uuid", Nullable: false, PrimaryKey: false),
+                        new("status", "character varying(50)", Nullable: false, PrimaryKey: false),
+                        new("allocation_chart_ref", "character varying(100)", Nullable: true, PrimaryKey: false),
+                    }
+                ),
+                new(
+                    "articlestructure",
+                    "BOM parent–child relationships",
+                    new SourceColumnDto[]
+                    {
+                        new("id", "uuid", Nullable: false, PrimaryKey: true),
+                        new("parent_id", "uuid", Nullable: true, PrimaryKey: false),
+                        new("child_id", "uuid", Nullable: true, PrimaryKey: false),
+                    }
+                ),
+            };
+            return Results.Ok(new SourceSchemaDto("demo-erp (SQLite in dev · PostgreSQL in prod)", tables));
+        }
+    )
+    .RequireAuthorization();
 
 // ── Export schema definition ───────────────────────────────────────────────────
 
-app.MapGet("/api/schema", () =>
-{
-    var columns = new SchemaColumnDto[]
-    {
-        new("guid", "systemconfiguration.id", "UUID text",
-            "Coalesce key — stable PostgreSQL PK; never changes for the entity lifetime", true),
-        new("serial_number", "systemconfiguration.serial", "Text (explicit)",
-            "Physical unit identity; warranty lookups by humans. Not the coalesce key.", true),
-        new("part_number", "masterdata.part_number", "Text (explicit)",
-            "Model/part reference — explicit text to prevent numeric coercion", true),
-        new("parent_serial_number", "articlestructure → systemconfiguration.serial", "Text (explicit)",
-            "BOM parent reference; drives cmdb_rel_ci hierarchy on the vendor side", true),
-        new("model_reference", "masterdata.article_name", "Text",
-            "Human-readable model name; links to cmdb_model on the vendor side", true),
-        new("commissioning_date", "systemconfiguration.commission_date", "ISO 8601 date",
-            "Warranty start date (YYYY-MM-DD)", true),
-        new("maintenance_state", "systemconfiguration.status", "Text (mapped enum)",
-            "CI lifecycle state mapped to ServiceNow install_status values", true),
-    };
-    return Results.Ok(new SchemaDto(ExportSchema.Version, columns));
-}).RequireAuthorization();
+// Returns schema columns with the active flag read from persisted preferences (AppSetting key "active_columns").
+// Defaults to all columns active when no preference is stored.
+app.MapGet(
+        "/api/schema",
+        async (ExportLogDbContext db) =>
+        {
+            var activeSetting = await db.AppSettings.FindAsync("active_columns");
+            var activeSet = activeSetting is null
+                ? new HashSet<string>(ExportSchema.Columns)
+                : new HashSet<string>(JsonSerializer.Deserialize<string[]>(activeSetting.Value) ?? []);
+
+            var columns = new SchemaColumnDto[]
+            {
+                new(
+                    "guid",
+                    "systemconfiguration.id",
+                    "UUID text",
+                    "Coalesce key — stable PostgreSQL PK; never changes for the entity lifetime",
+                    activeSet.Contains("guid")
+                ),
+                new(
+                    "serial_number",
+                    "systemconfiguration.serial",
+                    "Text (explicit)",
+                    "Physical unit identity; warranty lookups by humans. Not the coalesce key.",
+                    activeSet.Contains("serial_number")
+                ),
+                new(
+                    "part_number",
+                    "masterdata.part_number",
+                    "Text (explicit)",
+                    "Model/part reference — explicit text to prevent numeric coercion",
+                    activeSet.Contains("part_number")
+                ),
+                new(
+                    "parent_serial_number",
+                    "articlestructure → systemconfiguration.serial",
+                    "Text (explicit)",
+                    "BOM parent reference; drives cmdb_rel_ci hierarchy on the vendor side",
+                    activeSet.Contains("parent_serial_number")
+                ),
+                new(
+                    "model_reference",
+                    "masterdata.article_name",
+                    "Text",
+                    "Human-readable model name; links to cmdb_model on the vendor side",
+                    activeSet.Contains("model_reference")
+                ),
+                new(
+                    "commissioning_date",
+                    "systemconfiguration.commission_date",
+                    "ISO 8601 date",
+                    "Warranty start date (YYYY-MM-DD)",
+                    activeSet.Contains("commissioning_date")
+                ),
+                new(
+                    "maintenance_state",
+                    "systemconfiguration.status",
+                    "Text (mapped enum)",
+                    "CI lifecycle state mapped to ServiceNow install_status values",
+                    activeSet.Contains("maintenance_state")
+                ),
+            };
+            return Results.Ok(new SchemaDto(ExportSchema.Version, columns));
+        }
+    )
+    .RequireAuthorization();
+
+// Persists the active column set. Rejects unknown column names; allows partial sets.
+app.MapPatch(
+        "/api/schema/columns",
+        async (ColumnPatchRequest request, ExportLogDbContext db) =>
+        {
+            // Only accept column names that exist in the canonical schema.
+            var valid = request.Columns.Where(c => ExportSchema.Columns.Contains(c)).Distinct().ToArray();
+
+            var serialized = JsonSerializer.Serialize(valid);
+            var setting = await db.AppSettings.FindAsync("active_columns");
+            if (setting is null)
+                db.AppSettings.Add(new AppSettingEntity { Key = "active_columns", Value = serialized });
+            else
+                setting.Value = serialized;
+
+            await db.SaveChangesAsync();
+            return Results.Ok(valid);
+        }
+    )
+    .RequireAuthorization();
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -466,11 +757,41 @@ namespace Connector.Api
         int RecordCount,
         string Sha256Short,
         string Status,
-        string DataFileName
+        string DataFileName,
+        bool IsStale
+    );
+
+    /// <summary>
+    /// Full export run detail. SequenceGapWarning is non-null when a Pending run has a gap
+    /// relative to the last released run — operators should investigate before releasing.
+    /// Delivery fields are null until the physical handover is recorded via POST …/deliver.
+    /// </summary>
+    record ExportDetailDto(
+        int Id,
+        int SequenceNo,
+        string ExtractedAt,
+        int RecordCount,
+        string Sha256,
+        string Status,
+        string? ReleasedAt,
+        string? OperatedBy,
+        string? ApprovedBy,
+        string DataFileName,
+        string? DeliveredAt,
+        string? DeliveredBy,
+        int? ImportedRecordCount,
+        string? DeliveryNotes,
+        string? SequenceGapWarning
     );
 
     /// <summary>Operator is taken from the JWT; only the approver name is supplied in the body.</summary>
     record ReleaseRequest(string Approver);
+
+    /// <summary>Body for POST …/deliver. ImportedRecordCount and Notes are optional confirmation data.</summary>
+    record DeliverRequest(int? ImportedRecordCount, string? Notes);
+
+    /// <summary>Body for PATCH /api/schema/columns. Columns not in ExportSchema.Columns are silently ignored.</summary>
+    record ColumnPatchRequest(string[] Columns);
 
     record LoginRequest(string Username, string Password);
 
@@ -479,22 +800,44 @@ namespace Connector.Api
     record HashRequest(string Password);
 
     record ErpCiRecord(
-        string Id, string? Serial, string? Status, string? CommissionDate,
-        string? ArticleName, string? PartNumber, string? Manufacturer,
-        string? MaintenancePlanStatus, string? AllocationChartRef,
-        string? ParentId, string? ParentSerial,
-        bool InScope, string? ExclusionReason,
-        string? TechnicianName, string? StorageLocation);
+        string Id,
+        string? Serial,
+        string? Status,
+        string? CommissionDate,
+        string? ArticleName,
+        string? PartNumber,
+        string? Manufacturer,
+        string? MaintenancePlanStatus,
+        string? AllocationChartRef,
+        string? ParentId,
+        string? ParentSerial,
+        bool InScope,
+        string? ExclusionReason,
+        string? TechnicianName,
+        string? StorageLocation
+    );
 
     record SchemaColumnDto(string Name, string ErpSource, string Type, string Notes, bool Active);
+
     record SchemaDto(string Version, SchemaColumnDto[] Columns);
 
     record SourceColumnDto(string Name, string Type, bool Nullable, bool PrimaryKey);
+
     record SourceTableDto(string Name, string Description, SourceColumnDto[] Columns);
+
     record SourceSchemaDto(string ConnectionLabel, SourceTableDto[] Tables);
 
     record RunNowResult(int SequenceNo, int RecordCount, string Sha256Short);
-    record PreviewRecord(string Guid, string SerialNumber, string PartNumber, string? ParentSerialNumber,
-        string ModelReference, string CommissioningDate, string MaintenanceState);
+
+    record PreviewRecord(
+        string Guid,
+        string SerialNumber,
+        string PartNumber,
+        string? ParentSerialNumber,
+        string ModelReference,
+        string CommissioningDate,
+        string MaintenanceState
+    );
+
     record PreviewResult(int RecordCount, string SchemaVersion, IList<PreviewRecord> Records);
 }
