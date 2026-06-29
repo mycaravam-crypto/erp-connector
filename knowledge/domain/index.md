@@ -10,3 +10,4 @@ boundary: data progresses from raw ERP records → filtered → minimized → ma
 * [MappedExportRecord](mapped-export-record.md) - ICD-mapped record ready for packaging
 * [ExportManifest](export-manifest.md) - Integrity and sequence metadata accompanying each export file
 * [ExportPackage](export-package.md) - Complete export artifact: data file bytes + manifest
+* [ExportRun](export-run.md) - Persisted pipeline execution record with lifecycle status and release metadata
