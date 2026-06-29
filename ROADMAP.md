@@ -115,25 +115,26 @@ YAGNI constraint: no premature abstraction; each item is the minimum that delive
 | 6.4 Delivery acknowledgement | ✅ | `POST /api/exports/{seqNo}/deliver`; delivery fields on `ExportRunEntity`; closes custody chain |
 | 6.5 Schema column persistence | ✅ | `AppSetting` table; `PATCH /api/schema/columns`; SchemaView toggles now saved server-side |
 
+| 6.6 Connection config backend | ✅ | `GET`+`POST /api/connection`; Npgsql introspects live schema; `GET /api/source-schema` falls back to demo when absent |
+
 ### Not in scope (Iteration 2)
 
 | Item | Reason deferred |
 |---|---|
-| Real Postgres IErpReader | Requires ICD + connection config wired to backend |
+| Real Postgres IErpReader (pipeline) | Requires ICD — pipeline still uses DemoErpReader for actual export; connection wiring is done for schema introspection only |
 | Delta/incremental export | Requires ERP change-tracking field and volume assessment (Open Point #5) |
 
 ---
 
 ## Remaining Work
 
-42 .NET tests · 48 Vitest tests — all passing.
+42 .NET tests · 55 Vitest tests — all passing.
 
 ### Verified gaps (Iteration 2 scope)
 
 | Gap | Current state | Work needed |
 |---|---|---|
-| Real Postgres IErpReader | Source schema and data still read from demo SQLite | Production `IErpReader` against real PostgreSQL |
-| Connection form → backend | Host/port/db entered in Step 1 stored in localStorage only | Wire config to backend so `/api/source-schema` introspects actual Postgres target |
+| Real Postgres IErpReader (pipeline) | Export pipeline reads from demo SQLite; connection config wires schema introspection only | Wire live `IErpReader` to Npgsql for actual export runs |
 
 ### Open points that will drive future code changes (tracked in `13-open-points.md`):
 | Open Point | When it unblocks | Code impact |

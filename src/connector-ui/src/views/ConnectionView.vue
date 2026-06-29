@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getSourceSchema } from '@/api/connection'
+import { getConnection, saveConnection } from '@/api/connection'
 
 const router = useRouter()
 
@@ -14,49 +14,38 @@ const password = ref('')
 const testing = ref(false)
 const testStatus = ref<'idle' | 'ok' | 'error'>('idle')
 const testMessage = ref('')
+const connectedLabel = ref<string | null>(null)
 
-const STORAGE_KEY = 'connector_db_config'
-
-onMounted(() => {
-  const saved = localStorage.getItem(STORAGE_KEY)
-  if (saved) {
-    try {
-      const cfg = JSON.parse(saved)
-      host.value = cfg.host ?? 'localhost'
-      port.value = cfg.port ?? '5432'
-      database.value = cfg.database ?? ''
-      username.value = cfg.username ?? ''
-      password.value = cfg.password ?? ''
-    } catch {}
+onMounted(async () => {
+  const stored = await getConnection()
+  if (stored) {
+    host.value = stored.host
+    port.value = String(stored.port)
+    database.value = stored.database
+    username.value = stored.username
+    connectedLabel.value = `${stored.host}:${stored.port}/${stored.database}`
   }
 })
-
-function save() {
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify({
-      host: host.value,
-      port: port.value,
-      database: database.value,
-      username: username.value,
-      password: password.value,
-    }),
-  )
-}
 
 async function testConnection() {
   testing.value = true
   testStatus.value = 'idle'
   testMessage.value = ''
   try {
-    const schema = await getSourceSchema()
+    const schema = await saveConnection({
+      host: host.value,
+      port: Number(port.value) || 5432,
+      database: database.value,
+      username: username.value,
+      password: password.value,
+    })
     if (schema) {
-      save()
+      connectedLabel.value = schema.connectionLabel
       testStatus.value = 'ok'
       testMessage.value = `Connected — found ${schema.tables.length} tables in "${schema.connectionLabel}".`
     } else {
       testStatus.value = 'error'
-      testMessage.value = 'Backend returned no schema data.'
+      testMessage.value = 'Connection failed. Check host, port, credentials, and that the database is reachable.'
     }
   } catch {
     testStatus.value = 'error'
@@ -67,7 +56,6 @@ async function testConnection() {
 }
 
 function proceed() {
-  save()
   router.push({ name: 'source-schema' })
 }
 </script>
@@ -84,11 +72,14 @@ function proceed() {
       The connector will read the schema and data from this database.
     </p>
 
-    <div class="demo-note">
+    <div v-if="connectedLabel" class="connected-note">
+      <strong>Connected:</strong> {{ connectedLabel }}
+    </div>
+    <div v-else class="demo-note">
       <strong>Demo mode active.</strong>
       The current backend uses a built-in SQLite demo database that mirrors a real PostgreSQL schema.
       Fill in the fields below to configure the production connection; click
-      <em>Test Connection</em> to verify the backend is reachable.
+      <em>Test Connection</em> to verify and save.
     </div>
 
     <form class="conn-form" @submit.prevent="testConnection">
@@ -182,6 +173,17 @@ h1 {
   padding: 0.75rem 1rem;
   font-size: 0.85rem;
   color: #713f12;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.connected-note {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  color: #166534;
   margin-bottom: 1.5rem;
   line-height: 1.5;
 }

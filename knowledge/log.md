@@ -1,5 +1,16 @@
 # Connector Knowledge Bundle — Update Log
 
+## 2026-06-30
+* **Connection config wired to backend** (42 .NET + 55 Vitest tests green):
+  * `GET /api/connection` — returns stored ERP connection info (host/port/db/user; no password), 404 if none.
+  * `POST /api/connection` — accepts full credentials, opens Npgsql connection, introspects `information_schema.columns`, persists config in `AppSetting` key `erp_connection`, returns live `SourceSchemaDto`. Returns 400 on connection failure.
+  * `GET /api/source-schema` — now async; if `erp_connection` is persisted, introspects real Postgres and returns live schema; falls back to demo schema when absent or unreachable.
+  * `ConnectionView.vue` — loads from `GET /api/connection` on mount; "Test Connection" calls `POST /api/connection`; shows green "Connected" banner when a live connection is stored; password stays server-side only.
+  * `connection.ts` — added `ErpConnectionInfo`, `ConnectionConfig` interfaces; `getConnection()`, `saveConnection()` functions; `getSourceSchema()` retained.
+  * New test file `connection-api.test.ts` — 7 tests covering `getConnection`, `saveConnection`, `getSourceSchema`.
+  * Added Npgsql 10.0.3 package reference.
+* **Updated**: ROADMAP.md Phase 6 → Iteration 2 connection item completed.
+
 ## 2026-06-29
 * **Phase 6 — Operational Enhancements** shipped and committed (42 .NET + 48 Vitest tests green):
   * 6.1 `GET /api/health` — health check (ERP DB, log DB, staging writability); no auth.
