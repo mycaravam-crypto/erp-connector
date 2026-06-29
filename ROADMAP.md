@@ -128,13 +128,12 @@ YAGNI constraint: no premature abstraction; each item is the minimum that delive
 
 42 .NET tests · 48 Vitest tests — all passing.
 
-### Verified gaps
+### Verified gaps (Iteration 2 scope)
 
 | Gap | Current state | Work needed |
 |---|---|---|
-| Column toggle persistence | Active/inactive column set lives only in browser memory | Persist to DB; add `PATCH /api/schema/columns`; SchemaView reads from API |
-| Real Postgres IErpReader | Source schema and data still read from demo SQLite | Phase 6: production `IErpReader` + pass connection config from `ConnectionView` to backend |
-| Connection form → backend | Host/port/db entered in Step 1 stored in localStorage only | Wire config to backend so `/api/source-schema` introspects the actual Postgres target |
+| Real Postgres IErpReader | Source schema and data still read from demo SQLite | Production `IErpReader` against real PostgreSQL |
+| Connection form → backend | Host/port/db entered in Step 1 stored in localStorage only | Wire config to backend so `/api/source-schema` introspects actual Postgres target |
 
 ### Open points that will drive future code changes (tracked in `13-open-points.md`):
 | Open Point | When it unblocks | Code impact |
