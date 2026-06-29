@@ -399,6 +399,11 @@ app.MapPost(
             db.ExportRuns.Add(run);
             await db.SaveChangesAsync(ct);
 
+            var mappingSetting = await db.AppSettings.FindAsync("column_mappings");
+            var nameMap = mappingSetting is null
+                ? null
+                : JsonSerializer.Deserialize<Dictionary<string, string>>(mappingSetting.Value);
+
             try
             {
                 var rawItems = await erpReader.ReadMaintainableCIsAsync(ct);
@@ -410,7 +415,7 @@ app.MapPost(
                 var extractedAt = DateTimeOffset.UtcNow;
                 if (fmt == "csv")
                 {
-                    var bytes = BuildCsvBytes(mapped, ExportSchema.Version, extractedAt);
+                    var bytes = BuildCsvBytes(mapped, ExportSchema.Version, extractedAt, nameMap);
                     var checksum = Convert
                         .ToHexString(System.Security.Cryptography.SHA256.HashData(bytes))
                         .ToLowerInvariant();
@@ -423,7 +428,7 @@ app.MapPost(
                 }
                 else if (fmt == "json")
                 {
-                    var bytes = BuildJsonBytes(mapped, ExportSchema.Version, extractedAt);
+                    var bytes = BuildJsonBytes(mapped, ExportSchema.Version, extractedAt, nameMap);
                     var checksum = Convert
                         .ToHexString(System.Security.Cryptography.SHA256.HashData(bytes))
                         .ToLowerInvariant();
@@ -436,7 +441,7 @@ app.MapPost(
                 }
                 else
                 {
-                    package = await packager.PackageAsync(mapped, sequenceNo, ct);
+                    package = await packager.PackageAsync(mapped, sequenceNo, ct, nameMap);
                 }
 
                 await sink.WriteAsync(package, ct);
@@ -467,12 +472,13 @@ app.MapPost(
     )
     .RequireAuthorization();
 
-byte[] BuildCsvBytes(IReadOnlyList<MappedExportRecord> records, string schemaVersion, DateTimeOffset extractedAt)
+byte[] BuildCsvBytes(IReadOnlyList<MappedExportRecord> records, string schemaVersion, DateTimeOffset extractedAt, IReadOnlyDictionary<string, string>? nameMap = null)
 {
+    string N(string n) => nameMap?.GetValueOrDefault(n) ?? n;
     var sb = new System.Text.StringBuilder();
     sb.AppendLine($"# schema_version={schemaVersion},extracted_at={extractedAt:O}");
     sb.AppendLine(
-        "guid,serial_number,part_number,parent_serial_number,model_reference,commissioning_date,maintenance_state"
+        $"{N("guid")},{N("serial_number")},{N("part_number")},{N("parent_serial_number")},{N("model_reference")},{N("commissioning_date")},{N("maintenance_state")}"
     );
     foreach (var r in records)
     {
@@ -487,22 +493,23 @@ byte[] BuildCsvBytes(IReadOnlyList<MappedExportRecord> records, string schemaVer
     return System.Text.Encoding.UTF8.GetBytes(sb.ToString());
 }
 
-byte[] BuildJsonBytes(IReadOnlyList<MappedExportRecord> records, string schemaVersion, DateTimeOffset extractedAt)
+byte[] BuildJsonBytes(IReadOnlyList<MappedExportRecord> records, string schemaVersion, DateTimeOffset extractedAt, IReadOnlyDictionary<string, string>? nameMap = null)
 {
+    string N(string n) => nameMap?.GetValueOrDefault(n) ?? n;
     var obj = new
     {
         schema_version = schemaVersion,
         extracted_at = extractedAt.ToString("O"),
         records = records
-            .Select(r => new
+            .Select(r => (object)new Dictionary<string, object?>
             {
-                guid = r.Guid,
-                serial_number = r.SerialNumber,
-                part_number = r.PartNumber,
-                parent_serial_number = r.ParentSerialNumber,
-                model_reference = r.ModelReference,
-                commissioning_date = r.CommissioningDateIso8601,
-                maintenance_state = r.MaintenanceState,
+                [N("guid")] = r.Guid,
+                [N("serial_number")] = r.SerialNumber,
+                [N("part_number")] = r.PartNumber,
+                [N("parent_serial_number")] = r.ParentSerialNumber,
+                [N("model_reference")] = r.ModelReference,
+                [N("commissioning_date")] = r.CommissioningDateIso8601,
+                [N("maintenance_state")] = r.MaintenanceState,
             })
             .ToList(),
     };
@@ -708,6 +715,13 @@ app.MapGet(
                 ? new HashSet<string>(ExportSchema.Columns)
                 : new HashSet<string>(JsonSerializer.Deserialize<string[]>(activeSetting.Value) ?? []);
 
+            var mappingSetting = await db.AppSettings.FindAsync("column_mappings");
+            var mapping = mappingSetting is null
+                ? new Dictionary<string, string>()
+                : JsonSerializer.Deserialize<Dictionary<string, string>>(mappingSetting.Value) ?? new();
+
+            string? ExportName(string n) => mapping.GetValueOrDefault(n);
+
             var columns = new SchemaColumnDto[]
             {
                 new(
@@ -715,49 +729,56 @@ app.MapGet(
                     "systemconfiguration.id",
                     "UUID text",
                     "Coalesce key — stable PostgreSQL PK; never changes for the entity lifetime",
-                    activeSet.Contains("guid")
+                    activeSet.Contains("guid"),
+                    ExportName("guid")
                 ),
                 new(
                     "serial_number",
                     "systemconfiguration.serial",
                     "Text (explicit)",
                     "Physical unit identity; warranty lookups by humans. Not the coalesce key.",
-                    activeSet.Contains("serial_number")
+                    activeSet.Contains("serial_number"),
+                    ExportName("serial_number")
                 ),
                 new(
                     "part_number",
                     "masterdata.part_number",
                     "Text (explicit)",
                     "Model/part reference — explicit text to prevent numeric coercion",
-                    activeSet.Contains("part_number")
+                    activeSet.Contains("part_number"),
+                    ExportName("part_number")
                 ),
                 new(
                     "parent_serial_number",
                     "articlestructure → systemconfiguration.serial",
                     "Text (explicit)",
                     "BOM parent reference; drives cmdb_rel_ci hierarchy on the vendor side",
-                    activeSet.Contains("parent_serial_number")
+                    activeSet.Contains("parent_serial_number"),
+                    ExportName("parent_serial_number")
                 ),
                 new(
                     "model_reference",
                     "masterdata.article_name",
                     "Text",
                     "Human-readable model name; links to cmdb_model on the vendor side",
-                    activeSet.Contains("model_reference")
+                    activeSet.Contains("model_reference"),
+                    ExportName("model_reference")
                 ),
                 new(
                     "commissioning_date",
                     "systemconfiguration.commission_date",
                     "ISO 8601 date",
                     "Warranty start date (YYYY-MM-DD)",
-                    activeSet.Contains("commissioning_date")
+                    activeSet.Contains("commissioning_date"),
+                    ExportName("commissioning_date")
                 ),
                 new(
                     "maintenance_state",
                     "systemconfiguration.status",
                     "Text (mapped enum)",
                     "CI lifecycle state mapped to ServiceNow install_status values",
-                    activeSet.Contains("maintenance_state")
+                    activeSet.Contains("maintenance_state"),
+                    ExportName("maintenance_state")
                 ),
             };
             return Results.Ok(new SchemaDto(ExportSchema.Version, columns));
@@ -777,6 +798,29 @@ app.MapPatch(
             var setting = await db.AppSettings.FindAsync("active_columns");
             if (setting is null)
                 db.AppSettings.Add(new AppSettingEntity { Key = "active_columns", Value = serialized });
+            else
+                setting.Value = serialized;
+
+            await db.SaveChangesAsync();
+            return Results.Ok(valid);
+        }
+    )
+    .RequireAuthorization();
+
+// Persists per-column export name overrides. Keys not in the canonical schema are silently dropped.
+// An empty or whitespace value removes the override for that column (falls back to the source name).
+app.MapPatch(
+        "/api/schema/mappings",
+        async (MappingPatchRequest request, ExportLogDbContext db) =>
+        {
+            var valid = request.Mappings
+                .Where(kvp => ExportSchema.Columns.Contains(kvp.Key) && !string.IsNullOrWhiteSpace(kvp.Value))
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Trim());
+
+            var serialized = JsonSerializer.Serialize(valid);
+            var setting = await db.AppSettings.FindAsync("column_mappings");
+            if (setting is null)
+                db.AppSettings.Add(new AppSettingEntity { Key = "column_mappings", Value = serialized });
             else
                 setting.Value = serialized;
 
@@ -945,6 +989,9 @@ namespace Connector.Api
     /// <summary>Body for PATCH /api/schema/columns. Columns not in ExportSchema.Columns are silently ignored.</summary>
     record ColumnPatchRequest(string[] Columns);
 
+    /// <summary>Body for PATCH /api/schema/mappings. Keys not in ExportSchema.Columns are silently ignored. Empty/whitespace values remove the override.</summary>
+    record MappingPatchRequest(Dictionary<string, string> Mappings);
+
     record LoginRequest(string Username, string Password);
 
     record LoginResponse(string Token, string Username);
@@ -969,7 +1016,7 @@ namespace Connector.Api
         string? StorageLocation
     );
 
-    record SchemaColumnDto(string Name, string ErpSource, string Type, string Notes, bool Active);
+    record SchemaColumnDto(string Name, string ErpSource, string Type, string Notes, bool Active, string? ExportName);
 
     record SchemaDto(string Version, SchemaColumnDto[] Columns);
 

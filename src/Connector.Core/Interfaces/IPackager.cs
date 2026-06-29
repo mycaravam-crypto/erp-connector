@@ -17,9 +17,11 @@ public interface IPackager
     /// <param name="records">Bereits gemappte, minimierte Records.</param>
     /// <param name="sequenceNumber">Monotone Sequenznummer für diesen Export-Run.</param>
     /// <param name="ct">Abbruch-Token.</param>
+    /// <param name="exportNameOverrides">Optionale Umbenennung: source-Spaltenname → export-Spaltenname. Null = Originalname.</param>
     Task<ExportPackage> PackageAsync(
         IReadOnlyList<MappedExportRecord> records,
         int sequenceNumber,
-        CancellationToken ct
+        CancellationToken ct,
+        IReadOnlyDictionary<string, string>? exportNameOverrides = null
     );
 }

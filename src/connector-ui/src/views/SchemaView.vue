@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getSchema, patchSchemaColumns, type SchemaDefinition, type SchemaColumnDef } from '@/api/erp'
+import { getSchema, patchSchemaColumns, patchSchemaColumnMappings, type SchemaDefinition, type SchemaColumnDef } from '@/api/erp'
 
 const router = useRouter()
 
@@ -10,6 +10,7 @@ const error = ref<string | null>(null)
 const loading = ref(true)
 
 const activeColumns = ref<Set<string>>(new Set())
+const exportNames = ref<Record<string, string>>({})
 const saving = ref(false)
 const FORMAT_KEY = 'connector_export_format'
 const selectedFormat = ref<'xlsx' | 'csv' | 'json'>(
@@ -25,6 +26,9 @@ async function load() {
       error.value = 'Schema endpoint returned no data.'
     } else {
       activeColumns.value = new Set(schema.value.columns.filter((c) => c.active).map((c) => c.name))
+      exportNames.value = Object.fromEntries(
+        schema.value.columns.filter((c) => c.exportName).map((c) => [c.name, c.exportName!]),
+      )
     }
   } catch {
     error.value = 'Could not reach the API. Is the backend running on :5189?'
@@ -40,9 +44,22 @@ async function toggleColumn(name: string) {
   if (next.has(name)) next.delete(name)
   else next.add(name)
   activeColumns.value = next
-  // Persist to server so the preference survives page reload.
   saving.value = true
   await patchSchemaColumns([...next])
+  saving.value = false
+}
+
+async function updateExportName(colName: string, value: string) {
+  const trimmed = value.trim()
+  const next = { ...exportNames.value }
+  if (trimmed === '' || trimmed === colName) {
+    delete next[colName]
+  } else {
+    next[colName] = trimmed
+  }
+  exportNames.value = next
+  saving.value = true
+  await patchSchemaColumnMappings(next)
   saving.value = false
 }
 
@@ -96,7 +113,8 @@ function proceed() {
           <tr>
             <th class="th-toggle">Export</th>
             <th>#</th>
-            <th>Export Column</th>
+            <th>Source Name</th>
+            <th>Export As</th>
             <th>Source Field</th>
             <th>Type</th>
             <th>Notes</th>
@@ -120,6 +138,15 @@ function proceed() {
               <code :class="['col-name', activeColumns.has(col.name) ? '' : 'col-name-dim']">
                 {{ col.name }}
               </code>
+            </td>
+            <td class="td-export-as">
+              <input
+                class="export-as-input"
+                type="text"
+                :placeholder="col.name"
+                :value="exportNames[col.name] ?? ''"
+                @change="updateExportName(col.name, ($event.target as HTMLInputElement).value)"
+              />
             </td>
             <td class="erp-source">{{ col.erpSource }}</td>
             <td><span class="type-pill">{{ col.type }}</span></td>
@@ -313,6 +340,27 @@ h2 {
 
 .col-name { font-size: 0.85rem; font-weight: 600; color: #1e293b; }
 .col-name-dim { color: #94a3b8; }
+
+.td-export-as { min-width: 9rem; }
+
+.export-as-input {
+  width: 100%;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.25rem;
+  font-size: 0.82rem;
+  font-family: monospace;
+  color: #1e293b;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.export-as-input:focus {
+  outline: none;
+  border-color: #1a1a2e;
+}
+
+.export-as-input::placeholder { color: #94a3b8; }
 
 .erp-source { font-size: 0.82rem; color: #475569; font-style: italic; }
 

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Connector.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -67,11 +68,16 @@ public sealed class ExportWorker(
         {
             logger.LogInformation("Export #{Seq} gestartet", sequenceNo);
 
+            var mappingSetting = await db.AppSettings.FindAsync("column_mappings");
+            var nameMap = mappingSetting is null
+                ? null
+                : JsonSerializer.Deserialize<Dictionary<string, string>>(mappingSetting.Value);
+
             var rawItems = await erpReader.ReadMaintainableCIsAsync(ct);
             var filtered = filter.Filter(rawItems);
             var minimized = filtered.Select(minimizer.Minimize).ToList();
             var mapped = minimized.Select(mapper.Map).ToList();
-            var package = await packager.PackageAsync(mapped, sequenceNo, ct);
+            var package = await packager.PackageAsync(mapped, sequenceNo, ct, nameMap);
 
             await sink.WriteAsync(package, ct);
 

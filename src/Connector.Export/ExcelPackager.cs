@@ -15,7 +15,8 @@ public sealed class ExcelPackager : IPackager
     public Task<ExportPackage> PackageAsync(
         IReadOnlyList<MappedExportRecord> records,
         int sequenceNumber,
-        CancellationToken ct
+        CancellationToken ct,
+        IReadOnlyDictionary<string, string>? exportNameOverrides = null
     )
     {
         ct.ThrowIfCancellationRequested();
@@ -23,7 +24,7 @@ public sealed class ExcelPackager : IPackager
         var extractedAt = DateTimeOffset.UtcNow;
         var dataFileName = ExportSchema.BuildFileName(sequenceNumber, extractedAt);
 
-        var fileBytes = BuildExcelFile(records, extractedAt);
+        var fileBytes = BuildExcelFile(records, extractedAt, exportNameOverrides);
         var checksum = ComputeSha256Hex(fileBytes);
 
         var manifest = new ExportManifest(
@@ -37,13 +38,13 @@ public sealed class ExcelPackager : IPackager
         return Task.FromResult(new ExportPackage(manifest, fileBytes, dataFileName));
     }
 
-    private static byte[] BuildExcelFile(IReadOnlyList<MappedExportRecord> records, DateTimeOffset extractedAt)
+    private static byte[] BuildExcelFile(IReadOnlyList<MappedExportRecord> records, DateTimeOffset extractedAt, IReadOnlyDictionary<string, string>? nameOverrides)
     {
         using var workbook = new XLWorkbook();
         var sheet = workbook.Worksheets.Add("Export");
 
         WriteMetadataRow(sheet, extractedAt);
-        WriteHeaderRow(sheet);
+        WriteHeaderRow(sheet, nameOverrides);
         WriteDataRows(sheet, records);
 
         // Alle Identifikatoren-Spalten als Text erzwingen — verhindert Excel-Autokonvertierung
@@ -66,10 +67,13 @@ public sealed class ExcelPackager : IPackager
         sheet.Row(1).Style.Fill.BackgroundColor = XLColor.LightGray;
     }
 
-    private static void WriteHeaderRow(IXLWorksheet sheet)
+    private static void WriteHeaderRow(IXLWorksheet sheet, IReadOnlyDictionary<string, string>? nameOverrides)
     {
         for (int col = 0; col < ExportSchema.Columns.Count; col++)
-            sheet.Cell(2, col + 1).Value = ExportSchema.Columns[col];
+        {
+            var canonical = ExportSchema.Columns[col];
+            sheet.Cell(2, col + 1).Value = nameOverrides?.GetValueOrDefault(canonical) ?? canonical;
+        }
 
         sheet.Row(2).Style.Font.Bold = true;
     }
