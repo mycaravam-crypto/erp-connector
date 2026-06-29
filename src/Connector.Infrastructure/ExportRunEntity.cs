@@ -34,6 +34,22 @@ public sealed class ExportRunEntity
 
     /// <summary>Dateiname der Excel-Datei auf dem Staging-Pfad. Leer bei Status Failed.</summary>
     public string DataFileName { get; set; } = string.Empty;
+
+    // ── Delivery fields (Phase 6.4) ───────────────────────────────────────────
+    // Populated after the export package has been physically transferred to the vendor.
+    // All nullable — delivery tracking is optional and post-release.
+
+    /// <summary>UTC timestamp of physical handover to vendor. Null = not yet delivered.</summary>
+    public string? DeliveredAt { get; set; }
+
+    /// <summary>Username of the person who performed the physical delivery.</summary>
+    public string? DeliveredBy { get; set; }
+
+    /// <summary>Number of records the vendor confirmed were imported into ServiceNow. Null = no confirmation.</summary>
+    public int? ImportedRecordCount { get; set; }
+
+    /// <summary>Free-text notes from the delivery or import confirmation (medium, handover ref, etc.).</summary>
+    public string? DeliveryNotes { get; set; }
 }
 
 public static class ExportRunStatus

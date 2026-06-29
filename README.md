@@ -172,12 +172,15 @@ All endpoints except `/api/auth/login` require a JWT bearer token (`Authorizatio
 | Method | Path | Description |
 |---|---|---|
 | `POST` | `/api/auth/login` | Authenticate — body: `{"username":"...","password":"..."}` → `{"token":"..."}` |
-| `GET` | `/api/exports` | List all export runs (newest first), with short SHA |
-| `GET` | `/api/exports/{seqNo}` | Full detail for one run |
-| `POST` | `/api/exports/{seqNo}/release` | Four-eyes release — body: `{"operator":"...", "approver":"..."}` |
+| `GET` | `/api/health` | Health check (no auth) — checks ERP DB, log DB, and staging writability |
+| `GET` | `/api/exports` | List all export runs (newest first), with short SHA and `isStale` flag |
+| `GET` | `/api/exports/{seqNo}` | Full detail for one run, including delivery fields and `sequenceGapWarning` |
+| `POST` | `/api/exports/{seqNo}/release` | Four-eyes release — body: `{"approver":"..."}` (operator from JWT) |
+| `POST` | `/api/exports/{seqNo}/deliver` | Record physical handover — body: `{"importedRecordCount":N,"notes":"..."}` |
 | `GET` | `/api/source-schema` | Source database tables and columns (schema browser) |
 | `GET` | `/api/erp/records` | All ERP CIs with scope flags, BOM parent links, and excluded GDPR fields |
-| `GET` | `/api/schema` | Export schema version and full column-mapping definitions |
+| `GET` | `/api/schema` | Export schema version, column mappings, and persisted active flags |
+| `PATCH` | `/api/schema/columns` | Persist active column set — body: `{"columns":["guid","serial_number",...]}` |
 | `POST` | `/api/pipeline/run?format=xlsx\|csv\|json` | Trigger an immediate pipeline run in the requested format (default: xlsx) |
 
 The release endpoint enforces `Operator != Approver` and rejects runs already in `Released` or `Failed` status.
@@ -280,7 +283,7 @@ npm run coverage  # with coverage report
 - **Four-eyes rule enforced server-side.** Client validates `operator != approver`; the server is authoritative.
 - **Status transitions are one-way.** `Released` and `Failed` runs hide the release form.
 - **SHA-256 short in list, full on detail.** Server returns 12-char prefix as `sha256Short`; `sha256` is the full hex string.
-- **Column toggles are client-side only.** `SchemaView` lets you enable/disable columns visually; the active set is not persisted to the server — the backend always exports all schema columns. Persisted schema editing is a planned future task (see ROADMAP).
+- **Column toggles are server-persisted.** `SchemaView` calls `PATCH /api/schema/columns` on every toggle; the active set survives page reload. `GET /api/schema` reflects the saved preference. (The scheduled nightly export always includes all columns; on-demand runs respect column preferences in future iteration.)
 - **Source schema shows demo DB structure.** `SourceSchemaView` reads `/api/source-schema`, which returns the schema of the demo ERP (mirroring what a production PostgreSQL reader would expose).
 - **Export format persisted in `localStorage`.** The format choice (xlsx / csv / json) is remembered across sessions per browser.
 

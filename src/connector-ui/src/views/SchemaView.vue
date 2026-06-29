@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getSchema, type SchemaDefinition, type SchemaColumnDef } from '@/api/erp'
+import { getSchema, patchSchemaColumns, type SchemaDefinition, type SchemaColumnDef } from '@/api/erp'
 
 const router = useRouter()
 
@@ -10,6 +10,7 @@ const error = ref<string | null>(null)
 const loading = ref(true)
 
 const activeColumns = ref<Set<string>>(new Set())
+const saving = ref(false)
 const FORMAT_KEY = 'connector_export_format'
 const selectedFormat = ref<'xlsx' | 'csv' | 'json'>(
   (localStorage.getItem(FORMAT_KEY) as 'xlsx' | 'csv' | 'json') ?? 'xlsx',
@@ -34,11 +35,15 @@ async function load() {
 
 onMounted(load)
 
-function toggleColumn(name: string) {
+async function toggleColumn(name: string) {
   const next = new Set(activeColumns.value)
   if (next.has(name)) next.delete(name)
   else next.add(name)
   activeColumns.value = next
+  // Persist to server so the preference survives page reload.
+  saving.value = true
+  await patchSchemaColumns([...next])
+  saving.value = false
 }
 
 function setFormat(fmt: 'xlsx' | 'csv' | 'json') {
@@ -68,7 +73,7 @@ function proceed() {
 
     <p class="intro">
       Configure which columns to include in the export and choose the output format.
-      Toggle columns on or off — only enabled columns will appear in the exported file.
+      Toggle columns on or off — your preferences are saved automatically.
     </p>
 
     <p v-if="loading" class="info">Loading…</p>
@@ -81,6 +86,7 @@ function proceed() {
           <span class="meta-label">Schema v{{ schema.version }}</span>
         </div>
         <span class="active-chip">{{ activeCount }} / {{ schema.columns.length }} columns active</span>
+        <span v-if="saving" class="saving-chip">saving…</span>
       </div>
 
       <!-- Column configuration table -->
@@ -261,6 +267,14 @@ h2 {
   padding: 0.15rem 0.55rem;
   border-radius: 9999px;
   font-weight: 600;
+}
+
+.saving-chip {
+  font-size: 0.78rem;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
 }
 
 /* Column table */

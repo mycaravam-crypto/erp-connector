@@ -102,17 +102,39 @@ Frontend tests (Vitest): ✅ 51/51 passing
 
 ---
 
+## Phase 6 — Operational Enhancements (current)
+
+Goal: close the loop between export and vendor import; make the daily workflow safer and more observable.
+YAGNI constraint: no premature abstraction; each item is the minimum that delivers value.
+
+| Task | Status | Notes |
+|---|---|---|
+| 6.1 Health check endpoint | ✅ | `GET /api/health` — ERP DB, log DB, staging writability; no auth |
+| 6.2 Stale pending indicator | ✅ | `IsStale` on `ExportRunSummary`; ExportView shows callout when Pending > 24h |
+| 6.3 Sequence gap detection | ✅ | `GET /api/exports/{seqNo}` returns `SequenceGapWarning`; ExportDetail shows banner |
+| 6.4 Delivery acknowledgement | ✅ | `POST /api/exports/{seqNo}/deliver`; delivery fields on `ExportRunEntity`; closes custody chain |
+| 6.5 Schema column persistence | ✅ | `AppSetting` table; `PATCH /api/schema/columns`; SchemaView toggles now saved server-side |
+
+| 6.6 Connection config backend | ✅ | `GET`+`POST /api/connection`; Npgsql introspects live schema; `GET /api/source-schema` falls back to demo when absent |
+
+### Not in scope (Iteration 2)
+
+| Item | Reason deferred |
+|---|---|
+| Real Postgres IErpReader (pipeline) | Requires ICD — pipeline still uses DemoErpReader for actual export; connection wiring is done for schema introspection only |
+| Delta/incremental export | Requires ERP change-tracking field and volume assessment (Open Point #5) |
+
+---
+
 ## Remaining Work
 
-42 .NET tests · 38 Vitest tests — all passing.
+42 .NET tests · 55 Vitest tests — all passing.
 
-### Verified gaps
+### Verified gaps (Iteration 2 scope)
 
 | Gap | Current state | Work needed |
 |---|---|---|
-| Column toggle persistence | Active/inactive column set lives only in browser memory | Persist to DB; add `PATCH /api/schema/columns`; SchemaView reads from API |
-| Real Postgres IErpReader | Source schema and data still read from demo SQLite | Phase 6: production `IErpReader` + pass connection config from `ConnectionView` to backend |
-| Connection form → backend | Host/port/db entered in Step 1 stored in localStorage only | Wire config to backend so `/api/source-schema` introspects the actual Postgres target |
+| Real Postgres IErpReader (pipeline) | Export pipeline reads from demo SQLite; connection config wires schema introspection only | Wire live `IErpReader` to Npgsql for actual export runs |
 
 ### Open points that will drive future code changes (tracked in `13-open-points.md`):
 | Open Point | When it unblocks | Code impact |
