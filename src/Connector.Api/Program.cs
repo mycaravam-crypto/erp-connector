@@ -82,19 +82,28 @@ using (var scope = app.Services.CreateScope())
     await exportLogDb.Database.EnsureCreatedAsync();
 
     // Additive schema migrations — safe to run on every start; no-op if column/table already exists.
-    // We do not use EF migrations to keep the setup dependency-free.
+    // ExecuteSqlRawAsync processes one statement at a time, so each DDL is a separate call.
+    var existingColumns = await exportLogDb.Database
+        .SqlQueryRaw<string>("SELECT name FROM pragma_table_info('ExportRun')")
+        .ToHashSetAsync();
+    foreach (var (col, def) in new[]
+    {
+        ("DeliveredAt",          "ALTER TABLE ExportRun ADD COLUMN DeliveredAt TEXT"),
+        ("DeliveredBy",          "ALTER TABLE ExportRun ADD COLUMN DeliveredBy TEXT"),
+        ("ImportedRecordCount",  "ALTER TABLE ExportRun ADD COLUMN ImportedRecordCount INTEGER"),
+        ("DeliveryNotes",        "ALTER TABLE ExportRun ADD COLUMN DeliveryNotes TEXT"),
+    })
+    {
+        if (!existingColumns.Contains(col))
+            await exportLogDb.Database.ExecuteSqlRawAsync(def);
+    }
     await exportLogDb.Database.ExecuteSqlRawAsync(
         """
-        ALTER TABLE ExportRun ADD COLUMN IF NOT EXISTS DeliveredAt TEXT;
-        ALTER TABLE ExportRun ADD COLUMN IF NOT EXISTS DeliveredBy TEXT;
-        ALTER TABLE ExportRun ADD COLUMN IF NOT EXISTS ImportedRecordCount INTEGER;
-        ALTER TABLE ExportRun ADD COLUMN IF NOT EXISTS DeliveryNotes TEXT;
         CREATE TABLE IF NOT EXISTS AppSetting (
             Key TEXT PRIMARY KEY NOT NULL,
             Value TEXT NOT NULL
-        );
-        """
-    );
+        )
+        """);
 }
 
 // ── User store ────────────────────────────────────────────────────────────────
