@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { RouterView, RouterLink, useRouter } from 'vue-router'
+import { RouterView, RouterLink, useRouter, useRoute } from 'vue-router'
 import { getUsername, clearSession, isLoggedIn } from '@/api/auth'
 
 const router = useRouter()
-const loggedIn = computed(isLoggedIn)
-const username = computed(getUsername)
+const route = useRoute()
+const loggedIn = computed(() => { void route.path; return isLoggedIn() })
+const username = computed(() => { void route.path; return getUsername() })
 
 function logout() {
   clearSession()

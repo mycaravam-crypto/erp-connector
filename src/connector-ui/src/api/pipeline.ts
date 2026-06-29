@@ -6,20 +6,13 @@ export interface RunNowResult {
   sha256Short: string
 }
 
-export interface PreviewRecord {
-  guid: string
-  serialNumber: string
-  partNumber: string
-  parentSerialNumber: string | null
-  modelReference: string
-  commissioningDate: string
-  maintenanceState: string
-}
-
 export interface PreviewResult {
   recordCount: number
   schemaVersion: string
-  records: PreviewRecord[]
+  /** Ordered column names — same keys used in each record dictionary. */
+  columns: string[]
+  /** Each record is a key→value map keyed by target column name. */
+  records: Record<string, string>[]
 }
 
 function authHeaders(): Record<string, string> {

@@ -79,22 +79,10 @@ onMounted(() => {
   loadRuns()
 })
 
-const previewCols = computed(() => [
-  'guid', 'serial_number', 'part_number', 'parent_serial_number',
-  'model_reference', 'commissioning_date', 'maintenance_state',
-])
+const previewCols = computed(() => preview.value?.columns ?? [])
 
 function previewVal(rec: PreviewResult['records'][number], col: string): string {
-  const map: Record<string, string> = {
-    guid: rec.guid,
-    serial_number: rec.serialNumber,
-    part_number: rec.partNumber,
-    parent_serial_number: rec.parentSerialNumber ?? '—',
-    model_reference: rec.modelReference,
-    commissioning_date: rec.commissioningDate,
-    maintenance_state: rec.maintenanceState,
-  }
-  return map[col] ?? '—'
+  return rec[col] ?? '—'
 }
 </script>
 
@@ -182,17 +170,10 @@ function previewVal(rec: PreviewResult['records'][number], col: string): string 
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(rec, idx) in preview.records" :key="rec.guid">
+            <tr v-for="(rec, idx) in preview.records" :key="idx">
               <td class="row-idx">{{ idx + 1 }}</td>
               <td v-for="col in previewCols" :key="col">
-                <code v-if="col === 'guid'" class="guid-cell">{{ rec.guid }}</code>
-                <span
-                  v-else-if="col === 'maintenance_state'"
-                  :class="['state-badge', `state-${rec.maintenanceState.toLowerCase()}`]"
-                >
-                  {{ rec.maintenanceState }}
-                </span>
-                <span v-else>{{ previewVal(rec, col) }}</span>
+                <span>{{ previewVal(rec, col) }}</span>
               </td>
             </tr>
           </tbody>

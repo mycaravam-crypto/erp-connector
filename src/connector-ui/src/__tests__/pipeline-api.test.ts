@@ -61,17 +61,10 @@ describe('getPreview', () => {
   const PREVIEW = {
     recordCount: 2,
     schemaVersion: '2.0',
+    columns: ['guid', 'serial_number', 'part_number', 'parent_serial_number', 'model_reference', 'commissioning_date', 'maintenance_state'],
     records: [
-      {
-        guid: 'sc-rack-0001', serialNumber: 'SN-RACK-0001', partNumber: 'P-RACK-42U',
-        parentSerialNumber: null, modelReference: 'Industrial Rack System',
-        commissioningDate: '2023-03-01', maintenanceState: 'Active',
-      },
-      {
-        guid: 'sc-blade-0001', serialNumber: 'SN-BLD-0001', partNumber: 'P-BLADE-CM2',
-        parentSerialNumber: 'SN-RACK-0001', modelReference: 'Compute Module MK2',
-        commissioningDate: '2023-03-15', maintenanceState: 'Active',
-      },
+      { guid: 'sc-rack-0001', serial_number: 'SN-RACK-0001', part_number: 'P-RACK-42U', parent_serial_number: '', model_reference: 'Industrial Rack System', commissioning_date: '2023-03-01', maintenance_state: 'Active' },
+      { guid: 'sc-blade-0001', serial_number: 'SN-BLD-0001', part_number: 'P-BLADE-CM2', parent_serial_number: 'SN-RACK-0001', model_reference: 'Compute Module MK2', commissioning_date: '2023-03-15', maintenance_state: 'Active' },
     ],
   }
 
@@ -80,6 +73,7 @@ describe('getPreview', () => {
     const result = await getPreview()
     expect(result?.recordCount).toBe(2)
     expect(result?.schemaVersion).toBe('2.0')
+    expect(result?.columns).toHaveLength(7)
     expect(result?.records).toHaveLength(2)
     expect(fetch).toHaveBeenCalledWith('/api/pipeline/preview', expect.any(Object))
   })

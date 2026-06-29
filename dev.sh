@@ -8,10 +8,13 @@ B='\033[1m'; BLUE='\033[34m'; GREEN='\033[32m'; R='\033[0m'
 
 mkdir -p "$REPO/src/Connector.Api/staging"
 
-cleanup() { printf "\n${B}Stopping…${R}\n"; kill 0 2>/dev/null || true; }
+cleanup() { trap - INT TERM EXIT; printf "\n${B}Stopping…${R}\n"; kill 0 2>/dev/null || true; }
 trap cleanup INT TERM EXIT
 
-existing=$(lsof -ti:5189 2>/dev/null); [ -n "$existing" ] && kill $existing 2>/dev/null && sleep 1
+for _port in 5189 5173; do
+  lsof -ti:"$_port" 2>/dev/null | xargs -r kill 2>/dev/null || true
+done
+sleep 1
 
 printf "${B}connector dev${R}  —  Ctrl-C to stop\n"
 printf "  ${BLUE}[api]${R}  http://localhost:5189\n"

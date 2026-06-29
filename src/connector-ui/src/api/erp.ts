@@ -72,3 +72,56 @@ export async function patchSchemaColumnMappings(mappings: Record<string, string>
   if (!res.ok) return mappings
   return res.json() as Promise<Record<string, string>>
 }
+
+// ── Dynamic export mapping ────────────────────────────────────────────────────
+
+export interface MappingField {
+  sourceName: string
+  targetName: string
+  enabled: boolean
+}
+
+export interface MappingStrategyOptions {
+  sourceField: string
+  delimiter: string
+}
+
+export interface MappingRelation {
+  relatedTable: string
+  joinKey: string
+  sourceJoinKey: string
+  targetField: string
+  enabled: boolean
+  flattenStrategy: 'string_join' | 'array'
+  strategyOptions: MappingStrategyOptions
+}
+
+export interface ExportMappingConfig {
+  sourceTable: string
+  fields: MappingField[]
+  relations: MappingRelation[]
+}
+
+/** Returns the stored export mapping config, or null if none is saved yet. */
+export async function getExportMapping(): Promise<ExportMappingConfig | null> {
+  const res = await fetch('/api/export-mapping', { headers: authHeaders() })
+  if (!res.ok) return null
+  return res.json() as Promise<ExportMappingConfig>
+}
+
+/** Validates and persists the full export mapping config. Returns the saved config or null on error. */
+export async function saveExportMapping(
+  config: ExportMappingConfig,
+): Promise<{ ok: boolean; data?: ExportMappingConfig; error?: string }> {
+  const res = await fetch('/api/export-mapping', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(config),
+  })
+  if (res.ok) {
+    const data = (await res.json()) as ExportMappingConfig
+    return { ok: true, data }
+  }
+  const text = await res.text()
+  return { ok: false, error: text || `Error ${res.status}` }
+}
