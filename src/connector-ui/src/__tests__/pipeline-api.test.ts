@@ -34,23 +34,16 @@ describe('runNow', () => {
     )
   })
 
-  it('returns ok:false with error text on 500', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      text: async () => 'Staging-Pfad existiert nicht',
-    } as Response)
+  it('returns ok:false with error detail from JSON problem response on 500', async () => {
+    // Server returns RFC 7807 problem JSON: { detail: "..." }
+    mockFetch({ detail: 'Staging-Pfad existiert nicht' }, 500)
     const result = await runNow()
     expect(result.ok).toBe(false)
     expect(result.error).toContain('Staging-Pfad')
   })
 
-  it('returns ok:false with fallback message on empty error body', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      text: async () => '',
-    } as Response)
+  it('returns ok:false with fallback message when JSON has no detail or title', async () => {
+    mockFetch({}, 500)
     const result = await runNow()
     expect(result.ok).toBe(false)
     expect(result.error).toContain('500')

@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { runNow, getPreview, type RunNowResult, type PreviewResult } from '@/api/pipeline'
+import { getExportMapping, type ExportMappingConfig } from '@/api/erp'
 import { listExports, type ExportSummary } from '@/api/exports'
 import StatusBadge from '@/components/StatusBadge.vue'
 
@@ -57,6 +58,22 @@ async function triggerRun() {
   }
 }
 
+// ── active mapping config ──────────────────────────────────────────────────────
+const exportMapping = ref<ExportMappingConfig | null>(null)
+const mappingLoading = ref(true)
+
+async function loadMapping() {
+  mappingLoading.value = true
+  try {
+    exportMapping.value = await getExportMapping()
+  } finally {
+    mappingLoading.value = false
+  }
+}
+
+const enabledFields = computed(() => exportMapping.value?.fields.filter(f => f.enabled) ?? [])
+const enabledRelations = computed(() => exportMapping.value?.relations.filter(r => r.enabled) ?? [])
+
 // ── export runs ────────────────────────────────────────────────────────────────
 const runs = ref<ExportSummary[]>([])
 const runsLoading = ref(true)
@@ -77,6 +94,7 @@ async function loadRuns() {
 onMounted(() => {
   loadPreview()
   loadRuns()
+  loadMapping()
 })
 
 const previewCols = computed(() => preview.value?.columns ?? [])
@@ -145,12 +163,60 @@ function previewVal(rec: PreviewResult['records'][number], col: string): string 
       </div>
     </div>
 
+    <!-- Active mapping summary -->
+    <div v-if="!mappingLoading" class="section mapping-card">
+      <div class="section-header">
+        <h2>Active Mapping</h2>
+        <span v-if="exportMapping" class="src-badge src-dynamic">Live Postgres</span>
+        <span v-else class="src-badge src-demo">Not configured</span>
+        <RouterLink v-if="exportMapping" :to="{ name: 'export-schema' }" class="icon-btn" style="margin-left:auto">
+          Edit in Step 3 →
+        </RouterLink>
+        <RouterLink v-else :to="{ name: 'export-schema' }" class="icon-btn" style="margin-left:auto">
+          Configure in Step 3 →
+        </RouterLink>
+      </div>
+
+      <div v-if="exportMapping" class="mapping-body">
+        <p class="section-desc">
+          Source table: <strong>{{ exportMapping.sourceTable }}</strong>
+          &nbsp;·&nbsp;{{ enabledFields.length }} field<span v-if="enabledFields.length !== 1">s</span>
+          <template v-if="enabledRelations.length > 0">
+            &nbsp;+&nbsp;{{ enabledRelations.length }} relation<span v-if="enabledRelations.length !== 1">s</span>
+          </template>
+        </p>
+        <div class="col-chips">
+          <span v-for="f in enabledFields" :key="f.sourceName" class="col-chip">
+            <span class="chip-src">{{ f.sourceName }}</span>
+            <template v-if="f.targetName !== f.sourceName">
+              <span class="chip-arrow">→</span>
+              <span class="chip-tgt">{{ f.targetName }}</span>
+            </template>
+          </span>
+          <span v-for="r in enabledRelations" :key="r.targetField" class="col-chip col-chip-rel">
+            <span class="chip-src">{{ r.relatedTable }}</span>
+            <span class="chip-arrow">→</span>
+            <span class="chip-tgt">{{ r.targetField }}</span>
+          </span>
+        </div>
+      </div>
+      <p v-else class="info">
+        No export mapping saved yet. Configure one in Step 3 before running an export.
+      </p>
+    </div>
+
     <!-- Preview -->
     <div class="section">
       <div class="section-header">
         <h2>Preview</h2>
         <span v-if="preview" class="section-meta">
           {{ preview.recordCount }} records · schema v{{ preview.schemaVersion }}
+        </span>
+        <span
+          v-if="preview?.source === 'error'"
+          class="fallback-warn"
+        >
+          Preview failed
         </span>
         <button class="icon-btn" :disabled="previewLoading" @click="loadPreview">Refresh</button>
       </div>
@@ -160,6 +226,13 @@ function previewVal(rec: PreviewResult['records'][number], col: string): string 
 
       <p v-if="previewLoading" class="info">Loading preview…</p>
       <p v-else-if="previewError" class="error">{{ previewError }}</p>
+
+      <div v-else-if="preview?.source === 'error'" class="preview-error-box">
+        <p class="preview-error-msg">{{ preview.error }}</p>
+        <p class="preview-error-hint">
+          Check your connection (Step 1) and make sure at least one column is enabled in Step 3.
+        </p>
+      </div>
 
       <div v-else-if="preview && preview.records.length > 0" class="table-wrap">
         <table>
@@ -489,4 +562,88 @@ tr:hover td { background: #f8fafc; }
 
 .info  { color: #64748b; }
 .error { color: #dc2626; }
+
+/* Mapping summary card */
+.mapping-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+}
+
+.mapping-body { margin-top: 0.25rem; }
+
+.col-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.col-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 9999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.78rem;
+}
+
+.col-chip-rel {
+  border-color: #a5b4fc;
+  background: #eef2ff;
+}
+
+.chip-src  { color: #475569; }
+.chip-arrow { color: #94a3b8; font-size: 0.7rem; }
+.chip-tgt  { color: #1e293b; font-weight: 600; }
+
+/* Source badges */
+.src-badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.src-dynamic { background: #dcfce7; color: #166534; }
+.src-demo    { background: #f1f5f9; color: #475569; }
+
+/* Preview error box */
+.preview-error-box {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.375rem;
+  padding: 0.75rem 1rem;
+}
+
+.preview-error-msg {
+  margin: 0 0 0.35rem;
+  font-size: 0.875rem;
+  color: #991b1b;
+  font-weight: 600;
+}
+
+.preview-error-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #b91c1c;
+}
+
+/* Fallback warning badge */
+.fallback-warn {
+  display: inline-block;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 9999px;
+  padding: 0.12rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #92400e;
+}
 </style>

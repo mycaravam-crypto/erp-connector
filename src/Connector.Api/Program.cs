@@ -1,14 +1,14 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using ClosedXML.Excel;
 using Connector.Api;
 using Connector.Core.Domain;
+using Connector.Core.DynamicExport;
 using Connector.Core.Interfaces;
 using Connector.Core.Schema;
 using Connector.Erp.DemoErp;
-using Connector.Export;
 using Connector.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -40,13 +40,6 @@ builder
 
 builder.Services.AddAuthorization();
 
-// ── Pipeline implementations ──────────────────────────────────────────────────
-
-builder.Services.AddSingleton<IExportFilter, ExportFilter>();
-builder.Services.AddSingleton<IDataMinimizer, DataMinimizer>();
-builder.Services.AddSingleton<ISchemaMapper, SchemaMapper>();
-builder.Services.AddSingleton<IPackager, ExcelPackager>();
-
 // ── Infrastructure ────────────────────────────────────────────────────────────
 
 builder.Services.Configure<ExportSinkOptions>(builder.Configuration.GetSection("ExportSink"));
@@ -59,11 +52,10 @@ builder.Services.AddDbContext<ExportLogDbContext>(opt =>
 
 builder.Services.AddHostedService<ExportWorker>();
 
-// Demo-ERP-Datenbank (SQLite). Für Produktion: DemoErpReader durch echten PostgreSQL-Reader ersetzen.
+// Demo-ERP-Datenbank (SQLite) — für den ERP-Datenbank-Browser (/api/erp/records).
 builder.Services.AddDbContext<DemoErpDbContext>(opt =>
     opt.UseSqlite(builder.Configuration.GetConnectionString("DemoErp"))
 );
-builder.Services.AddScoped<IErpReader, DemoErpReader>();
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -373,11 +365,6 @@ app.MapPost(
         async (
             string? format,
             ExportLogDbContext db,
-            IErpReader erpReader,
-            IExportFilter filter,
-            IDataMinimizer minimizer,
-            ISchemaMapper mapper,
-            IPackager packager,
             IExportSink sink,
             ILogger<Program> logger,
             CancellationToken ct
@@ -400,107 +387,61 @@ app.MapPost(
             db.ExportRuns.Add(run);
             await db.SaveChangesAsync(ct);
 
-            var mappingSetting = await db.AppSettings.FindAsync("column_mappings");
-            var nameMap = mappingSetting is null
-                ? null
-                : JsonSerializer.Deserialize<Dictionary<string, string>>(mappingSetting.Value);
-
-            // Resolve dynamic mapping: if both a mapping config and a Postgres connection are stored,
-            // query the live database directly instead of the demo ERP reader.
-            var exportMappingSetting = await db.AppSettings.FindAsync("export_mapping");
-            var dynamicConfig = exportMappingSetting is null
-                ? null
-                : JsonSerializer.Deserialize<ExportMappingConfig>(exportMappingSetting.Value);
-
-            ConnectionConfigRequest? dynamicConnCfg = null;
-            if (dynamicConfig is not null)
+            var mappingSetting = await db.AppSettings.FindAsync("export_mapping");
+            if (mappingSetting is null)
             {
-                var connSettingForDyn = await db.AppSettings.FindAsync("erp_connection");
-                if (connSettingForDyn is not null)
-                    dynamicConnCfg = JsonSerializer.Deserialize<ConnectionConfigRequest>(connSettingForDyn.Value);
-                if (dynamicConnCfg is null)
-                    dynamicConfig = null; // no usable connection, fall back to demo ERP
+                run.Status = ExportRunStatus.Failed;
+                await db.SaveChangesAsync(ct);
+                return Results.Problem(
+                    detail: "No export mapping configured. Go to Step 3 and save an export mapping first.",
+                    statusCode: 400);
             }
+            var config = JsonSerializer.Deserialize<ExportMappingConfig>(mappingSetting.Value)!;
+
+            var connSetting = await db.AppSettings.FindAsync("erp_connection");
+            if (connSetting is null)
+            {
+                run.Status = ExportRunStatus.Failed;
+                await db.SaveChangesAsync(ct);
+                return Results.Problem(
+                    detail: "No database connection configured. Go to Step 1 and save a connection first.",
+                    statusCode: 400);
+            }
+            var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connSetting.Value)!;
 
             try
             {
-                ExportPackage package;
+                var cols = DynamicExportService.GetColumnNames(config);
                 var extractedAt = DateTimeOffset.UtcNow;
 
-                if (dynamicConfig is not null && dynamicConnCfg is not null)
+                await using var pgConn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(connCfg));
+                await pgConn.OpenAsync(ct);
+                var records = await DynamicExportService.ExecuteQueryAsync(pgConn, config, ct);
+
+                byte[] bytes;
+                string fileName;
+                if (fmt == "csv")
                 {
-                    // Dynamic Postgres path — schema-agnostic export driven by the stored mapping.
-                    await using var pgConn = new NpgsqlConnection(BuildNpgsqlConnectionString(dynamicConnCfg));
-                    await pgConn.OpenAsync(ct);
-                    var dynRecords = await ExecuteDynamicExportAsync(pgConn, dynamicConfig, ct);
-                    var cols = GetDynamicColumnNames(dynamicConfig);
-
-                    byte[] bytes;
-                    string fileName;
-                    if (fmt == "csv")
-                    {
-                        bytes = BuildDynamicCsvBytes(dynRecords, cols, ExportSchema.Version, extractedAt);
-                        fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "csv");
-                    }
-                    else if (fmt == "json")
-                    {
-                        bytes = BuildDynamicJsonBytes(dynRecords, ExportSchema.Version, extractedAt);
-                        fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "json");
-                    }
-                    else
-                    {
-                        bytes = BuildDynamicExcelBytes(dynRecords, cols, ExportSchema.Version, extractedAt);
-                        fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt);
-                    }
-
-                    var dynChecksum = Convert
-                        .ToHexString(System.Security.Cryptography.SHA256.HashData(bytes))
-                        .ToLowerInvariant();
-                    package = new ExportPackage(
-                        new ExportManifest(sequenceNo, ExportSchema.Version, extractedAt, dynRecords.Count, dynChecksum),
-                        bytes,
-                        fileName
-                    );
+                    bytes = DynamicExportService.BuildCsvBytes(records, cols, ExportSchema.Version, extractedAt);
+                    fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "csv");
+                }
+                else if (fmt == "json")
+                {
+                    bytes = DynamicExportService.BuildJsonBytes(records, ExportSchema.Version, extractedAt);
+                    fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "json");
                 }
                 else
                 {
-                    // Demo ERP path (existing behaviour, unchanged).
-                    var rawItems = await erpReader.ReadMaintainableCIsAsync(ct);
-                    var filtered = filter.Filter(rawItems);
-                    var minimized = filtered.Select(minimizer.Minimize).ToList();
-                    var mapped = minimized.Select(mapper.Map).ToList();
-
-                    if (fmt == "csv")
-                    {
-                        var bytes = BuildCsvBytes(mapped, ExportSchema.Version, extractedAt, nameMap);
-                        var checksum = Convert
-                            .ToHexString(System.Security.Cryptography.SHA256.HashData(bytes))
-                            .ToLowerInvariant();
-                        var fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "csv");
-                        package = new ExportPackage(
-                            new ExportManifest(sequenceNo, ExportSchema.Version, extractedAt, mapped.Count, checksum),
-                            bytes,
-                            fileName
-                        );
-                    }
-                    else if (fmt == "json")
-                    {
-                        var bytes = BuildJsonBytes(mapped, ExportSchema.Version, extractedAt, nameMap);
-                        var checksum = Convert
-                            .ToHexString(System.Security.Cryptography.SHA256.HashData(bytes))
-                            .ToLowerInvariant();
-                        var fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "json");
-                        package = new ExportPackage(
-                            new ExportManifest(sequenceNo, ExportSchema.Version, extractedAt, mapped.Count, checksum),
-                            bytes,
-                            fileName
-                        );
-                    }
-                    else
-                    {
-                        package = await packager.PackageAsync(mapped, sequenceNo, ct, nameMap);
-                    }
+                    bytes = DynamicExportService.BuildExcelBytes(records, cols, ExportSchema.Version, extractedAt);
+                    fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt);
                 }
+
+                var checksum = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+                var package = new ExportPackage(
+                    new ExportManifest(sequenceNo, ExportSchema.Version, extractedAt, records.Count, checksum),
+                    bytes,
+                    fileName
+                );
 
                 await sink.WriteAsync(package, ct);
 
@@ -530,125 +471,44 @@ app.MapPost(
     )
     .RequireAuthorization();
 
-byte[] BuildCsvBytes(IReadOnlyList<MappedExportRecord> records, string schemaVersion, DateTimeOffset extractedAt, IReadOnlyDictionary<string, string>? nameMap = null)
-{
-    string N(string n) => nameMap?.GetValueOrDefault(n) ?? n;
-    var sb = new System.Text.StringBuilder();
-    sb.AppendLine($"# schema_version={schemaVersion},extracted_at={extractedAt:O}");
-    sb.AppendLine(
-        $"{N("guid")},{N("serial_number")},{N("part_number")},{N("parent_serial_number")},{N("model_reference")},{N("commissioning_date")},{N("maintenance_state")}"
-    );
-    foreach (var r in records)
-    {
-        sb.Append(CsvEscape(r.Guid)).Append(',');
-        sb.Append(CsvEscape(r.SerialNumber)).Append(',');
-        sb.Append(CsvEscape(r.PartNumber)).Append(',');
-        sb.Append(CsvEscape(r.ParentSerialNumber ?? "")).Append(',');
-        sb.Append(CsvEscape(r.ModelReference)).Append(',');
-        sb.Append(CsvEscape(r.CommissioningDateIso8601)).Append(',');
-        sb.AppendLine(CsvEscape(r.MaintenanceState));
-    }
-    return System.Text.Encoding.UTF8.GetBytes(sb.ToString());
-}
-
-byte[] BuildJsonBytes(IReadOnlyList<MappedExportRecord> records, string schemaVersion, DateTimeOffset extractedAt, IReadOnlyDictionary<string, string>? nameMap = null)
-{
-    string N(string n) => nameMap?.GetValueOrDefault(n) ?? n;
-    var obj = new
-    {
-        schema_version = schemaVersion,
-        extracted_at = extractedAt.ToString("O"),
-        records = records
-            .Select(r => (object)new Dictionary<string, object?>
-            {
-                [N("guid")] = r.Guid,
-                [N("serial_number")] = r.SerialNumber,
-                [N("part_number")] = r.PartNumber,
-                [N("parent_serial_number")] = r.ParentSerialNumber,
-                [N("model_reference")] = r.ModelReference,
-                [N("commissioning_date")] = r.CommissioningDateIso8601,
-                [N("maintenance_state")] = r.MaintenanceState,
-            })
-            .ToList(),
-    };
-    return JsonSerializer.SerializeToUtf8Bytes(obj, new JsonSerializerOptions { WriteIndented = true });
-}
-
-string CsvEscape(string? value)
-{
-    if (string.IsNullOrEmpty(value))
-        return "";
-    if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
-        return '"' + value.Replace("\"", "\"\"") + '"';
-    return value;
-}
-
 // ── Export preview (read-only, no side effects) ────────────────────────────────
 
 app.MapGet(
         "/api/pipeline/preview",
-        async (
-            ExportLogDbContext db,
-            IErpReader erpReader,
-            IExportFilter filter,
-            IDataMinimizer minimizer,
-            ISchemaMapper mapper,
-            CancellationToken ct
-        ) =>
+        async (ExportLogDbContext db, CancellationToken ct) =>
         {
-            // Try dynamic mapping path first.
             var mappingConfigSetting = await db.AppSettings.FindAsync("export_mapping");
-            var dynamicConfig = mappingConfigSetting is null
-                ? null
-                : JsonSerializer.Deserialize<ExportMappingConfig>(mappingConfigSetting.Value);
+            if (mappingConfigSetting is null)
+                return Results.Ok(new PreviewResult(0, ExportSchema.Version, [], [], "error", null,
+                    "No export mapping configured. Set it up in Step 3."));
 
-            if (dynamicConfig is not null)
+            var config = JsonSerializer.Deserialize<ExportMappingConfig>(mappingConfigSetting.Value)!;
+
+            var emptyResult = (string msg) => Results.Ok(
+                new PreviewResult(0, ExportSchema.Version, [], [], "error", config.SourceTable, msg));
+
+            var connSetting = await db.AppSettings.FindAsync("erp_connection");
+            if (connSetting is null)
+                return emptyResult("No database connection configured. Set it up in Step 1.");
+
+            var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connSetting.Value);
+            if (connCfg is null)
+                return emptyResult("Stored connection config could not be read.");
+
+            try
             {
-                var connSetting = await db.AppSettings.FindAsync("erp_connection");
-                if (connSetting is not null)
-                {
-                    var connCfg = JsonSerializer.Deserialize<ConnectionConfigRequest>(connSetting.Value);
-                    if (connCfg is not null)
-                    {
-                        try
-                        {
-                            await using var conn = new NpgsqlConnection(BuildNpgsqlConnectionString(connCfg));
-                            await conn.OpenAsync(ct);
-                            var dynRecords = await ExecuteDynamicExportAsync(conn, dynamicConfig, ct);
-                            var cols = GetDynamicColumnNames(dynamicConfig);
-                            return Results.Ok(new PreviewResult(dynRecords.Count, ExportSchema.Version, cols, dynRecords));
-                        }
-                        catch
-                        {
-                            // Postgres unreachable — fall through to demo ERP.
-                        }
-                    }
-                }
+                await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(connCfg));
+                await conn.OpenAsync(ct);
+                var cols = DynamicExportService.GetColumnNames(config);
+                if (cols.Count == 0)
+                    return emptyResult("No columns are enabled in the export mapping. Enable at least one column in Step 3.");
+                var records = await DynamicExportService.ExecuteQueryAsync(conn, config, ct, limit: 50);
+                return Results.Ok(new PreviewResult(records.Count, ExportSchema.Version, cols, records, "dynamic", config.SourceTable));
             }
-
-            // Demo ERP fallback.
-            var staticColumns = new List<string>
+            catch (Exception ex)
             {
-                "guid", "serial_number", "part_number", "parent_serial_number",
-                "model_reference", "commissioning_date", "maintenance_state",
-            };
-            var rawItems = await erpReader.ReadMaintainableCIsAsync(ct);
-            var filtered = filter.Filter(rawItems);
-            var minimized = filtered.Select(minimizer.Minimize).ToList();
-            var records = minimized
-                .Select(item => mapper.Map(item))
-                .Select(r => new Dictionary<string, string>
-                {
-                    ["guid"] = r.Guid,
-                    ["serial_number"] = r.SerialNumber,
-                    ["part_number"] = r.PartNumber,
-                    ["parent_serial_number"] = r.ParentSerialNumber ?? "",
-                    ["model_reference"] = r.ModelReference,
-                    ["commissioning_date"] = r.CommissioningDateIso8601,
-                    ["maintenance_state"] = r.MaintenanceState,
-                })
-                .ToList();
-            return Results.Ok(new PreviewResult(records.Count, ExportSchema.Version, staticColumns, records));
+                return emptyResult($"Preview query failed: {ex.Message}");
+            }
         }
     )
     .RequireAuthorization();
@@ -716,13 +576,12 @@ app.MapGet(
             var connSetting = await db.AppSettings.FindAsync("erp_connection");
             if (connSetting is not null)
             {
-                var cfg = JsonSerializer.Deserialize<ConnectionConfigRequest>(connSetting.Value);
+                var cfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connSetting.Value);
                 if (cfg is not null)
                 {
                     try
                     {
-                        var connStr = BuildNpgsqlConnectionString(cfg);
-                        await using var conn = new NpgsqlConnection(connStr);
+                        await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(cfg));
                         await conn.OpenAsync();
                         var tables = await IntrospectSchemaAsync(conn);
                         return Results.Ok(new SourceSchemaDto($"{cfg.Host}:{cfg.Port}/{cfg.Database}", tables));
@@ -750,7 +609,7 @@ app.MapGet(
             if (setting is null)
                 return Results.NotFound();
 
-            var cfg = JsonSerializer.Deserialize<ConnectionConfigRequest>(setting.Value);
+            var cfg = JsonSerializer.Deserialize<ErpConnectionConfig>(setting.Value);
             if (cfg is null)
                 return Results.NotFound();
 
@@ -762,7 +621,7 @@ app.MapGet(
 // Tests the connection, persists it on success, and returns the live source schema.
 app.MapPost(
         "/api/connection",
-        async (ConnectionConfigRequest request, ExportLogDbContext db) =>
+        async (ErpConnectionConfig request, ExportLogDbContext db) =>
         {
             if (
                 string.IsNullOrWhiteSpace(request.Host)
@@ -773,8 +632,7 @@ app.MapPost(
 
             try
             {
-                var connStr = BuildNpgsqlConnectionString(request);
-                await using var conn = new NpgsqlConnection(connStr);
+                await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(request));
                 await conn.OpenAsync();
 
                 var tables = await IntrospectSchemaAsync(conn);
@@ -986,119 +844,6 @@ app.MapPut(
 
 await app.RunAsync();
 
-// ── Dynamic export helpers ────────────────────────────────────────────────────
-
-// Quotes a PostgreSQL identifier to prevent SQL injection.
-string QI(string name) => $"\"{name.Replace("\"", "\"\"")}\"";
-
-// Returns the ordered list of target column names produced by the mapping.
-IReadOnlyList<string> GetDynamicColumnNames(ExportMappingConfig cfg) =>
-    cfg.Fields.Where(f => f.Enabled).Select(f => f.TargetName)
-        .Concat(cfg.Relations.Where(r => r.Enabled).Select(r => r.TargetField))
-        .ToList();
-
-// Executes the mapping as a single SQL query and returns rows as key→value dictionaries.
-// join_key is the FK column in the related table; source_join_key is the matching column in the source table.
-async Task<List<Dictionary<string, string>>> ExecuteDynamicExportAsync(
-    NpgsqlConnection conn, ExportMappingConfig cfg, CancellationToken ct)
-{
-    var parts = new List<string>();
-
-    foreach (var f in cfg.Fields.Where(x => x.Enabled))
-        parts.Add($"s.{QI(f.SourceName)} AS {QI(f.TargetName)}");
-
-    foreach (var r in cfg.Relations.Where(x => x.Enabled))
-    {
-        var sf = r.StrategyOptions.SourceField;
-        var delim = r.StrategyOptions.Delimiter.Replace("'", "''");
-        var agg = r.FlattenStrategy == "string_join"
-            ? $"string_agg({QI(r.RelatedTable)}.{QI(sf)}::text, '{delim}')"
-            : $"array_to_string(array_agg({QI(r.RelatedTable)}.{QI(sf)}::text), ',')";
-        parts.Add(
-            $"(SELECT {agg} FROM {QI(r.RelatedTable)} " +
-            $"WHERE {QI(r.RelatedTable)}.{QI(r.JoinKey)} = s.{QI(r.SourceJoinKey)}) AS {QI(r.TargetField)}"
-        );
-    }
-
-    if (parts.Count == 0) return [];
-
-    var sql = $"SELECT {string.Join(", ", parts)} FROM {QI(cfg.SourceTable)} s";
-    var results = new List<Dictionary<string, string>>();
-
-    await using var cmd = new NpgsqlCommand(sql, conn) { CommandTimeout = 30 };
-    await using var reader = await cmd.ExecuteReaderAsync(ct);
-
-    while (await reader.ReadAsync(ct))
-    {
-        var row = new Dictionary<string, string>(reader.FieldCount);
-        for (int i = 0; i < reader.FieldCount; i++)
-            row[reader.GetName(i)] = await reader.IsDBNullAsync(i, ct) ? "" : (reader.GetValue(i)?.ToString() ?? "");
-        results.Add(row);
-    }
-
-    return results;
-}
-
-byte[] BuildDynamicCsvBytes(
-    IReadOnlyList<Dictionary<string, string>> records,
-    IReadOnlyList<string> columns,
-    string schemaVersion,
-    DateTimeOffset extractedAt)
-{
-    var sb = new System.Text.StringBuilder();
-    sb.AppendLine($"# schema_version={schemaVersion},extracted_at={extractedAt:O}");
-    sb.AppendLine(string.Join(",", columns.Select(c => CsvEscape(c))));
-    foreach (var row in records)
-        sb.AppendLine(string.Join(",", columns.Select(c => CsvEscape(row.GetValueOrDefault(c, "")))));
-    return System.Text.Encoding.UTF8.GetBytes(sb.ToString());
-}
-
-byte[] BuildDynamicJsonBytes(
-    IReadOnlyList<Dictionary<string, string>> records,
-    string schemaVersion,
-    DateTimeOffset extractedAt)
-{
-    var obj = new
-    {
-        schema_version = schemaVersion,
-        extracted_at = extractedAt.ToString("O"),
-        records,
-    };
-    return JsonSerializer.SerializeToUtf8Bytes(obj, new JsonSerializerOptions { WriteIndented = true });
-}
-
-byte[] BuildDynamicExcelBytes(
-    IReadOnlyList<Dictionary<string, string>> records,
-    IReadOnlyList<string> columns,
-    string schemaVersion,
-    DateTimeOffset extractedAt)
-{
-    using var wb = new XLWorkbook();
-    var ws = wb.Worksheets.Add("Export");
-    ws.Cell(1, 1).Value = $"schema_version={schemaVersion}";
-    ws.Cell(1, 2).Value = $"extracted_at={extractedAt:O}";
-    ws.Row(1).Style.Font.Bold = true;
-    ws.Row(1).Style.Fill.BackgroundColor = XLColor.LightGray;
-    for (int c = 0; c < columns.Count; c++)
-        ws.Cell(2, c + 1).Value = columns[c];
-    ws.Row(2).Style.Font.Bold = true;
-    for (int r = 0; r < records.Count; r++)
-        for (int c = 0; c < columns.Count; c++)
-            ws.Cell(r + 3, c + 1).Value = records[r].GetValueOrDefault(columns[c], "");
-    for (int c = 1; c <= columns.Count; c++)
-        ws.Column(c).Style.NumberFormat.NumberFormatId = 49; // "@" = Text
-    ws.Columns().AdjustToContents();
-    using var ms = new MemoryStream();
-    wb.SaveAs(ms);
-    return ms.ToArray();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-// Builds the Npgsql connection string from a config request, enforcing SSL prefer and read-only intent.
-string BuildNpgsqlConnectionString(ConnectionConfigRequest cfg) =>
-    $"Host={cfg.Host};Port={cfg.Port};Database={cfg.Database};Username={cfg.Username};Password={cfg.Password};SSL Mode=Prefer;Trust Server Certificate=true;Timeout=5;Command Timeout=10";
-
 // Introspects the public schema of an open Npgsql connection using information_schema views.
 async Task<SourceTableDto[]> IntrospectSchemaAsync(NpgsqlConnection conn)
 {
@@ -1293,33 +1038,11 @@ namespace Connector.Api
         int RecordCount,
         string SchemaVersion,
         IReadOnlyList<string> Columns,
-        IList<Dictionary<string, string>> Records
+        IList<Dictionary<string, string>> Records,
+        string Source = "demo",
+        string? SourceTable = null,
+        string? Error = null
     );
-
-    record ExportMappingField(string SourceName, string TargetName, bool Enabled);
-
-    record ExportMappingStrategyOptions(string SourceField, string Delimiter);
-
-    record ExportMappingRelation(
-        string RelatedTable,
-        string JoinKey,
-        string SourceJoinKey,
-        string TargetField,
-        bool Enabled,
-        string FlattenStrategy,
-        ExportMappingStrategyOptions StrategyOptions
-    );
-
-    record ExportMappingConfig(
-        string SourceTable,
-        ExportMappingField[] Fields,
-        ExportMappingRelation[] Relations
-    );
-
-    /// <summary>
-    /// Full connection config — stored server-side; password is never returned to the client.
-    /// </summary>
-    record ConnectionConfigRequest(string Host, int Port, string Database, string Username, string Password);
 
     /// <summary>Public view of the stored connection — no password field.</summary>
     record ErpConnectionInfo(string Host, int Port, string Database, string Username);

@@ -13,6 +13,12 @@ export interface PreviewResult {
   columns: string[]
   /** Each record is a key→value map keyed by target column name. */
   records: Record<string, string>[]
+  /** "dynamic" = live Postgres via export_mapping; "error" = no mapping/connection configured or query failed. */
+  source: 'dynamic' | 'error'
+  /** Source table name when source is "dynamic" or "error". */
+  sourceTable?: string
+  /** Set when source === "error" — describes what went wrong. */
+  error?: string
 }
 
 function authHeaders(): Record<string, string> {
@@ -33,8 +39,12 @@ export async function runNow(
     const data = (await res.json()) as RunNowResult
     return { ok: true, data }
   }
-  const text = await res.text()
-  return { ok: false, error: text || `Error ${res.status}` }
+  try {
+    const json = (await res.json()) as { detail?: string; title?: string }
+    return { ok: false, error: json.detail || json.title || `Export failed (HTTP ${res.status})` }
+  } catch {
+    return { ok: false, error: `Export failed (HTTP ${res.status})` }
+  }
 }
 
 export async function getPreview(): Promise<PreviewResult | null> {

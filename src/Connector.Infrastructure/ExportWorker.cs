@@ -1,10 +1,15 @@
+using System.Security.Cryptography;
 using System.Text.Json;
+using Connector.Core.Domain;
+using Connector.Core.DynamicExport;
 using Connector.Core.Interfaces;
+using Connector.Core.Schema;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Npgsql;
 
 namespace Connector.Infrastructure;
 
@@ -17,10 +22,6 @@ namespace Connector.Infrastructure;
 /// </remarks>
 public sealed class ExportWorker(
     IServiceScopeFactory scopeFactory,
-    IExportFilter filter,
-    IDataMinimizer minimizer,
-    ISchemaMapper mapper,
-    IPackager packager,
     IExportSink sink,
     IOptions<ExportWorkerOptions> options,
     IOptions<ExportSinkOptions> sinkOptions,
@@ -52,7 +53,6 @@ public sealed class ExportWorker(
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<ExportLogDbContext>();
-        var erpReader = scope.ServiceProvider.GetRequiredService<IErpReader>();
 
         var sequenceNo = await NextSequenceNumberAsync(db, ct);
         var run = new ExportRunEntity
@@ -68,23 +68,48 @@ public sealed class ExportWorker(
         {
             logger.LogInformation("Export #{Seq} gestartet", sequenceNo);
 
-            var mappingSetting = await db.AppSettings.FindAsync("column_mappings");
-            var nameMap = mappingSetting is null
-                ? null
-                : JsonSerializer.Deserialize<Dictionary<string, string>>(mappingSetting.Value);
+            var mappingSetting = await db.AppSettings.FindAsync("export_mapping");
+            if (mappingSetting is null)
+            {
+                logger.LogError("Export #{Seq}: kein export_mapping konfiguriert — Export abgebrochen", sequenceNo);
+                run.Status = ExportRunStatus.Failed;
+                await db.SaveChangesAsync(ct);
+                return;
+            }
+            var config = JsonSerializer.Deserialize<ExportMappingConfig>(mappingSetting.Value)!;
 
-            var rawItems = await erpReader.ReadMaintainableCIsAsync(ct);
-            var filtered = filter.Filter(rawItems);
-            var minimized = filtered.Select(minimizer.Minimize).ToList();
-            var mapped = minimized.Select(mapper.Map).ToList();
-            var package = await packager.PackageAsync(mapped, sequenceNo, ct, nameMap);
+            var connSetting = await db.AppSettings.FindAsync("erp_connection");
+            if (connSetting is null)
+            {
+                logger.LogError("Export #{Seq}: keine erp_connection konfiguriert — Export abgebrochen", sequenceNo);
+                run.Status = ExportRunStatus.Failed;
+                await db.SaveChangesAsync(ct);
+                return;
+            }
+            var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connSetting.Value)!;
+
+            var cols = DynamicExportService.GetColumnNames(config);
+            var extractedAt = DateTimeOffset.UtcNow;
+
+            await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(connCfg));
+            await conn.OpenAsync(ct);
+            var records = await DynamicExportService.ExecuteQueryAsync(conn, config, ct);
+
+            var bytes = DynamicExportService.BuildExcelBytes(records, cols, ExportSchema.Version, extractedAt);
+            var fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt);
+            var checksum = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+
+            var package = new ExportPackage(
+                new ExportManifest(sequenceNo, ExportSchema.Version, extractedAt, records.Count, checksum),
+                bytes,
+                fileName
+            );
 
             await sink.WriteAsync(package, ct);
 
             run.RecordCount = package.Manifest.RecordCount;
             run.Sha256 = package.Manifest.Sha256Checksum;
             run.DataFileName = package.DataFileName;
-            // Status bleibt Pending — Vier-Augen-Freigabe erfolgt manuell über die UI.
             await db.SaveChangesAsync(ct);
 
             logger.LogInformation(
@@ -98,7 +123,7 @@ public sealed class ExportWorker(
         {
             logger.LogError(ex, "Export #{Seq} fehlgeschlagen", sequenceNo);
             run.Status = ExportRunStatus.Failed;
-            await db.SaveChangesAsync(CancellationToken.None); // Fehler-Status muss trotz Abbruch gespeichert werden.
+            await db.SaveChangesAsync(CancellationToken.None);
         }
     }
 
@@ -131,7 +156,6 @@ public sealed class ExportWorker(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            // Retention-Fehler dürfen den nächsten Export nicht blockieren.
             logger.LogError(ex, "Retention-Bereinigung fehlgeschlagen");
         }
     }
@@ -164,7 +188,6 @@ public sealed class ExportWorker(
 
     private async Task PurgeExportRunRecordsAsync(ExportLogDbContext db, DateTimeOffset cutoff, CancellationToken ct)
     {
-        // Nur abgeschlossene Runs löschen — Pending-Runs sind noch aktiv (warten auf Freigabe).
         var candidates = await db.ExportRuns.Where(r => r.Status != ExportRunStatus.Pending).ToListAsync(ct);
 
         var toDelete = candidates
@@ -198,12 +221,7 @@ public sealed class ExportWorker(
 
 public sealed class ExportWorkerOptions
 {
-    /// <summary>UTC-Zeit, zu der der tägliche Export läuft. Konfigurierbar via appsettings.json.</summary>
-    public TimeSpan ScheduledTimeUtc { get; set; } = new(6, 0, 0); // Default: 06:00 UTC
+    public TimeSpan ScheduledTimeUtc { get; set; } = new(6, 0, 0);
 
-    /// <summary>
-    /// Anzahl der Tage, nach denen Staging-Dateien und abgeschlossene ExportRun-Einträge gelöscht werden.
-    /// 0 = Retention-Bereinigung deaktiviert.
-    /// </summary>
     public int RetentionDays { get; set; } = 30;
 }
