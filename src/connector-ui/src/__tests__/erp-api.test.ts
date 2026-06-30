@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { listErpRecords, getSchema, getPresets, savePreset, deletePreset } from '@/api/erp'
+import {
+  listErpRecords, getSchema, getExportMapping, saveExportMapping,
+  getPresets, savePreset, deletePreset,
+} from '@/api/erp'
 import type { ExportMappingConfig } from '@/api/erp'
 
 function mockFetch(body: unknown, status = 200) {
@@ -68,6 +71,68 @@ const PRESET_CONFIG: ExportMappingConfig = {
   ],
   relations: [],
 }
+
+describe('getExportMapping', () => {
+  const MAPPING: ExportMappingConfig = {
+    sourceTable: 'parts',
+    fields: [{ sourceName: 'id', targetName: 'id', enabled: true }],
+    relations: [],
+  }
+
+  it('returns the mapping config on 200', async () => {
+    mockFetch(MAPPING)
+    const result = await getExportMapping()
+    expect(result).toEqual(MAPPING)
+    expect(fetch).toHaveBeenCalledWith('/api/export-mapping', expect.any(Object))
+  })
+
+  it('returns null on non-ok response', async () => {
+    mockFetch(null, 404)
+    const result = await getExportMapping()
+    expect(result).toBeNull()
+  })
+})
+
+describe('saveExportMapping', () => {
+  const CONFIG: ExportMappingConfig = {
+    sourceTable: 'systemconfiguration',
+    fields: [
+      { sourceName: 'id',     targetName: 'guid',   enabled: true },
+      { sourceName: 'serial', targetName: 'serial', enabled: false },
+    ],
+    relations: [],
+  }
+
+  it('returns { ok: true, data } on 200', async () => {
+    mockFetch(CONFIG)
+    const result = await saveExportMapping(CONFIG)
+    expect(result.ok).toBe(true)
+    expect(result.data).toEqual(CONFIG)
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/export-mapping',
+      expect.objectContaining({ method: 'PUT' }),
+    )
+  })
+
+  it('sends the correct JSON body', async () => {
+    const spy = mockFetch(CONFIG)
+    await saveExportMapping(CONFIG)
+    const body = JSON.parse(spy.mock.calls[0][1]?.body as string)
+    expect(body.sourceTable).toBe('systemconfiguration')
+    expect(body.fields).toHaveLength(2)
+  })
+
+  it('returns { ok: false, error } on 400', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: false, status: 400,
+      text: async () => 'SourceTable is required.',
+      json: async () => ({}),
+    } as Response)
+    const result = await saveExportMapping({ ...CONFIG, sourceTable: '' })
+    expect(result.ok).toBe(false)
+    expect(result.error).toContain('SourceTable')
+  })
+})
 
 describe('getPresets', () => {
   it('returns the preset dictionary on 200', async () => {

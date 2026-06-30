@@ -139,6 +139,33 @@ describe('ExportDetail', () => {
     expect(w.text()).toContain('USB-007')
   })
 
+  it('does not render raw ISO date string for extractedAt', async () => {
+    vi.spyOn(exportsApi, 'getExport').mockResolvedValueOnce(PENDING)
+    const w = mount(ExportDetail, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+    expect(w.text()).not.toContain('2026-06-28T10:44:28Z')
+  })
+
+  it('shows SHA copy button containing the full hash', async () => {
+    vi.spyOn(exportsApi, 'getExport').mockResolvedValueOnce(PENDING)
+    const w = mount(ExportDetail, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+    const copyBtn = w.findAll('button').find((b) => b.text().includes('fc5b80749393abc123'))
+    expect(copyBtn).toBeTruthy()
+  })
+
+  it('shows error message when deliverExport fails', async () => {
+    vi.spyOn(exportsApi, 'getExport').mockResolvedValueOnce(RELEASED)
+    vi.spyOn(exportsApi, 'deliverExport').mockResolvedValueOnce({
+      ok: false, status: 409, message: 'Already delivered.',
+    })
+    const w = mount(ExportDetail, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+    await w.find('.delivery-card button').trigger('click')
+    await flushPromises()
+    expect(w.text()).toContain('Already delivered.')
+  })
+
   it('calls deliverExport and reloads on submit', async () => {
     vi.spyOn(exportsApi, 'getExport')
       .mockResolvedValueOnce(RELEASED)

@@ -48,6 +48,19 @@ describe('runNow', () => {
     expect(result.ok).toBe(false)
     expect(result.error).toContain('500')
   })
+
+  it('returns ok:false using title when detail is absent', async () => {
+    mockFetch({ title: 'Export path not writable' }, 500)
+    const result = await runNow()
+    expect(result.ok).toBe(false)
+    expect(result.error).toContain('Export path not writable')
+  })
+
+  it('passes json format in the query string', async () => {
+    const spy = mockFetch({ sequenceNo: 1, recordCount: 0, sha256Short: 'abc' })
+    await runNow('json')
+    expect(spy.mock.calls[0][0]).toContain('format=json')
+  })
 })
 
 describe('getPreview', () => {

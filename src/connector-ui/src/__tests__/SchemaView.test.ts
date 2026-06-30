@@ -9,7 +9,11 @@ import type { SourceSchema } from '@/api/connection'
 function buildRouter() {
   const r = createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: '/export-schema', name: 'export-schema', component: SchemaView }],
+    routes: [
+      { path: '/export-schema', name: 'export-schema', component: SchemaView },
+      { path: '/source-schema', name: 'source-schema', component: { template: '<div/>' } },
+      { path: '/exports', name: 'exports', component: { template: '<div/>' } },
+    ],
   })
   r.push('/export-schema')
   return r
@@ -307,10 +311,9 @@ describe('SchemaView', () => {
     expect(values).toContain('guid')
   })
 
-  it('calls savePreset with the current config when Save As is confirmed', async () => {
+  it('calls savePreset with the current config via inline save-as flow', async () => {
     vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
     const saveSpy = vi.spyOn(erpApi, 'savePreset').mockResolvedValue({ ok: true })
-    vi.spyOn(window, 'prompt').mockReturnValue('New Preset')
 
     const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
@@ -318,7 +321,16 @@ describe('SchemaView', () => {
     await w.find('select.table-select').setValue('systemconfiguration')
     await w.vm.$nextTick()
 
+    // click Save As → inline input appears
     await w.find('.save-as-btn').trigger('click')
+    await w.vm.$nextTick()
+
+    const nameInput = w.find('input[placeholder="Preset name…"]')
+    expect(nameInput.exists()).toBe(true)
+    await nameInput.setValue('New Preset')
+
+    const saveBtn = w.findAll('button').find((b) => b.text() === 'Save')!
+    await saveBtn.trigger('click')
     await flushPromises()
 
     expect(saveSpy).toHaveBeenCalledOnce()
@@ -327,7 +339,7 @@ describe('SchemaView', () => {
     expect(config.sourceTable).toBe('systemconfiguration')
   })
 
-  it('calls deletePreset and clears selection after confirmed delete', async () => {
+  it('calls deletePreset and clears selection via inline delete confirm', async () => {
     vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
     vi.spyOn(erpApi, 'getPresets').mockResolvedValue({
       'Old Preset': {
@@ -337,16 +349,158 @@ describe('SchemaView', () => {
       },
     })
     const deleteSpy = vi.spyOn(erpApi, 'deletePreset').mockResolvedValue({ ok: true })
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
 
     await w.find('select.preset-select').setValue('Old Preset')
+    // click Delete → inline confirm row appears
     await w.find('.delete-preset-btn').trigger('click')
+    await w.vm.$nextTick()
+
+    const yesBtn = w.findAll('button').find((b) => b.text().includes('Yes, delete'))!
+    expect(yesBtn.exists()).toBe(true)
+    await yesBtn.trigger('click')
     await flushPromises()
 
     expect(deleteSpy).toHaveBeenCalledWith('Old Preset')
     expect((w.find('select.preset-select').element as HTMLSelectElement).value).toBe('')
+  })
+
+  it('shows inline save input after clicking Save As', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+
+    expect(w.find('input[placeholder="Preset name…"]').exists()).toBe(false)
+    await w.find('.save-as-btn').trigger('click')
+    await w.vm.$nextTick()
+    expect(w.find('input[placeholder="Preset name…"]').exists()).toBe(true)
+  })
+
+  it('Save button is disabled and inline input shows when name is empty', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+    await w.find('.save-as-btn').trigger('click')
+    await w.vm.$nextTick()
+
+    const saveBtn = w.findAll('button').find((b) => b.text() === 'Save')!
+    expect(saveBtn.attributes('disabled')).toBeDefined()
+
+    // pressing Enter with an empty name triggers the error
+    await w.find('input[placeholder="Preset name…"]').trigger('keyup', { key: 'Enter' })
+    await w.vm.$nextTick()
+
+    expect(w.find('.preset-error').exists()).toBe(true)
+    expect(w.find('.preset-error').text()).toContain('cannot be empty')
+  })
+
+  it('shows inline delete confirm row after clicking Delete', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    vi.spyOn(erpApi, 'getPresets').mockResolvedValue({
+      'My Preset': { sourceTable: 'systemconfiguration', fields: [], relations: [] },
+    })
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.preset-select').setValue('My Preset')
+    await w.find('.delete-preset-btn').trigger('click')
+    await w.vm.$nextTick()
+
+    expect(w.text()).toContain('Yes, delete')
+    expect(w.text()).toContain('My Preset')
+  })
+
+  it('Select All enables every column', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+
+    // Only the PK (id) starts enabled; disable it to start with some unchecked
+    const checkboxes = w.findAll('input[type="checkbox"]')
+      .filter((cb) => cb.element.closest('tr')) // column checkboxes only
+    // Click "Deselect All" first to ensure some are unchecked
+    const deselectBtn = w.findAll('button').find((b) => b.text() === 'Deselect All')!
+    await deselectBtn.trigger('click')
+    await w.vm.$nextTick()
+
+    const allUnchecked = w.findAll('input[type="checkbox"]')
+      .filter((cb) => cb.element.closest('tr'))
+      .every((cb) => !(cb.element as HTMLInputElement).checked)
+    expect(allUnchecked).toBe(true)
+
+    const selectBtn = w.findAll('button').find((b) => b.text() === 'Select All')!
+    await selectBtn.trigger('click')
+    await w.vm.$nextTick()
+
+    const allChecked = w.findAll('input[type="checkbox"]')
+      .filter((cb) => cb.element.closest('tr'))
+      .every((cb) => (cb.element as HTMLInputElement).checked)
+    expect(allChecked).toBe(true)
+  })
+
+  it('Deselect All disables every column', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+
+    // Select All first so we have something to deselect
+    const selectBtn = w.findAll('button').find((b) => b.text() === 'Select All')!
+    await selectBtn.trigger('click')
+    await w.vm.$nextTick()
+
+    const deselectBtn = w.findAll('button').find((b) => b.text() === 'Deselect All')!
+    await deselectBtn.trigger('click')
+    await w.vm.$nextTick()
+
+    const noneChecked = w.findAll('input[type="checkbox"]')
+      .filter((cb) => cb.element.closest('tr'))
+      .every((cb) => !(cb.element as HTMLInputElement).checked)
+    expect(noneChecked).toBe(true)
+  })
+
+  it('Save & Go to Export button label is correct', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+
+    const proceedBtn = w.findAll('button').find((b) => b.text().includes('Save & Go to Export'))
+    expect(proceedBtn).toBeTruthy()
+  })
+
+  it('shows preset save error when API returns error', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    vi.spyOn(erpApi, 'savePreset').mockResolvedValue({ ok: false, error: 'Name too long.' })
+
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+    await w.find('.save-as-btn').trigger('click')
+    await w.vm.$nextTick()
+
+    await w.find('input[placeholder="Preset name…"]').setValue('x')
+    const saveBtn = w.findAll('button').find((b) => b.text() === 'Save')!
+    await saveBtn.trigger('click')
+    await flushPromises()
+
+    expect(w.find('.preset-error').text()).toContain('Name too long.')
   })
 })
