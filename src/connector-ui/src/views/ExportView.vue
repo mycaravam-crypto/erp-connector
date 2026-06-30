@@ -28,7 +28,7 @@ async function loadPreview() {
     preview.value = await getPreview()
     if (!preview.value) previewError.value = 'Preview endpoint returned no data.'
   } catch {
-    previewError.value = 'Could not reach the API. Is the backend running on :5189?'
+    previewError.value = 'Could not reach the API. Is the backend service running?'
   } finally {
     previewLoading.value = false
   }
@@ -52,7 +52,7 @@ async function triggerRun() {
       runError.value = res.error ?? 'Unknown error'
     }
   } catch {
-    runError.value = 'Could not reach the API. Is the backend running on :5189?'
+    runError.value = 'Could not reach the API. Is the backend service running?'
   } finally {
     running.value = false
   }

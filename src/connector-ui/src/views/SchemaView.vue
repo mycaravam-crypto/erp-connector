@@ -292,7 +292,7 @@ async function load() {
       selectedTable.value = existingMapping.sourceTable
     }
   } catch {
-    error.value = 'Could not reach the API. Is the backend running on :5189?'
+    error.value = 'Could not reach the API. Is the backend service running?'
   } finally {
     loading.value = false
   }

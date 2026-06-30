@@ -131,14 +131,16 @@ app.MapGet(
             erpOk = await erpDb.Database.CanConnectAsync();
         }
         catch
-        { /* degraded */
+        {
+            // Intentionally swallowed — degraded health is reported in the JSON response, not thrown.
         }
         try
         {
             logOk = await logDb.Database.CanConnectAsync();
         }
         catch
-        { /* degraded */
+        {
+            // Intentionally swallowed — degraded health is reported in the JSON response, not thrown.
         }
 
         var checks = new
@@ -571,7 +573,7 @@ app.MapGet(
 // falling back to the hardcoded demo schema when none is stored or the connection fails.
 app.MapGet(
         "/api/source-schema",
-        async (ExportLogDbContext db) =>
+        async (ExportLogDbContext db, CancellationToken ct) =>
         {
             var connSetting = await db.AppSettings.FindAsync("erp_connection");
             if (connSetting is not null)
@@ -582,8 +584,8 @@ app.MapGet(
                     try
                     {
                         await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(cfg));
-                        await conn.OpenAsync();
-                        var tables = await IntrospectSchemaAsync(conn);
+                        await conn.OpenAsync(ct);
+                        var tables = await IntrospectSchemaAsync(conn, ct);
                         return Results.Ok(new SourceSchemaDto($"{cfg.Host}:{cfg.Port}/{cfg.Database}", tables));
                     }
                     catch
@@ -621,7 +623,7 @@ app.MapGet(
 // Tests the connection, persists it on success, and returns the live source schema.
 app.MapPost(
         "/api/connection",
-        async (ErpConnectionConfig request, ExportLogDbContext db) =>
+        async (ErpConnectionConfig request, ExportLogDbContext db, CancellationToken ct) =>
         {
             if (
                 string.IsNullOrWhiteSpace(request.Host)
@@ -633,9 +635,9 @@ app.MapPost(
             try
             {
                 await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(request));
-                await conn.OpenAsync();
+                await conn.OpenAsync(ct);
 
-                var tables = await IntrospectSchemaAsync(conn);
+                var tables = await IntrospectSchemaAsync(conn, ct);
 
                 // Persist config (including password — stored server-side only, never in localStorage).
                 var serialized = JsonSerializer.Serialize(request);
@@ -935,7 +937,7 @@ app.MapDelete(
 await app.RunAsync();
 
 // Introspects the public schema of an open Npgsql connection using information_schema views.
-async Task<SourceTableDto[]> IntrospectSchemaAsync(NpgsqlConnection conn)
+async Task<SourceTableDto[]> IntrospectSchemaAsync(NpgsqlConnection conn, CancellationToken ct = default)
 {
     // Single query: columns with PK flag via a correlated EXISTS.
     var sql = """
@@ -962,10 +964,10 @@ async Task<SourceTableDto[]> IntrospectSchemaAsync(NpgsqlConnection conn)
         """;
 
     await using var cmd = new NpgsqlCommand(sql, conn);
-    await using var reader = await cmd.ExecuteReaderAsync();
+    await using var reader = await cmd.ExecuteReaderAsync(ct);
 
     var byTable = new Dictionary<string, List<SourceColumnDto>>();
-    while (await reader.ReadAsync())
+    while (await reader.ReadAsync(ct))
     {
         var table = reader.GetString(0);
         if (!byTable.ContainsKey(table))

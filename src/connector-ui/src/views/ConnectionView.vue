@@ -6,7 +6,7 @@ import { clearSession } from '@/api/auth'
 
 const router = useRouter()
 
-const host = ref('localhost')
+const host = ref('')
 const port = ref('5432')
 const database = ref('')
 const username = ref('')
@@ -55,7 +55,7 @@ async function testConnection() {
     }
   } catch {
     testStatus.value = 'error'
-    testMessage.value = 'Could not reach the backend. Is the server running on :5189?'
+    testMessage.value = 'Could not reach the backend. Is the backend service running?'
   } finally {
     testing.value = false
   }
@@ -81,11 +81,10 @@ function proceed() {
     <div v-if="connectedLabel" class="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-800 mb-6">
       <strong>Connected:</strong> {{ connectedLabel }}
     </div>
-    <div v-else class="bg-yellow-50 border border-yellow-300 rounded-lg px-4 py-3 text-sm text-yellow-900 mb-6 leading-relaxed">
-      <strong>Demo mode active.</strong>
-      The current backend uses a built-in SQLite demo database that mirrors a real PostgreSQL schema.
-      Fill in the fields below to configure the production connection; click
-      <em>Test Connection</em> to verify and save.
+    <div v-else class="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm text-slate-700 mb-6 leading-relaxed">
+      <strong>No connection configured yet.</strong>
+      Enter the PostgreSQL connection details for the source ERP database below
+      and click <em>Test Connection</em> to verify and save.
     </div>
 
     <form class="flex flex-col gap-4" @submit.prevent="testConnection">

@@ -1,6 +1,7 @@
 {
   "name": "connector-ui",
-  "version": "0.0.0",
+  "description": "ERP-to-ServiceNow CI Connector — frontend",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
