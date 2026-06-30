@@ -840,6 +840,96 @@ app.MapPut(
     )
     .RequireAuthorization();
 
+// ── Export mapping presets ────────────────────────────────────────────────────
+
+// Returns all saved presets as a name→config dictionary; {} when none exist.
+app.MapGet(
+        "/api/export-mapping/presets",
+        async (ExportLogDbContext db) =>
+        {
+            var setting = await db.AppSettings.FindAsync("export_presets");
+            if (setting is null)
+                return Results.Ok(new Dictionary<string, ExportMappingConfig>());
+            var presets = JsonSerializer.Deserialize<Dictionary<string, ExportMappingConfig>>(setting.Value)
+                          ?? new Dictionary<string, ExportMappingConfig>();
+            return Results.Ok(presets);
+        }
+    )
+    .RequireAuthorization();
+
+// Creates or updates a single named preset.
+app.MapPut(
+        "/api/export-mapping/presets/{name}",
+        async (string name, ExportMappingConfig config, ExportLogDbContext db) =>
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return Results.BadRequest("Preset name is required.");
+
+            if (string.IsNullOrWhiteSpace(config.SourceTable))
+                return Results.BadRequest("SourceTable is required.");
+
+            var badFields = config.Fields
+                .Where(f => f.Enabled && string.IsNullOrWhiteSpace(f.TargetName))
+                .Select(f => f.SourceName)
+                .ToList();
+            if (badFields.Count > 0)
+                return Results.BadRequest(
+                    $"Enabled fields must have non-empty target names: {string.Join(", ", badFields)}");
+
+            var badRels = config.Relations
+                .Where(r => r.Enabled && (
+                    string.IsNullOrWhiteSpace(r.RelatedTable) ||
+                    string.IsNullOrWhiteSpace(r.JoinKey) ||
+                    string.IsNullOrWhiteSpace(r.SourceJoinKey) ||
+                    string.IsNullOrWhiteSpace(r.TargetField) ||
+                    string.IsNullOrWhiteSpace(r.StrategyOptions.SourceField)))
+                .ToList();
+            if (badRels.Count > 0)
+                return Results.BadRequest(
+                    "Enabled relations must specify RelatedTable, JoinKey, SourceJoinKey, TargetField, and SourceField.");
+
+            var setting = await db.AppSettings.FindAsync("export_presets");
+            var presets = setting is null
+                ? new Dictionary<string, ExportMappingConfig>()
+                : JsonSerializer.Deserialize<Dictionary<string, ExportMappingConfig>>(setting.Value)
+                  ?? new Dictionary<string, ExportMappingConfig>();
+
+            presets[name] = config;
+            var serialized = JsonSerializer.Serialize(presets);
+
+            if (setting is null)
+                db.AppSettings.Add(new AppSettingEntity { Key = "export_presets", Value = serialized });
+            else
+                setting.Value = serialized;
+
+            await db.SaveChangesAsync();
+            return Results.Ok(config);
+        }
+    )
+    .RequireAuthorization();
+
+// Deletes a single named preset. Returns 404 when the name does not exist.
+app.MapDelete(
+        "/api/export-mapping/presets/{name}",
+        async (string name, ExportLogDbContext db) =>
+        {
+            var setting = await db.AppSettings.FindAsync("export_presets");
+            if (setting is null)
+                return Results.NotFound();
+
+            var presets = JsonSerializer.Deserialize<Dictionary<string, ExportMappingConfig>>(setting.Value)
+                          ?? new Dictionary<string, ExportMappingConfig>();
+
+            if (!presets.Remove(name))
+                return Results.NotFound();
+
+            setting.Value = JsonSerializer.Serialize(presets);
+            await db.SaveChangesAsync();
+            return Results.NoContent();
+        }
+    )
+    .RequireAuthorization();
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 await app.RunAsync();

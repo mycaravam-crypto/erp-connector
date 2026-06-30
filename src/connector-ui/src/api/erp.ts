@@ -125,3 +125,37 @@ export async function saveExportMapping(
   const text = await res.text()
   return { ok: false, error: text || `Error ${res.status}` }
 }
+
+// ── Export mapping presets ────────────────────────────────────────────────────
+
+/** Returns all saved presets as a name→config map; empty object when none exist. */
+export async function getPresets(): Promise<Record<string, ExportMappingConfig>> {
+  const res = await fetch('/api/export-mapping/presets', { headers: authHeaders() })
+  if (!res.ok) return {}
+  return res.json() as Promise<Record<string, ExportMappingConfig>>
+}
+
+/** Creates or updates a named preset. */
+export async function savePreset(
+  name: string,
+  config: ExportMappingConfig,
+): Promise<{ ok: boolean; error?: string }> {
+  const res = await fetch(`/api/export-mapping/presets/${encodeURIComponent(name)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(config),
+  })
+  if (res.ok) return { ok: true }
+  const text = await res.text()
+  return { ok: false, error: text || `Error ${res.status}` }
+}
+
+/** Deletes a named preset. */
+export async function deletePreset(name: string): Promise<{ ok: boolean; error?: string }> {
+  const res = await fetch(`/api/export-mapping/presets/${encodeURIComponent(name)}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  })
+  if (res.ok) return { ok: true }
+  return { ok: false, error: `Error ${res.status}` }
+}

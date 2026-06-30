@@ -5,6 +5,9 @@ import { getSourceSchema, type SourceTable, type SourceColumn } from '@/api/conn
 import {
   getExportMapping,
   saveExportMapping,
+  getPresets,
+  savePreset,
+  deletePreset,
   type MappingField,
   type MappingRelation,
   type ExportMappingConfig,
@@ -24,6 +27,77 @@ const relations = ref<MappingRelation[]>([])
 const saving = ref(false)
 const saveError = ref<string | null>(null)
 const saved = ref(false)
+
+// ── Presets ────────────────────────────────────────────────────────────────────
+const presets = ref<Record<string, ExportMappingConfig>>({})
+const selectedPreset = ref('')
+const presetSaving = ref(false)
+const presetError = ref<string | null>(null)
+
+const presetNames = computed(() => Object.keys(presets.value).sort())
+
+async function loadPresets() {
+  presets.value = await getPresets()
+}
+
+function applyPreset(name: string) {
+  const cfg = presets.value[name]
+  if (!cfg) return
+  fields.value = cfg.fields.map((f) => ({ ...f }))
+  relations.value = cfg.relations.map((r) => ({ ...r, strategyOptions: { ...r.strategyOptions } }))
+  snapshotToCache(cfg.sourceTable)
+  selectedTable.value = cfg.sourceTable
+  saved.value = false
+  presetError.value = null
+}
+
+async function saveCurrentAsPreset() {
+  if (!selectedTable.value) {
+    presetError.value = 'Select a source table before saving a preset.'
+    return
+  }
+  const name = window.prompt('Preset name:', selectedPreset.value || '')?.trim()
+  if (!name) return
+
+  const config: ExportMappingConfig = {
+    sourceTable: selectedTable.value,
+    fields: fields.value.map((f) => ({
+      sourceName: f.sourceName,
+      targetName: f.targetName.trim() || f.sourceName,
+      enabled: f.enabled,
+    })),
+    relations: relations.value,
+  }
+
+  presetSaving.value = true
+  presetError.value = null
+  const result = await savePreset(name, config)
+  presetSaving.value = false
+
+  if (!result.ok) {
+    presetError.value = result.error ?? 'Failed to save preset.'
+    return
+  }
+  await loadPresets()
+  selectedPreset.value = name
+}
+
+async function deleteCurrentPreset() {
+  if (!selectedPreset.value) return
+  if (!window.confirm(`Delete preset "${selectedPreset.value}"?`)) return
+
+  presetSaving.value = true
+  presetError.value = null
+  const result = await deletePreset(selectedPreset.value)
+  presetSaving.value = false
+
+  if (!result.ok) {
+    presetError.value = result.error ?? 'Failed to delete preset.'
+    return
+  }
+  selectedPreset.value = ''
+  await loadPresets()
+}
 
 // ── Format ─────────────────────────────────────────────────────────────────────
 const FORMAT_KEY = 'connector_export_format'
@@ -181,7 +255,7 @@ async function load() {
   }
 }
 
-onMounted(load)
+onMounted(() => { load(); loadPresets() })
 </script>
 
 <template>
@@ -206,6 +280,34 @@ onMounted(load)
     <p v-else-if="error" class="text-red-600">{{ error }}</p>
 
     <template v-else-if="sourceSchema">
+      <!-- Presets toolbar -->
+      <div class="mb-7 flex items-center gap-2 flex-wrap">
+        <h2 class="text-base font-semibold text-slate-900 shrink-0">Presets</h2>
+        <select
+          class="preset-select flex-1 min-w-48 px-2.5 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white cursor-pointer"
+          v-model="selectedPreset"
+        >
+          <option value="" disabled>— select a preset —</option>
+          <option v-for="name in presetNames" :key="name" :value="name">{{ name }}</option>
+        </select>
+        <button
+          class="load-btn px-3 py-2 border border-slate-300 rounded-md bg-white text-sm text-slate-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-slate-50"
+          :disabled="!selectedPreset || presetSaving"
+          @click="applyPreset(selectedPreset)"
+        >Load</button>
+        <button
+          class="save-as-btn px-3 py-2 border border-slate-300 rounded-md bg-white text-sm text-slate-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-slate-50"
+          :disabled="presetSaving"
+          @click="saveCurrentAsPreset"
+        >{{ presetSaving ? 'Saving…' : 'Save As…' }}</button>
+        <button
+          class="delete-preset-btn px-3 py-2 border border-red-200 rounded-md bg-white text-sm text-red-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-red-50"
+          :disabled="!selectedPreset || presetSaving"
+          @click="deleteCurrentPreset"
+        >Delete</button>
+      </div>
+      <div v-if="presetError" class="preset-error px-3.5 py-2.5 bg-red-50 border border-red-200 rounded-md text-sm text-red-600 mb-5">{{ presetError }}</div>
+
       <!-- Primary table selector -->
       <div class="mb-7">
         <h2 class="text-base font-semibold text-slate-900 mb-2.5">Primary Source Table</h2>

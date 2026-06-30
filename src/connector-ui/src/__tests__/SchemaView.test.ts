@@ -43,6 +43,9 @@ beforeEach(() => {
   vi.restoreAllMocks()
   vi.spyOn(erpApi, 'getExportMapping').mockResolvedValue(null)
   vi.spyOn(erpApi, 'saveExportMapping').mockResolvedValue({ ok: true })
+  vi.spyOn(erpApi, 'getPresets').mockResolvedValue({})
+  vi.spyOn(erpApi, 'savePreset').mockResolvedValue({ ok: true })
+  vi.spyOn(erpApi, 'deletePreset').mockResolvedValue({ ok: true })
 })
 
 describe('SchemaView', () => {
@@ -257,5 +260,93 @@ describe('SchemaView', () => {
     const inputs = w.findAll('input.export-as-input')
     const values = inputs.map((i) => (i.element as HTMLInputElement).value)
     expect(values).toContain('u_cmdb_guid')
+  })
+
+  // ── Preset tests ───────────────────────────────────────────────────────────
+
+  it('renders preset names from the API in the dropdown', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    vi.spyOn(erpApi, 'getPresets').mockResolvedValue({
+      'Parts Export': {
+        sourceTable: 'systemconfiguration',
+        fields: [{ sourceName: 'id', targetName: 'id', enabled: true }],
+        relations: [],
+      },
+    })
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    const opts = w.find('select.preset-select').findAll('option')
+    expect(opts.some((o) => o.text() === 'Parts Export')).toBe(true)
+  })
+
+  it('applies preset config when Load is clicked', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    vi.spyOn(erpApi, 'getPresets').mockResolvedValue({
+      'My Config': {
+        sourceTable: 'systemconfiguration',
+        fields: [
+          { sourceName: 'id',     targetName: 'guid',   enabled: true },
+          { sourceName: 'serial', targetName: 'serial', enabled: true },
+          { sourceName: 'article_id', targetName: 'article_id', enabled: false },
+          { sourceName: 'status', targetName: 'status', enabled: false },
+        ],
+        relations: [],
+      },
+    })
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.preset-select').setValue('My Config')
+    await w.find('.load-btn').trigger('click')
+    await flushPromises()
+
+    expect((w.find('select.table-select').element as HTMLSelectElement).value).toBe('systemconfiguration')
+    const inputs = w.findAll('input.export-as-input')
+    const values = inputs.map((i) => (i.element as HTMLInputElement).value)
+    expect(values).toContain('guid')
+  })
+
+  it('calls savePreset with the current config when Save As is confirmed', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const saveSpy = vi.spyOn(erpApi, 'savePreset').mockResolvedValue({ ok: true })
+    vi.spyOn(window, 'prompt').mockReturnValue('New Preset')
+
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+
+    await w.find('.save-as-btn').trigger('click')
+    await flushPromises()
+
+    expect(saveSpy).toHaveBeenCalledOnce()
+    const [name, config] = saveSpy.mock.calls[0]
+    expect(name).toBe('New Preset')
+    expect(config.sourceTable).toBe('systemconfiguration')
+  })
+
+  it('calls deletePreset and clears selection after confirmed delete', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    vi.spyOn(erpApi, 'getPresets').mockResolvedValue({
+      'Old Preset': {
+        sourceTable: 'systemconfiguration',
+        fields: [],
+        relations: [],
+      },
+    })
+    const deleteSpy = vi.spyOn(erpApi, 'deletePreset').mockResolvedValue({ ok: true })
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.preset-select').setValue('Old Preset')
+    await w.find('.delete-preset-btn').trigger('click')
+    await flushPromises()
+
+    expect(deleteSpy).toHaveBeenCalledWith('Old Preset')
+    expect((w.find('select.preset-select').element as HTMLSelectElement).value).toBe('')
   })
 })

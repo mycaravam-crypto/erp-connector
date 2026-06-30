@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { listErpRecords, getSchema } from '@/api/erp'
+import { listErpRecords, getSchema, getPresets, savePreset, deletePreset } from '@/api/erp'
+import type { ExportMappingConfig } from '@/api/erp'
 
 function mockFetch(body: unknown, status = 200) {
   return vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
     ok: status >= 200 && status < 300,
     status,
     json: async () => body,
+    text: async () => (typeof body === 'string' ? body : JSON.stringify(body)),
   } as Response)
 }
 
@@ -55,5 +57,66 @@ describe('getSchema', () => {
     mockFetch(null, 401)
     const result = await getSchema()
     expect(result).toBeNull()
+  })
+})
+
+const PRESET_CONFIG: ExportMappingConfig = {
+  sourceTable: 'parts',
+  fields: [
+    { sourceName: 'id', targetName: 'id', enabled: true },
+    { sourceName: 'part_name', targetName: 'part_name', enabled: true },
+  ],
+  relations: [],
+}
+
+describe('getPresets', () => {
+  it('returns the preset dictionary on 200', async () => {
+    const payload = { 'My Preset': PRESET_CONFIG }
+    mockFetch(payload)
+    const result = await getPresets()
+    expect(result).toEqual(payload)
+    expect(fetch).toHaveBeenCalledWith('/api/export-mapping/presets', expect.any(Object))
+  })
+
+  it('returns an empty object on non-ok response', async () => {
+    mockFetch(null, 500)
+    expect(await getPresets()).toEqual({})
+  })
+})
+
+describe('savePreset', () => {
+  it('returns { ok: true } on 200', async () => {
+    mockFetch(PRESET_CONFIG, 200)
+    const result = await savePreset('My Preset', PRESET_CONFIG)
+    expect(result).toEqual({ ok: true })
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/export-mapping/presets/My%20Preset',
+      expect.objectContaining({ method: 'PUT' }),
+    )
+  })
+
+  it('returns { ok: false, error } on 400', async () => {
+    mockFetch('SourceTable is required.', 400)
+    const result = await savePreset('Bad', { ...PRESET_CONFIG, sourceTable: '' })
+    expect(result.ok).toBe(false)
+    expect(result.error).toContain('SourceTable')
+  })
+})
+
+describe('deletePreset', () => {
+  it('returns { ok: true } on 204', async () => {
+    mockFetch(null, 204)
+    const result = await deletePreset('My Preset')
+    expect(result).toEqual({ ok: true })
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/export-mapping/presets/My%20Preset',
+      expect.objectContaining({ method: 'DELETE' }),
+    )
+  })
+
+  it('returns { ok: false } on 404', async () => {
+    mockFetch(null, 404)
+    const result = await deletePreset('Ghost')
+    expect(result.ok).toBe(false)
   })
 })
