@@ -17,7 +17,7 @@ async function submit() {
   const result = await login(username.value.trim(), password.value)
   submitting.value = false
   if (result.ok) {
-    await router.push({ name: 'exports' })
+    await router.push({ name: 'connect' })
   } else {
     error.value = result.error ?? 'Login failed.'
   }

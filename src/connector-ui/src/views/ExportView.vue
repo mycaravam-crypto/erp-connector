@@ -98,9 +98,23 @@ onMounted(() => {
 })
 
 const previewCols = computed(() => preview.value?.columns ?? [])
+const PREVIEW_MAX = 20
+const previewRows = computed(() => preview.value?.records.slice(0, PREVIEW_MAX) ?? [])
 
 function previewVal(rec: PreviewResult['records'][number], col: string): string {
   return rec[col] ?? '—'
+}
+
+function formatDate(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  return new Date(iso.includes('Z') ? iso : iso + 'Z').toLocaleString()
+}
+
+const copiedSeqNo = ref<number | null>(null)
+async function copySha(seqNo: number, hash: string) {
+  await navigator.clipboard.writeText(hash)
+  copiedSeqNo.value = seqNo
+  setTimeout(() => { copiedSeqNo.value = null }, 1500)
 }
 </script>
 
@@ -220,22 +234,25 @@ function previewVal(rec: PreviewResult['records'][number], col: string): string 
         <p class="m-0 text-xs text-red-600">Check your connection (Step 1) and make sure at least one column is enabled in Step 3.</p>
       </div>
 
-      <div v-else-if="preview && preview.records.length > 0" class="overflow-x-auto">
+      <div v-else-if="preview && preview.records.length > 0" class="overflow-x-auto max-h-80 overflow-y-auto border border-slate-200 rounded-md">
         <table class="w-full border-collapse text-sm">
-          <thead>
+          <thead class="sticky top-0">
             <tr>
               <th class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.7rem] uppercase tracking-wide border-b border-slate-200 whitespace-nowrap">#</th>
               <th v-for="col in previewCols" :key="col" class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.7rem] uppercase tracking-wide border-b border-slate-200 whitespace-nowrap">{{ col }}</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(rec, idx) in preview.records" :key="idx" class="hover:bg-slate-50">
+            <tr v-for="(rec, idx) in previewRows" :key="idx" class="hover:bg-slate-50">
               <td class="px-2.5 py-1.5 border-b border-slate-200 align-middle text-center text-slate-400 text-xs w-8">{{ idx + 1 }}</td>
               <td v-for="col in previewCols" :key="col" class="px-2.5 py-1.5 border-b border-slate-200 align-middle whitespace-nowrap">{{ previewVal(rec, col) }}</td>
             </tr>
           </tbody>
         </table>
       </div>
+      <p v-if="preview && preview.records.length > PREVIEW_MAX" class="text-xs text-slate-400 mt-1.5">
+        Showing {{ PREVIEW_MAX }} of {{ preview.records.length }} records — run the export to get the full dataset.
+      </p>
 
       <p v-else-if="preview" class="text-slate-500 text-sm">No in-scope records found.</p>
     </div>
@@ -260,7 +277,7 @@ function previewVal(rec: PreviewResult['records'][number], col: string): string 
         <thead>
           <tr>
             <th class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.7rem] uppercase tracking-wide border-b border-slate-200 whitespace-nowrap">#</th>
-            <th class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.7rem] uppercase tracking-wide border-b border-slate-200 whitespace-nowrap">Extracted At (UTC)</th>
+            <th class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.7rem] uppercase tracking-wide border-b border-slate-200 whitespace-nowrap">Extracted At</th>
             <th class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.7rem] uppercase tracking-wide border-b border-slate-200 whitespace-nowrap">Records</th>
             <th class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.7rem] uppercase tracking-wide border-b border-slate-200 whitespace-nowrap">SHA-256</th>
             <th class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.7rem] uppercase tracking-wide border-b border-slate-200 whitespace-nowrap">Status</th>
@@ -272,9 +289,18 @@ function previewVal(rec: PreviewResult['records'][number], col: string): string 
             <td class="px-2.5 py-1.5 border-b border-slate-200 align-middle whitespace-nowrap">
               <RouterLink :to="{ name: 'export-detail', params: { seqNo: run.sequenceNo } }" class="text-indigo-600 no-underline hover:underline">{{ run.sequenceNo }}</RouterLink>
             </td>
-            <td class="px-2.5 py-1.5 border-b border-slate-200 align-middle whitespace-nowrap">{{ run.extractedAt }}</td>
+            <td class="px-2.5 py-1.5 border-b border-slate-200 align-middle whitespace-nowrap">{{ formatDate(run.extractedAt) }}</td>
             <td class="px-2.5 py-1.5 border-b border-slate-200 align-middle whitespace-nowrap">{{ run.recordCount }}</td>
-            <td class="px-2.5 py-1.5 border-b border-slate-200 align-middle whitespace-nowrap"><code class="text-xs text-slate-500">{{ run.sha256Short }}</code></td>
+            <td class="px-2.5 py-1.5 border-b border-slate-200 align-middle whitespace-nowrap">
+              <button
+                class="group inline-flex items-center gap-1 bg-transparent border-0 p-0 cursor-pointer"
+                :title="copiedSeqNo === run.sequenceNo ? 'Copied!' : 'Click to copy full hash'"
+                @click="copySha(run.sequenceNo, run.sha256Short)"
+              >
+                <code class="text-xs text-slate-500 group-hover:text-slate-800">{{ run.sha256Short }}</code>
+                <span class="text-[0.65rem] text-slate-300 group-hover:text-slate-500">{{ copiedSeqNo === run.sequenceNo ? '✓' : '⎘' }}</span>
+              </button>
+            </td>
             <td class="px-2.5 py-1.5 border-b border-slate-200 align-middle whitespace-nowrap">
               <StatusBadge :status="run.status" />
               <span v-if="run.isStale" class="ml-1.5 inline-block bg-orange-50 border border-orange-200 rounded-full px-1.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-orange-700 align-middle" title="Pending for over 24 hours">overdue</span>

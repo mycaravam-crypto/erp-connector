@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { getSourceSchema, type SourceTable, type SourceColumn } from '@/api/connection'
 import {
   getExportMapping,
@@ -27,12 +27,20 @@ const relations = ref<MappingRelation[]>([])
 const saving = ref(false)
 const saveError = ref<string | null>(null)
 const saved = ref(false)
+const dirty = ref(false)
 
 // ── Presets ────────────────────────────────────────────────────────────────────
 const presets = ref<Record<string, ExportMappingConfig>>({})
 const selectedPreset = ref('')
 const presetSaving = ref(false)
 const presetError = ref<string | null>(null)
+
+// Inline save-as state
+const showSaveInput = ref(false)
+const saveInputName = ref('')
+
+// Inline delete-confirm state
+const confirmingDelete = ref(false)
 
 const presetNames = computed(() => Object.keys(presets.value).sort())
 
@@ -48,16 +56,26 @@ function applyPreset(name: string) {
   snapshotToCache(cfg.sourceTable)
   selectedTable.value = cfg.sourceTable
   saved.value = false
+  dirty.value = true
   presetError.value = null
 }
 
-async function saveCurrentAsPreset() {
+function openSaveInput() {
   if (!selectedTable.value) {
     presetError.value = 'Select a source table before saving a preset.'
     return
   }
-  const name = window.prompt('Preset name:', selectedPreset.value || '')?.trim()
-  if (!name) return
+  saveInputName.value = selectedPreset.value || ''
+  showSaveInput.value = true
+  presetError.value = null
+}
+
+async function confirmSavePreset() {
+  const name = saveInputName.value.trim()
+  if (!name) {
+    presetError.value = 'Preset name cannot be empty.'
+    return
+  }
 
   const config: ExportMappingConfig = {
     sourceTable: selectedTable.value,
@@ -80,11 +98,11 @@ async function saveCurrentAsPreset() {
   }
   await loadPresets()
   selectedPreset.value = name
+  showSaveInput.value = false
 }
 
-async function deleteCurrentPreset() {
+async function confirmDeletePreset() {
   if (!selectedPreset.value) return
-  if (!window.confirm(`Delete preset "${selectedPreset.value}"?`)) return
 
   presetSaving.value = true
   presetError.value = null
@@ -96,6 +114,7 @@ async function deleteCurrentPreset() {
     return
   }
   selectedPreset.value = ''
+  confirmingDelete.value = false
   await loadPresets()
 }
 
@@ -162,6 +181,7 @@ watch(selectedTable, (newTable, oldTable) => {
     relations.value = []
   }
   saved.value = false
+  dirty.value = true
 })
 
 // ── Relation management ────────────────────────────────────────────────────────
@@ -176,12 +196,34 @@ function addRelation() {
     strategyOptions: { sourceField: '', delimiter: ', ' },
   })
   saved.value = false
+  dirty.value = true
 }
 
 function removeRelation(idx: number) {
   relations.value.splice(idx, 1)
   saved.value = false
+  dirty.value = true
 }
+
+// ── Bulk column selection ──────────────────────────────────────────────────────
+function selectAllFields() {
+  fields.value.forEach((f) => { f.enabled = true })
+  saved.value = false
+  dirty.value = true
+}
+
+function deselectAllFields() {
+  fields.value.forEach((f) => { f.enabled = false })
+  saved.value = false
+  dirty.value = true
+}
+
+// ── Navigation guard ───────────────────────────────────────────────────────────
+onBeforeRouteLeave(() => {
+  if (dirty.value) {
+    return window.confirm('You have unsaved mapping changes. Leave anyway?')
+  }
+})
 
 // ── Save ───────────────────────────────────────────────────────────────────────
 async function saveMapping(): Promise<boolean> {
@@ -213,6 +255,7 @@ async function saveMapping(): Promise<boolean> {
   }
 
   saved.value = true
+  dirty.value = false
   return true
 }
 
@@ -281,30 +324,67 @@ onMounted(() => { load(); loadPresets() })
 
     <template v-else-if="sourceSchema">
       <!-- Presets toolbar -->
-      <div class="mb-7 flex items-center gap-2 flex-wrap">
-        <h2 class="text-base font-semibold text-slate-900 shrink-0">Presets</h2>
-        <select
-          class="preset-select flex-1 min-w-48 px-2.5 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white cursor-pointer"
-          v-model="selectedPreset"
-        >
-          <option value="" disabled>— select a preset —</option>
-          <option v-for="name in presetNames" :key="name" :value="name">{{ name }}</option>
-        </select>
-        <button
-          class="load-btn px-3 py-2 border border-slate-300 rounded-md bg-white text-sm text-slate-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-slate-50"
-          :disabled="!selectedPreset || presetSaving"
-          @click="applyPreset(selectedPreset)"
-        >Load</button>
-        <button
-          class="save-as-btn px-3 py-2 border border-slate-300 rounded-md bg-white text-sm text-slate-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-slate-50"
-          :disabled="presetSaving"
-          @click="saveCurrentAsPreset"
-        >{{ presetSaving ? 'Saving…' : 'Save As…' }}</button>
-        <button
-          class="delete-preset-btn px-3 py-2 border border-red-200 rounded-md bg-white text-sm text-red-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-red-50"
-          :disabled="!selectedPreset || presetSaving"
-          @click="deleteCurrentPreset"
-        >Delete</button>
+      <div class="mb-5">
+        <div class="flex items-center gap-2 flex-wrap">
+          <h2 class="text-base font-semibold text-slate-900 shrink-0">Presets</h2>
+          <select
+            class="preset-select flex-1 min-w-48 px-2.5 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white cursor-pointer"
+            v-model="selectedPreset"
+          >
+            <option value="" disabled>— select a preset —</option>
+            <option v-for="name in presetNames" :key="name" :value="name">{{ name }}</option>
+          </select>
+          <button
+            class="load-btn px-3 py-2 border border-slate-300 rounded-md bg-white text-sm text-slate-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-slate-50"
+            :disabled="!selectedPreset || presetSaving"
+            @click="applyPreset(selectedPreset)"
+          >Load</button>
+          <button
+            class="save-as-btn px-3 py-2 border border-slate-300 rounded-md bg-white text-sm text-slate-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-slate-50"
+            :disabled="presetSaving"
+            @click="openSaveInput"
+          >Save As…</button>
+          <button
+            class="delete-preset-btn px-3 py-2 border border-red-200 rounded-md bg-white text-sm text-red-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-red-50"
+            :disabled="!selectedPreset || presetSaving"
+            @click="confirmingDelete = true"
+          >Delete</button>
+        </div>
+
+        <!-- Inline save-as input -->
+        <div v-if="showSaveInput" class="flex items-center gap-2 mt-2 flex-wrap">
+          <input
+            class="px-2.5 py-1.5 border border-slate-300 rounded-md text-sm text-slate-900 bg-white outline-none focus:border-slate-900 min-w-48 flex-1"
+            type="text"
+            placeholder="Preset name…"
+            v-model="saveInputName"
+            @keyup.enter="confirmSavePreset"
+            @keyup.esc="showSaveInput = false"
+          />
+          <button
+            class="px-3 py-1.5 border-0 rounded-md bg-slate-900 text-slate-200 text-sm font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-slate-800"
+            :disabled="presetSaving || !saveInputName.trim()"
+            @click="confirmSavePreset"
+          >{{ presetSaving ? 'Saving…' : 'Save' }}</button>
+          <button
+            class="px-3 py-1.5 border border-slate-300 rounded-md bg-white text-sm text-slate-500 cursor-pointer hover:bg-slate-50"
+            @click="showSaveInput = false"
+          >Cancel</button>
+        </div>
+
+        <!-- Inline delete confirm -->
+        <div v-if="confirmingDelete" class="flex items-center gap-2 mt-2 text-sm">
+          <span class="text-red-700 font-semibold">Delete "{{ selectedPreset }}"?</span>
+          <button
+            class="px-3 py-1 border border-red-300 rounded-md bg-red-50 text-red-700 text-sm font-semibold cursor-pointer disabled:opacity-50 hover:bg-red-100"
+            :disabled="presetSaving"
+            @click="confirmDeletePreset"
+          >{{ presetSaving ? 'Deleting…' : 'Yes, delete' }}</button>
+          <button
+            class="px-3 py-1 border border-slate-300 rounded-md bg-white text-sm text-slate-500 cursor-pointer hover:bg-slate-50"
+            @click="confirmingDelete = false"
+          >Cancel</button>
+        </div>
       </div>
       <div v-if="presetError" class="preset-error px-3.5 py-2.5 bg-red-50 border border-red-200 rounded-md text-sm text-red-600 mb-5">{{ presetError }}</div>
 
@@ -327,10 +407,14 @@ onMounted(() => { load(); loadPresets() })
 
       <!-- Column mapping -->
       <div v-if="selectedTable" class="mb-7">
-        <h2 class="text-base font-semibold text-slate-900 mb-2.5 flex items-center gap-2">
-          Columns
+        <div class="flex items-center gap-2 mb-2.5 flex-wrap">
+          <h2 class="text-base font-semibold text-slate-900 m-0">Columns</h2>
           <span class="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{{ enabledFieldCount }} / {{ fields.length }} selected</span>
-        </h2>
+          <div class="ml-auto flex gap-1.5">
+            <button class="px-2.5 py-1 border border-slate-300 rounded text-xs text-slate-600 bg-white cursor-pointer hover:bg-slate-50" @click="selectAllFields">Select All</button>
+            <button class="px-2.5 py-1 border border-slate-300 rounded text-xs text-slate-600 bg-white cursor-pointer hover:bg-slate-50" @click="deselectAllFields">Deselect All</button>
+          </div>
+        </div>
         <table class="col-table w-full border-collapse text-sm">
           <thead>
             <tr>
@@ -349,7 +433,7 @@ onMounted(() => { load(); loadPresets() })
               :class="field.enabled ? 'bg-green-50' : 'bg-neutral-50 opacity-60'"
             >
               <td class="px-2.5 py-2 border-b border-slate-200 align-middle text-center">
-                <input type="checkbox" v-model="field.enabled" @change="saved = false" />
+                <input type="checkbox" v-model="field.enabled" @change="saved = false; dirty = true" />
               </td>
               <td class="px-2.5 py-2 border-b border-slate-200 align-middle text-center text-slate-400 text-xs">{{ idx + 1 }}</td>
               <td class="px-2.5 py-2 border-b border-slate-200 align-middle">
@@ -362,7 +446,7 @@ onMounted(() => { load(); loadPresets() })
                   :placeholder="field.sourceName"
                   v-model="field.targetName"
                   :disabled="!field.enabled"
-                  @input="saved = false"
+                  @input="saved = false; dirty = true"
                 />
               </td>
               <td class="px-2.5 py-2 border-b border-slate-200 align-middle">
@@ -403,56 +487,56 @@ onMounted(() => { load(); loadPresets() })
           :class="['relation-card flex gap-3 items-start px-4 py-3 border rounded-lg mb-2 bg-white', rel.enabled ? 'border-blue-200 bg-sky-50' : 'border-slate-200 opacity-65']"
         >
           <div class="pt-1 shrink-0">
-            <input type="checkbox" v-model="rel.enabled" class="cursor-pointer w-4 h-4" @change="saved = false" />
+            <input type="checkbox" v-model="rel.enabled" class="cursor-pointer w-4 h-4" @change="saved = false; dirty = true" />
           </div>
 
           <div class="flex-1 flex flex-col gap-2">
             <div class="flex gap-2.5 flex-wrap">
               <div class="flex flex-col gap-1 flex-1 min-w-36">
                 <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Related Table</label>
-                <select v-model="rel.relatedTable" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full" @change="saved = false">
+                <select v-model="rel.relatedTable" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full" @change="saved = false; dirty = true">
                   <option value="" disabled>— select —</option>
                   <option v-for="t in sourceSchema.tables.filter((t) => t.name !== selectedTable)" :key="t.name" :value="t.name">{{ t.name }}</option>
                 </select>
               </div>
               <div class="flex flex-col gap-1 flex-1 min-w-36">
                 <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Source Column</label>
-                <select v-model="rel.sourceJoinKey" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full" @change="saved = false">
+                <select v-model="rel.sourceJoinKey" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full" @change="saved = false; dirty = true">
                   <option value="" disabled>— select —</option>
                   <option v-for="c in selectedTableColumns" :key="c.name" :value="c.name">{{ c.name }}{{ c.primaryKey ? ' (PK)' : '' }}</option>
                 </select>
               </div>
               <div class="flex flex-col gap-1 flex-1 min-w-36">
                 <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Join Column (in {{ rel.relatedTable || '…' }})</label>
-                <select v-model="rel.joinKey" :disabled="!rel.relatedTable" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full disabled:bg-slate-50 disabled:text-slate-400" @change="saved = false">
+                <select v-model="rel.joinKey" :disabled="!rel.relatedTable" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full disabled:bg-slate-50 disabled:text-slate-400" @change="saved = false; dirty = true">
                   <option value="" disabled>— select —</option>
                   <option v-for="c in getTableColumns(rel.relatedTable)" :key="c.name" :value="c.name">{{ c.name }}</option>
                 </select>
               </div>
               <div class="flex flex-col gap-1 flex-1 min-w-36">
                 <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Target Field Name</label>
-                <input class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900" type="text" placeholder="e.g. maintenance_states" v-model="rel.targetField" @input="saved = false" />
+                <input class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900" type="text" placeholder="e.g. maintenance_states" v-model="rel.targetField" @input="saved = false; dirty = true" />
               </div>
             </div>
 
             <div class="flex gap-2.5 flex-wrap">
               <div class="flex flex-col gap-1 flex-1 min-w-36">
                 <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Value Column (from {{ rel.relatedTable || '…' }})</label>
-                <select v-model="rel.strategyOptions.sourceField" :disabled="!rel.relatedTable" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full disabled:bg-slate-50 disabled:text-slate-400" @change="saved = false">
+                <select v-model="rel.strategyOptions.sourceField" :disabled="!rel.relatedTable" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full disabled:bg-slate-50 disabled:text-slate-400" @change="saved = false; dirty = true">
                   <option value="" disabled>— select —</option>
                   <option v-for="c in getTableColumns(rel.relatedTable)" :key="c.name" :value="c.name">{{ c.name }}</option>
                 </select>
               </div>
               <div class="flex flex-col gap-1 flex-1 min-w-36">
                 <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Flatten Strategy</label>
-                <select v-model="rel.flattenStrategy" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full" @change="saved = false">
+                <select v-model="rel.flattenStrategy" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full" @change="saved = false; dirty = true">
                   <option value="string_join">String Join (concatenate with delimiter)</option>
                   <option value="array">Array (comma-separated list)</option>
                 </select>
               </div>
               <div v-if="rel.flattenStrategy === 'string_join'" class="flex flex-col gap-1 w-24 shrink-0">
                 <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Delimiter</label>
-                <input class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900" type="text" v-model="rel.strategyOptions.delimiter" placeholder=", " @input="saved = false" />
+                <input class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900" type="text" v-model="rel.strategyOptions.delimiter" placeholder=", " @input="saved = false; dirty = true" />
               </div>
             </div>
           </div>
@@ -494,7 +578,7 @@ onMounted(() => { load(); loadPresets() })
         <button class="px-4 py-2 border border-slate-300 rounded-md bg-white text-slate-500 text-sm cursor-pointer hover:bg-slate-50" @click="router.push({ name: 'source-schema' })">← Back to Source Schema</button>
         <div v-if="selectedTable" class="flex gap-2.5">
           <button class="btn-save px-4 py-2 border border-slate-900 rounded-md bg-white text-slate-900 text-sm font-semibold cursor-pointer hover:enabled:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="saving" @click="saveMapping">{{ saving ? 'Saving…' : 'Save Mapping' }}</button>
-          <button class="px-5 py-2 border-0 rounded-md bg-slate-900 text-slate-200 text-sm font-semibold cursor-pointer hover:enabled:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="saving" @click="proceed">Run Export ({{ selectedFormat.toUpperCase() }}) →</button>
+          <button class="px-5 py-2 border-0 rounded-md bg-slate-900 text-slate-200 text-sm font-semibold cursor-pointer hover:enabled:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="saving" @click="proceed">Save & Go to Export →</button>
         </div>
       </div>
     </template>

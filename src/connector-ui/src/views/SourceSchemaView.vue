@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getSourceSchema, type SourceTable } from '@/api/connection'
 
@@ -10,6 +10,18 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const expandedTables = ref<Set<string>>(new Set())
 
+const allExpanded = computed(() =>
+  !!schema.value && schema.value.tables.every((t) => expandedTables.value.has(t.name)),
+)
+
+function toggleAll() {
+  if (allExpanded.value) {
+    expandedTables.value = new Set()
+  } else {
+    expandedTables.value = new Set(schema.value!.tables.map((t) => t.name))
+  }
+}
+
 async function load() {
   loading.value = true
   error.value = null
@@ -17,8 +29,6 @@ async function load() {
     schema.value = await getSourceSchema()
     if (!schema.value) {
       error.value = 'Source schema endpoint returned no data.'
-    } else {
-      expandedTables.value = new Set(schema.value.tables.map((t) => t.name))
     }
   } catch {
     error.value = 'Could not reach the API. Is the backend running on :5189?'
@@ -62,6 +72,10 @@ function toggleTable(name: string) {
         <span class="text-indigo-600 font-bold">⟳</span>
         <span>{{ schema.connectionLabel }}</span>
         <span class="ml-auto text-xs bg-indigo-100 text-indigo-800 font-semibold px-2 py-0.5 rounded-full">{{ schema.tables.length }} tables</span>
+        <button
+          class="text-xs text-slate-500 border border-slate-300 rounded px-2 py-0.5 bg-white cursor-pointer hover:bg-slate-100"
+          @click="toggleAll"
+        >{{ allExpanded ? 'Collapse All' : 'Expand All' }}</button>
       </div>
 
       <div class="flex flex-col gap-2 mb-6">
