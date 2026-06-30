@@ -671,6 +671,50 @@ app.MapPost(
     )
     .RequireAuthorization();
 
+// ── Scheduler settings ────────────────────────────────────────────────────────
+
+// Returns the effective scheduler config: DB value if saved, else appsettings defaults.
+app.MapGet(
+        "/api/settings/scheduler",
+        async (ExportLogDbContext db, IOptions<ExportWorkerOptions> defaults) =>
+        {
+            var setting = await db.AppSettings.FindAsync("scheduler_config");
+            if (setting is not null)
+            {
+                var stored = JsonSerializer.Deserialize<SchedulerConfigData>(setting.Value);
+                if (stored is not null)
+                    return Results.Ok(stored);
+            }
+            return Results.Ok(new SchedulerConfigData(
+                defaults.Value.ScheduledTimeUtc.ToString(@"hh\:mm"),
+                defaults.Value.RetentionDays
+            ));
+        }
+    )
+    .RequireAuthorization();
+
+// Validates and persists the scheduler config. Takes effect on the worker's next sleep cycle.
+app.MapPut(
+        "/api/settings/scheduler",
+        async (SchedulerConfigData dto, ExportLogDbContext db) =>
+        {
+            if (!TimeSpan.TryParse(dto.ScheduledTimeUtc, System.Globalization.CultureInfo.InvariantCulture, out var ts) || ts < TimeSpan.Zero || ts >= TimeSpan.FromDays(1))
+                return Results.BadRequest("ScheduledTimeUtc must be a valid time in HH:mm format (00:00 – 23:59).");
+            if (dto.RetentionDays < 1 || dto.RetentionDays > 3650)
+                return Results.BadRequest("RetentionDays must be between 1 and 3650.");
+
+            var serialized = JsonSerializer.Serialize(dto);
+            var setting = await db.AppSettings.FindAsync("scheduler_config");
+            if (setting is null)
+                db.AppSettings.Add(new AppSettingEntity { Key = "scheduler_config", Value = serialized });
+            else
+                setting.Value = serialized;
+            await db.SaveChangesAsync();
+            return Results.Ok(dto);
+        }
+    )
+    .RequireAuthorization();
+
 // ── Export schema definition ───────────────────────────────────────────────────
 
 // Returns schema columns with the active flag read from persisted preferences (AppSetting key "active_columns").

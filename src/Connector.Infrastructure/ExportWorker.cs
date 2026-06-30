@@ -36,17 +36,42 @@ public sealed class ExportWorker(
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            var delay = ComputeDelayUntilNextRun();
+            var (scheduledTime, retentionDays) = await GetEffectiveOptionsAsync(stoppingToken);
+            var delay = ComputeDelayUntilNextRun(scheduledTime);
             logger.LogInformation("Nächster Export in {Delay:hh\\:mm\\:ss}", delay);
 
             await Task.Delay(delay, stoppingToken);
 
             if (!stoppingToken.IsCancellationRequested)
             {
+                (_, retentionDays) = await GetEffectiveOptionsAsync(stoppingToken);
                 await RunExportAsync(stoppingToken);
-                await RunRetentionCleanupAsync(stoppingToken);
+                await RunRetentionCleanupAsync(retentionDays, stoppingToken);
             }
         }
+    }
+
+    // Reads scheduler config from the AppSettings DB table; falls back to IOptions values if not set.
+    private async Task<(TimeSpan ScheduledTime, int RetentionDays)> GetEffectiveOptionsAsync(CancellationToken ct)
+    {
+        try
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<ExportLogDbContext>();
+            var setting = await db.AppSettings.FindAsync(["scheduler_config"], ct);
+            if (setting is not null)
+            {
+                var data = JsonSerializer.Deserialize<SchedulerConfigData>(setting.Value);
+                if (data is not null && TimeSpan.TryParse(data.ScheduledTimeUtc, System.Globalization.CultureInfo.InvariantCulture, out var ts) && ts >= TimeSpan.Zero && ts < TimeSpan.FromDays(1))
+                    return (ts, Math.Max(1, data.RetentionDays));
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Scheduler-Konfiguration konnte nicht aus der Datenbank gelesen werden; Standardwerte werden verwendet.");
+        }
+
+        return (options.Value.ScheduledTimeUtc, options.Value.RetentionDays);
     }
 
     private async Task RunExportAsync(CancellationToken ct)
@@ -133,9 +158,8 @@ public sealed class ExportWorker(
         return (max ?? 0) + 1;
     }
 
-    private async Task RunRetentionCleanupAsync(CancellationToken ct)
+    private async Task RunRetentionCleanupAsync(int retentionDays, CancellationToken ct)
     {
-        var retentionDays = options.Value.RetentionDays;
         if (retentionDays <= 0)
             return;
 
@@ -210,10 +234,10 @@ public sealed class ExportWorker(
         }
     }
 
-    private TimeSpan ComputeDelayUntilNextRun()
+    private static TimeSpan ComputeDelayUntilNextRun(TimeSpan scheduledTime)
     {
         var now = DateTimeOffset.UtcNow;
-        var todayRun = new DateTimeOffset(now.Date + options.Value.ScheduledTimeUtc, TimeSpan.Zero);
+        var todayRun = new DateTimeOffset(now.Date + scheduledTime, TimeSpan.Zero);
         var next = todayRun > now ? todayRun : todayRun.AddDays(1);
         return next - now;
     }
@@ -225,3 +249,6 @@ public sealed class ExportWorkerOptions
 
     public int RetentionDays { get; set; } = 30;
 }
+
+/// <summary>Scheduler configuration stored in AppSettings DB, overriding the appsettings.json defaults.</summary>
+public record SchedulerConfigData(string ScheduledTimeUtc, int RetentionDays);

@@ -40,6 +40,14 @@ const steps = [
     </nav>
 
     <div v-if="loggedIn" class="flex items-center gap-3 shrink-0">
+      <RouterLink
+        :to="{ name: 'settings' }"
+        class="text-[0.82rem] text-slate-400 no-underline hover:text-slate-200 transition-colors"
+        active-class="!text-slate-100"
+      >
+        Settings
+      </RouterLink>
+      <span class="text-slate-600 text-xs" aria-hidden="true">|</span>
       <span class="text-[0.82rem] text-slate-400">{{ username }}</span>
       <button
         class="border border-slate-600 text-slate-300 rounded-md px-2.5 py-1 text-[0.78rem] bg-transparent cursor-pointer hover:bg-slate-800"
