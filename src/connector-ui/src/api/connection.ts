@@ -47,9 +47,10 @@ export async function getConnection(): Promise<ErpConnectionInfo | null> {
 
 /**
  * Tests the connection and, on success, persists it server-side and returns the live source schema.
- * Returns null if the connection fails (caller should inspect the error message instead).
  */
-export async function saveConnection(cfg: ConnectionConfig): Promise<SourceSchema | null> {
+export async function saveConnection(
+  cfg: ConnectionConfig,
+): Promise<{ schema: SourceSchema } | { error: string; status: number }> {
   const res = await fetch('/api/connection', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
@@ -61,8 +62,9 @@ export async function saveConnection(cfg: ConnectionConfig): Promise<SourceSchem
       password: cfg.password,
     }),
   })
-  if (!res.ok) return null
-  return res.json() as Promise<SourceSchema>
+  if (res.ok) return { schema: (await res.json()) as SourceSchema }
+  const text = await res.text().catch(() => '')
+  return { error: text || `Server error (HTTP ${res.status})`, status: res.status }
 }
 
 /** Fetches the source schema using whatever connection is currently configured on the server. */

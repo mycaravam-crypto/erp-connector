@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getConnection, saveConnection } from '@/api/connection'
+import { clearSession } from '@/api/auth'
 
 const router = useRouter()
 
@@ -32,20 +33,25 @@ async function testConnection() {
   testStatus.value = 'idle'
   testMessage.value = ''
   try {
-    const schema = await saveConnection({
+    const result = await saveConnection({
       host: host.value,
       port: Number(port.value) || 5432,
       database: database.value,
       username: username.value,
       password: password.value,
     })
-    if (schema) {
-      connectedLabel.value = schema.connectionLabel
+    if ('schema' in result) {
+      connectedLabel.value = result.schema.connectionLabel
       testStatus.value = 'ok'
-      testMessage.value = `Connected — found ${schema.tables.length} tables in "${schema.connectionLabel}".`
+      testMessage.value = `Connected — found ${result.schema.tables.length} tables in "${result.schema.connectionLabel}".`
     } else {
+      if (result.status === 401) {
+        clearSession()
+        router.push({ name: 'login' })
+        return
+      }
       testStatus.value = 'error'
-      testMessage.value = 'Connection failed. Check host, port, credentials, and that the database is reachable.'
+      testMessage.value = result.error || 'Connection failed. Check host, port, credentials, and that the database is reachable.'
     }
   } catch {
     testStatus.value = 'error'

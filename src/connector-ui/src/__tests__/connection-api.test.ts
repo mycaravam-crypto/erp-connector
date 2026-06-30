@@ -16,6 +16,7 @@ function mockFetch(body: unknown, status = 200) {
     ok: status >= 200 && status < 300,
     status,
     json: async () => body,
+    text: async () => (typeof body === 'string' ? body : JSON.stringify(body)),
   } as Response)
 }
 
@@ -37,10 +38,11 @@ describe('getConnection', () => {
 })
 
 describe('saveConnection', () => {
-  it('returns the schema on success', async () => {
+  it('returns { schema } on success', async () => {
     mockFetch(SCHEMA)
     const result = await saveConnection({ ...CONN_INFO, password: 'secret' })
-    expect(result).toEqual(SCHEMA)
+    expect('schema' in result).toBe(true)
+    if ('schema' in result) expect(result.schema).toEqual(SCHEMA)
     expect(fetch).toHaveBeenCalledWith(
       '/api/connection',
       expect.objectContaining({ method: 'POST' }),
@@ -55,10 +57,27 @@ describe('saveConnection', () => {
     expect(body).toEqual({ host: 'db.local', port: 5433, database: 'prod', username: 'reader', password: 'pw' })
   })
 
-  it('returns null on 400 (connection refused)', async () => {
-    mockFetch('Connection failed: ...', 400)
+  it('returns { error, status } on 400 with the server message', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: false, status: 400,
+      text: async () => 'Connection failed: authentication failed for user "bad"',
+    } as Response)
     const result = await saveConnection({ ...CONN_INFO, password: 'bad' })
-    expect(result).toBeNull()
+    expect('error' in result).toBe(true)
+    if ('error' in result) {
+      expect(result.status).toBe(400)
+      expect(result.error).toContain('authentication failed')
+    }
+  })
+
+  it('returns { error, status: 401 } on expired session', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: false, status: 401,
+      text: async () => '',
+    } as Response)
+    const result = await saveConnection({ ...CONN_INFO, password: 'pw' })
+    expect('error' in result).toBe(true)
+    if ('error' in result) expect(result.status).toBe(401)
   })
 })
 

@@ -54,13 +54,13 @@ async function request<T>(url: string, init?: RequestInit): Promise<{ data: T; s
 }
 
 export async function listExports(): Promise<ExportSummary[]> {
-  const { data } = await request<ExportSummary[]>('/api/exports')
-  return data
+  const { data, status } = await request<ExportSummary[]>('/api/exports')
+  return status >= 400 ? [] : data
 }
 
 export async function getExport(seqNo: number): Promise<ExportDetail | null> {
   const { data, status } = await request<ExportDetail>(`/api/exports/${seqNo}`)
-  return status === 404 ? null : data
+  return status >= 400 ? null : data
 }
 
 export async function releaseExport(

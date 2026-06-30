@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getSourceSchema, type SourceTable, type SourceColumn } from '@/api/connection'
 import {
@@ -56,18 +56,39 @@ function getTableColumns(tableName: string): SourceColumn[] {
   return sourceSchema.value?.tables.find((t) => t.name === tableName)?.columns ?? []
 }
 
-// ── Table selection ────────────────────────────────────────────────────────────
-function onTableSelect(tableName: string) {
-  selectedTable.value = tableName
-  const cols = sourceSchema.value?.tables.find((t) => t.name === tableName)?.columns ?? []
-  fields.value = cols.map((col) => ({
-    sourceName: col.name,
-    targetName: col.name,
-    enabled: col.primaryKey,
-  }))
-  relations.value = []
-  saved.value = false
+// ── Per-table state cache ──────────────────────────────────────────────────────
+// Keeps field/relation edits alive when the user switches between tables.
+const tableCache = new Map<string, { fields: MappingField[]; relations: MappingRelation[] }>()
+
+function snapshotToCache(tableName: string) {
+  if (!tableName) return
+  tableCache.set(tableName, {
+    fields: fields.value.map((f) => ({ ...f })),
+    relations: relations.value.map((r) => ({ ...r, strategyOptions: { ...r.strategyOptions } })),
+  })
 }
+
+// When selectedTable changes (user picks a new table):
+//   • save current edits for the outgoing table
+//   • restore cached edits for the incoming table, or initialize defaults
+watch(selectedTable, (newTable, oldTable) => {
+  if (!newTable || newTable === oldTable) return
+  snapshotToCache(oldTable)
+  const cached = tableCache.get(newTable)
+  if (cached) {
+    fields.value = cached.fields.map((f) => ({ ...f }))
+    relations.value = cached.relations.map((r) => ({ ...r, strategyOptions: { ...r.strategyOptions } }))
+  } else {
+    const cols = sourceSchema.value?.tables.find((t) => t.name === newTable)?.columns ?? []
+    fields.value = cols.map((col) => ({
+      sourceName: col.name,
+      targetName: col.name,
+      enabled: col.primaryKey,
+    }))
+    relations.value = []
+  }
+  saved.value = false
+})
 
 // ── Relation management ────────────────────────────────────────────────────────
 function addRelation() {
@@ -95,12 +116,6 @@ async function saveMapping(): Promise<boolean> {
 
   if (!selectedTable.value) {
     saveError.value = 'Please select a source table.'
-    return false
-  }
-
-  const badFields = fields.value.filter((f) => f.enabled && !f.targetName.trim())
-  if (badFields.length > 0) {
-    saveError.value = `Set target names for: ${badFields.map((f) => f.sourceName).join(', ')}`
     return false
   }
 
@@ -150,12 +165,14 @@ async function load() {
     sourceSchema.value = schema
 
     if (existingMapping) {
-      selectedTable.value = existingMapping.sourceTable
       fields.value = existingMapping.fields.map((f) => ({ ...f }))
       relations.value = existingMapping.relations.map((r) => ({
         ...r,
         strategyOptions: { ...r.strategyOptions },
       }))
+      // Seed the cache so switching away and back restores the saved state.
+      snapshotToCache(existingMapping.sourceTable)
+      selectedTable.value = existingMapping.sourceTable
     }
   } catch {
     error.value = 'Could not reach the API. Is the backend running on :5189?'
@@ -195,8 +212,7 @@ onMounted(load)
         <div class="flex items-center gap-3 flex-wrap">
           <select
             class="table-select px-2.5 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white cursor-pointer min-w-56"
-            :value="selectedTable"
-            @change="onTableSelect(($event.target as HTMLSelectElement).value)"
+            v-model="selectedTable"
           >
             <option value="" disabled>— select a table —</option>
             <option v-for="t in sourceSchema.tables" :key="t.name" :value="t.name">

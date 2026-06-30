@@ -209,6 +209,35 @@ describe('SchemaView', () => {
     expect(w.find('.save-error').text()).toContain('Bad request')
   })
 
+  it('preserves flagged columns when switching tables and switching back', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    // Select table A and enable the 'serial' column
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await flushPromises()
+    const serialCheckbox = w.findAll('input[type="checkbox"]').find(
+      (cb) => cb.element.closest('tr')?.textContent?.includes('serial'),
+    )
+    expect(serialCheckbox).toBeTruthy()
+    await serialCheckbox!.setValue(true)
+
+    // Switch to table B
+    await w.find('select.table-select').setValue('masterdata')
+    await flushPromises()
+
+    // Switch back to table A
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await flushPromises()
+
+    // 'serial' checkbox state should be preserved
+    const restoredCheckbox = w.findAll('input[type="checkbox"]').find(
+      (cb) => cb.element.closest('tr')?.textContent?.includes('serial'),
+    )
+    expect((restoredCheckbox!.element as HTMLInputElement).checked).toBe(true)
+  })
+
   it('restores existing mapping on load', async () => {
     vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
     vi.spyOn(erpApi, 'getExportMapping').mockResolvedValueOnce({
