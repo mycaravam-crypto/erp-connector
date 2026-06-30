@@ -13,7 +13,6 @@ const run = ref<ExportDetail | null>(null)
 const loading = ref(true)
 const notFound = ref(false)
 
-// Delivery form state
 const deliveryImportCount = ref<number | null>(null)
 const deliveryNotes = ref('')
 const delivering = ref(false)
@@ -52,121 +51,128 @@ onMounted(load)
 
 <template>
   <div>
-    <button class="back-btn" @click="router.push({ name: 'exports' })">← Back to list</button>
+    <button
+      class="bg-transparent border-0 text-indigo-600 text-sm cursor-pointer p-0 mb-4 hover:underline"
+      @click="router.push({ name: 'exports' })"
+    >← Back to list</button>
 
-    <p v-if="loading" class="info">Loading…</p>
-    <p v-else-if="notFound" class="error">Export run not found.</p>
+    <p v-if="loading" class="text-slate-500">Loading…</p>
+    <p v-else-if="notFound" class="text-red-600">Export run not found.</p>
 
     <template v-else-if="run">
-      <div class="header-row">
-        <h1>Export Run #{{ run.sequenceNo }}</h1>
+      <div class="flex items-center gap-3 mb-4">
+        <h1 class="m-0 text-xl font-semibold">Export Run #{{ run.sequenceNo }}</h1>
         <StatusBadge :status="run.status" />
       </div>
 
-      <!-- Sequence gap warning — shown before the release form so operators see it first -->
-      <div v-if="run.sequenceGapWarning" class="gap-warning" role="alert">
+      <!-- Sequence gap warning -->
+      <div v-if="run.sequenceGapWarning" class="gap-warning bg-orange-50 border border-orange-200 border-l-4 border-l-orange-400 rounded-md px-4 py-3 text-sm text-orange-900 mb-5" role="alert">
         <strong>Sequence gap detected.</strong> {{ run.sequenceGapWarning }}
       </div>
 
-      <table class="detail-table">
+      <table class="border-collapse text-sm max-w-xl">
         <tbody>
           <tr>
-            <th>Sequence No</th>
-            <td>{{ run.sequenceNo }}</td>
+            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">Sequence No</th>
+            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ run.sequenceNo }}</td>
           </tr>
           <tr>
-            <th>Extracted At (UTC)</th>
-            <td>{{ run.extractedAt }}</td>
+            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">Extracted At (UTC)</th>
+            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ run.extractedAt }}</td>
           </tr>
           <tr>
-            <th>Record Count</th>
-            <td>{{ run.recordCount }}</td>
+            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">Record Count</th>
+            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ run.recordCount }}</td>
           </tr>
           <tr>
-            <th>SHA-256</th>
-            <td><code class="sha">{{ run.sha256 }}</code></td>
+            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">SHA-256</th>
+            <td class="px-3 py-2 border-b border-slate-200 align-top"><code class="text-xs break-all">{{ run.sha256 }}</code></td>
           </tr>
           <tr>
-            <th>File</th>
-            <td>{{ run.dataFileName }}</td>
+            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">File</th>
+            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ run.dataFileName }}</td>
           </tr>
           <tr v-if="run.releasedAt">
-            <th>Released At (UTC)</th>
-            <td>{{ run.releasedAt }}</td>
+            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">Released At (UTC)</th>
+            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ run.releasedAt }}</td>
           </tr>
           <tr v-if="run.operatedBy">
-            <th>Operated By</th>
-            <td>{{ run.operatedBy }}</td>
+            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">Operated By</th>
+            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ run.operatedBy }}</td>
           </tr>
           <tr v-if="run.approvedBy">
-            <th>Approved By</th>
-            <td>{{ run.approvedBy }}</td>
+            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">Approved By</th>
+            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ run.approvedBy }}</td>
           </tr>
           <tr v-if="run.deliveredAt">
-            <th>Delivered At (UTC)</th>
-            <td>{{ run.deliveredAt }}</td>
+            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">Delivered At (UTC)</th>
+            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ run.deliveredAt }}</td>
           </tr>
           <tr v-if="run.deliveredBy">
-            <th>Delivered By</th>
-            <td>{{ run.deliveredBy }}</td>
+            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">Delivered By</th>
+            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ run.deliveredBy }}</td>
           </tr>
           <tr v-if="run.importedRecordCount !== null">
-            <th>Imported Records</th>
-            <td>{{ run.importedRecordCount }}</td>
+            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">Imported Records</th>
+            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ run.importedRecordCount }}</td>
           </tr>
           <tr v-if="run.deliveryNotes">
-            <th>Delivery Notes</th>
-            <td>{{ run.deliveryNotes }}</td>
+            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">Delivery Notes</th>
+            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ run.deliveryNotes }}</td>
           </tr>
         </tbody>
       </table>
 
-      <!-- Four-eyes release form (Pending runs only) -->
+      <!-- Four-eyes release form -->
       <ReleaseDialog
         v-if="run.status === 'Pending'"
         :seqNo="run.sequenceNo"
         @released="load"
       />
 
-      <!-- Delivery acknowledgement form (Released, not yet delivered) -->
-      <div v-if="run.status === 'Released' && !run.deliveredAt" class="delivery-card">
-        <h2>Record Physical Delivery</h2>
-        <p class="hint">
+      <!-- Delivery acknowledgement form -->
+      <div v-if="run.status === 'Released' && !run.deliveredAt" class="delivery-card border border-slate-200 rounded-lg px-6 py-5 max-w-sm mt-6">
+        <h2 class="m-0 mb-1 text-base font-semibold">Record Physical Delivery</h2>
+        <p class="text-slate-500 text-sm m-0 mb-4 leading-relaxed">
           After handing the export file to the vendor, record the delivery here to close the
           custody chain. Import count is optional — enter it when the vendor confirms.
         </p>
 
-        <div class="field">
-          <label for="import-count">Vendor import count (optional)</label>
+        <div class="flex flex-col gap-1 mb-3">
+          <label for="import-count" class="text-sm font-semibold">Vendor import count (optional)</label>
           <input
             id="import-count"
             type="number"
             min="0"
             v-model.number="deliveryImportCount"
             placeholder="e.g. 5"
+            class="px-2.5 py-1.5 border border-slate-300 rounded-md text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
           />
         </div>
 
-        <div class="field">
-          <label for="delivery-notes">Notes (optional)</label>
+        <div class="flex flex-col gap-1 mb-3">
+          <label for="delivery-notes" class="text-sm font-semibold">Notes (optional)</label>
           <input
             id="delivery-notes"
             type="text"
             v-model="deliveryNotes"
             placeholder="e.g. USB-007, handed to J. Smith"
+            class="px-2.5 py-1.5 border border-slate-300 rounded-md text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
           />
         </div>
 
-        <p v-if="deliveryError" class="error">{{ deliveryError }}</p>
+        <p v-if="deliveryError" class="text-red-600 text-sm mb-2">{{ deliveryError }}</p>
 
-        <button @click="submitDelivery" :disabled="delivering">
-          {{ delivering ? 'Recording…' : 'Mark as Delivered' }}
-        </button>
+        <button
+          class="mt-1 px-5 py-2 bg-indigo-600 text-white border-0 rounded-md text-sm font-semibold cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed hover:enabled:bg-indigo-700"
+          :disabled="delivering"
+          @click="submitDelivery"
+        >{{ delivering ? 'Recording…' : 'Mark as Delivered' }}</button>
       </div>
 
       <!-- Delivery complete indicator -->
-      <div v-if="run.deliveredAt" class="delivery-done">
-        <span class="delivery-icon">✓</span>
+      <div v-if="run.deliveredAt" class="delivery-done flex items-center gap-2 mt-6 bg-green-50 border border-green-200 rounded-md px-4 py-2.5 text-sm text-green-800 max-w-lg">
+        <span class="font-bold text-base">✓</span>
         Delivered on {{ run.deliveredAt }} by {{ run.deliveredBy }}.
         <span v-if="run.importedRecordCount !== null">
           Vendor confirmed {{ run.importedRecordCount }} records imported.
@@ -175,153 +181,3 @@ onMounted(load)
     </template>
   </div>
 </template>
-
-<style scoped>
-.back-btn {
-  background: none;
-  border: none;
-  color: #4f46e5;
-  font-size: 0.9rem;
-  cursor: pointer;
-  padding: 0;
-  margin-bottom: 1rem;
-}
-
-.back-btn:hover {
-  text-decoration: underline;
-}
-
-.header-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-h1 {
-  margin: 0;
-  font-size: 1.25rem;
-}
-
-h2 {
-  margin: 0 0 0.25rem;
-  font-size: 1.05rem;
-}
-
-/* Sequence gap warning */
-.gap-warning {
-  background: #fff7ed;
-  border: 1px solid #fed7aa;
-  border-left: 4px solid #f97316;
-  border-radius: 0.375rem;
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
-  color: #92400e;
-  margin-bottom: 1.25rem;
-}
-
-.detail-table {
-  border-collapse: collapse;
-  font-size: 0.9rem;
-  max-width: 640px;
-}
-
-.detail-table th, .detail-table td {
-  padding: 0.45rem 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid #e2e8f0;
-  vertical-align: top;
-}
-
-.detail-table th {
-  font-weight: 600;
-  color: #475569;
-  width: 160px;
-  white-space: nowrap;
-}
-
-.sha {
-  font-size: 0.8rem;
-  word-break: break-all;
-}
-
-/* Delivery card */
-.delivery-card {
-  border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
-  padding: 1.25rem 1.5rem;
-  max-width: 420px;
-  margin-top: 1.5rem;
-}
-
-.hint {
-  color: #64748b;
-  font-size: 0.85rem;
-  margin: 0 0 1rem;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-bottom: 0.75rem;
-}
-
-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-input {
-  padding: 0.4rem 0.6rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.375rem;
-  font-size: 0.9rem;
-  outline: none;
-}
-
-input:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 2px #e0e7ff;
-}
-
-button {
-  margin-top: 0.5rem;
-  padding: 0.45rem 1.2rem;
-  background: #4f46e5;
-  color: #fff;
-  border: none;
-  border-radius: 0.375rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-/* Delivery done */
-.delivery-done {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 1.5rem;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 0.375rem;
-  padding: 0.65rem 1rem;
-  font-size: 0.875rem;
-  color: #166534;
-  max-width: 500px;
-}
-
-.delivery-icon {
-  font-weight: 700;
-  font-size: 1rem;
-}
-
-.info  { color: #64748b; }
-.error { color: #dc2626; font-size: 0.85rem; margin: 0.25rem 0; }
-</style>

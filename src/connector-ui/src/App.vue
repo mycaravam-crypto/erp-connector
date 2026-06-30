@@ -22,132 +22,35 @@ const steps = [
 </script>
 
 <template>
-  <header class="app-header">
-    <span class="app-title">Connector</span>
-    <nav v-if="loggedIn" class="app-nav">
+  <header class="flex items-center justify-between gap-6 px-6 py-2.5 bg-slate-900 text-slate-200">
+    <span class="font-bold text-sm tracking-wide text-white shrink-0">Connector</span>
+
+    <nav v-if="loggedIn" class="flex items-center gap-1 flex-1">
       <template v-for="(step, idx) in steps" :key="step.name">
-        <RouterLink :to="{ name: step.name }" class="step-link" active-class="step-active">
-          <span class="step-num">{{ step.num }}</span>
-          <span class="step-label">{{ step.label }}</span>
+        <RouterLink
+          :to="{ name: step.name }"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-slate-400 no-underline transition-colors hover:bg-slate-800 hover:text-slate-200"
+          active-class="!bg-slate-800 !text-slate-100"
+        >
+          <span class="flex items-center justify-center w-5 h-5 rounded-full border border-current text-[0.65rem] font-bold shrink-0">{{ step.num }}</span>
+          <span class="text-[0.82rem]">{{ step.label }}</span>
         </RouterLink>
-        <span v-if="idx < steps.length - 1" class="step-sep" aria-hidden="true">→</span>
+        <span v-if="idx < steps.length - 1" class="text-slate-600 text-xs px-0.5 shrink-0" aria-hidden="true">→</span>
       </template>
     </nav>
-    <div v-if="loggedIn" class="user-row">
-      <span class="user-name">{{ username }}</span>
-      <button class="logout-btn" @click="logout">Sign out</button>
+
+    <div v-if="loggedIn" class="flex items-center gap-3 shrink-0">
+      <span class="text-[0.82rem] text-slate-400">{{ username }}</span>
+      <button
+        class="border border-slate-600 text-slate-300 rounded-md px-2.5 py-1 text-[0.78rem] bg-transparent cursor-pointer hover:bg-slate-800"
+        @click="logout"
+      >
+        Sign out
+      </button>
     </div>
   </header>
-  <main>
+
+  <main class="p-6">
     <RouterView />
   </main>
 </template>
-
-<style scoped>
-.app-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.6rem 1.5rem;
-  background: #1a1a2e;
-  color: #e2e8f0;
-  gap: 1.5rem;
-}
-
-.app-title {
-  font-weight: 700;
-  font-size: 1rem;
-  letter-spacing: 0.04em;
-  flex-shrink: 0;
-  color: #f1f5f9;
-}
-
-.app-nav {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  flex: 1;
-}
-
-.step-link {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.3rem 0.7rem;
-  border-radius: 0.375rem;
-  text-decoration: none;
-  color: #94a3b8;
-  transition: background 0.1s, color 0.1s;
-  white-space: nowrap;
-}
-
-.step-link:hover {
-  background: #2d2d4e;
-  color: #e2e8f0;
-}
-
-.step-active {
-  background: #2d2d4e;
-  color: #f1f5f9;
-}
-
-.step-num {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.3rem;
-  height: 1.3rem;
-  border-radius: 50%;
-  border: 1px solid currentColor;
-  font-size: 0.7rem;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.step-active .step-num {
-  background: #4f46e5;
-  border-color: #4f46e5;
-  color: #fff;
-}
-
-.step-label {
-  font-size: 0.82rem;
-}
-
-.step-sep {
-  color: #475569;
-  font-size: 0.75rem;
-  padding: 0 0.1rem;
-  flex-shrink: 0;
-}
-
-.user-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-shrink: 0;
-}
-
-.user-name {
-  font-size: 0.82rem;
-  color: #94a3b8;
-}
-
-.logout-btn {
-  background: none;
-  border: 1px solid #475569;
-  color: #cbd5e1;
-  border-radius: 0.375rem;
-  padding: 0.2rem 0.65rem;
-  font-size: 0.78rem;
-  cursor: pointer;
-}
-
-.logout-btn:hover {
-  background: #334155;
-}
-
-main {
-  padding: 1.5rem;
-}
-</style>

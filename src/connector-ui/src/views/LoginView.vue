@@ -25,116 +25,43 @@ async function submit() {
 </script>
 
 <template>
-  <div class="login-wrap">
-    <div class="login-card">
-      <h1>Connector — Sign in</h1>
-      <p class="subtitle">Release UI requires authentication.</p>
+  <div class="flex justify-center pt-24">
+    <div class="border border-slate-200 rounded-lg p-8 w-full max-w-sm">
+      <h1 class="text-lg font-semibold m-0 mb-1">Connector — Sign in</h1>
+      <p class="text-slate-500 text-sm m-0 mb-6">Release UI requires authentication.</p>
 
-      <div class="field">
-        <label for="username">Username</label>
+      <div class="flex flex-col gap-1 mb-3">
+        <label for="username" class="text-sm font-semibold">Username</label>
         <input
           id="username"
           v-model="username"
           autocomplete="username"
+          class="px-2.5 py-1.5 border border-slate-300 rounded-md text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
           @keyup.enter="submit"
         />
       </div>
 
-      <div class="field">
-        <label for="password">Password</label>
+      <div class="flex flex-col gap-1 mb-3">
+        <label for="password" class="text-sm font-semibold">Password</label>
         <input
           id="password"
           v-model="password"
           type="password"
           autocomplete="current-password"
+          class="px-2.5 py-1.5 border border-slate-300 rounded-md text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
           @keyup.enter="submit"
         />
       </div>
 
-      <p v-if="error" class="error">{{ error }}</p>
+      <p v-if="error" class="text-red-600 text-sm mt-1 mb-0">{{ error }}</p>
 
       <button
-        @click="submit"
+        class="mt-3 w-full py-2 bg-indigo-600 text-white border-0 rounded-md text-sm font-semibold cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed hover:enabled:bg-indigo-700"
         :disabled="!username.trim() || !password || submitting"
+        @click="submit"
       >
         {{ submitting ? 'Signing in…' : 'Sign in' }}
       </button>
     </div>
   </div>
 </template>
-
-<style scoped>
-.login-wrap {
-  display: flex;
-  justify-content: center;
-  padding-top: 6rem;
-}
-
-.login-card {
-  border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
-  padding: 2rem;
-  width: 100%;
-  max-width: 360px;
-}
-
-h1 {
-  margin: 0 0 0.25rem;
-  font-size: 1.1rem;
-}
-
-.subtitle {
-  color: #64748b;
-  font-size: 0.85rem;
-  margin: 0 0 1.5rem;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-bottom: 0.75rem;
-}
-
-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-input {
-  padding: 0.4rem 0.6rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.375rem;
-  font-size: 0.9rem;
-  outline: none;
-}
-
-input:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 2px #e0e7ff;
-}
-
-button {
-  margin-top: 0.5rem;
-  width: 100%;
-  padding: 0.5rem;
-  background: #4f46e5;
-  color: #fff;
-  border: none;
-  border-radius: 0.375rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.error {
-  color: #dc2626;
-  font-size: 0.85rem;
-  margin: 0.25rem 0;
-}
-</style>

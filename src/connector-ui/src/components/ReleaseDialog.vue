@@ -37,91 +37,32 @@ async function submit() {
 </script>
 
 <template>
-  <div class="release-dialog">
-    <h2>Four-Eyes Release — Run #{{ seqNo }}</h2>
-    <p class="hint">
+  <div class="release-dialog border border-slate-200 rounded-lg px-6 py-5 max-w-sm mt-6">
+    <h2 class="m-0 mb-1 text-base font-semibold">Four-Eyes Release — Run #{{ seqNo }}</h2>
+    <p class="text-slate-500 text-sm m-0 mb-4">
       Releasing as <strong>{{ currentUser }}</strong>. Approver must be a different registered user.
     </p>
 
-    <div class="field">
-      <label for="approver">Approver username</label>
-      <input id="approver" v-model="approver" placeholder="Approver username" autocomplete="off" />
+    <div class="flex flex-col gap-1 mb-3">
+      <label for="approver" class="text-sm font-semibold">Approver username</label>
+      <input
+        id="approver"
+        v-model="approver"
+        placeholder="Approver username"
+        autocomplete="off"
+        class="px-2.5 py-1.5 border border-slate-300 rounded-md text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+      />
     </div>
 
-    <p v-if="sameUser" class="error">Operator and approver must be different people.</p>
-    <p v-if="serverError" class="error">{{ serverError }}</p>
+    <p v-if="sameUser" class="text-red-600 text-sm mb-1">Operator and approver must be different people.</p>
+    <p v-if="serverError" class="text-red-600 text-sm mb-1">{{ serverError }}</p>
 
-    <button @click="submit" :disabled="!valid || submitting">
+    <button
+      class="mt-1 px-5 py-2 bg-indigo-600 text-white border-0 rounded-md text-sm font-semibold cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed hover:enabled:bg-indigo-700"
+      :disabled="!valid || submitting"
+      @click="submit"
+    >
       {{ submitting ? 'Releasing…' : 'Confirm Release' }}
     </button>
   </div>
 </template>
-
-<style scoped>
-.release-dialog {
-  border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
-  padding: 1.5rem;
-  max-width: 420px;
-  margin-top: 1.5rem;
-}
-
-h2 {
-  margin: 0 0 0.25rem;
-  font-size: 1.1rem;
-}
-
-.hint {
-  color: #64748b;
-  font-size: 0.85rem;
-  margin: 0 0 1rem;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-bottom: 0.75rem;
-}
-
-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-input {
-  padding: 0.4rem 0.6rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.375rem;
-  font-size: 0.9rem;
-  outline: none;
-}
-
-input:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 2px #e0e7ff;
-}
-
-button {
-  margin-top: 0.5rem;
-  padding: 0.45rem 1.2rem;
-  background: #4f46e5;
-  color: #fff;
-  border: none;
-  border-radius: 0.375rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.error {
-  color: #dc2626;
-  font-size: 0.85rem;
-  margin: 0.25rem 0;
-}
-</style>

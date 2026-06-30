@@ -60,7 +60,6 @@ function getTableColumns(tableName: string): SourceColumn[] {
 function onTableSelect(tableName: string) {
   selectedTable.value = tableName
   const cols = sourceSchema.value?.tables.find((t) => t.name === tableName)?.columns ?? []
-  // Initialise fields: enable only the PK column by default; pre-fill target names.
   fields.value = cols.map((col) => ({
     sourceName: col.name,
     targetName: col.name,
@@ -169,29 +168,33 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="page">
-    <div class="step-header">
-      <span class="step-badge">Step 3</span>
-      <h1>Export Schema Mapper</h1>
-      <button class="refresh-btn" :disabled="loading" @click="load">Refresh</button>
+  <div class="max-w-4xl">
+    <div class="flex items-center gap-3 mb-2">
+      <span class="bg-slate-900 text-slate-200 px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide shrink-0">Step 3</span>
+      <h1 class="m-0 text-xl font-semibold flex-1">Export Schema Mapper</h1>
+      <button
+        class="px-3 py-1 border border-slate-300 rounded-md bg-white text-sm text-slate-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-slate-50"
+        :disabled="loading"
+        @click="load"
+      >Refresh</button>
     </div>
 
-    <p class="intro">
+    <p class="text-slate-500 text-sm mt-2 mb-6 leading-relaxed">
       Select a source table, choose which columns to include and rename them for the target system
       (e.g. ServiceNow), then add joins from related tables.
       Changes are saved before the export runs.
     </p>
 
-    <p v-if="loading" class="info">Loading…</p>
-    <p v-else-if="error" class="error">{{ error }}</p>
+    <p v-if="loading" class="text-slate-500">Loading…</p>
+    <p v-else-if="error" class="text-red-600">{{ error }}</p>
 
     <template v-else-if="sourceSchema">
       <!-- Primary table selector -->
-      <div class="section">
-        <h2>Primary Source Table</h2>
-        <div class="table-select-row">
+      <div class="mb-7">
+        <h2 class="text-base font-semibold text-slate-900 mb-2.5">Primary Source Table</h2>
+        <div class="flex items-center gap-3 flex-wrap">
           <select
-            class="table-select"
+            class="table-select px-2.5 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white cursor-pointer min-w-56"
             :value="selectedTable"
             @change="onTableSelect(($event.target as HTMLSelectElement).value)"
           >
@@ -200,45 +203,43 @@ onMounted(load)
               {{ t.name }} ({{ t.columns.length }} cols)
             </option>
           </select>
-          <span class="conn-chip">{{ sourceSchema.connectionLabel }}</span>
+          <span class="conn-chip text-xs text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full">{{ sourceSchema.connectionLabel }}</span>
         </div>
       </div>
 
       <!-- Column mapping -->
-      <div v-if="selectedTable" class="section">
-        <h2>
+      <div v-if="selectedTable" class="mb-7">
+        <h2 class="text-base font-semibold text-slate-900 mb-2.5 flex items-center gap-2">
           Columns
-          <span class="section-meta">{{ enabledFieldCount }} / {{ fields.length }} selected</span>
+          <span class="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{{ enabledFieldCount }} / {{ fields.length }} selected</span>
         </h2>
-        <table class="col-table">
+        <table class="col-table w-full border-collapse text-sm">
           <thead>
             <tr>
-              <th class="th-toggle">Export</th>
-              <th>#</th>
-              <th>Source Column</th>
-              <th>Export As (target name)</th>
-              <th>Type</th>
-              <th>PK</th>
+              <th class="px-2.5 py-2 text-center bg-slate-50 font-semibold text-[0.72rem] uppercase tracking-wide text-slate-500 border-b border-slate-200 w-12">Export</th>
+              <th class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.72rem] uppercase tracking-wide text-slate-500 border-b border-slate-200 w-8">#</th>
+              <th class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.72rem] uppercase tracking-wide text-slate-500 border-b border-slate-200">Source Column</th>
+              <th class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.72rem] uppercase tracking-wide text-slate-500 border-b border-slate-200">Export As (target name)</th>
+              <th class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.72rem] uppercase tracking-wide text-slate-500 border-b border-slate-200">Type</th>
+              <th class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.72rem] uppercase tracking-wide text-slate-500 border-b border-slate-200">PK</th>
             </tr>
           </thead>
           <tbody>
             <tr
               v-for="(field, idx) in fields"
               :key="field.sourceName"
-              :class="field.enabled ? 'row-active' : 'row-inactive'"
+              :class="field.enabled ? 'bg-green-50' : 'bg-neutral-50 opacity-60'"
             >
-              <td class="td-toggle">
+              <td class="px-2.5 py-2 border-b border-slate-200 align-middle text-center">
                 <input type="checkbox" v-model="field.enabled" @change="saved = false" />
               </td>
-              <td class="col-idx">{{ idx + 1 }}</td>
-              <td>
-                <code :class="['col-name', field.enabled ? '' : 'col-name-dim']">
-                  {{ field.sourceName }}
-                </code>
+              <td class="px-2.5 py-2 border-b border-slate-200 align-middle text-center text-slate-400 text-xs">{{ idx + 1 }}</td>
+              <td class="px-2.5 py-2 border-b border-slate-200 align-middle">
+                <code :class="['text-sm font-semibold', field.enabled ? 'text-slate-900' : 'text-slate-400']">{{ field.sourceName }}</code>
               </td>
-              <td class="td-export-as">
+              <td class="px-2.5 py-2 border-b border-slate-200 align-middle min-w-40">
                 <input
-                  class="export-as-input"
+                  class="export-as-input w-full px-1.5 py-1 border border-slate-300 rounded text-xs font-mono text-slate-900 bg-white box-border outline-none focus:border-slate-900 placeholder-slate-400 disabled:bg-slate-50"
                   type="text"
                   :placeholder="field.sourceName"
                   v-model="field.targetName"
@@ -246,16 +247,14 @@ onMounted(load)
                   @input="saved = false"
                 />
               </td>
-              <td>
-                <span class="type-pill">
+              <td class="px-2.5 py-2 border-b border-slate-200 align-middle">
+                <span class="inline-block px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-xs text-slate-500 whitespace-nowrap">
                   {{ selectedTableColumnMap[field.sourceName]?.type ?? '' }}
                 </span>
               </td>
-              <td>
-                <span v-if="selectedTableColumnMap[field.sourceName]?.primaryKey" class="pk-badge">
-                  PK
-                </span>
-                <span v-else class="no-pk">—</span>
+              <td class="px-2.5 py-2 border-b border-slate-200 align-middle">
+                <span v-if="selectedTableColumnMap[field.sourceName]?.primaryKey" class="pk-badge text-[0.65rem] font-bold bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">PK</span>
+                <span v-else class="text-slate-200">—</span>
               </td>
             </tr>
           </tbody>
@@ -263,150 +262,95 @@ onMounted(load)
       </div>
 
       <!-- Relations -->
-      <div v-if="selectedTable" class="section">
-        <div class="section-header-row">
-          <h2>Related Table Joins</h2>
-          <button class="add-btn" @click="addRelation">+ Add Relation</button>
+      <div v-if="selectedTable" class="mb-7">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-base font-semibold text-slate-900 m-0">Related Table Joins</h2>
+          <button
+            class="add-btn px-3 py-1.5 border border-slate-300 rounded-md bg-white text-sm text-slate-500 cursor-pointer whitespace-nowrap hover:bg-slate-50"
+            @click="addRelation"
+          >+ Add Relation</button>
         </div>
-        <p class="section-desc">
+        <p class="text-sm text-slate-500 mb-3 leading-snug">
           Add 1:N joins to pull aggregated values from related tables into the export row.
           Use <em>String Join</em> to concatenate values, or <em>Array</em> to comma-separate them.
         </p>
 
-        <div v-if="relations.length === 0" class="empty-hint">
+        <div v-if="relations.length === 0" class="text-sm text-slate-400 px-4 py-3 border border-dashed border-slate-300 rounded-md text-center">
           No relations configured.
         </div>
 
         <div
           v-for="(rel, idx) in relations"
           :key="idx"
-          :class="['relation-card', rel.enabled ? 'rel-active' : 'rel-disabled']"
+          :class="['relation-card flex gap-3 items-start px-4 py-3 border rounded-lg mb-2 bg-white', rel.enabled ? 'border-blue-200 bg-sky-50' : 'border-slate-200 opacity-65']"
         >
-          <div class="rel-enable-col">
-            <input
-              type="checkbox"
-              v-model="rel.enabled"
-              class="rel-checkbox"
-              title="Enable this relation"
-              @change="saved = false"
-            />
+          <div class="pt-1 shrink-0">
+            <input type="checkbox" v-model="rel.enabled" class="cursor-pointer w-4 h-4" @change="saved = false" />
           </div>
 
-          <div class="rel-body">
-            <div class="rel-row">
-              <!-- Related table -->
-              <div class="rel-field">
-                <label>Related Table</label>
-                <select v-model="rel.relatedTable" class="rel-select" @change="saved = false">
+          <div class="flex-1 flex flex-col gap-2">
+            <div class="flex gap-2.5 flex-wrap">
+              <div class="flex flex-col gap-1 flex-1 min-w-36">
+                <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Related Table</label>
+                <select v-model="rel.relatedTable" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full" @change="saved = false">
                   <option value="" disabled>— select —</option>
-                  <option
-                    v-for="t in sourceSchema.tables.filter((t) => t.name !== selectedTable)"
-                    :key="t.name"
-                    :value="t.name"
-                  >
-                    {{ t.name }}
-                  </option>
+                  <option v-for="t in sourceSchema.tables.filter((t) => t.name !== selectedTable)" :key="t.name" :value="t.name">{{ t.name }}</option>
                 </select>
               </div>
-
-              <!-- Source join column -->
-              <div class="rel-field">
-                <label>Source Column</label>
-                <select v-model="rel.sourceJoinKey" class="rel-select" @change="saved = false">
+              <div class="flex flex-col gap-1 flex-1 min-w-36">
+                <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Source Column</label>
+                <select v-model="rel.sourceJoinKey" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full" @change="saved = false">
                   <option value="" disabled>— select —</option>
-                  <option v-for="c in selectedTableColumns" :key="c.name" :value="c.name">
-                    {{ c.name }}{{ c.primaryKey ? ' (PK)' : '' }}
-                  </option>
+                  <option v-for="c in selectedTableColumns" :key="c.name" :value="c.name">{{ c.name }}{{ c.primaryKey ? ' (PK)' : '' }}</option>
                 </select>
               </div>
-
-              <!-- Join column in related table -->
-              <div class="rel-field">
-                <label>Join Column (in {{ rel.relatedTable || '…' }})</label>
-                <select
-                  v-model="rel.joinKey"
-                  class="rel-select"
-                  :disabled="!rel.relatedTable"
-                  @change="saved = false"
-                >
+              <div class="flex flex-col gap-1 flex-1 min-w-36">
+                <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Join Column (in {{ rel.relatedTable || '…' }})</label>
+                <select v-model="rel.joinKey" :disabled="!rel.relatedTable" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full disabled:bg-slate-50 disabled:text-slate-400" @change="saved = false">
                   <option value="" disabled>— select —</option>
-                  <option
-                    v-for="c in getTableColumns(rel.relatedTable)"
-                    :key="c.name"
-                    :value="c.name"
-                  >
-                    {{ c.name }}
-                  </option>
+                  <option v-for="c in getTableColumns(rel.relatedTable)" :key="c.name" :value="c.name">{{ c.name }}</option>
                 </select>
               </div>
-
-              <!-- Target field name -->
-              <div class="rel-field">
-                <label>Target Field Name</label>
-                <input
-                  class="rel-input"
-                  type="text"
-                  placeholder="e.g. maintenance_states"
-                  v-model="rel.targetField"
-                  @input="saved = false"
-                />
+              <div class="flex flex-col gap-1 flex-1 min-w-36">
+                <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Target Field Name</label>
+                <input class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900" type="text" placeholder="e.g. maintenance_states" v-model="rel.targetField" @input="saved = false" />
               </div>
             </div>
 
-            <div class="rel-row">
-              <!-- Value column (source field to aggregate) -->
-              <div class="rel-field">
-                <label>Value Column (from {{ rel.relatedTable || '…' }})</label>
-                <select
-                  v-model="rel.strategyOptions.sourceField"
-                  class="rel-select"
-                  :disabled="!rel.relatedTable"
-                  @change="saved = false"
-                >
+            <div class="flex gap-2.5 flex-wrap">
+              <div class="flex flex-col gap-1 flex-1 min-w-36">
+                <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Value Column (from {{ rel.relatedTable || '…' }})</label>
+                <select v-model="rel.strategyOptions.sourceField" :disabled="!rel.relatedTable" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full disabled:bg-slate-50 disabled:text-slate-400" @change="saved = false">
                   <option value="" disabled>— select —</option>
-                  <option
-                    v-for="c in getTableColumns(rel.relatedTable)"
-                    :key="c.name"
-                    :value="c.name"
-                  >
-                    {{ c.name }}
-                  </option>
+                  <option v-for="c in getTableColumns(rel.relatedTable)" :key="c.name" :value="c.name">{{ c.name }}</option>
                 </select>
               </div>
-
-              <!-- Flatten strategy -->
-              <div class="rel-field">
-                <label>Flatten Strategy</label>
-                <select v-model="rel.flattenStrategy" class="rel-select" @change="saved = false">
+              <div class="flex flex-col gap-1 flex-1 min-w-36">
+                <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Flatten Strategy</label>
+                <select v-model="rel.flattenStrategy" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full" @change="saved = false">
                   <option value="string_join">String Join (concatenate with delimiter)</option>
                   <option value="array">Array (comma-separated list)</option>
                 </select>
               </div>
-
-              <!-- Delimiter (only for string_join) -->
-              <div v-if="rel.flattenStrategy === 'string_join'" class="rel-field rel-field-sm">
-                <label>Delimiter</label>
-                <input
-                  class="rel-input"
-                  type="text"
-                  v-model="rel.strategyOptions.delimiter"
-                  placeholder=", "
-                  @input="saved = false"
-                />
+              <div v-if="rel.flattenStrategy === 'string_join'" class="flex flex-col gap-1 w-24 shrink-0">
+                <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Delimiter</label>
+                <input class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900" type="text" v-model="rel.strategyOptions.delimiter" placeholder=", " @input="saved = false" />
               </div>
             </div>
           </div>
 
-          <button class="rel-remove-btn" @click="removeRelation(idx)" title="Remove relation">
-            ×
-          </button>
+          <button
+            class="rel-remove-btn shrink-0 px-2 py-1 border border-red-200 rounded text-red-600 bg-white text-base leading-none cursor-pointer hover:bg-red-50"
+            @click="removeRelation(idx)"
+            title="Remove relation"
+          >×</button>
         </div>
       </div>
 
       <!-- Format selection -->
-      <div v-if="selectedTable" class="section">
-        <h2>Export Format</h2>
-        <div class="format-row">
+      <div v-if="selectedTable" class="mb-7">
+        <h2 class="text-base font-semibold text-slate-900 mb-2.5">Export Format</h2>
+        <div class="flex gap-3">
           <button
             v-for="fmt in [
               { id: 'xlsx', label: 'Excel (.xlsx)', desc: 'Full format with metadata row — required for ServiceNow Transform Map' },
@@ -414,426 +358,27 @@ onMounted(load)
               { id: 'json', label: 'JSON (.json)', desc: 'Machine-readable — useful for APIs and custom pipelines' },
             ]"
             :key="fmt.id"
-            :class="['format-btn', selectedFormat === fmt.id ? 'format-active' : '']"
+            :class="['format-btn flex-1 flex flex-col gap-1 px-4 py-3 border-2 rounded-lg bg-white cursor-pointer text-left transition-colors', selectedFormat === fmt.id ? 'border-slate-900 bg-slate-50' : 'border-slate-200 hover:border-slate-400']"
             @click="setFormat(fmt.id as 'xlsx' | 'csv' | 'json')"
           >
-            <span class="fmt-label">{{ fmt.label }}</span>
-            <span class="fmt-desc">{{ fmt.desc }}</span>
+            <span class="text-sm font-semibold text-slate-900">{{ fmt.label }}</span>
+            <span class="text-xs text-slate-500 leading-snug">{{ fmt.desc }}</span>
           </button>
         </div>
       </div>
 
-      <!-- Save status + errors -->
-      <div v-if="saveError" class="save-error">{{ saveError }}</div>
-      <div v-if="saved && !saveError" class="save-ok">Mapping saved.</div>
+      <!-- Save status -->
+      <div v-if="saveError" class="save-error px-3.5 py-2.5 bg-red-50 border border-red-200 rounded-md text-sm text-red-600 mb-4">{{ saveError }}</div>
+      <div v-if="saved && !saveError" class="save-ok px-3.5 py-2.5 bg-green-50 border border-green-200 rounded-md text-sm text-green-700 mb-4">Mapping saved.</div>
 
       <!-- Navigation -->
-      <div class="nav-actions">
-        <button class="btn-back" @click="router.push({ name: 'source-schema' })">
-          ← Back to Source Schema
-        </button>
-        <div class="nav-right" v-if="selectedTable">
-          <button class="btn-save" :disabled="saving" @click="saveMapping">
-            {{ saving ? 'Saving…' : 'Save Mapping' }}
-          </button>
-          <button class="btn-next" :disabled="saving" @click="proceed">
-            Run Export ({{ selectedFormat.toUpperCase() }}) →
-          </button>
+      <div class="flex items-center justify-between mt-6 gap-3">
+        <button class="px-4 py-2 border border-slate-300 rounded-md bg-white text-slate-500 text-sm cursor-pointer hover:bg-slate-50" @click="router.push({ name: 'source-schema' })">← Back to Source Schema</button>
+        <div v-if="selectedTable" class="flex gap-2.5">
+          <button class="btn-save px-4 py-2 border border-slate-900 rounded-md bg-white text-slate-900 text-sm font-semibold cursor-pointer hover:enabled:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="saving" @click="saveMapping">{{ saving ? 'Saving…' : 'Save Mapping' }}</button>
+          <button class="px-5 py-2 border-0 rounded-md bg-slate-900 text-slate-200 text-sm font-semibold cursor-pointer hover:enabled:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="saving" @click="proceed">Run Export ({{ selectedFormat.toUpperCase() }}) →</button>
         </div>
       </div>
     </template>
   </div>
 </template>
-
-<style scoped>
-.page {
-  max-width: 960px;
-}
-
-.step-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
-}
-
-.step-badge {
-  background: #1a1a2e;
-  color: #e2e8f0;
-  padding: 0.2rem 0.6rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  flex-shrink: 0;
-}
-
-h1 {
-  margin: 0;
-  font-size: 1.25rem;
-  flex: 1;
-}
-
-h2 {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0 0 0.6rem;
-  color: #1e293b;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.section {
-  margin-bottom: 1.75rem;
-}
-
-.section-header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
-}
-
-.section-header-row h2 {
-  margin-bottom: 0;
-}
-
-.section-meta {
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: #64748b;
-  background: #f1f5f9;
-  padding: 0.1rem 0.45rem;
-  border-radius: 9999px;
-}
-
-.section-desc {
-  font-size: 0.83rem;
-  color: #64748b;
-  margin: 0 0 0.75rem;
-  line-height: 1.5;
-}
-
-.refresh-btn {
-  padding: 0.25rem 0.75rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.375rem;
-  background: #fff;
-  font-size: 0.8rem;
-  cursor: pointer;
-  color: #475569;
-}
-.refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.intro {
-  color: #475569;
-  font-size: 0.9rem;
-  margin: 0.5rem 0 1.5rem;
-  line-height: 1.6;
-}
-
-/* Table selector */
-.table-select-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.table-select {
-  padding: 0.4rem 0.7rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  color: #1e293b;
-  background: #fff;
-  cursor: pointer;
-  min-width: 220px;
-}
-
-.conn-chip {
-  font-size: 0.78rem;
-  color: #64748b;
-  background: #f1f5f9;
-  padding: 0.2rem 0.6rem;
-  border-radius: 9999px;
-  border: 1px solid #e2e8f0;
-}
-
-/* Column table */
-.col-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
-}
-
-.col-table th,
-.col-table td {
-  padding: 0.45rem 0.65rem;
-  text-align: left;
-  border-bottom: 1px solid #e2e8f0;
-  vertical-align: middle;
-}
-
-.col-table th {
-  background: #f8fafc;
-  font-weight: 600;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  white-space: nowrap;
-  color: #64748b;
-}
-
-.th-toggle,
-.td-toggle {
-  width: 3rem;
-  text-align: center;
-}
-
-.row-active td { background: #f0fdf4; }
-.row-inactive td { background: #fafafa; opacity: 0.6; }
-
-.col-idx { color: #94a3b8; font-size: 0.78rem; text-align: center; width: 2rem; }
-
-.col-name { font-size: 0.85rem; font-weight: 600; color: #1e293b; }
-.col-name-dim { color: #94a3b8; }
-
-.td-export-as { min-width: 10rem; }
-
-.export-as-input {
-  width: 100%;
-  padding: 0.2rem 0.4rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.25rem;
-  font-size: 0.82rem;
-  font-family: monospace;
-  color: #1e293b;
-  background: #fff;
-  box-sizing: border-box;
-}
-.export-as-input:focus { outline: none; border-color: #1a1a2e; }
-.export-as-input::placeholder { color: #94a3b8; }
-.export-as-input:disabled { background: #f8fafc; }
-
-.type-pill {
-  display: inline-block;
-  padding: 0.1rem 0.4rem;
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.25rem;
-  font-size: 0.73rem;
-  color: #475569;
-  white-space: nowrap;
-}
-
-.pk-badge {
-  font-size: 0.65rem;
-  font-weight: 700;
-  background: #dbeafe;
-  color: #1d4ed8;
-  padding: 0.1rem 0.35rem;
-  border-radius: 0.2rem;
-}
-
-.no-pk { color: #cbd5e1; }
-
-/* Relations */
-.add-btn {
-  padding: 0.3rem 0.8rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.375rem;
-  background: #fff;
-  font-size: 0.82rem;
-  color: #475569;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.add-btn:hover { background: #f1f5f9; }
-
-.empty-hint {
-  font-size: 0.85rem;
-  color: #94a3b8;
-  padding: 0.75rem 1rem;
-  border: 1px dashed #cbd5e1;
-  border-radius: 0.375rem;
-  text-align: center;
-}
-
-.relation-card {
-  display: flex;
-  gap: 0.75rem;
-  align-items: flex-start;
-  padding: 0.85rem 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
-  margin-bottom: 0.6rem;
-  background: #fff;
-}
-
-.rel-active { border-color: #bfdbfe; background: #f0f9ff; }
-.rel-disabled { opacity: 0.65; }
-
-.rel-enable-col {
-  padding-top: 0.25rem;
-  flex-shrink: 0;
-}
-
-.rel-checkbox { cursor: pointer; width: 1rem; height: 1rem; }
-
-.rel-body { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
-
-.rel-row {
-  display: flex;
-  gap: 0.65rem;
-  flex-wrap: wrap;
-}
-
-.rel-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  flex: 1;
-  min-width: 140px;
-}
-
-.rel-field-sm { flex: 0 0 100px; min-width: 80px; }
-
-.rel-field label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-}
-
-.rel-select,
-.rel-input {
-  padding: 0.3rem 0.5rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.3rem;
-  font-size: 0.82rem;
-  color: #1e293b;
-  background: #fff;
-  width: 100%;
-  box-sizing: border-box;
-}
-.rel-select:disabled { background: #f8fafc; color: #94a3b8; }
-.rel-select:focus,
-.rel-input:focus { outline: none; border-color: #1a1a2e; }
-
-.rel-remove-btn {
-  flex-shrink: 0;
-  padding: 0.25rem 0.55rem;
-  border: 1px solid #fecaca;
-  border-radius: 0.3rem;
-  background: #fff;
-  color: #dc2626;
-  font-size: 1rem;
-  line-height: 1;
-  cursor: pointer;
-}
-.rel-remove-btn:hover { background: #fef2f2; }
-
-/* Format buttons */
-.format-row {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.format-btn {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  padding: 0.75rem 1rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 0.5rem;
-  background: #fff;
-  cursor: pointer;
-  text-align: left;
-  transition: border-color 0.1s;
-}
-.format-btn:hover { border-color: #94a3b8; }
-.format-active { border-color: #1a1a2e; background: #f8fafc; }
-
-.fmt-label { font-size: 0.9rem; font-weight: 600; color: #1e293b; }
-.fmt-desc  { font-size: 0.78rem; color: #64748b; line-height: 1.4; }
-
-/* Save status */
-.save-error {
-  padding: 0.6rem 0.9rem;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 0.375rem;
-  font-size: 0.85rem;
-  color: #dc2626;
-  margin-bottom: 1rem;
-}
-
-.save-ok {
-  padding: 0.6rem 0.9rem;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 0.375rem;
-  font-size: 0.85rem;
-  color: #166534;
-  margin-bottom: 1rem;
-}
-
-/* Navigation */
-.nav-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 1.5rem;
-  gap: 0.75rem;
-}
-
-.nav-right {
-  display: flex;
-  gap: 0.6rem;
-}
-
-.btn-back {
-  padding: 0.45rem 1rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.375rem;
-  background: #fff;
-  color: #475569;
-  font-size: 0.875rem;
-  cursor: pointer;
-}
-.btn-back:hover { background: #f1f5f9; }
-
-.btn-save {
-  padding: 0.45rem 1rem;
-  border: 1px solid #1a1a2e;
-  border-radius: 0.375rem;
-  background: #fff;
-  color: #1a1a2e;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-.btn-save:hover:not(:disabled) { background: #f8fafc; }
-.btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.btn-next {
-  padding: 0.45rem 1.25rem;
-  border: none;
-  border-radius: 0.375rem;
-  background: #1a1a2e;
-  color: #e2e8f0;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-.btn-next:hover:not(:disabled) { background: #2d2d4e; }
-.btn-next:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.info  { color: #64748b; }
-.error { color: #dc2626; }
-</style>

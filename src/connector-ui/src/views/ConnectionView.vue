@@ -61,219 +61,81 @@ function proceed() {
 </script>
 
 <template>
-  <div class="page">
-    <div class="step-header">
-      <span class="step-badge">Step 1</span>
-      <h1>Connect to Source Database</h1>
+  <div class="max-w-xl">
+    <div class="flex items-center gap-3 mb-2">
+      <span class="bg-slate-900 text-slate-200 px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide shrink-0">Step 1</span>
+      <h1 class="m-0 text-xl font-semibold">Connect to Source Database</h1>
     </div>
 
-    <p class="intro">
+    <p class="text-slate-500 text-sm mt-2 mb-4 leading-relaxed">
       Enter the connection details for the PostgreSQL database you want to read data from.
       The connector will read the schema and data from this database.
     </p>
 
-    <div v-if="connectedLabel" class="connected-note">
+    <div v-if="connectedLabel" class="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-800 mb-6">
       <strong>Connected:</strong> {{ connectedLabel }}
     </div>
-    <div v-else class="demo-note">
+    <div v-else class="bg-yellow-50 border border-yellow-300 rounded-lg px-4 py-3 text-sm text-yellow-900 mb-6 leading-relaxed">
       <strong>Demo mode active.</strong>
       The current backend uses a built-in SQLite demo database that mirrors a real PostgreSQL schema.
       Fill in the fields below to configure the production connection; click
       <em>Test Connection</em> to verify and save.
     </div>
 
-    <form class="conn-form" @submit.prevent="testConnection">
-      <div class="form-row">
-        <div class="field field-grow">
-          <label for="host">Host</label>
-          <input id="host" v-model="host" type="text" placeholder="localhost" />
+    <form class="flex flex-col gap-4" @submit.prevent="testConnection">
+      <div class="flex gap-3">
+        <div class="flex flex-col gap-1 flex-1">
+          <label for="host" class="text-xs font-semibold text-slate-700">Host</label>
+          <input id="host" v-model="host" type="text" placeholder="localhost"
+            class="px-2.5 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white outline-none focus:outline-indigo-600 focus:outline-2 focus:border-transparent" />
         </div>
-        <div class="field field-port">
-          <label for="port">Port</label>
-          <input id="port" v-model="port" type="text" placeholder="5432" />
-        </div>
-      </div>
-
-      <div class="field">
-        <label for="database">Database</label>
-        <input id="database" v-model="database" type="text" placeholder="my_erp_database" />
-      </div>
-
-      <div class="form-row">
-        <div class="field field-grow">
-          <label for="username">Username</label>
-          <input id="username" v-model="username" type="text" placeholder="readonly_user" />
-        </div>
-        <div class="field field-grow">
-          <label for="password">Password</label>
-          <input id="password" v-model="password" type="password" placeholder="••••••••" />
+        <div class="flex flex-col gap-1 w-22.5 shrink-0">
+          <label for="port" class="text-xs font-semibold text-slate-700">Port</label>
+          <input id="port" v-model="port" type="text" placeholder="5432"
+            class="px-2.5 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white outline-none focus:outline-indigo-600 focus:outline-2 focus:border-transparent" />
         </div>
       </div>
 
-      <div class="action-row">
-        <button type="submit" class="btn-test" :disabled="testing">
+      <div class="flex flex-col gap-1">
+        <label for="database" class="text-xs font-semibold text-slate-700">Database</label>
+        <input id="database" v-model="database" type="text" placeholder="my_erp_database"
+          class="px-2.5 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white outline-none focus:outline-indigo-600 focus:outline-2 focus:border-transparent" />
+      </div>
+
+      <div class="flex gap-3">
+        <div class="flex flex-col gap-1 flex-1">
+          <label for="username" class="text-xs font-semibold text-slate-700">Username</label>
+          <input id="username" v-model="username" type="text" placeholder="readonly_user"
+            class="px-2.5 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white outline-none focus:outline-indigo-600 focus:outline-2 focus:border-transparent" />
+        </div>
+        <div class="flex flex-col gap-1 flex-1">
+          <label for="password" class="text-xs font-semibold text-slate-700">Password</label>
+          <input id="password" v-model="password" type="password" placeholder="••••••••"
+            class="px-2.5 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white outline-none focus:outline-indigo-600 focus:outline-2 focus:border-transparent" />
+        </div>
+      </div>
+
+      <div class="flex gap-3 mt-1">
+        <button type="submit"
+          class="px-5 py-2 border border-slate-400 rounded-md bg-white text-slate-900 text-sm font-semibold cursor-pointer hover:enabled:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          :disabled="testing">
           {{ testing ? 'Testing…' : 'Test Connection' }}
         </button>
-        <button type="button" class="btn-next" @click="proceed">
+        <button type="button"
+          class="px-5 py-2 border-0 rounded-md bg-slate-900 text-slate-200 text-sm font-semibold cursor-pointer hover:bg-slate-800"
+          @click="proceed">
           Proceed to Source Schema →
         </button>
       </div>
     </form>
 
-    <div v-if="testStatus === 'ok'" class="status-banner status-ok">
-      <span class="status-icon">✓</span>
+    <div v-if="testStatus === 'ok'" class="flex items-center gap-2 mt-4 px-4 py-3 rounded-md bg-green-50 border border-green-200 text-green-800 text-sm">
+      <span class="font-bold">✓</span>
       {{ testMessage }}
     </div>
-    <div v-else-if="testStatus === 'error'" class="status-banner status-err">
-      <span class="status-icon">✕</span>
+    <div v-else-if="testStatus === 'error'" class="flex items-center gap-2 mt-4 px-4 py-3 rounded-md bg-red-50 border border-red-200 text-red-800 text-sm">
+      <span class="font-bold">✕</span>
       {{ testMessage }}
     </div>
   </div>
 </template>
-
-<style scoped>
-.page {
-  max-width: 640px;
-}
-
-.step-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
-}
-
-.step-badge {
-  background: #1a1a2e;
-  color: #e2e8f0;
-  padding: 0.2rem 0.6rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  flex-shrink: 0;
-}
-
-h1 {
-  margin: 0;
-  font-size: 1.25rem;
-}
-
-.intro {
-  color: #475569;
-  font-size: 0.9rem;
-  margin: 0.5rem 0 1rem;
-  line-height: 1.6;
-}
-
-.demo-note {
-  background: #fefce8;
-  border: 1px solid #fde047;
-  border-radius: 0.5rem;
-  padding: 0.75rem 1rem;
-  font-size: 0.85rem;
-  color: #713f12;
-  margin-bottom: 1.5rem;
-  line-height: 1.5;
-}
-
-.connected-note {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 0.5rem;
-  padding: 0.75rem 1rem;
-  font-size: 0.85rem;
-  color: #166534;
-  margin-bottom: 1.5rem;
-  line-height: 1.5;
-}
-
-.conn-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.form-row {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.field-grow { flex: 1; }
-.field-port { width: 90px; flex-shrink: 0; }
-
-label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #374151;
-}
-
-input {
-  padding: 0.45rem 0.65rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.375rem;
-  font-size: 0.9rem;
-  color: #1e293b;
-  background: #fff;
-}
-
-input:focus {
-  outline: 2px solid #4f46e5;
-  outline-offset: 1px;
-  border-color: transparent;
-}
-
-.action-row {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 0.25rem;
-}
-
-.btn-test {
-  padding: 0.5rem 1.25rem;
-  border: 1px solid #334155;
-  border-radius: 0.375rem;
-  background: #fff;
-  color: #1e293b;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.btn-test:hover:not(:disabled) { background: #f1f5f9; }
-.btn-test:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.btn-next {
-  padding: 0.5rem 1.25rem;
-  border: none;
-  border-radius: 0.375rem;
-  background: #1a1a2e;
-  color: #e2e8f0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.btn-next:hover { background: #2d2d4e; }
-
-.status-banner {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-}
-
-.status-ok  { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
-.status-err { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
-
-.status-icon { font-weight: 700; }
-</style>
