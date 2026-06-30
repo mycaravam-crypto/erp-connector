@@ -40,6 +40,18 @@ builder
 
 builder.Services.AddAuthorization();
 
+// ── CORS ──────────────────────────────────────────────────────────────────────
+
+var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? [];
+if (allowedOrigins.Length > 0)
+{
+    builder.Services.AddCors(opts =>
+        opts.AddDefaultPolicy(p =>
+            p.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()
+        )
+    );
+}
+
 // ── Infrastructure ────────────────────────────────────────────────────────────
 
 builder.Services.Configure<ExportSinkOptions>(builder.Configuration.GetSection("ExportSink"));
@@ -61,6 +73,7 @@ builder.Services.AddDbContext<DemoErpDbContext>(opt =>
 
 var app = builder.Build();
 
+if (allowedOrigins.Length > 0) app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 

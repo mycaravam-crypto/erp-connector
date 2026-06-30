@@ -24,14 +24,17 @@ async function submit() {
   submitting.value = true
   serverError.value = null
 
-  const result = await releaseExport(props.seqNo, { approver: approver.value.trim() })
-
-  submitting.value = false
-
-  if (result.ok) {
-    emit('released')
-  } else {
-    serverError.value = result.message || `Error ${result.status}`
+  try {
+    const result = await releaseExport(props.seqNo, { approver: approver.value.trim() })
+    if (result.ok) {
+      emit('released')
+    } else {
+      serverError.value = result.message || `Error ${result.status}`
+    }
+  } catch {
+    serverError.value = 'Could not reach the backend. Is the backend service running?'
+  } finally {
+    submitting.value = false
   }
 }
 </script>

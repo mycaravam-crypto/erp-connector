@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getConnection, saveConnection } from '@/api/connection'
 import { clearSession } from '@/api/auth'
@@ -11,6 +11,12 @@ const port = ref('5432')
 const database = ref('')
 const username = ref('')
 const password = ref('')
+
+const portError = computed(() => {
+  const n = Number(port.value)
+  if (!Number.isInteger(n) || n < 1 || n > 65535) return 'Port must be a number between 1 and 65535.'
+  return null
+})
 
 const testing = ref(false)
 const testStatus = ref<'idle' | 'ok' | 'error'>('idle')
@@ -29,13 +35,18 @@ onMounted(async () => {
 })
 
 async function testConnection() {
+  if (portError.value) {
+    testStatus.value = 'error'
+    testMessage.value = portError.value
+    return
+  }
   testing.value = true
   testStatus.value = 'idle'
   testMessage.value = ''
   try {
     const result = await saveConnection({
       host: host.value,
-      port: Number(port.value) || 5432,
+      port: Number(port.value),
       database: database.value,
       username: username.value,
       password: password.value,
@@ -97,7 +108,8 @@ function proceed() {
         <div class="flex flex-col gap-1 w-22.5 shrink-0">
           <label for="port" class="text-xs font-semibold text-slate-700">Port</label>
           <input id="port" v-model="port" type="text" placeholder="5432"
-            class="px-2.5 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white outline-none focus:outline-indigo-600 focus:outline-2 focus:border-transparent" />
+            :class="['px-2.5 py-2 border rounded-md text-sm text-slate-900 bg-white outline-none focus:outline-2 focus:border-transparent', portError ? 'border-red-400 focus:outline-red-500' : 'border-slate-300 focus:outline-indigo-600']" />
+          <p v-if="portError" class="text-xs text-red-600 mt-0.5">{{ portError }}</p>
         </div>
       </div>
 

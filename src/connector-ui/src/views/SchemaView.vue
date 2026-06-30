@@ -45,7 +45,11 @@ const confirmingDelete = ref(false)
 const presetNames = computed(() => Object.keys(presets.value).sort())
 
 async function loadPresets() {
-  presets.value = await getPresets()
+  try {
+    presets.value = await getPresets()
+  } catch {
+    presetError.value = 'Could not load presets. Is the backend service running?'
+  }
 }
 
 function applyPreset(name: string) {
