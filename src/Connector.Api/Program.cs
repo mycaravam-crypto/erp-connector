@@ -1,29 +1,53 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using Connector.Api;
-using Connector.Core.Domain;
-using Connector.Core.DynamicExport;
+using Connector.Api.Endpoints;
 using Connector.Core.Interfaces;
-using Connector.Core.Schema;
 using Connector.Erp.DemoErp;
 using Connector.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Npgsql;
+using Serilog;
+using Serilog.Events;
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .WriteTo.Console(
+        outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
+    )
+    .CreateBootstrapLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog(
+    (ctx, services, cfg) =>
+    {
+        cfg.MinimumLevel.Information()
+            .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+            .Enrich.FromLogContext()
+            .ReadFrom.Configuration(ctx.Configuration)
+            .ReadFrom.Services(services);
+
+        if (ctx.HostingEnvironment.IsProduction())
+            cfg.WriteTo.Console(new Serilog.Formatting.Json.JsonFormatter());
+        else
+            cfg.WriteTo.Console(
+                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
+            );
+    }
+);
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth"));
 
 var jwtSecret =
-    builder.Configuration["Auth:JwtSecret"] ?? throw new InvalidOperationException("Auth:JwtSecret is not configured.");
+    builder.Configuration["Auth:JwtSecret"]
+    ?? throw new InvalidOperationException("Auth:JwtSecret is not configured.");
 
 builder
     .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -42,7 +66,8 @@ builder.Services.AddAuthorization();
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 
-var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? [];
+var allowedOrigins =
+    builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? [];
 if (allowedOrigins.Length > 0)
 {
     builder.Services.AddCors(opts =>
@@ -55,16 +80,19 @@ if (allowedOrigins.Length > 0)
 // ── Infrastructure ────────────────────────────────────────────────────────────
 
 builder.Services.Configure<ExportSinkOptions>(builder.Configuration.GetSection("ExportSink"));
-builder.Services.Configure<ExportWorkerOptions>(builder.Configuration.GetSection("ExportWorker"));
+builder.Services.Configure<ExportWorkerOptions>(
+    builder.Configuration.GetSection("ExportWorker")
+);
 builder.Services.AddSingleton<IExportSink, FileSystemExportSink>();
 
 builder.Services.AddDbContext<ExportLogDbContext>(opt =>
     opt.UseSqlite(builder.Configuration.GetConnectionString("ExportLog"))
 );
 
+builder.Services.AddScoped<AuditService>();
 builder.Services.AddHostedService<ExportWorker>();
 
-// Demo-ERP-Datenbank (SQLite) — für den ERP-Datenbank-Browser (/api/erp/records).
+// Demo ERP (SQLite) — used by the ERP database browser (/api/erp/records).
 builder.Services.AddDbContext<DemoErpDbContext>(opt =>
     opt.UseSqlite(builder.Configuration.GetConnectionString("DemoErp"))
 );
@@ -73,60 +101,57 @@ builder.Services.AddDbContext<DemoErpDbContext>(opt =>
 
 var app = builder.Build();
 
-if (allowedOrigins.Length > 0) app.UseCors();
+if (allowedOrigins.Length > 0)
+    app.UseCors();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+    app.UseHsts();
+}
+
+app.Use(async (ctx, next) =>
+{
+    var headers = ctx.Response.Headers;
+    headers["X-Content-Type-Options"] = "nosniff";
+    headers["X-Frame-Options"] = "DENY";
+    headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+    headers["Content-Security-Policy"] =
+        "default-src 'none'; "
+        + "script-src 'self'; "
+        + "style-src 'self' 'unsafe-inline'; "
+        + "img-src 'self' data:; "
+        + "font-src 'self'; "
+        + "connect-src 'self'; "
+        + "frame-ancestors 'none'";
+    await next();
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Demo-ERP beim Start initialisieren (idempotent).
+// ── Database initialisation ───────────────────────────────────────────────────
+
 using (var scope = app.Services.CreateScope())
 {
+    // Demo ERP: simple EnsureCreated is fine (read-only seed data, no migrations needed).
     var erpDb = scope.ServiceProvider.GetRequiredService<DemoErpDbContext>();
     await erpDb.Database.EnsureCreatedAsync();
     DemoErpSeed.Seed(erpDb);
 
+    // Export log: EF Core migrations manage schema from this point forward.
+    // BootstrapMigrationsAsync handles databases that were created before migrations were introduced.
     var exportLogDb = scope.ServiceProvider.GetRequiredService<ExportLogDbContext>();
-    await exportLogDb.Database.EnsureCreatedAsync();
-
-    // Additive schema migrations — safe to run on every start; no-op if column/table already exists.
-    // ExecuteSqlRawAsync processes one statement at a time, so each DDL is a separate call.
-    var existingColumns = await exportLogDb.Database
-        .SqlQueryRaw<string>("SELECT name FROM pragma_table_info('ExportRun')")
-        .ToHashSetAsync();
-    foreach (var (col, def) in new[]
-    {
-        ("DeliveredAt",          "ALTER TABLE ExportRun ADD COLUMN DeliveredAt TEXT"),
-        ("DeliveredBy",          "ALTER TABLE ExportRun ADD COLUMN DeliveredBy TEXT"),
-        ("ImportedRecordCount",  "ALTER TABLE ExportRun ADD COLUMN ImportedRecordCount INTEGER"),
-        ("DeliveryNotes",        "ALTER TABLE ExportRun ADD COLUMN DeliveryNotes TEXT"),
-    })
-    {
-        if (!existingColumns.Contains(col))
-            await exportLogDb.Database.ExecuteSqlRawAsync(def);
-    }
-    await exportLogDb.Database.ExecuteSqlRawAsync(
-        """
-        CREATE TABLE IF NOT EXISTS AppSetting (
-            Key TEXT PRIMARY KEY NOT NULL,
-            Value TEXT NOT NULL
-        )
-        """);
-    await exportLogDb.Database.ExecuteSqlRawAsync(
-        """
-        CREATE TABLE IF NOT EXISTS AuditLog (
-            Id INTEGER PRIMARY KEY AUTOINCREMENT,
-            Timestamp TEXT NOT NULL,
-            Username TEXT NOT NULL,
-            Action TEXT NOT NULL,
-            Detail TEXT
-        )
-        """);
+    await BootstrapMigrationsAsync(exportLogDb);
+    await exportLogDb.Database.MigrateAsync();
 }
 
 // ── User store ────────────────────────────────────────────────────────────────
 // Development: hard-coded seed (alice/alice123, bob/bob123).
-// Production: BCrypt hashes from Auth:Users in appsettings.json.
+// Production: BCrypt hashes from Auth:Users in appsettings.json / env vars.
 
-Dictionary<string, string> userStore;
+IReadOnlyDictionary<string, string> userStore;
 if (app.Environment.IsDevelopment())
 {
     userStore = DevAuthSeed.CreateUsers();
@@ -134,1242 +159,71 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-    var authUsers = app.Configuration.GetSection("Auth:Users").Get<List<AuthUser>>() ?? [];
-    userStore = authUsers.ToDictionary(u => u.Username, u => u.PasswordHash, StringComparer.OrdinalIgnoreCase);
-}
-
-// ── Audit helper ─────────────────────────────────────────────────────────────
-
-async Task LogAuditAsync(ExportLogDbContext db, string username, string action, string? detail = null)
-{
-    try
-    {
-        db.AuditLog.Add(new AuditLogEntry
-        {
-            Timestamp = DateTimeOffset.UtcNow.ToString("O"),
-            Username = username,
-            Action = action,
-            Detail = detail,
-        });
-        await db.SaveChangesAsync();
-    }
-    catch (Exception ex)
-    {
-        app.Logger.LogWarning(ex, "Audit log write failed (non-fatal): action={Action}", action);
-    }
-}
-
-// ── Health check (no auth — used by monitoring and Step 1 connection test) ────
-
-app.MapGet(
-    "/api/health",
-    async (DemoErpDbContext erpDb, ExportLogDbContext logDb, IOptions<ExportSinkOptions> sinkOpts) =>
-    {
-        var staging = sinkOpts.Value.StagingPath;
-        var stagingOk = Directory.Exists(staging) && IsStagingWritable(staging);
-        var erpOk = false;
-        var logOk = false;
-
-        try
-        {
-            erpOk = await erpDb.Database.CanConnectAsync();
-        }
-        catch
-        {
-            // Intentionally swallowed — degraded health is reported in the JSON response, not thrown.
-        }
-        try
-        {
-            logOk = await logDb.Database.CanConnectAsync();
-        }
-        catch
-        {
-            // Intentionally swallowed — degraded health is reported in the JSON response, not thrown.
-        }
-
-        var checks = new
-        {
-            erp_db = erpOk,
-            log_db = logOk,
-            staging = stagingOk,
-        };
-        var healthy = erpOk && logOk && stagingOk;
-        var result = new { status = healthy ? "healthy" : "degraded", checks };
-        return healthy ? Results.Ok(result) : Results.Json(result, statusCode: 503);
-    }
-);
-
-// Write a temp file to confirm the staging directory is writable, not just readable.
-bool IsStagingWritable(string path)
-{
-    try
-    {
-        var probe = Path.Combine(path, ".health_probe");
-        File.WriteAllText(probe, "");
-        File.Delete(probe);
-        return true;
-    }
-    catch
-    {
-        return false;
-    }
-}
-
-// ── Auth endpoints ────────────────────────────────────────────────────────────
-
-app.MapPost(
-    "/api/auth/login",
-    async (LoginRequest req, ExportLogDbContext db) =>
-    {
-        if (
-            string.IsNullOrWhiteSpace(req.Username)
-            || !userStore.TryGetValue(req.Username, out var hash)
-            || !BCrypt.Net.BCrypt.Verify(req.Password ?? "", hash)
-        )
-            return Results.Unauthorized();
-
-        var expiry = app.Configuration.GetValue<int>("Auth:JwtExpiryHours", defaultValue: 8);
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
-        var token = new JwtSecurityToken(
-            claims: [new Claim(ClaimTypes.Name, req.Username)],
-            expires: DateTime.UtcNow.AddHours(expiry),
-            signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
-        );
-        await LogAuditAsync(db, req.Username, "login");
-        return Results.Ok(new LoginResponse(new JwtSecurityTokenHandler().WriteToken(token), req.Username));
-    }
-);
-
-// Dev-only: returns a BCrypt hash for a plaintext password (to seed appsettings for production users).
-if (app.Environment.IsDevelopment())
-{
-    app.MapPost(
-        "/api/auth/hash",
-        (HashRequest req) => Results.Ok(new { Hash = BCrypt.Net.BCrypt.HashPassword(req.Password, workFactor: 11) })
+    var authUsers =
+        app.Configuration.GetSection("Auth:Users").Get<List<AuthUser>>() ?? [];
+    userStore = authUsers.ToDictionary(
+        u => u.Username,
+        u => u.PasswordHash,
+        StringComparer.OrdinalIgnoreCase
     );
 }
 
-// ── Export API (all routes require a valid JWT) ───────────────────────────────
-
-// Returns the run list with an IsStale flag so the UI can warn about long-pending runs.
-app.MapGet(
-        "/api/exports",
-        async (ExportLogDbContext db) =>
-        {
-            var now = DateTimeOffset.UtcNow;
-            var runs = await db.ExportRuns.OrderByDescending(r => r.SequenceNo).ToListAsync();
-
-            return runs.Select(r =>
-                {
-                    // Pending runs stale after 24 h — operator should investigate or release.
-                    var isStale =
-                        r.Status == ExportRunStatus.Pending
-                        && DateTimeOffset.TryParse(
-                            r.ExtractedAt,
-                            System.Globalization.CultureInfo.InvariantCulture,
-                            System.Globalization.DateTimeStyles.RoundtripKind,
-                            out var ts
-                        )
-                        && (now - ts).TotalHours > 24;
-
-                    var sha256Short = r.Sha256.Length >= 12 ? r.Sha256[..12] : r.Sha256;
-                    return new ExportRunSummary(
-                        r.SequenceNo,
-                        r.ExtractedAt,
-                        r.RecordCount,
-                        sha256Short,
-                        r.Status,
-                        r.DataFileName,
-                        isStale
-                    );
-                })
-                .ToList();
-        }
-    )
-    .RequireAuthorization();
-
-// Returns full detail including a gap warning when the preceding run has not been released.
-app.MapGet(
-        "/api/exports/{seqNo:int}",
-        async (int seqNo, ExportLogDbContext db) =>
-        {
-            var run = await db.ExportRuns.FirstOrDefaultAsync(r => r.SequenceNo == seqNo);
-            if (run is null)
-                return Results.NotFound();
-
-            // Gap check: only meaningful for Pending runs that are candidates for release.
-            string? gapWarning = null;
-            if (run.Status == ExportRunStatus.Pending)
-            {
-                // Any run before this one that is neither Released nor Skipped is an unresolved gap.
-                var unhandled = await db.ExportRuns
-                    .Where(r => r.SequenceNo < seqNo
-                                && r.Status != ExportRunStatus.Released
-                                && r.Status != ExportRunStatus.Skipped)
-                    .Select(r => r.SequenceNo)
-                    .OrderByDescending(n => n)
-                    .Take(3)
-                    .ToListAsync();
-
-                if (unhandled.Count > 0)
-                    gapWarning =
-                        $"Sequence gap: {unhandled.Count} earlier run(s) are unresolved "
-                        + $"(#{string.Join(", #", unhandled)}). "
-                        + $"Investigate or skip them before releasing #{seqNo}.";
-            }
-
-            return Results.Ok(
-                new ExportDetailDto(
-                    run.Id,
-                    run.SequenceNo,
-                    run.ExtractedAt,
-                    run.RecordCount,
-                    run.Sha256,
-                    run.Status,
-                    run.ReleasedAt,
-                    run.OperatedBy,
-                    run.ApprovedBy,
-                    run.DataFileName,
-                    run.DeliveredAt,
-                    run.DeliveredBy,
-                    run.ImportedRecordCount,
-                    run.DeliveryNotes,
-                    gapWarning
-                )
-            );
-        }
-    )
-    .RequireAuthorization();
-
-/// <summary>
-/// Four-eyes release. Operator is read from the JWT (cannot be spoofed).
-/// Approver must be a different registered user supplied in the request body.
-/// </summary>
-app.MapPost(
-        "/api/exports/{seqNo:int}/release",
-        async (int seqNo, ReleaseRequest request, HttpContext httpContext, ExportLogDbContext db) =>
-        {
-            if (string.IsNullOrWhiteSpace(request.Approver))
-                return Results.BadRequest("Approver ist ein Pflichtfeld.");
-
-            var operatorName = httpContext.User.Identity!.Name!;
-
-            if (string.Equals(operatorName, request.Approver, StringComparison.OrdinalIgnoreCase))
-                return Results.BadRequest(
-                    "Operator und Approver müssen verschiedene Personen sein (Vier-Augen-Prinzip)."
-                );
-
-            if (!userStore.ContainsKey(request.Approver))
-                return Results.BadRequest(
-                    $"Unbekannter Approver: '{request.Approver}'. Nur registrierte Benutzer können freigeben."
-                );
-
-            var run = await db.ExportRuns.FirstOrDefaultAsync(r => r.SequenceNo == seqNo);
-            if (run is null)
-                return Results.NotFound();
-            if (run.Status != ExportRunStatus.Pending)
-                return Results.Conflict($"Run #{seqNo} ist bereits {run.Status}.");
-
-            run.Status = ExportRunStatus.Released;
-            run.OperatedBy = operatorName;
-            run.ApprovedBy = request.Approver;
-            run.ReleasedAt = DateTimeOffset.UtcNow.ToString("O");
-            await db.SaveChangesAsync();
-
-            await LogAuditAsync(db, operatorName, "export_released", $"#{seqNo} approved by {request.Approver}");
-
-            return Results.Ok();
-        }
-    )
-    .RequireAuthorization();
-
-/// <summary>
-/// Delivery acknowledgement. Closes the custody chain after the export file has been
-/// physically transferred to the vendor. Only valid for Released runs; idempotent per run.
-/// </summary>
-app.MapPost(
-        "/api/exports/{seqNo:int}/deliver",
-        async (int seqNo, DeliverRequest request, HttpContext httpContext, ExportLogDbContext db) =>
-        {
-            var run = await db.ExportRuns.FirstOrDefaultAsync(r => r.SequenceNo == seqNo);
-            if (run is null)
-                return Results.NotFound();
-            if (run.Status != ExportRunStatus.Released)
-                return Results.BadRequest("Only released runs can be marked as delivered.");
-            if (run.DeliveredAt is not null)
-                return Results.Conflict($"Run #{seqNo} has already been recorded as delivered.");
-            if (request.Notes?.Length > 2000)
-                return Results.BadRequest("Delivery notes cannot exceed 2,000 characters.");
-
-            run.DeliveredAt = DateTimeOffset.UtcNow.ToString("O");
-            run.DeliveredBy = httpContext.User.Identity!.Name!;
-            run.ImportedRecordCount = request.ImportedRecordCount;
-            run.DeliveryNotes = request.Notes;
-            await db.SaveChangesAsync();
-
-            await LogAuditAsync(db, httpContext.User.Identity!.Name!, "export_delivered", $"#{seqNo}");
-
-            return Results.Ok();
-        }
-    )
-    .RequireAuthorization();
-
-/// <summary>
-/// Marks a Pending or Failed run as Skipped so the sequence gap can be cleared.
-/// Use this when a run can never be released (e.g. export file lost, no ERP data at that time).
-/// </summary>
-app.MapPost(
-        "/api/exports/{seqNo:int}/skip",
-        async (int seqNo, SkipRequest request, HttpContext httpContext, ExportLogDbContext db) =>
-        {
-            var run = await db.ExportRuns.FirstOrDefaultAsync(r => r.SequenceNo == seqNo);
-            if (run is null)
-                return Results.NotFound();
-            if (run.Status is not (ExportRunStatus.Pending or ExportRunStatus.Failed))
-                return Results.Conflict($"Run #{seqNo} has status '{run.Status}' and cannot be skipped.");
-
-            run.Status = ExportRunStatus.Skipped;
-            await db.SaveChangesAsync();
-
-            var user = httpContext.User.Identity!.Name!;
-            var detail = string.IsNullOrWhiteSpace(request.Reason)
-                ? $"#{seqNo}"
-                : $"#{seqNo}: {request.Reason}";
-            await LogAuditAsync(db, user, "export_skipped", detail);
-
-            return Results.Ok();
-        }
-    )
-    .RequireAuthorization();
-
-// ── On-demand pipeline trigger ────────────────────────────────────────────────
-
-app.MapPost(
-        "/api/pipeline/run",
-        async (
-            string? format,
-            ExportLogDbContext db,
-            IExportSink sink,
-            ILogger<Program> logger,
-            CancellationToken ct
-        ) =>
-        {
-            var fmt = format?.ToLowerInvariant() switch
-            {
-                "csv" => "csv",
-                "json" => "json",
-                _ => "xlsx",
-            };
-
-            var sequenceNo = (await db.ExportRuns.MaxAsync(r => (int?)r.SequenceNo, ct) ?? 0) + 1;
-            var run = new ExportRunEntity
-            {
-                SequenceNo = sequenceNo,
-                ExtractedAt = DateTimeOffset.UtcNow.ToString("O"),
-                Status = ExportRunStatus.Pending,
-            };
-            db.ExportRuns.Add(run);
-            await db.SaveChangesAsync(ct);
-
-            var mappingSetting = await db.AppSettings.FindAsync("export_mapping");
-            if (mappingSetting is null)
-            {
-                run.Status = ExportRunStatus.Failed;
-                await db.SaveChangesAsync(ct);
-                return Results.Problem(
-                    detail: "No export mapping configured. Go to Step 3 and save an export mapping first.",
-                    statusCode: 400);
-            }
-            var config = JsonSerializer.Deserialize<ExportMappingConfig>(mappingSetting.Value)!;
-
-            var connSetting = await db.AppSettings.FindAsync("erp_connection");
-            if (connSetting is null)
-            {
-                run.Status = ExportRunStatus.Failed;
-                await db.SaveChangesAsync(ct);
-                return Results.Problem(
-                    detail: "No database connection configured. Go to Step 1 and save a connection first.",
-                    statusCode: 400);
-            }
-            var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connSetting.Value)!;
-
-            try
-            {
-                var cols = DynamicExportService.GetColumnNames(config);
-                var extractedAt = DateTimeOffset.UtcNow;
-                var gdprDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
-
-                await using var pgConn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(connCfg));
-                await pgConn.OpenAsync(ct);
-                var records = await DynamicExportService.ExecuteQueryAsync(pgConn, config, ct, gdprDenylist: gdprDenylist);
-
-                if (records.Count == 0)
-                {
-                    run.Status = ExportRunStatus.Failed;
-                    await db.SaveChangesAsync(ct);
-                    return Results.Problem(
-                        detail: "Export aborted: query returned 0 records. Check that your mapping includes the maintenance_plan scope predicate.",
-                        statusCode: 400);
-                }
-
-                byte[] bytes;
-                string fileName;
-                if (fmt == "csv")
-                {
-                    bytes = DynamicExportService.BuildCsvBytes(records, cols, ExportSchema.Version, extractedAt);
-                    fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "csv");
-                }
-                else if (fmt == "json")
-                {
-                    bytes = DynamicExportService.BuildJsonBytes(records, ExportSchema.Version, extractedAt);
-                    fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "json");
-                }
-                else
-                {
-                    bytes = DynamicExportService.BuildExcelBytes(records, cols, ExportSchema.Version, extractedAt);
-                    fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt);
-                }
-
-                var checksum = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
-                var package = new ExportPackage(
-                    new ExportManifest(sequenceNo, ExportSchema.Version, extractedAt, records.Count, checksum),
-                    bytes,
-                    fileName
-                );
-
-                await sink.WriteAsync(package, ct);
-
-                run.RecordCount = package.Manifest.RecordCount;
-                run.Sha256 = package.Manifest.Sha256Checksum;
-                run.DataFileName = package.DataFileName;
-                await db.SaveChangesAsync(ct);
-
-                logger.LogInformation(
-                    "Run Now: Export #{Seq} ({Fmt}) abgeschlossen, {Count} Records",
-                    sequenceNo,
-                    fmt,
-                    run.RecordCount
-                );
-
-                var sha256Short = run.Sha256.Length >= 12 ? run.Sha256[..12] : run.Sha256;
-                return Results.Ok(new RunNowResult(sequenceNo, run.RecordCount, sha256Short));
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                logger.LogError(ex, "Run Now: Export #{Seq} fehlgeschlagen", sequenceNo);
-                run.Status = ExportRunStatus.Failed;
-                await db.SaveChangesAsync(CancellationToken.None);
-                return Results.Problem(ex.Message, statusCode: 500);
-            }
-        }
-    )
-    .RequireAuthorization();
-
-// ── Export preview (read-only, no side effects) ────────────────────────────────
-
-app.MapGet(
-        "/api/pipeline/preview",
-        async (ExportLogDbContext db, CancellationToken ct) =>
-        {
-            var mappingConfigSetting = await db.AppSettings.FindAsync("export_mapping");
-            if (mappingConfigSetting is null)
-                return Results.Ok(new PreviewResult(0, ExportSchema.Version, [], [], "error", null,
-                    "No export mapping configured. Set it up in Step 3."));
-
-            var config = JsonSerializer.Deserialize<ExportMappingConfig>(mappingConfigSetting.Value)!;
-
-            var emptyResult = (string msg) => Results.Ok(
-                new PreviewResult(0, ExportSchema.Version, [], [], "error", config.SourceTable, msg));
-
-            var connSetting = await db.AppSettings.FindAsync("erp_connection");
-            if (connSetting is null)
-                return emptyResult("No database connection configured. Set it up in Step 1.");
-
-            var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connSetting.Value);
-            if (connCfg is null)
-                return emptyResult("Stored connection config could not be read.");
-
-            try
-            {
-                var gdprDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
-                await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(connCfg));
-                await conn.OpenAsync(ct);
-                var cols = DynamicExportService.GetColumnNames(config);
-                if (cols.Count == 0)
-                    return emptyResult("No columns are enabled in the export mapping. Enable at least one column in Step 3.");
-                var records = await DynamicExportService.ExecuteQueryAsync(conn, config, ct, limit: 50, gdprDenylist: gdprDenylist);
-                return Results.Ok(new PreviewResult(records.Count, ExportSchema.Version, cols, records, "dynamic", config.SourceTable));
-            }
-            catch (Exception ex)
-            {
-                return emptyResult($"Preview query failed: {ex.Message}");
-            }
-        }
-    )
-    .RequireAuthorization();
-
-// ── ERP demo database ─────────────────────────────────────────────────────────
-
-app.MapGet(
-        "/api/erp/records",
-        async (DemoErpDbContext erpDb, int? limit) =>
-        {
-            var cap = limit ?? 500;
-            var total = await erpDb.SystemConfigurations.CountAsync();
-
-            var configs = await erpDb
-                .SystemConfigurations.AsNoTracking()
-                .Include(sc => sc.Article)
-                .Include(sc => sc.MaintenancePlans)
-                .Include(sc => sc.ParentLinks)
-                    .ThenInclude(l => l.Parent)
-                .OrderBy(sc => sc.Id)
-                .Take(cap)
-                .ToListAsync();
-
-            var records = configs
-                .Select(sc =>
-                {
-                    var activePlan = sc.MaintenancePlans.FirstOrDefault(mp => mp.Status == "Active");
-                    var anyPlan = sc.MaintenancePlans.FirstOrDefault();
-                    bool inScope = activePlan != null;
-                    string? exclusionReason = null;
-                    if (!inScope)
-                        exclusionReason = sc.MaintenancePlans.Any()
-                            ? "Inactive maintenance plan"
-                            : "No maintenance plan";
-
-                    return new ErpCiRecord(
-                        Id: sc.Id,
-                        Serial: sc.Serial,
-                        Status: sc.Status,
-                        CommissionDate: sc.CommissionDate?.ToString("yyyy-MM-dd"),
-                        ArticleName: sc.Article?.ArticleName,
-                        PartNumber: sc.Article?.PartNumber,
-                        Manufacturer: sc.Article?.Manufacturer,
-                        MaintenancePlanStatus: activePlan?.Status ?? anyPlan?.Status,
-                        AllocationChartRef: activePlan?.AllocationChartRef ?? anyPlan?.AllocationChartRef,
-                        ParentId: sc.ParentLinks.FirstOrDefault()?.ParentId,
-                        ParentSerial: sc.ParentLinks.FirstOrDefault()?.Parent?.Serial,
-                        InScope: inScope,
-                        ExclusionReason: exclusionReason,
-                        TechnicianName: sc.TechnicianName,
-                        StorageLocation: sc.StorageLocation
-                    );
-                })
-                .ToList();
-
-            return Results.Ok(new ErpRecordsResult(records, total));
-        }
-    )
-    .RequireAuthorization();
-
-// ── Source database schema ────────────────────────────────────────────────────
-
-// Returns schema from the persisted Postgres connection when one is configured,
-// falling back to the hardcoded demo schema when none is stored or the connection fails.
-app.MapGet(
-        "/api/source-schema",
-        async (ExportLogDbContext db, CancellationToken ct) =>
-        {
-            var connSetting = await db.AppSettings.FindAsync("erp_connection");
-            if (connSetting is not null)
-            {
-                var cfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connSetting.Value);
-                if (cfg is not null)
-                {
-                    try
-                    {
-                        await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(cfg));
-                        await conn.OpenAsync(ct);
-                        var tables = await IntrospectSchemaAsync(conn, ct);
-                        return Results.Ok(new SourceSchemaDto($"{cfg.Host}:{cfg.Port}/{cfg.Database}", tables));
-                    }
-                    catch
-                    {
-                        // Fall through to demo schema if stored config is unreachable.
-                    }
-                }
-            }
-
-            return Results.Ok(DemoSourceSchema());
-        }
-    )
-    .RequireAuthorization();
-
-// ── Connection config ─────────────────────────────────────────────────────────
-
-// Returns the stored connection (host/port/db/user only — password never returned).
-app.MapGet(
-        "/api/connection",
-        async (ExportLogDbContext db) =>
-        {
-            var setting = await db.AppSettings.FindAsync("erp_connection");
-            if (setting is null)
-                return Results.NotFound();
-
-            var cfg = JsonSerializer.Deserialize<ErpConnectionConfig>(setting.Value);
-            if (cfg is null)
-                return Results.NotFound();
-
-            return Results.Ok(new ErpConnectionInfo(cfg.Host, cfg.Port, cfg.Database, cfg.Username));
-        }
-    )
-    .RequireAuthorization();
-
-// Tests the connection, persists it on success, and returns the live source schema.
-app.MapPost(
-        "/api/connection",
-        async (ErpConnectionConfig request, ExportLogDbContext db, CancellationToken ct) =>
-        {
-            if (
-                string.IsNullOrWhiteSpace(request.Host)
-                || string.IsNullOrWhiteSpace(request.Database)
-                || string.IsNullOrWhiteSpace(request.Username)
-            )
-                return Results.BadRequest("Host, Database, and Username are required.");
-
-            try
-            {
-                await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(request));
-                await conn.OpenAsync(ct);
-
-                var tables = await IntrospectSchemaAsync(conn, ct);
-
-                // Persist config (including password — stored server-side only, never in localStorage).
-                var serialized = JsonSerializer.Serialize(request);
-                var setting = await db.AppSettings.FindAsync("erp_connection");
-                if (setting is null)
-                    db.AppSettings.Add(new AppSettingEntity { Key = "erp_connection", Value = serialized });
-                else
-                    setting.Value = serialized;
-                await db.SaveChangesAsync();
-
-                return Results.Ok(new SourceSchemaDto($"{request.Host}:{request.Port}/{request.Database}", tables));
-            }
-            catch (Exception ex)
-            {
-                return Results.BadRequest($"Connection failed: {ex.Message}");
-            }
-        }
-    )
-    .RequireAuthorization();
-
-// ── Scheduler settings ────────────────────────────────────────────────────────
-
-// Returns the effective scheduler config: DB value if saved, else appsettings defaults.
-app.MapGet(
-        "/api/settings/scheduler",
-        async (ExportLogDbContext db, IOptions<ExportWorkerOptions> defaults) =>
-        {
-            var setting = await db.AppSettings.FindAsync("scheduler_config");
-            if (setting is not null)
-            {
-                var stored = JsonSerializer.Deserialize<SchedulerConfigData>(setting.Value);
-                if (stored is not null)
-                    return Results.Ok(stored);
-            }
-            return Results.Ok(new SchedulerConfigData(
-                defaults.Value.ScheduledTimeUtc.ToString(@"hh\:mm"),
-                defaults.Value.RetentionDays
-            ));
-        }
-    )
-    .RequireAuthorization();
-
-// Validates and persists the scheduler config. Takes effect on the worker's next sleep cycle.
-app.MapPut(
-        "/api/settings/scheduler",
-        async (SchedulerConfigData dto, ExportLogDbContext db, HttpContext httpContext) =>
-        {
-            if (!TimeSpan.TryParse(dto.ScheduledTimeUtc, System.Globalization.CultureInfo.InvariantCulture, out var ts) || ts < TimeSpan.Zero || ts >= TimeSpan.FromDays(1))
-                return Results.BadRequest("ScheduledTimeUtc must be a valid time in HH:mm format (00:00 – 23:59).");
-            if (dto.RetentionDays < 1 || dto.RetentionDays > 3650)
-                return Results.BadRequest("RetentionDays must be between 1 and 3650.");
-
-            var serialized = JsonSerializer.Serialize(dto);
-            var setting = await db.AppSettings.FindAsync("scheduler_config");
-            if (setting is null)
-                db.AppSettings.Add(new AppSettingEntity { Key = "scheduler_config", Value = serialized });
-            else
-                setting.Value = serialized;
-            await db.SaveChangesAsync();
-            await LogAuditAsync(db, httpContext.User.Identity!.Name!, "scheduler_updated", $"time={dto.ScheduledTimeUtc} retention={dto.RetentionDays}d");
-            return Results.Ok(dto);
-        }
-    )
-    .RequireAuthorization();
-
-// ── Export schema definition ───────────────────────────────────────────────────
-
-// Returns schema columns with the active flag read from persisted preferences (AppSetting key "active_columns").
-// Defaults to all columns active when no preference is stored.
-app.MapGet(
-        "/api/schema",
-        async (ExportLogDbContext db) =>
-        {
-            var activeSetting = await db.AppSettings.FindAsync("active_columns");
-            var activeSet = activeSetting is null
-                ? new HashSet<string>(ExportSchema.Columns)
-                : new HashSet<string>(JsonSerializer.Deserialize<string[]>(activeSetting.Value) ?? []);
-
-            var mappingSetting = await db.AppSettings.FindAsync("column_mappings");
-            var mapping = mappingSetting is null
-                ? new Dictionary<string, string>()
-                : JsonSerializer.Deserialize<Dictionary<string, string>>(mappingSetting.Value) ?? new();
-
-            string? ExportName(string n) => mapping.GetValueOrDefault(n);
-
-            var columns = new SchemaColumnDto[]
-            {
-                new(
-                    "guid",
-                    "systemconfiguration.id",
-                    "UUID text",
-                    "Coalesce key — stable PostgreSQL PK; never changes for the entity lifetime",
-                    activeSet.Contains("guid"),
-                    ExportName("guid")
-                ),
-                new(
-                    "serial_number",
-                    "systemconfiguration.serial",
-                    "Text (explicit)",
-                    "Physical unit identity; warranty lookups by humans. Not the coalesce key.",
-                    activeSet.Contains("serial_number"),
-                    ExportName("serial_number")
-                ),
-                new(
-                    "part_number",
-                    "masterdata.part_number",
-                    "Text (explicit)",
-                    "Model/part reference — explicit text to prevent numeric coercion",
-                    activeSet.Contains("part_number"),
-                    ExportName("part_number")
-                ),
-                new(
-                    "parent_serial_number",
-                    "articlestructure → systemconfiguration.serial",
-                    "Text (explicit)",
-                    "BOM parent reference; drives cmdb_rel_ci hierarchy on the vendor side",
-                    activeSet.Contains("parent_serial_number"),
-                    ExportName("parent_serial_number")
-                ),
-                new(
-                    "model_reference",
-                    "masterdata.article_name",
-                    "Text",
-                    "Human-readable model name; links to cmdb_model on the vendor side",
-                    activeSet.Contains("model_reference"),
-                    ExportName("model_reference")
-                ),
-                new(
-                    "commissioning_date",
-                    "systemconfiguration.commission_date",
-                    "ISO 8601 date",
-                    "Warranty start date (YYYY-MM-DD)",
-                    activeSet.Contains("commissioning_date"),
-                    ExportName("commissioning_date")
-                ),
-                new(
-                    "maintenance_state",
-                    "systemconfiguration.status",
-                    "Text (mapped enum)",
-                    "CI lifecycle state mapped to ServiceNow install_status values",
-                    activeSet.Contains("maintenance_state"),
-                    ExportName("maintenance_state")
-                ),
-            };
-            return Results.Ok(new SchemaDto(ExportSchema.Version, columns));
-        }
-    )
-    .RequireAuthorization();
-
-// Persists the active column set. Rejects unknown column names; allows partial sets.
-app.MapPatch(
-        "/api/schema/columns",
-        async (ColumnPatchRequest request, ExportLogDbContext db) =>
-        {
-            // Only accept column names that exist in the canonical schema.
-            var valid = request.Columns.Where(c => ExportSchema.Columns.Contains(c)).Distinct().ToArray();
-
-            var serialized = JsonSerializer.Serialize(valid);
-            var setting = await db.AppSettings.FindAsync("active_columns");
-            if (setting is null)
-                db.AppSettings.Add(new AppSettingEntity { Key = "active_columns", Value = serialized });
-            else
-                setting.Value = serialized;
-
-            await db.SaveChangesAsync();
-            return Results.Ok(valid);
-        }
-    )
-    .RequireAuthorization();
-
-// Persists per-column export name overrides. Keys not in the canonical schema are silently dropped.
-// An empty or whitespace value removes the override for that column (falls back to the source name).
-app.MapPatch(
-        "/api/schema/mappings",
-        async (MappingPatchRequest request, ExportLogDbContext db) =>
-        {
-            var valid = request.Mappings
-                .Where(kvp => ExportSchema.Columns.Contains(kvp.Key) && !string.IsNullOrWhiteSpace(kvp.Value))
-                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Trim());
-
-            var serialized = JsonSerializer.Serialize(valid);
-            var setting = await db.AppSettings.FindAsync("column_mappings");
-            if (setting is null)
-                db.AppSettings.Add(new AppSettingEntity { Key = "column_mappings", Value = serialized });
-            else
-                setting.Value = serialized;
-
-            await db.SaveChangesAsync();
-            return Results.Ok(valid);
-        }
-    )
-    .RequireAuthorization();
-
-// ── Dynamic export mapping config ─────────────────────────────────────────────
-
-// Returns the stored export mapping config (source table, fields, relations), or 404 if none saved.
-app.MapGet(
-        "/api/export-mapping",
-        async (ExportLogDbContext db) =>
-        {
-            var setting = await db.AppSettings.FindAsync("export_mapping");
-            if (setting is null) return Results.NotFound();
-            var config = JsonSerializer.Deserialize<ExportMappingConfig>(setting.Value);
-            return config is null ? Results.NotFound() : Results.Ok(config);
-        }
-    )
-    .RequireAuthorization();
-
-// Validates and persists a full export mapping config.
-app.MapPut(
-        "/api/export-mapping",
-        async (ExportMappingConfig config, ExportLogDbContext db, HttpContext httpContext) =>
-        {
-            if (string.IsNullOrWhiteSpace(config.SourceTable))
-                return Results.BadRequest("SourceTable is required.");
-
-            var badFields = config.Fields
-                .Where(f => f.Enabled && string.IsNullOrWhiteSpace(f.TargetName))
-                .Select(f => f.SourceName)
-                .ToList();
-            if (badFields.Count > 0)
-                return Results.BadRequest(
-                    $"Enabled fields must have non-empty target names: {string.Join(", ", badFields)}");
-
-            var activeDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
-            var gdprViolations = config.Fields
-                .Where(f => f.Enabled && activeDenylist.Contains(f.SourceName))
-                .Select(f => f.SourceName)
-                .ToList();
-            if (gdprViolations.Count > 0)
-                return Results.BadRequest(
-                    $"GDPR violation: the following fields are personal data and must not be exported " +
-                    $"(GDPR Art. 5(1)(c) — data minimisation): {string.Join(", ", gdprViolations)}");
-
-            var badRels = config.Relations
-                .Where(r => r.Enabled && (
-                    string.IsNullOrWhiteSpace(r.RelatedTable) ||
-                    string.IsNullOrWhiteSpace(r.JoinKey) ||
-                    string.IsNullOrWhiteSpace(r.SourceJoinKey) ||
-                    string.IsNullOrWhiteSpace(r.TargetField) ||
-                    string.IsNullOrWhiteSpace(r.StrategyOptions.SourceField)))
-                .ToList();
-            if (badRels.Count > 0)
-                return Results.BadRequest(
-                    "Enabled relations must specify RelatedTable, JoinKey, SourceJoinKey, TargetField, and SourceField.");
-
-            var serialized = JsonSerializer.Serialize(config);
-            var setting = await db.AppSettings.FindAsync("export_mapping");
-            if (setting is null)
-                db.AppSettings.Add(new AppSettingEntity { Key = "export_mapping", Value = serialized });
-            else
-                setting.Value = serialized;
-
-            await db.SaveChangesAsync();
-            await LogAuditAsync(db, httpContext.User.Identity!.Name!, "export_mapping_saved", $"table={config.SourceTable}");
-            return Results.Ok(config);
-        }
-    )
-    .RequireAuthorization();
-
-// ── Export mapping presets ────────────────────────────────────────────────────
-
-// Returns all saved presets as a name→config dictionary; {} when none exist.
-app.MapGet(
-        "/api/export-mapping/presets",
-        async (ExportLogDbContext db) =>
-        {
-            var setting = await db.AppSettings.FindAsync("export_presets");
-            if (setting is null)
-                return Results.Ok(new Dictionary<string, ExportMappingConfig>());
-            var presets = JsonSerializer.Deserialize<Dictionary<string, ExportMappingConfig>>(setting.Value)
-                          ?? new Dictionary<string, ExportMappingConfig>();
-            return Results.Ok(presets);
-        }
-    )
-    .RequireAuthorization();
-
-// Creates or updates a single named preset.
-app.MapPut(
-        "/api/export-mapping/presets/{name}",
-        async (string name, ExportMappingConfig config, ExportLogDbContext db, HttpContext httpContext) =>
-        {
-            if (string.IsNullOrWhiteSpace(name))
-                return Results.BadRequest("Preset name is required.");
-
-            if (string.IsNullOrWhiteSpace(config.SourceTable))
-                return Results.BadRequest("SourceTable is required.");
-
-            var badFields = config.Fields
-                .Where(f => f.Enabled && string.IsNullOrWhiteSpace(f.TargetName))
-                .Select(f => f.SourceName)
-                .ToList();
-            if (badFields.Count > 0)
-                return Results.BadRequest(
-                    $"Enabled fields must have non-empty target names: {string.Join(", ", badFields)}");
-
-            var presetDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
-            var gdprViolations = config.Fields
-                .Where(f => f.Enabled && presetDenylist.Contains(f.SourceName))
-                .Select(f => f.SourceName)
-                .ToList();
-            if (gdprViolations.Count > 0)
-                return Results.BadRequest(
-                    $"GDPR violation: the following fields are personal data and must not be exported " +
-                    $"(GDPR Art. 5(1)(c) — data minimisation): {string.Join(", ", gdprViolations)}");
-
-            var badRels = config.Relations
-                .Where(r => r.Enabled && (
-                    string.IsNullOrWhiteSpace(r.RelatedTable) ||
-                    string.IsNullOrWhiteSpace(r.JoinKey) ||
-                    string.IsNullOrWhiteSpace(r.SourceJoinKey) ||
-                    string.IsNullOrWhiteSpace(r.TargetField) ||
-                    string.IsNullOrWhiteSpace(r.StrategyOptions.SourceField)))
-                .ToList();
-            if (badRels.Count > 0)
-                return Results.BadRequest(
-                    "Enabled relations must specify RelatedTable, JoinKey, SourceJoinKey, TargetField, and SourceField.");
-
-            var setting = await db.AppSettings.FindAsync("export_presets");
-            var presets = setting is null
-                ? new Dictionary<string, ExportMappingConfig>()
-                : JsonSerializer.Deserialize<Dictionary<string, ExportMappingConfig>>(setting.Value)
-                  ?? new Dictionary<string, ExportMappingConfig>();
-
-            presets[name] = config;
-            var serialized = JsonSerializer.Serialize(presets);
-
-            if (setting is null)
-                db.AppSettings.Add(new AppSettingEntity { Key = "export_presets", Value = serialized });
-            else
-                setting.Value = serialized;
-
-            await db.SaveChangesAsync();
-            await LogAuditAsync(db, httpContext.User.Identity!.Name!, "preset_saved", name);
-            return Results.Ok(config);
-        }
-    )
-    .RequireAuthorization();
-
-// Deletes a single named preset. Returns 404 when the name does not exist.
-app.MapDelete(
-        "/api/export-mapping/presets/{name}",
-        async (string name, ExportLogDbContext db, HttpContext httpContext) =>
-        {
-            var setting = await db.AppSettings.FindAsync("export_presets");
-            if (setting is null)
-                return Results.NotFound();
-
-            var presets = JsonSerializer.Deserialize<Dictionary<string, ExportMappingConfig>>(setting.Value)
-                          ?? new Dictionary<string, ExportMappingConfig>();
-
-            if (!presets.Remove(name))
-                return Results.NotFound();
-
-            setting.Value = JsonSerializer.Serialize(presets);
-            await db.SaveChangesAsync();
-            await LogAuditAsync(db, httpContext.User.Identity!.Name!, "preset_deleted", name);
-            return Results.NoContent();
-        }
-    )
-    .RequireAuthorization();
-
-// ── GDPR denied fields ────────────────────────────────────────────────────────
-
-// Returns the currently active GDPR denylist (DB value if set, else defaults).
-app.MapGet(
-        "/api/gdpr-denied-fields",
-        async (ExportLogDbContext db) =>
-        {
-            var fields = await DynamicExportService.GetDeniedFieldsAsync(db);
-            return Results.Ok(new { fields = fields.ToArray() });
-        }
-    )
-    .RequireAuthorization();
-
-// Replaces the GDPR denylist. Validates and stores as JSON in AppSetting key gdpr_denied_fields.
-app.MapMethods(
-        "/api/gdpr-denied-fields",
-        ["PATCH"],
-        async (GdprDenylistRequest request, ExportLogDbContext db, HttpContext httpContext) =>
-        {
-            if (request.Fields is null || request.Fields.Count == 0)
-                return Results.BadRequest("At least one field is required.");
-            if (request.Fields.Any(f => string.IsNullOrWhiteSpace(f)))
-                return Results.BadRequest("Field names must not be empty or whitespace.");
-            if (request.Fields.Count > 50)
-                return Results.BadRequest("Maximum 50 fields allowed in the GDPR denylist.");
-
-            var serialized = JsonSerializer.Serialize(request.Fields);
-            var setting = await db.AppSettings.FindAsync("gdpr_denied_fields");
-            if (setting is null)
-                db.AppSettings.Add(new AppSettingEntity { Key = "gdpr_denied_fields", Value = serialized });
-            else
-                setting.Value = serialized;
-
-            await db.SaveChangesAsync();
-            await LogAuditAsync(db, httpContext.User.Identity!.Name!, "gdpr_denylist_updated", $"{request.Fields.Count} fields");
-            return Results.Ok(new { fields = request.Fields });
-        }
-    )
-    .RequireAuthorization();
-
-// ── Audit log ─────────────────────────────────────────────────────────────────
-
-// Returns the most recent N audit entries (default 100) ordered newest-first.
-app.MapGet(
-        "/api/audit",
-        async (ExportLogDbContext db, int? limit) =>
-        {
-            var cap = limit ?? 100;
-            var entries = await db.AuditLog
-                .OrderByDescending(a => a.Id)
-                .Take(cap)
-                .Select(a => new AuditEntryDto(a.Id, a.Timestamp, a.Username, a.Action, a.Detail))
-                .ToListAsync();
-            return Results.Ok(entries);
-        }
-    )
-    .RequireAuthorization();
-
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Endpoints ─────────────────────────────────────────────────────────────────
+
+app.MapHealthEndpoints();
+app.MapAuthEndpoints(userStore);
+app.MapExportEndpoints(userStore);
+app.MapPipelineEndpoints();
+app.MapSchemaEndpoints();
+app.MapConnectionEndpoints();
+app.MapSettingsEndpoints();
+app.MapExportMappingEndpoints();
+app.MapErpEndpoints();
 
 await app.RunAsync();
 
-// Introspects the public schema of an open Npgsql connection using information_schema views.
-async Task<SourceTableDto[]> IntrospectSchemaAsync(NpgsqlConnection conn, CancellationToken ct = default)
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+// Handles databases created via EnsureCreatedAsync before EF Core migrations were introduced.
+// If the core tables exist but __EFMigrationsHistory does not, we create the history table,
+// mark InitialSchema as already applied, and manually add any indexes that weren't in the
+// original EnsureCreatedAsync schema. MigrateAsync() is then a safe no-op for those databases.
+async Task BootstrapMigrationsAsync(ExportLogDbContext db)
 {
-    // Single query: columns with PK flag via a correlated EXISTS.
-    var sql = """
-        SELECT
-            c.table_name,
-            c.column_name,
-            c.data_type,
-            c.is_nullable,
-            EXISTS (
-                SELECT 1
-                FROM information_schema.table_constraints tc
-                JOIN information_schema.key_column_usage kcu
-                    ON kcu.constraint_name = tc.constraint_name
-                    AND kcu.table_schema  = tc.table_schema
-                    AND kcu.table_name    = tc.table_name
-                    AND kcu.column_name   = c.column_name
-                WHERE tc.constraint_type = 'PRIMARY KEY'
-                  AND tc.table_schema    = 'public'
-                  AND tc.table_name      = c.table_name
-            ) AS is_pk
-        FROM information_schema.columns c
-        WHERE c.table_schema = 'public'
-        ORDER BY c.table_name, c.ordinal_position
-        """;
+    var historyExists =
+        (await db.Database
+            .SqlQueryRaw<int>(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='__EFMigrationsHistory'"
+            )
+            .ToListAsync())[0] > 0;
 
-    await using var cmd = new NpgsqlCommand(sql, conn);
-    await using var reader = await cmd.ExecuteReaderAsync(ct);
+    if (historyExists)
+        return;
 
-    var byTable = new Dictionary<string, List<SourceColumnDto>>();
-    while (await reader.ReadAsync(ct))
-    {
-        var table = reader.GetString(0);
-        if (!byTable.ContainsKey(table))
-            byTable[table] = [];
-        byTable[table]
-            .Add(
-                new SourceColumnDto(
-                    Name: reader.GetString(1),
-                    Type: reader.GetString(2),
-                    Nullable: reader.GetString(3) == "YES",
-                    PrimaryKey: reader.GetBoolean(4)
-                )
-            );
-    }
+    var tablesExist =
+        (await db.Database
+            .SqlQueryRaw<int>(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='ExportRun'"
+            )
+            .ToListAsync())[0] > 0;
 
-    return byTable.Select(kv => new SourceTableDto(kv.Key, "", kv.Value.ToArray())).OrderBy(t => t.Name).ToArray();
-}
+    if (!tablesExist)
+        return; // fresh install — MigrateAsync creates everything
 
-// Hardcoded demo schema that mirrors what a real production PostgreSQL ERP database would expose.
-SourceSchemaDto DemoSourceSchema() =>
-    new(
-        "demo-erp (SQLite in dev · PostgreSQL in prod)",
-        new SourceTableDto[]
-        {
-            new(
-                "systemconfiguration",
-                "Installed CI instances — one row per physical unit",
-                new SourceColumnDto[]
-                {
-                    new("id", "uuid", Nullable: false, PrimaryKey: true),
-                    new("serial", "character varying(100)", Nullable: true, PrimaryKey: false),
-                    new("article_id", "uuid", Nullable: true, PrimaryKey: false),
-                    new("status", "character varying(50)", Nullable: true, PrimaryKey: false),
-                    new("commission_date", "date", Nullable: true, PrimaryKey: false),
-                    new("technician_name", "character varying(100)", Nullable: true, PrimaryKey: false),
-                    new("storage_location", "character varying(200)", Nullable: true, PrimaryKey: false),
-                }
-            ),
-            new(
-                "masterdata",
-                "Article/model master records — one row per model type",
-                new SourceColumnDto[]
-                {
-                    new("id", "uuid", Nullable: false, PrimaryKey: true),
-                    new("article_name", "character varying(200)", Nullable: true, PrimaryKey: false),
-                    new("part_number", "character varying(100)", Nullable: true, PrimaryKey: false),
-                    new("manufacturer", "character varying(100)", Nullable: true, PrimaryKey: false),
-                }
-            ),
-            new(
-                "maintenance_plan",
-                "Maintenance plan assignments — drives scope filter",
-                new SourceColumnDto[]
-                {
-                    new("id", "uuid", Nullable: false, PrimaryKey: true),
-                    new("system_configuration_id", "uuid", Nullable: false, PrimaryKey: false),
-                    new("status", "character varying(50)", Nullable: false, PrimaryKey: false),
-                    new("allocation_chart_ref", "character varying(100)", Nullable: true, PrimaryKey: false),
-                }
-            ),
-            new(
-                "articlestructure",
-                "BOM parent–child relationships",
-                new SourceColumnDto[]
-                {
-                    new("id", "uuid", Nullable: false, PrimaryKey: true),
-                    new("parent_id", "uuid", Nullable: true, PrimaryKey: false),
-                    new("child_id", "uuid", Nullable: true, PrimaryKey: false),
-                }
-            ),
-        }
+    // Pre-migration database: create history table and stamp the initial migration as applied.
+    await db.Database.ExecuteSqlRawAsync(
+        """
+        CREATE TABLE "__EFMigrationsHistory" (
+            "MigrationId" TEXT NOT NULL CONSTRAINT "PK___EFMigrationsHistory" PRIMARY KEY,
+            "ProductVersion" TEXT NOT NULL
+        )
+        """
     );
-
-// ── DTOs ──────────────────────────────────────────────────────────────────────
-
-namespace Connector.Api
-{
-    record ExportRunSummary(
-        int SequenceNo,
-        string ExtractedAt,
-        int RecordCount,
-        string Sha256Short,
-        string Status,
-        string DataFileName,
-        bool IsStale
+    await db.Database.ExecuteSqlRawAsync(
+        "INSERT INTO \"__EFMigrationsHistory\" VALUES ('20260701083054_InitialSchema', '9.0.6')"
     );
-
-    /// <summary>
-    /// Full export run detail. SequenceGapWarning is non-null when a Pending run has a gap
-    /// relative to the last released run — operators should investigate before releasing.
-    /// Delivery fields are null until the physical handover is recorded via POST …/deliver.
-    /// </summary>
-    record ExportDetailDto(
-        int Id,
-        int SequenceNo,
-        string ExtractedAt,
-        int RecordCount,
-        string Sha256,
-        string Status,
-        string? ReleasedAt,
-        string? OperatedBy,
-        string? ApprovedBy,
-        string DataFileName,
-        string? DeliveredAt,
-        string? DeliveredBy,
-        int? ImportedRecordCount,
-        string? DeliveryNotes,
-        string? SequenceGapWarning
+    // Add the AuditLog Timestamp index — new in InitialSchema, absent from pre-migration databases.
+    await db.Database.ExecuteSqlRawAsync(
+        "CREATE INDEX IF NOT EXISTS \"IX_AuditLog_Timestamp\" ON \"AuditLog\" (\"Timestamp\")"
     );
-
-    /// <summary>Operator is taken from the JWT; only the approver name is supplied in the body.</summary>
-    record ReleaseRequest(string Approver);
-
-    /// <summary>Body for POST …/deliver. ImportedRecordCount and Notes are optional confirmation data.</summary>
-    record DeliverRequest(int? ImportedRecordCount, string? Notes);
-
-    /// <summary>Body for PATCH /api/schema/columns. Columns not in ExportSchema.Columns are silently ignored.</summary>
-    record ColumnPatchRequest(string[] Columns);
-
-    /// <summary>Body for PATCH /api/schema/mappings. Keys not in ExportSchema.Columns are silently ignored. Empty/whitespace values remove the override.</summary>
-    record MappingPatchRequest(Dictionary<string, string> Mappings);
-
-    record LoginRequest(string Username, string Password);
-
-    record LoginResponse(string Token, string Username);
-
-    record HashRequest(string Password);
-
-    record ErpRecordsResult(IReadOnlyList<ErpCiRecord> Records, int Total);
-
-    record ErpCiRecord(
-        string Id,
-        string? Serial,
-        string? Status,
-        string? CommissionDate,
-        string? ArticleName,
-        string? PartNumber,
-        string? Manufacturer,
-        string? MaintenancePlanStatus,
-        string? AllocationChartRef,
-        string? ParentId,
-        string? ParentSerial,
-        bool InScope,
-        string? ExclusionReason,
-        string? TechnicianName,
-        string? StorageLocation
-    );
-
-    record SchemaColumnDto(string Name, string ErpSource, string Type, string Notes, bool Active, string? ExportName);
-
-    record SchemaDto(string Version, SchemaColumnDto[] Columns);
-
-    record SourceColumnDto(string Name, string Type, bool Nullable, bool PrimaryKey);
-
-    record SourceTableDto(string Name, string Description, SourceColumnDto[] Columns);
-
-    record SourceSchemaDto(string ConnectionLabel, SourceTableDto[] Tables);
-
-    record RunNowResult(int SequenceNo, int RecordCount, string Sha256Short);
-
-    record PreviewResult(
-        int RecordCount,
-        string SchemaVersion,
-        IReadOnlyList<string> Columns,
-        IList<Dictionary<string, string>> Records,
-        string Source = "demo",
-        string? SourceTable = null,
-        string? Error = null
-    );
-
-    /// <summary>Public view of the stored connection — no password field.</summary>
-    record ErpConnectionInfo(string Host, int Port, string Database, string Username);
-
-    /// <summary>Body for POST /api/exports/{seqNo}/skip. Reason is stored in the audit log.</summary>
-    record SkipRequest(string? Reason);
-
-    /// <summary>Body for PATCH /api/gdpr-denied-fields.</summary>
-    record GdprDenylistRequest(List<string> Fields);
-
-    /// <summary>Single row returned by GET /api/audit.</summary>
-    record AuditEntryDto(int Id, string Timestamp, string Username, string Action, string? Detail);
 }

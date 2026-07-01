@@ -11,6 +11,7 @@ import SettingsView from '../views/SettingsView.vue'
 import ErpDatabaseView from '../views/ErpDatabaseView.vue'
 import IcdSchemaView from '../views/IcdSchemaView.vue'
 import AuditView from '../views/AuditView.vue'
+import NotFoundView from '../views/NotFoundView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -30,6 +31,8 @@ const router = createRouter({
     { path: '/schema', redirect: '/export-schema' },
     { path: '/erp', redirect: '/erp-database' },
     { path: '/pipeline', redirect: '/exports' },
+    // catch-all — must be last
+    { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView },
   ],
 })
 

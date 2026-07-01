@@ -32,13 +32,13 @@ public sealed class ExportWorker(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        logger.LogInformation("ExportWorker gestartet. Geplante Zeit: {Time}", options.Value.ScheduledTimeUtc);
+        logger.LogInformation("ExportWorker started. Scheduled time: {Time}", options.Value.ScheduledTimeUtc);
 
         while (!stoppingToken.IsCancellationRequested)
         {
             var (scheduledTime, retentionDays) = await GetEffectiveOptionsAsync(stoppingToken);
             var delay = ComputeDelayUntilNextRun(scheduledTime);
-            logger.LogInformation("Nächster Export in {Delay:hh\\:mm\\:ss}", delay);
+            logger.LogInformation("Next export in {Delay:hh\\:mm\\:ss}", delay);
 
             await Task.Delay(delay, stoppingToken);
 
@@ -68,7 +68,7 @@ public sealed class ExportWorker(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogWarning(ex, "Scheduler-Konfiguration konnte nicht aus der Datenbank gelesen werden; Standardwerte werden verwendet.");
+            logger.LogWarning(ex, "Failed to read scheduler config from database; using defaults.");
         }
 
         return (options.Value.ScheduledTimeUtc, options.Value.RetentionDays);
@@ -78,6 +78,7 @@ public sealed class ExportWorker(
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<ExportLogDbContext>();
+        var audit = scope.ServiceProvider.GetRequiredService<AuditService>();
 
         var sequenceNo = await NextSequenceNumberAsync(db, ct);
         var run = new ExportRunEntity
@@ -91,14 +92,16 @@ public sealed class ExportWorker(
 
         try
         {
-            logger.LogInformation("Export #{Seq} gestartet", sequenceNo);
+            logger.LogInformation("Export #{Seq} started", sequenceNo);
+            await audit.LogAsync("scheduler", "export_started", $"#{sequenceNo}");
 
             var mappingSetting = await db.AppSettings.FindAsync("export_mapping");
             if (mappingSetting is null)
             {
-                logger.LogError("Export #{Seq}: kein export_mapping konfiguriert — Export abgebrochen", sequenceNo);
+                logger.LogError("Export #{Seq}: no export_mapping configured — aborting", sequenceNo);
                 run.Status = ExportRunStatus.Failed;
                 await db.SaveChangesAsync(ct);
+                await audit.LogAsync("scheduler", "export_failed", $"#{sequenceNo}: no export_mapping");
                 return;
             }
             var config = JsonSerializer.Deserialize<ExportMappingConfig>(mappingSetting.Value)!;
@@ -106,9 +109,10 @@ public sealed class ExportWorker(
             var connSetting = await db.AppSettings.FindAsync("erp_connection");
             if (connSetting is null)
             {
-                logger.LogError("Export #{Seq}: keine erp_connection konfiguriert — Export abgebrochen", sequenceNo);
+                logger.LogError("Export #{Seq}: no erp_connection configured — aborting", sequenceNo);
                 run.Status = ExportRunStatus.Failed;
                 await db.SaveChangesAsync(ct);
+                await audit.LogAsync("scheduler", "export_failed", $"#{sequenceNo}: no erp_connection");
                 return;
             }
             var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connSetting.Value)!;
@@ -124,11 +128,12 @@ public sealed class ExportWorker(
             if (records.Count == 0)
             {
                 logger.LogError(
-                    "Export #{Seq}: Abgebrochen — 0 Records zurückgegeben. " +
-                    "Mögliche Ursachen: Wartungsplan-Prädikat fehlt im Mapping, ERP-Abfrage-Fehler, oder leere Tabelle.",
+                    "Export #{Seq}: aborted — query returned 0 records. " +
+                    "Possible causes: missing maintenance-plan predicate in mapping, ERP query error, or empty table.",
                     sequenceNo);
                 run.Status = ExportRunStatus.Failed;
                 await db.SaveChangesAsync(ct);
+                await audit.LogAsync("scheduler", "export_failed", $"#{sequenceNo}: 0 records");
                 return;
             }
 
@@ -150,17 +155,23 @@ public sealed class ExportWorker(
             await db.SaveChangesAsync(ct);
 
             logger.LogInformation(
-                "Export #{Seq} abgeschlossen: {Count} Records, SHA-256={Hash}",
+                "Export #{Seq} completed: {Count} records, SHA-256={Hash}",
                 sequenceNo,
                 package.Manifest.RecordCount,
                 package.Manifest.Sha256Checksum
             );
+            await audit.LogAsync(
+                "scheduler",
+                "export_completed",
+                $"#{sequenceNo} records={package.Manifest.RecordCount}"
+            );
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogError(ex, "Export #{Seq} fehlgeschlagen", sequenceNo);
+            logger.LogError(ex, "Export #{Seq} failed", sequenceNo);
             run.Status = ExportRunStatus.Failed;
             await db.SaveChangesAsync(CancellationToken.None);
+            await audit.LogAsync("scheduler", "export_failed", $"#{sequenceNo}: {ex.Message}");
         }
     }
 
@@ -177,7 +188,7 @@ public sealed class ExportWorker(
 
         var cutoff = DateTimeOffset.UtcNow.AddDays(-retentionDays);
         logger.LogInformation(
-            "Retention: Bereinige Artefakte älter als {Cutoff:yyyy-MM-dd} (RetentionDays={Days})",
+            "Retention: purging artifacts older than {Cutoff:yyyy-MM-dd} (RetentionDays={Days})",
             cutoff,
             retentionDays
         );
@@ -192,7 +203,7 @@ public sealed class ExportWorker(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogError(ex, "Retention-Bereinigung fehlgeschlagen");
+            logger.LogError(ex, "Retention cleanup failed");
         }
     }
 
@@ -214,12 +225,12 @@ public sealed class ExportWorker(
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Retention: Datei konnte nicht gelöscht werden: {File}", file);
+                logger.LogWarning(ex, "Retention: could not delete file: {File}", file);
             }
         }
 
         if (deleted > 0)
-            logger.LogInformation("Retention: {Count} Staging-Dateien gelöscht", deleted);
+            logger.LogInformation("Retention: {Count} staging files deleted", deleted);
     }
 
     private async Task PurgeExportRunRecordsAsync(ExportLogDbContext db, DateTimeOffset cutoff, CancellationToken ct)
@@ -242,7 +253,7 @@ public sealed class ExportWorker(
         {
             db.ExportRuns.RemoveRange(toDelete);
             await db.SaveChangesAsync(ct);
-            logger.LogInformation("Retention: {Count} ExportRun-Einträge gelöscht", toDelete.Count);
+            logger.LogInformation("Retention: {Count} export run records deleted", toDelete.Count);
         }
     }
 

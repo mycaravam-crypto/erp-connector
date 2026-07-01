@@ -3,14 +3,11 @@ using Microsoft.EntityFrameworkCore;
 namespace Connector.Infrastructure;
 
 /// <summary>
-/// EF Core DbContext für das Export-Log (SQLite).
-/// Tabellen: ExportRun (eine Zeile pro Run), AppSetting (Key/Value-Store für Konfiguration).
+/// EF Core DbContext for the export log (SQLite).
+/// Tables: ExportRun, AppSetting (key/value config store), AuditLog.
+/// Schema is managed via EF Core migrations in Connector.Infrastructure/Migrations/.
+/// Startup calls Database.MigrateAsync() — add new changes via <c>dotnet ef migrations add</c>.
 /// </summary>
-/// <remarks>
-/// Migrations werden nicht automatisch beim Start angewendet.
-/// Additive Schemaänderungen werden beim Start über ExecuteSqlRawAsync eingespielt
-/// (ALTER TABLE ADD COLUMN IF NOT EXISTS / CREATE TABLE IF NOT EXISTS).
-/// </remarks>
 public sealed class ExportLogDbContext(DbContextOptions<ExportLogDbContext> options) : DbContext(options)
 {
     public DbSet<ExportRunEntity> ExportRuns => Set<ExportRunEntity>();
@@ -41,6 +38,7 @@ public sealed class ExportLogDbContext(DbContextOptions<ExportLogDbContext> opti
         {
             e.ToTable("AuditLog");
             e.HasKey(a => a.Id);
+            e.HasIndex(a => a.Timestamp);
         });
     }
 }
