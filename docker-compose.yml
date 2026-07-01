@@ -7,12 +7,27 @@ services:
       - "8080:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      # Override Auth:JwtSecret via env var — never commit a real secret
+
+      # ── Required: generate with `openssl rand -base64 32` ────────────────────
       Auth__JwtSecret: "REPLACE_WITH_SECURE_SECRET_MINIMUM_32_CHARS"
+
+      # ── Required: production users with BCrypt hashes ─────────────────────────
+      # Generate hashes by running the app in Development and calling:
+      #   POST /api/auth/hash   {"password": "your-password"}
+      Auth__Users__0__Username: "alice"
+      Auth__Users__0__PasswordHash: "REPLACE_WITH_BCRYPT_HASH"
+      Auth__Users__1__Username: "bob"
+      Auth__Users__1__PasswordHash: "REPLACE_WITH_BCRYPT_HASH"
+
+      # ── Storage paths (match the volume mounts below) ─────────────────────────
       ConnectionStrings__ExportLog: "Data Source=/data/db/export_log.db"
       ConnectionStrings__DemoErp: "Data Source=/data/db/demo_erp.db"
       ExportSink__StagingPath: "/data/staging"
-      # AllowedOrigins__0: "https://your-frontend-domain.com"
+
+      # ── Optional overrides ────────────────────────────────────────────────────
+      # ExportWorker__ScheduledTimeUtc: "02:00"
+      # ExportWorker__RetentionDays: "30"
+      # AllowedOrigins__0: "https://your-domain.com"
     volumes:
       - connector-db:/data/db
       - connector-staging:/data/staging
