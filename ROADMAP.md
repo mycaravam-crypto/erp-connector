@@ -1,172 +1,127 @@
-# Connector — Implementation Roadmap
+# Connector — Changelog
 
-Tracks progress against the AI Coding Agent Roadmap (session-persistent).  
-Last updated: 2026-07-01 (session 4)
+Last updated: 2026-07-01
 
 ---
 
-## Status Key
+## Phase 9 — Production hardening ✅
 
-| Symbol | Meaning |
+| Item | Notes |
 |---|---|
-| ✅ | Done and verified |
-| 🔄 | In progress (current session) |
-| ❌ | Not yet started |
-| ⚠️ | Done but needs fix |
-
----
-
-## Phase 0 — Document Reconciliation ✅
-
-| Task | Status | Notes |
-|---|---|---|
-| 0.1 Fix Correlation Key (Section 5.3) | ✅ | GUID is coalesce key; serial no longer blocks export |
-| 0.2 Update Scope Predicate (IErpReader doc) | ✅ | Maintenance-plan predicate explicit in interface doc |
-| 0.3 Sync Open Points (Section 10) | ✅ | 8 items, #1 and #2 resolved; retention worker noted |
-
-File: `../connector_document/TECHNICAL_CONCEPT.md`
-
----
-
-## Phase 1 — Solution Setup & Domain Contracts
-
-| Task | Status | Notes |
-|---|---|---|
-| 1.1 Project scaffolding | ✅ | All 5 projects + strict dependency rules |
-| 1.2 Domain models | ✅ | `Guid` added to `ErpConfigurationItem`, `ExportItem`, `MappedExportRecord` |
-| 1.3 Pipeline interfaces | ✅ | All 6 interfaces with XML docs |
-
----
-
-## Phase 2 — Pipeline Implementation
-
-| Task | Status | Notes |
-|---|---|---|
-| 2.1 ExportFilter | ✅ | Blocks on missing GUID; missing serial allowed |
-| 2.2 DataMinimizer | ✅ | Passes `Guid` through; `SerialNumber` nullable |
-| 2.3 SchemaMapper | ✅ | Throws `InvalidCorrelationKeyException` on empty GUID; maps Guid field |
-
----
-
-## Phase 3 — Infrastructure, I/O & Orchestration
-
-| Task | Status | Notes |
-|---|---|---|
-| 3.1 ExcelPackager | ✅ | `guid` written as first column; all columns shifted |
-| 3.2 SQLite Export Log | ✅ | `ExportRun` table with all required fields |
-| 3.3 ExportWorker | ✅ | BackgroundService with PeriodicTimer, try/catch, Failed status |
-| 3.4 Data Retention Cleanup | ✅ | Daily purge of staging files + Released/Failed log rows; configurable `RetentionDays` |
-
----
-
-## Phase 4 — Release API & Frontend
-
-| Task | Status | Notes |
-|---|---|---|
-| 4.1 ASP.NET Minimal API | ✅ | GET /api/exports, GET /api/exports/{seqNo}, POST /api/exports/{seqNo}/release |
-| 4.2 Vue.js UI scaffolding | ✅ | Vite + Vue 3 + TypeScript; proxy to :5189 |
-| 4.3 ExportList view | ✅ | Traffic-light status badges |
-| 4.4 4-Eyes Release Dialog | ✅ | Operator ≠ Approver enforced client + server side |
-| 4.5 ERP database API | ✅ | GET /api/erp/records — all CIs with scope flags, BOM links, excluded fields surfaced |
-| 4.6 Schema API | ✅ | GET /api/schema — schema version + full column mapping definitions |
-| 4.7 Navigation bar | ✅ | App header nav: Export Runs · ERP Database · Export Schema with active-link highlighting |
-| 4.8 ERP Database view | ✅ | BOM tree (expand/collapse) · flat list with search + column sort · per-row detail panel showing excluded fields with GDPR / Open Point #4 tags |
-| 4.9 Export Schema view | ✅ | Schema version badge · active column mapping table · pending fields section · coalesce key explanation — **read-only; schema is hardcoded in Program.cs** |
-| 4.10 Workflow-based UI restructure | ✅ | Nav replaced with 4-step flow: Connect → Source Schema → Export Schema → Export; step badges + numbered circles in header |
-| 4.11 ConnectionView (Step 1) | ✅ | Form for Postgres host/port/db/user/password; Test Connection button calls `/api/source-schema`; config persisted to `localStorage` |
-| 4.12 SourceSchemaView (Step 2) | ✅ | Expandable table/column browser; calls `/api/source-schema`; shows type, nullable, PK per column |
-| 4.13 `/api/source-schema` endpoint | ✅ | Returns all 4 ERP tables with column types — mirrors what a production PostgreSQL reader would expose |
-| 4.14 Export Schema column toggles (Step 3) | ✅ | Checkboxes enable/disable columns; active count badge updates live; format picker (xlsx/csv/json) saved to `localStorage` |
-| 4.15 ExportView — merged Step 4 | ✅ | Format picker + Run Export button + preview table + export run history in one view |
-| 4.16 Multi-format export (csv/json) | ✅ | `POST /api/pipeline/run?format=xlsx\|csv\|json`; CSV and JSON built inline; `BuildManifestFileName` fixed to handle non-xlsx extensions |
-
----
-
-## Phase 5 — Tests
-
-| Task | Status | Notes |
-|---|---|---|
-| 5.1 Unit tests — DataMinimizer | ✅ | GUID in `MakeItem`; `Minimize_PreservesGuid` added |
-| 5.2 Unit tests — 4-Eyes Release | ✅ | Operator == Approver → 400 |
-| 5.3 Format hazard tests | ✅ | `Map_EmptyGuid_Throws…`; `Map_GuidPreservedAsString`; `Map_NullSerial_ReturnsEmptyString` |
-
-Integration tests: ✅
-- Schema version `2.0` asserted
-- `FullPipeline_Guid_MatchesErpId` added
-- `ExportSchemaTests` snapshot updated (7 columns incl. `guid`)
-
-Frontend tests (Vitest): ✅ 51/51 passing
-- `erp-api.test.ts` — `listErpRecords`, `getSchema` API wrappers
-- `ErpDatabaseView.test.ts` — BOM tree, expand/collapse, search, scope filter, detail panel (20 tests)
-- `SchemaView.test.ts` — version badge, column table, pending fields, coalesce note (8 tests)
-
----
-
-## Phase 6 — Operational Enhancements ✅
-
-Goal: close the loop between export and vendor import; make the daily workflow safer and more observable.
-YAGNI constraint: no premature abstraction; each item is the minimum that delivers value.
-
-| Task | Status | Notes |
-|---|---|---|
-| 6.1 Health check endpoint | ✅ | `GET /api/health` — ERP DB, log DB, staging writability; no auth |
-| 6.2 Stale pending indicator | ✅ | `IsStale` on `ExportRunSummary`; ExportView shows callout when Pending > 24h |
-| 6.3 Sequence gap detection | ✅ | `GET /api/exports/{seqNo}` returns `SequenceGapWarning`; ExportDetail shows banner |
-| 6.4 Delivery acknowledgement | ✅ | `POST /api/exports/{seqNo}/deliver`; delivery fields on `ExportRunEntity`; closes custody chain |
-| 6.5 Schema column persistence | ✅ | `AppSetting` table; `PATCH /api/schema/columns`; SchemaView toggles now saved server-side |
-| 6.6 Connection config backend | ✅ | `GET`+`POST /api/connection`; Npgsql introspects live schema; `GET /api/source-schema` falls back to demo when absent |
-
----
-
-## Phase 7 — Requirements gap closure ✅
-
-Goal: close all gaps identified by requirements audit against `connector_document`. Skipped GAP 1 (maintenance plan predicate enforcement — deferred to Iteration 2 ICD work).
-
-| Task | Status | Notes |
-|---|---|---|
-| 7.1 Zero-count abort | ✅ | Scheduled worker + on-demand handler mark run `Failed` and abort when query returns 0 records |
-| 7.2 ISO 8601 date coercion | ✅ | `DynamicExportService` now explicitly formats `date`/`timestamp`/`timestamptz` as `yyyy-MM-dd` |
-| 7.3 GDPR field denylist | ✅ | `GdprDeniedFields` set enforced at mapping-save validation (400 on violation) and stripped in query results as defence-in-depth |
-| 7.4 ICD Schema view (read-only) | ✅ | `IcdSchemaView.vue` at `/icd-schema` — version badge, 7 ICD columns, excluded-fields section, coalesce key explanation |
-| 7.5 ERP Database CI browser | ✅ | `ErpDatabaseView.vue` at `/erp-database` — BOM tree (expand/collapse), flat list on search/filter, scope filter, per-row detail panel with GDPR/Open Point #4 tags |
-
-### Not in scope (Iteration 2)
-
-| Item | Reason deferred |
-|---|---|
-| Maintenance plan predicate enforcement (GAP 1) | Requires ICD to specify the predicate formally; enforcing it at mapping-save is too fragile without a known table schema |
-| Delta/incremental export | Requires ERP change-tracking and return channel (Open Point #5, #6) |
+| EF Core migrations | Replaced startup DDL; `MigrateAsync()` + bootstrap for pre-migration databases |
+| Program.cs split | 9 endpoint modules; `Dtos.cs`; Program.cs reduced to ~170-line startup file |
+| Serilog | Structured JSON in production; readable console in dev; bootstrap logger |
+| Docker | Multi-stage build (node → sdk → aspnet); non-root user; named volumes; docker-compose |
+| Security headers | CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy; HSTS in production |
+| AuditService | Scoped service; non-fatal writes; wired to all state-changing endpoints and ExportWorker |
+| 404 catch-all | `NotFoundView.vue`; Vue Router catch-all route |
+| Playwright E2E | `login.spec.ts`, `navigation.spec.ts`, `audit.spec.ts`; Vitest exclude configured |
 
 ---
 
 ## Phase 8 — UX hardening, compliance depth & gap recovery ✅
 
-Goal: close UX rough edges, move GDPR denylist to runtime config, add audit trail, and add Skipped run status for gap recovery.
-
-| Task | Status | Notes |
-|---|---|---|
-| 8.1 Preview count clarity | ✅ | Header shows `50+` when at cap; truncation note clearly says "preview cap, not export total" |
-| 8.2 DeliveryNotes max-length | ✅ | API rejects Notes > 2,000 chars (400); UI textarea has `maxlength` + live character counter |
-| 8.3 SettingsView range hint | ✅ | Retention days field shows "1–3,650 days" hint; validates 1–3,650 server-side |
-| 8.4 Excel date columns | ✅ | `BuildExcelBytes` auto-detects ISO dates, writes as Excel DateTime with `yyyy-mm-dd` format; non-date columns forced to text |
-| 8.5 Route guards | ✅ | `source-schema` and `export-schema` routes redirect to `/connect?notice=needs-connection`; connection cache invalidated on save |
-| 8.6 ERP pagination cap | ✅ | `GET /api/erp/records` returns `{records, total}`; default cap 500; UI shows "Showing N of M" banner when truncated |
-| 8.7 GDPR denylist as runtime config | ✅ | `GET`/`PATCH /api/gdpr-denied-fields`; stored in `AppSetting`; fallback to hardcoded defaults; SettingsView tag-pill editor |
-| 8.8 Audit log | ✅ | `AuditLog` table; `LogAuditAsync` (non-fatal); wired to 8 endpoints; `GET /api/audit`; `AuditView.vue` at `/audit` |
-| 8.9 Skipped run status | ✅ | `ExportRunStatus.Skipped`; `POST /api/exports/{seqNo}/skip` (Pending/Failed only; reason in audit log); gap detection treats Skipped as resolved; ExportDetail skip form; StatusBadge neutral grey |
+| Item | Notes |
+|---|---|
+| Preview count clarity | Header shows `50+` when at cap; truncation note clearly says "preview cap, not export total" |
+| DeliveryNotes max-length | API rejects Notes > 2,000 chars (400); UI textarea has `maxlength` + live character counter |
+| SettingsView range hint | Retention days field shows "1–3,650 days" hint; validates 1–3,650 server-side |
+| Excel date columns | `BuildExcelBytes` auto-detects ISO dates, writes as Excel DateTime with `yyyy-mm-dd` format |
+| Route guards | `source-schema` and `export-schema` routes redirect to `/connect?notice=needs-connection` |
+| ERP pagination cap | `GET /api/erp/records` returns `{records, total}`; default cap 500; UI shows "Showing N of M" |
+| GDPR denylist as runtime config | `GET`/`PATCH /api/gdpr-denied-fields`; stored in `AppSetting`; SettingsView tag-pill editor |
+| Audit log | `AuditLog` table; non-fatal writes; wired to 8 endpoints; `GET /api/audit`; `AuditView.vue` |
+| Skipped run status | `ExportRunStatus.Skipped`; `POST /api/exports/{seqNo}/skip`; gap detection treats Skipped as resolved |
 
 ---
 
-## Remaining Work
+## Phase 7 — Requirements gap closure ✅
 
-56 .NET tests · 187 Vitest tests — all passing.
+| Item | Notes |
+|---|---|
+| Zero-count abort | Scheduled worker + on-demand handler mark run `Failed` when query returns 0 records |
+| ISO 8601 date coercion | `DynamicExportService` formats `date`/`timestamp`/`timestamptz` columns as `yyyy-MM-dd` |
+| GDPR field denylist | Enforced at mapping-save (400 on violation) and stripped in query results |
+| ICD Schema view | `IcdSchemaView.vue` at `/icd-schema` — read-only ICD column contract reference |
+| ERP Database CI browser | `ErpDatabaseView.vue` at `/erp-database` — BOM tree, scope filter, per-row detail panel |
 
-### Open points that will drive future code changes (tracked in `13-open-points.md`):
+---
+
+## Phase 6 — Operational enhancements ✅
+
+| Item | Notes |
+|---|---|
+| Health check | `GET /api/health` — ERP DB, log DB, staging writability; no auth |
+| Stale pending indicator | `IsStale` on `ExportRunSummary`; UI callout when Pending > 24 h |
+| Sequence gap detection | `GET /api/exports/{seqNo}` returns `SequenceGapWarning`; ExportDetail banner |
+| Delivery acknowledgement | `POST /api/exports/{seqNo}/deliver`; closes custody chain |
+| Schema column persistence | `AppSetting` table; `PATCH /api/schema/columns`; column toggles saved server-side |
+| Connection config backend | `GET`+`POST /api/connection`; Npgsql live schema introspection |
+
+---
+
+## Phase 5 — Tests ✅
+
+- 56 .NET tests (unit + integration) — all passing
+- 187 Vitest tests (Vue 3 component and API wrapper tests) — all passing
+- Playwright E2E infrastructure wired (requires both servers running)
+
+---
+
+## Phase 4 — API & frontend ✅
+
+| Item | Notes |
+|---|---|
+| ASP.NET Minimal API | `GET /api/exports`, `GET /api/exports/{seqNo}`, `POST /api/exports/{seqNo}/release` |
+| Vue 3 UI scaffolding | Vite + Vue 3 + TypeScript + Tailwind; proxy to :5189 |
+| Four-step workflow | Connect → Source Schema → Export Schema → Export |
+| ConnectionView | Form for Postgres host/port/db/user/password; persisted to `localStorage` |
+| SourceSchemaView | Expandable table/column browser; calls `/api/source-schema` |
+| Export Schema column toggles | Checkboxes enable/disable columns; format picker (xlsx/csv/json) |
+| ExportView | Format picker + Run Export button + preview table + run history |
+| Multi-format export | `POST /api/pipeline/run?format=xlsx\|csv\|json` |
+| ERP Database view | BOM tree; flat list with search + sort; per-row detail panel |
+
+---
+
+## Phase 3 — Infrastructure, I/O & orchestration ✅
+
+| Item | Notes |
+|---|---|
+| ExcelPackager | `guid` written as first column; ClosedXML |
+| SQLite Export Log | `ExportRun` table with all required fields |
+| ExportWorker | `BackgroundService` with `PeriodicTimer`; `Failed` status on exception |
+| Data retention cleanup | Daily purge of staging files + Released/Failed log rows; configurable `RetentionDays` |
+
+---
+
+## Phase 2 — Pipeline implementation ✅
+
+| Item | Notes |
+|---|---|
+| ExportFilter | Blocks on missing GUID; missing serial number allowed |
+| DataMinimizer | Removes personal-data fields at type level; preserves GUID |
+| SchemaMapper | Throws `InvalidCorrelationKeyException` on empty GUID; maps all ICD columns |
+
+---
+
+## Phase 1 — Solution setup & domain contracts ✅
+
+| Item | Notes |
+|---|---|
+| Project scaffolding | 5 projects with strict dependency rules |
+| Domain models | `ErpConfigurationItem`, `ExportItem`, `MappedExportRecord` |
+| Pipeline interfaces | 6 interfaces with XML documentation |
+
+---
+
+## Open points (future iterations)
+
 | Open Point | When it unblocks | Code impact |
 |---|---|---|
-| #3 Classification marking | Legal decision | Release API may need a marking field |
-| #4 `storagelocation` entitlement | Data owner + legal | `DataMinimizer` and `ExportSchema` update if confirmed in scope |
-| #5 Snapshot volume | ERP data steward | Pagination in query if > ~500k CIs |
-| #6 Return-channel timing | Vendor + sponsor | Iteration 2 scope and schedule |
-| #7 Retention periods | Legal + DPO | `RetentionDays` config value (default 30 — adjust when decided) |
-| #8 Allocation chart import | ERP + vendor | Maintenance plan predicate enforcement in mapping validation |
+| Classification marking | Legal decision | Release API may need a marking field |
+| `storagelocation` entitlement | Data owner + legal | `DataMinimizer` and export schema update if confirmed in scope |
+| Snapshot volume | ERP data steward | Pagination in query if > ~500 k CIs |
+| Return-channel timing | Vendor + sponsor | Iteration 2 scope and schedule |
+| Retention periods | Legal + DPO | `RetentionDays` config value (default 30 — adjust when decided) |
+| Allocation chart import | ERP + vendor | Maintenance plan predicate enforcement in mapping validation |

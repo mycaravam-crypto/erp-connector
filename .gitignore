@@ -38,3 +38,9 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Claude Code local state (worktrees, settings, memory)
+.claude/
+
+# Internal development log (session notes — not for public distribution)
+knowledge/log.md
