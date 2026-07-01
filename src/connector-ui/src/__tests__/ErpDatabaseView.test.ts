@@ -35,6 +35,11 @@ function makeRecord(overrides: Partial<ErpCiRecord> = {}): ErpCiRecord {
   }
 }
 
+/** Wraps an array of records into the ErpRecordsResult shape. */
+function erpResult(records: ErpCiRecord[], total?: number) {
+  return { records, total: total ?? records.length }
+}
+
 const ROOT = makeRecord({ id: 'root-1', serial: 'SN-ROOT', inScope: true })
 const CHILD = makeRecord({
   id: 'child-1',
@@ -63,7 +68,7 @@ describe('ErpDatabaseView', () => {
   })
 
   it('shows total, in-scope, excluded counts', async () => {
-    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce([ROOT, CHILD, EXCLUDED])
+    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce(erpResult([ROOT, CHILD, EXCLUDED]))
     const w = mount(ErpDatabaseView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
     expect(w.text()).toContain('3 CIs total')
@@ -71,8 +76,22 @@ describe('ErpDatabaseView', () => {
     expect(w.text()).toContain('2 excluded')
   })
 
+  it('shows cap notice when returned records < total', async () => {
+    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce(erpResult([ROOT], 800))
+    const w = mount(ErpDatabaseView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+    expect(w.text()).toContain('Showing 1 of 800 CIs')
+  })
+
+  it('does not show cap notice when all records are loaded', async () => {
+    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce(erpResult([ROOT, CHILD]))
+    const w = mount(ErpDatabaseView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+    expect(w.text()).not.toContain('capped at 500')
+  })
+
   it('renders BOM tree mode by default (root visible, child hidden)', async () => {
-    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce([ROOT, CHILD])
+    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce(erpResult([ROOT, CHILD]))
     const w = mount(ErpDatabaseView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
     expect(w.text()).toContain('SN-ROOT')
@@ -80,7 +99,7 @@ describe('ErpDatabaseView', () => {
   })
 
   it('expands children when + button is clicked', async () => {
-    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce([ROOT, CHILD])
+    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce(erpResult([ROOT, CHILD]))
     const w = mount(ErpDatabaseView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
     const expandBtn = w.findAll('button').find((b) => b.text() === '+')!
@@ -90,7 +109,7 @@ describe('ErpDatabaseView', () => {
   })
 
   it('collapses children when − button is clicked', async () => {
-    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce([ROOT, CHILD])
+    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce(erpResult([ROOT, CHILD]))
     const w = mount(ErpDatabaseView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
     const expandBtn = w.findAll('button').find((b) => b.text() === '+')!
@@ -102,7 +121,7 @@ describe('ErpDatabaseView', () => {
   })
 
   it('shows detail panel with excluded fields on row click', async () => {
-    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce([ROOT])
+    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce(erpResult([ROOT]))
     const w = mount(ErpDatabaseView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
     const row = w.findAll('tr').find((r) => r.text().includes('SN-ROOT'))!
@@ -114,7 +133,7 @@ describe('ErpDatabaseView', () => {
   })
 
   it('hides detail panel on second click of same row', async () => {
-    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce([ROOT])
+    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce(erpResult([ROOT]))
     const w = mount(ErpDatabaseView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
     const row = w.findAll('tr').find((r) => r.text().includes('SN-ROOT'))!
@@ -125,7 +144,7 @@ describe('ErpDatabaseView', () => {
   })
 
   it('switches to flat list mode when search is active', async () => {
-    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce([ROOT, CHILD])
+    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce(erpResult([ROOT, CHILD]))
     const w = mount(ErpDatabaseView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
     await w.find('input[type="search"]').setValue('CHILD')
@@ -135,7 +154,7 @@ describe('ErpDatabaseView', () => {
 
   it('filters by search across serial, model, part number', async () => {
     const r2 = makeRecord({ id: 'id-2', serial: 'SN-002', articleName: 'Sub Module', partNumber: 'P-002' })
-    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce([ROOT, r2])
+    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce(erpResult([ROOT, r2]))
     const w = mount(ErpDatabaseView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
     await w.find('input[type="search"]').setValue('Sub Module')
@@ -144,7 +163,7 @@ describe('ErpDatabaseView', () => {
   })
 
   it('scope filter "In Scope" shows only in-scope records', async () => {
-    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce([ROOT, EXCLUDED])
+    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce(erpResult([ROOT, EXCLUDED]))
     const w = mount(ErpDatabaseView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
     const inScopeBtn = w.findAll('button').find((b) => b.text() === 'In Scope')!
@@ -154,7 +173,7 @@ describe('ErpDatabaseView', () => {
   })
 
   it('scope filter "Excluded" shows only excluded records', async () => {
-    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce([ROOT, EXCLUDED])
+    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce(erpResult([ROOT, EXCLUDED]))
     const w = mount(ErpDatabaseView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
     const excludedBtn = w.findAll('button').find((b) => b.text() === 'Excluded')!
@@ -164,14 +183,14 @@ describe('ErpDatabaseView', () => {
   })
 
   it('shows exclusion reason for out-of-scope records', async () => {
-    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce([EXCLUDED])
+    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce(erpResult([EXCLUDED]))
     const w = mount(ErpDatabaseView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
     expect(w.text()).toContain('Inactive maintenance plan')
   })
 
   it('shows "no records match" message when filter yields nothing', async () => {
-    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce([ROOT])
+    vi.spyOn(erpApi, 'listErpRecords').mockResolvedValueOnce(erpResult([ROOT]))
     const w = mount(ErpDatabaseView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
     await w.find('input[type="search"]').setValue('zzz-no-match')

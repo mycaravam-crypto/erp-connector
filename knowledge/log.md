@@ -1,5 +1,18 @@
 # Connector Knowledge Bundle — Update Log
 
+## 2026-07-01
+* **Phase 7 enhancements + Phase 8 Skipped run status** shipped (56 .NET + 187 Vitest tests green):
+  * **Preview count clarity**: header shows `50+` when preview hits cap; truncation note reworded to make clear it is a preview cap, not the export total.
+  * **DeliveryNotes max-length**: `POST /api/exports/{seqNo}/deliver` rejects `Notes` > 2,000 chars (400). `ExportDetail.vue` textarea has `maxlength="2000"` and a live character counter.
+  * **SettingsView range hint**: retention days field shows "1–3,650 days" hint text.
+  * **Excel date formatting**: `BuildExcelBytes` auto-detects ISO-date values (`yyyy-MM-dd`), writes as real Excel DateTime with `yyyy-mm-dd` number format; non-date columns force text (format 49).
+  * **Route guards**: Vue Router `beforeEach` now async; `source-schema` and `export-schema` routes redirect to `/connect?notice=needs-connection` if no connection is configured. `ConnectionView` shows an amber notice and calls `invalidateConnectionCache()` after successful save.
+  * **ERP pagination cap**: `GET /api/erp/records` returns `{ records, total }` (`ErpRecordsResult`); applies a default cap of 500 (or caller-supplied `?limit=N`); `ErpDatabaseView` shows a "Showing N of M CIs" banner when truncated.
+  * **GDPR denylist as runtime AppSetting**: `GET`/`PATCH /api/gdpr-denied-fields`; `DynamicExportService.GetDeniedFieldsAsync` reads from DB with fallback to hardcoded defaults; SettingsView shows tag-pill editor with Save button.
+  * **Audit log**: `AuditLog` table (Id, Timestamp, Username, Action, Detail); `LogAuditAsync` helper (non-fatal try/catch); wired into 8 state-changing endpoints (login, release, deliver, skip, export mapping, preset save/delete, scheduler, GDPR); `GET /api/audit?limit=N`; `AuditView.vue` at `/audit`.
+  * **Skipped run status**: `ExportRunStatus.Skipped`; `POST /api/exports/{seqNo}/skip` (valid for Pending/Failed; optional reason logged to audit); gap detection updated to treat Skipped as resolved; ExportDetail shows skip form for Pending/Failed runs; `StatusBadge` renders Skipped in neutral grey.
+* **Updated**: ROADMAP.md Phase 7 completed, Phase 8 added.
+
 ## 2026-06-30
 * **Connection config wired to backend** (42 .NET + 55 Vitest tests green):
   * `GET /api/connection` — returns stored ERP connection info (host/port/db/user; no password), 404 if none.

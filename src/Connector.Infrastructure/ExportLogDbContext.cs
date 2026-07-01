@@ -18,6 +18,9 @@ public sealed class ExportLogDbContext(DbContextOptions<ExportLogDbContext> opti
     /// <summary>Simple key/value store for persisted UI preferences (e.g. active export columns).</summary>
     public DbSet<AppSettingEntity> AppSettings => Set<AppSettingEntity>();
 
+    /// <summary>Audit trail — one row per significant action performed by an authenticated user.</summary>
+    public DbSet<AuditLogEntry> AuditLog => Set<AuditLogEntry>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ExportRunEntity>(e =>
@@ -33,6 +36,12 @@ public sealed class ExportLogDbContext(DbContextOptions<ExportLogDbContext> opti
             e.ToTable("AppSetting");
             e.HasKey(s => s.Key);
         });
+
+        modelBuilder.Entity<AuditLogEntry>(e =>
+        {
+            e.ToTable("AuditLog");
+            e.HasKey(a => a.Id);
+        });
     }
 }
 
@@ -41,4 +50,14 @@ public sealed class AppSettingEntity
 {
     public string Key { get; set; } = string.Empty;
     public string Value { get; set; } = string.Empty;
+}
+
+/// <summary>Single entry in the audit trail. Written by the API on every significant user action.</summary>
+public sealed class AuditLogEntry
+{
+    public int Id { get; set; }
+    public string Timestamp { get; set; } = string.Empty;
+    public string Username { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public string? Detail { get; set; }
 }

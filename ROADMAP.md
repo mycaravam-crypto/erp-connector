@@ -1,7 +1,7 @@
 # Connector — Implementation Roadmap
 
 Tracks progress against the AI Coding Agent Roadmap (session-persistent).  
-Last updated: 2026-06-30 (session 3)
+Last updated: 2026-07-01 (session 4)
 
 ---
 
@@ -118,7 +118,7 @@ YAGNI constraint: no premature abstraction; each item is the minimum that delive
 
 ---
 
-## Phase 7 — Requirements gap closure (current)
+## Phase 7 — Requirements gap closure ✅
 
 Goal: close all gaps identified by requirements audit against `connector_document`. Skipped GAP 1 (maintenance plan predicate enforcement — deferred to Iteration 2 ICD work).
 
@@ -139,9 +139,27 @@ Goal: close all gaps identified by requirements audit against `connector_documen
 
 ---
 
+## Phase 8 — UX hardening, compliance depth & gap recovery ✅
+
+Goal: close UX rough edges, move GDPR denylist to runtime config, add audit trail, and add Skipped run status for gap recovery.
+
+| Task | Status | Notes |
+|---|---|---|
+| 8.1 Preview count clarity | ✅ | Header shows `50+` when at cap; truncation note clearly says "preview cap, not export total" |
+| 8.2 DeliveryNotes max-length | ✅ | API rejects Notes > 2,000 chars (400); UI textarea has `maxlength` + live character counter |
+| 8.3 SettingsView range hint | ✅ | Retention days field shows "1–3,650 days" hint; validates 1–3,650 server-side |
+| 8.4 Excel date columns | ✅ | `BuildExcelBytes` auto-detects ISO dates, writes as Excel DateTime with `yyyy-mm-dd` format; non-date columns forced to text |
+| 8.5 Route guards | ✅ | `source-schema` and `export-schema` routes redirect to `/connect?notice=needs-connection`; connection cache invalidated on save |
+| 8.6 ERP pagination cap | ✅ | `GET /api/erp/records` returns `{records, total}`; default cap 500; UI shows "Showing N of M" banner when truncated |
+| 8.7 GDPR denylist as runtime config | ✅ | `GET`/`PATCH /api/gdpr-denied-fields`; stored in `AppSetting`; fallback to hardcoded defaults; SettingsView tag-pill editor |
+| 8.8 Audit log | ✅ | `AuditLog` table; `LogAuditAsync` (non-fatal); wired to 8 endpoints; `GET /api/audit`; `AuditView.vue` at `/audit` |
+| 8.9 Skipped run status | ✅ | `ExportRunStatus.Skipped`; `POST /api/exports/{seqNo}/skip` (Pending/Failed only; reason in audit log); gap detection treats Skipped as resolved; ExportDetail skip form; StatusBadge neutral grey |
+
+---
+
 ## Remaining Work
 
-56 .NET tests · 171 Vitest tests — all passing.
+56 .NET tests · 187 Vitest tests — all passing.
 
 ### Open points that will drive future code changes (tracked in `13-open-points.md`):
 | Open Point | When it unblocks | Code impact |

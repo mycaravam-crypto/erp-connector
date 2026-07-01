@@ -220,7 +220,7 @@ async function copySha(seqNo: number, hash: string) {
     <div class="mb-8">
       <div class="flex items-center gap-3 mb-1">
         <h2 class="m-0 text-base font-semibold text-slate-900">Preview</h2>
-        <span v-if="preview" class="text-xs text-slate-500">{{ preview.recordCount }} records · schema v{{ preview.schemaVersion }}</span>
+        <span v-if="preview" class="text-xs text-slate-500">{{ preview.recordCount >= 50 ? '50+' : preview.recordCount }} records (preview) · schema v{{ preview.schemaVersion }}</span>
         <span v-if="preview?.source === 'error'" class="inline-block bg-orange-50 border border-orange-200 rounded-full px-2 py-0.5 text-xs font-semibold text-orange-700">Preview failed</span>
         <button class="ml-auto px-2.5 py-1 border border-slate-300 rounded-md bg-white text-xs text-slate-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-slate-50" :disabled="previewLoading" @click="loadPreview">Refresh</button>
       </div>
@@ -251,7 +251,7 @@ async function copySha(seqNo: number, hash: string) {
         </table>
       </div>
       <p v-if="preview && preview.records.length > PREVIEW_MAX" class="text-xs text-slate-400 mt-1.5">
-        Showing {{ PREVIEW_MAX }} of {{ preview.records.length }} records — run the export to get the full dataset.
+        Showing first {{ PREVIEW_MAX }} rows — preview is capped at 50; the full export includes all in-scope records.
       </p>
 
       <p v-else-if="preview" class="text-slate-500 text-sm">No in-scope records found.</p>

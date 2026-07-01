@@ -61,6 +61,13 @@ const steps = [
       >
         Settings
       </RouterLink>
+      <RouterLink
+        :to="{ name: 'audit' }"
+        class="text-[0.82rem] text-slate-400 no-underline hover:text-slate-200 transition-colors"
+        active-class="!text-slate-100"
+      >
+        Audit Log
+      </RouterLink>
       <span class="text-slate-600 text-xs" aria-hidden="true">|</span>
       <span class="text-[0.82rem] text-slate-400">{{ username }}</span>
       <button

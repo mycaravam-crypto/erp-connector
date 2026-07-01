@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { getConnection, saveConnection } from '@/api/connection'
+import { useRoute, useRouter } from 'vue-router'
+import { getConnection, saveConnection, invalidateConnectionCache } from '@/api/connection'
 import { clearSession } from '@/api/auth'
 
 const router = useRouter()
+const route = useRoute()
 
 const host = ref('')
 const port = ref('5432')
@@ -52,6 +53,7 @@ async function testConnection() {
       password: password.value,
     })
     if ('schema' in result) {
+      invalidateConnectionCache()
       connectedLabel.value = result.schema.connectionLabel
       testStatus.value = 'ok'
       testMessage.value = `Connected — found ${result.schema.tables.length} tables in "${result.schema.connectionLabel}".`
@@ -88,6 +90,11 @@ function proceed() {
       Enter the connection details for the PostgreSQL database you want to read data from.
       The connector will read the schema and data from this database.
     </p>
+
+    <div v-if="route.query.notice === 'needs-connection'" class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-900 mb-4">
+      A database connection is required before accessing that step.
+      Configure and test your connection below, then proceed.
+    </div>
 
     <div v-if="connectedLabel" class="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-800 mb-6">
       <strong>Connected:</strong> {{ connectedLabel }}

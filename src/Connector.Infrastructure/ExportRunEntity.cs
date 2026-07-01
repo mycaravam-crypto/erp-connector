@@ -57,4 +57,6 @@ public static class ExportRunStatus
     public const string Pending = "Pending";
     public const string Released = "Released";
     public const string Failed = "Failed";
+    /// <summary>Operator explicitly bypassed this run to recover from a permanent failure or sequence gap.</summary>
+    public const string Skipped = "Skipped";
 }

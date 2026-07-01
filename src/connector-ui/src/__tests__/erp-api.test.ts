@@ -17,28 +17,33 @@ function mockFetch(body: unknown, status = 200) {
 beforeEach(() => vi.restoreAllMocks())
 
 describe('listErpRecords', () => {
-  it('fetches /api/erp/records and returns the array', async () => {
-    const payload = [
-      {
-        id: 'sc-rack-0001', serial: 'SN-RACK-0001', status: 'Active',
-        commissionDate: '2023-03-01', articleName: 'Industrial Rack System',
-        partNumber: 'P-RACK-42U', manufacturer: 'TechCorp GmbH',
-        maintenancePlanStatus: 'Active', allocationChartRef: 'ALLOC-2023-V1',
-        parentId: null, parentSerial: null,
-        inScope: true, exclusionReason: null,
-        technicianName: 'Klaus Bauer', storageLocation: 'Halle A, Reihe 3',
-      },
-    ]
+  it('fetches /api/erp/records and returns the result shape', async () => {
+    const record = {
+      id: 'sc-rack-0001', serial: 'SN-RACK-0001', status: 'Active',
+      commissionDate: '2023-03-01', articleName: 'Industrial Rack System',
+      partNumber: 'P-RACK-42U', manufacturer: 'TechCorp GmbH',
+      maintenancePlanStatus: 'Active', allocationChartRef: 'ALLOC-2023-V1',
+      parentId: null, parentSerial: null,
+      inScope: true, exclusionReason: null,
+      technicianName: 'Klaus Bauer', storageLocation: 'Halle A, Reihe 3',
+    }
+    const payload = { records: [record], total: 1 }
     mockFetch(payload)
     const result = await listErpRecords()
     expect(result).toEqual(payload)
     expect(fetch).toHaveBeenCalledWith('/api/erp/records', expect.any(Object))
   })
 
-  it('returns an empty array on non-ok response', async () => {
+  it('appends ?limit=N when limit is provided', async () => {
+    mockFetch({ records: [], total: 0 })
+    await listErpRecords(100)
+    expect(fetch).toHaveBeenCalledWith('/api/erp/records?limit=100', expect.any(Object))
+  })
+
+  it('returns empty result on non-ok response', async () => {
     mockFetch(null, 401)
     const result = await listErpRecords()
-    expect(result).toEqual([])
+    expect(result).toEqual({ records: [], total: 0 })
   })
 })
 

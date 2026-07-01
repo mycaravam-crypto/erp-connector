@@ -39,10 +39,16 @@ function authHeaders(): Record<string, string> {
   return headers
 }
 
-export async function listErpRecords(): Promise<ErpCiRecord[]> {
-  const res = await fetch('/api/erp/records', { headers: authHeaders() })
-  if (!res.ok) return []
-  return res.json() as Promise<ErpCiRecord[]>
+export interface ErpRecordsResult {
+  records: ErpCiRecord[]
+  total: number
+}
+
+export async function listErpRecords(limit?: number): Promise<ErpRecordsResult> {
+  const url = limit !== undefined ? `/api/erp/records?limit=${limit}` : '/api/erp/records'
+  const res = await fetch(url, { headers: authHeaders() })
+  if (!res.ok) return { records: [], total: 0 }
+  return res.json() as Promise<ErpRecordsResult>
 }
 
 export async function getSchema(): Promise<SchemaDefinition | null> {

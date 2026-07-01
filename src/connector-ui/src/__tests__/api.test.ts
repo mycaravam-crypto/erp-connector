@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { listExports, getExport, releaseExport, deliverExport } from '@/api/exports'
+import { listExports, getExport, releaseExport, deliverExport, skipExport } from '@/api/exports'
 
 function mockFetch(body: unknown, status = 200) {
   return vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
@@ -76,6 +76,36 @@ describe('releaseExport', () => {
     expect(url).toBe('/api/exports/3/release')
     expect(init?.method).toBe('POST')
     expect(JSON.parse(init?.body as string)).toEqual({ approver: 'bob' })
+  })
+})
+
+describe('skipExport', () => {
+  it('returns ok:true on 200', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true, status: 200, text: async () => '',
+    } as Response)
+    const result = await skipExport(2, { reason: 'ERP offline' })
+    expect(result.ok).toBe(true)
+  })
+
+  it('returns ok:false with message on 409 (wrong status)', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: false, status: 409, text: async () => "Run #2 has status 'Released' and cannot be skipped.",
+    } as Response)
+    const result = await skipExport(2, {})
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('Released')
+  })
+
+  it('sends correct JSON body to POST …/skip', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true, status: 200, text: async () => '',
+    } as Response)
+    await skipExport(3, { reason: 'lost file' })
+    const [url, init] = spy.mock.calls[0]
+    expect(url).toBe('/api/exports/3/skip')
+    expect(init?.method).toBe('POST')
+    expect(JSON.parse(init?.body as string)).toEqual({ reason: 'lost file' })
   })
 })
 

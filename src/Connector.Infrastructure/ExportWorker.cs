@@ -115,10 +115,11 @@ public sealed class ExportWorker(
 
             var cols = DynamicExportService.GetColumnNames(config);
             var extractedAt = DateTimeOffset.UtcNow;
+            var gdprDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
 
             await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(connCfg));
             await conn.OpenAsync(ct);
-            var records = await DynamicExportService.ExecuteQueryAsync(conn, config, ct);
+            var records = await DynamicExportService.ExecuteQueryAsync(conn, config, ct, gdprDenylist: gdprDenylist);
 
             if (records.Count == 0)
             {

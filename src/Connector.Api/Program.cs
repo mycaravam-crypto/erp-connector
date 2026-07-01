@@ -110,6 +110,16 @@ using (var scope = app.Services.CreateScope())
             Value TEXT NOT NULL
         )
         """);
+    await exportLogDb.Database.ExecuteSqlRawAsync(
+        """
+        CREATE TABLE IF NOT EXISTS AuditLog (
+            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+            Timestamp TEXT NOT NULL,
+            Username TEXT NOT NULL,
+            Action TEXT NOT NULL,
+            Detail TEXT
+        )
+        """);
 }
 
 // ── User store ────────────────────────────────────────────────────────────────
@@ -126,6 +136,27 @@ else
 {
     var authUsers = app.Configuration.GetSection("Auth:Users").Get<List<AuthUser>>() ?? [];
     userStore = authUsers.ToDictionary(u => u.Username, u => u.PasswordHash, StringComparer.OrdinalIgnoreCase);
+}
+
+// ── Audit helper ─────────────────────────────────────────────────────────────
+
+async Task LogAuditAsync(ExportLogDbContext db, string username, string action, string? detail = null)
+{
+    try
+    {
+        db.AuditLog.Add(new AuditLogEntry
+        {
+            Timestamp = DateTimeOffset.UtcNow.ToString("O"),
+            Username = username,
+            Action = action,
+            Detail = detail,
+        });
+        await db.SaveChangesAsync();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Audit log write failed (non-fatal): action={Action}", action);
+    }
 }
 
 // ── Health check (no auth — used by monitoring and Step 1 connection test) ────
@@ -188,7 +219,7 @@ bool IsStagingWritable(string path)
 
 app.MapPost(
     "/api/auth/login",
-    (LoginRequest req) =>
+    async (LoginRequest req, ExportLogDbContext db) =>
     {
         if (
             string.IsNullOrWhiteSpace(req.Username)
@@ -204,6 +235,7 @@ app.MapPost(
             expires: DateTime.UtcNow.AddHours(expiry),
             signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
         );
+        await LogAuditAsync(db, req.Username, "login");
         return Results.Ok(new LoginResponse(new JwtSecurityTokenHandler().WriteToken(token), req.Username));
     }
 );
@@ -269,18 +301,21 @@ app.MapGet(
             string? gapWarning = null;
             if (run.Status == ExportRunStatus.Pending)
             {
-                var lastReleasedSeq = await db
-                    .ExportRuns.Where(r => r.Status == ExportRunStatus.Released)
-                    .OrderByDescending(r => r.SequenceNo)
-                    .Select(r => (int?)r.SequenceNo)
-                    .FirstOrDefaultAsync();
+                // Any run before this one that is neither Released nor Skipped is an unresolved gap.
+                var unhandled = await db.ExportRuns
+                    .Where(r => r.SequenceNo < seqNo
+                                && r.Status != ExportRunStatus.Released
+                                && r.Status != ExportRunStatus.Skipped)
+                    .Select(r => r.SequenceNo)
+                    .OrderByDescending(n => n)
+                    .Take(3)
+                    .ToListAsync();
 
-                // Gap = a released run exists and it is not the immediate predecessor.
-                if (lastReleasedSeq.HasValue && lastReleasedSeq.Value != seqNo - 1)
+                if (unhandled.Count > 0)
                     gapWarning =
-                        $"Sequence gap detected: last released run is #{lastReleasedSeq.Value}, "
-                        + $"but #{seqNo} is next in line. "
-                        + $"Investigate run #{lastReleasedSeq.Value + 1} before releasing.";
+                        $"Sequence gap: {unhandled.Count} earlier run(s) are unresolved "
+                        + $"(#{string.Join(", #", unhandled)}). "
+                        + $"Investigate or skip them before releasing #{seqNo}.";
             }
 
             return Results.Ok(
@@ -341,6 +376,8 @@ app.MapPost(
             run.ReleasedAt = DateTimeOffset.UtcNow.ToString("O");
             await db.SaveChangesAsync();
 
+            await LogAuditAsync(db, operatorName, "export_released", $"#{seqNo} approved by {request.Approver}");
+
             return Results.Ok();
         }
     )
@@ -361,12 +398,44 @@ app.MapPost(
                 return Results.BadRequest("Only released runs can be marked as delivered.");
             if (run.DeliveredAt is not null)
                 return Results.Conflict($"Run #{seqNo} has already been recorded as delivered.");
+            if (request.Notes?.Length > 2000)
+                return Results.BadRequest("Delivery notes cannot exceed 2,000 characters.");
 
             run.DeliveredAt = DateTimeOffset.UtcNow.ToString("O");
             run.DeliveredBy = httpContext.User.Identity!.Name!;
             run.ImportedRecordCount = request.ImportedRecordCount;
             run.DeliveryNotes = request.Notes;
             await db.SaveChangesAsync();
+
+            await LogAuditAsync(db, httpContext.User.Identity!.Name!, "export_delivered", $"#{seqNo}");
+
+            return Results.Ok();
+        }
+    )
+    .RequireAuthorization();
+
+/// <summary>
+/// Marks a Pending or Failed run as Skipped so the sequence gap can be cleared.
+/// Use this when a run can never be released (e.g. export file lost, no ERP data at that time).
+/// </summary>
+app.MapPost(
+        "/api/exports/{seqNo:int}/skip",
+        async (int seqNo, SkipRequest request, HttpContext httpContext, ExportLogDbContext db) =>
+        {
+            var run = await db.ExportRuns.FirstOrDefaultAsync(r => r.SequenceNo == seqNo);
+            if (run is null)
+                return Results.NotFound();
+            if (run.Status is not (ExportRunStatus.Pending or ExportRunStatus.Failed))
+                return Results.Conflict($"Run #{seqNo} has status '{run.Status}' and cannot be skipped.");
+
+            run.Status = ExportRunStatus.Skipped;
+            await db.SaveChangesAsync();
+
+            var user = httpContext.User.Identity!.Name!;
+            var detail = string.IsNullOrWhiteSpace(request.Reason)
+                ? $"#{seqNo}"
+                : $"#{seqNo}: {request.Reason}";
+            await LogAuditAsync(db, user, "export_skipped", detail);
 
             return Results.Ok();
         }
@@ -428,10 +497,11 @@ app.MapPost(
             {
                 var cols = DynamicExportService.GetColumnNames(config);
                 var extractedAt = DateTimeOffset.UtcNow;
+                var gdprDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
 
                 await using var pgConn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(connCfg));
                 await pgConn.OpenAsync(ct);
-                var records = await DynamicExportService.ExecuteQueryAsync(pgConn, config, ct);
+                var records = await DynamicExportService.ExecuteQueryAsync(pgConn, config, ct, gdprDenylist: gdprDenylist);
 
                 if (records.Count == 0)
                 {
@@ -521,12 +591,13 @@ app.MapGet(
 
             try
             {
+                var gdprDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
                 await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(connCfg));
                 await conn.OpenAsync(ct);
                 var cols = DynamicExportService.GetColumnNames(config);
                 if (cols.Count == 0)
                     return emptyResult("No columns are enabled in the export mapping. Enable at least one column in Step 3.");
-                var records = await DynamicExportService.ExecuteQueryAsync(conn, config, ct, limit: 50);
+                var records = await DynamicExportService.ExecuteQueryAsync(conn, config, ct, limit: 50, gdprDenylist: gdprDenylist);
                 return Results.Ok(new PreviewResult(records.Count, ExportSchema.Version, cols, records, "dynamic", config.SourceTable));
             }
             catch (Exception ex)
@@ -541,8 +612,11 @@ app.MapGet(
 
 app.MapGet(
         "/api/erp/records",
-        async (DemoErpDbContext erpDb) =>
+        async (DemoErpDbContext erpDb, int? limit) =>
         {
+            var cap = limit ?? 500;
+            var total = await erpDb.SystemConfigurations.CountAsync();
+
             var configs = await erpDb
                 .SystemConfigurations.AsNoTracking()
                 .Include(sc => sc.Article)
@@ -550,6 +624,7 @@ app.MapGet(
                 .Include(sc => sc.ParentLinks)
                     .ThenInclude(l => l.Parent)
                 .OrderBy(sc => sc.Id)
+                .Take(cap)
                 .ToListAsync();
 
             var records = configs
@@ -584,7 +659,7 @@ app.MapGet(
                 })
                 .ToList();
 
-            return Results.Ok(records);
+            return Results.Ok(new ErpRecordsResult(records, total));
         }
     )
     .RequireAuthorization();
@@ -705,7 +780,7 @@ app.MapGet(
 // Validates and persists the scheduler config. Takes effect on the worker's next sleep cycle.
 app.MapPut(
         "/api/settings/scheduler",
-        async (SchedulerConfigData dto, ExportLogDbContext db) =>
+        async (SchedulerConfigData dto, ExportLogDbContext db, HttpContext httpContext) =>
         {
             if (!TimeSpan.TryParse(dto.ScheduledTimeUtc, System.Globalization.CultureInfo.InvariantCulture, out var ts) || ts < TimeSpan.Zero || ts >= TimeSpan.FromDays(1))
                 return Results.BadRequest("ScheduledTimeUtc must be a valid time in HH:mm format (00:00 – 23:59).");
@@ -719,6 +794,7 @@ app.MapPut(
             else
                 setting.Value = serialized;
             await db.SaveChangesAsync();
+            await LogAuditAsync(db, httpContext.User.Identity!.Name!, "scheduler_updated", $"time={dto.ScheduledTimeUtc} retention={dto.RetentionDays}d");
             return Results.Ok(dto);
         }
     )
@@ -870,7 +946,7 @@ app.MapGet(
 // Validates and persists a full export mapping config.
 app.MapPut(
         "/api/export-mapping",
-        async (ExportMappingConfig config, ExportLogDbContext db) =>
+        async (ExportMappingConfig config, ExportLogDbContext db, HttpContext httpContext) =>
         {
             if (string.IsNullOrWhiteSpace(config.SourceTable))
                 return Results.BadRequest("SourceTable is required.");
@@ -883,8 +959,9 @@ app.MapPut(
                 return Results.BadRequest(
                     $"Enabled fields must have non-empty target names: {string.Join(", ", badFields)}");
 
+            var activeDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
             var gdprViolations = config.Fields
-                .Where(f => f.Enabled && DynamicExportService.GdprDeniedFields.Contains(f.SourceName))
+                .Where(f => f.Enabled && activeDenylist.Contains(f.SourceName))
                 .Select(f => f.SourceName)
                 .ToList();
             if (gdprViolations.Count > 0)
@@ -912,6 +989,7 @@ app.MapPut(
                 setting.Value = serialized;
 
             await db.SaveChangesAsync();
+            await LogAuditAsync(db, httpContext.User.Identity!.Name!, "export_mapping_saved", $"table={config.SourceTable}");
             return Results.Ok(config);
         }
     )
@@ -937,7 +1015,7 @@ app.MapGet(
 // Creates or updates a single named preset.
 app.MapPut(
         "/api/export-mapping/presets/{name}",
-        async (string name, ExportMappingConfig config, ExportLogDbContext db) =>
+        async (string name, ExportMappingConfig config, ExportLogDbContext db, HttpContext httpContext) =>
         {
             if (string.IsNullOrWhiteSpace(name))
                 return Results.BadRequest("Preset name is required.");
@@ -953,8 +1031,9 @@ app.MapPut(
                 return Results.BadRequest(
                     $"Enabled fields must have non-empty target names: {string.Join(", ", badFields)}");
 
+            var presetDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
             var gdprViolations = config.Fields
-                .Where(f => f.Enabled && DynamicExportService.GdprDeniedFields.Contains(f.SourceName))
+                .Where(f => f.Enabled && presetDenylist.Contains(f.SourceName))
                 .Select(f => f.SourceName)
                 .ToList();
             if (gdprViolations.Count > 0)
@@ -989,6 +1068,7 @@ app.MapPut(
                 setting.Value = serialized;
 
             await db.SaveChangesAsync();
+            await LogAuditAsync(db, httpContext.User.Identity!.Name!, "preset_saved", name);
             return Results.Ok(config);
         }
     )
@@ -997,7 +1077,7 @@ app.MapPut(
 // Deletes a single named preset. Returns 404 when the name does not exist.
 app.MapDelete(
         "/api/export-mapping/presets/{name}",
-        async (string name, ExportLogDbContext db) =>
+        async (string name, ExportLogDbContext db, HttpContext httpContext) =>
         {
             var setting = await db.AppSettings.FindAsync("export_presets");
             if (setting is null)
@@ -1011,7 +1091,66 @@ app.MapDelete(
 
             setting.Value = JsonSerializer.Serialize(presets);
             await db.SaveChangesAsync();
+            await LogAuditAsync(db, httpContext.User.Identity!.Name!, "preset_deleted", name);
             return Results.NoContent();
+        }
+    )
+    .RequireAuthorization();
+
+// ── GDPR denied fields ────────────────────────────────────────────────────────
+
+// Returns the currently active GDPR denylist (DB value if set, else defaults).
+app.MapGet(
+        "/api/gdpr-denied-fields",
+        async (ExportLogDbContext db) =>
+        {
+            var fields = await DynamicExportService.GetDeniedFieldsAsync(db);
+            return Results.Ok(new { fields = fields.ToArray() });
+        }
+    )
+    .RequireAuthorization();
+
+// Replaces the GDPR denylist. Validates and stores as JSON in AppSetting key gdpr_denied_fields.
+app.MapMethods(
+        "/api/gdpr-denied-fields",
+        ["PATCH"],
+        async (GdprDenylistRequest request, ExportLogDbContext db, HttpContext httpContext) =>
+        {
+            if (request.Fields is null || request.Fields.Count == 0)
+                return Results.BadRequest("At least one field is required.");
+            if (request.Fields.Any(f => string.IsNullOrWhiteSpace(f)))
+                return Results.BadRequest("Field names must not be empty or whitespace.");
+            if (request.Fields.Count > 50)
+                return Results.BadRequest("Maximum 50 fields allowed in the GDPR denylist.");
+
+            var serialized = JsonSerializer.Serialize(request.Fields);
+            var setting = await db.AppSettings.FindAsync("gdpr_denied_fields");
+            if (setting is null)
+                db.AppSettings.Add(new AppSettingEntity { Key = "gdpr_denied_fields", Value = serialized });
+            else
+                setting.Value = serialized;
+
+            await db.SaveChangesAsync();
+            await LogAuditAsync(db, httpContext.User.Identity!.Name!, "gdpr_denylist_updated", $"{request.Fields.Count} fields");
+            return Results.Ok(new { fields = request.Fields });
+        }
+    )
+    .RequireAuthorization();
+
+// ── Audit log ─────────────────────────────────────────────────────────────────
+
+// Returns the most recent N audit entries (default 100) ordered newest-first.
+app.MapGet(
+        "/api/audit",
+        async (ExportLogDbContext db, int? limit) =>
+        {
+            var cap = limit ?? 100;
+            var entries = await db.AuditLog
+                .OrderByDescending(a => a.Id)
+                .Take(cap)
+                .Select(a => new AuditEntryDto(a.Id, a.Timestamp, a.Username, a.Action, a.Detail))
+                .ToListAsync();
+            return Results.Ok(entries);
         }
     )
     .RequireAuthorization();
@@ -1180,6 +1319,8 @@ namespace Connector.Api
 
     record HashRequest(string Password);
 
+    record ErpRecordsResult(IReadOnlyList<ErpCiRecord> Records, int Total);
+
     record ErpCiRecord(
         string Id,
         string? Serial,
@@ -1222,4 +1363,13 @@ namespace Connector.Api
 
     /// <summary>Public view of the stored connection — no password field.</summary>
     record ErpConnectionInfo(string Host, int Port, string Database, string Username);
+
+    /// <summary>Body for POST /api/exports/{seqNo}/skip. Reason is stored in the audit log.</summary>
+    record SkipRequest(string? Reason);
+
+    /// <summary>Body for PATCH /api/gdpr-denied-fields.</summary>
+    record GdprDenylistRequest(List<string> Fields);
+
+    /// <summary>Single row returned by GET /api/audit.</summary>
+    record AuditEntryDto(int Id, string Timestamp, string Username, string Action, string? Detail);
 }

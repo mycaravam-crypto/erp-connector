@@ -7,6 +7,7 @@ describe('StatusBadge', () => {
     ['Pending',   'bg-yellow-100', 'text-yellow-800'],
     ['Released',  'bg-green-100',  'text-green-800'],
     ['Failed',    'bg-red-100',    'text-red-800'],
+    ['Skipped',   'bg-slate-100',  'text-slate-500'],
     ['Delivered', 'bg-blue-100',   'text-blue-800'],
     ['Unknown',   'bg-slate-100',  'text-slate-600'],
   ])('renders %s with correct color classes', (status, bg, text) => {

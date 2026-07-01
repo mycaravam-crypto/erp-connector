@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { getConnection, saveConnection, getSourceSchema } from '@/api/connection'
+import { getConnection, saveConnection, getSourceSchema, isConnectionConfigured, invalidateConnectionCache } from '@/api/connection'
 
 const SCHEMA = {
   connectionLabel: 'localhost:5432/erp',
@@ -20,7 +20,7 @@ function mockFetch(body: unknown, status = 200) {
   } as Response)
 }
 
-beforeEach(() => vi.restoreAllMocks())
+beforeEach(() => { vi.restoreAllMocks(); invalidateConnectionCache() })
 
 describe('getConnection', () => {
   it('returns the connection info on 200', async () => {
@@ -78,6 +78,43 @@ describe('saveConnection', () => {
     const result = await saveConnection({ ...CONN_INFO, password: 'pw' })
     expect('error' in result).toBe(true)
     if ('error' in result) expect(result.status).toBe(401)
+  })
+})
+
+describe('isConnectionConfigured', () => {
+  it('returns true when GET /api/connection succeeds', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true, status: 200,
+      json: async () => CONN_INFO,
+    } as Response)
+    expect(await isConnectionConfigured()).toBe(true)
+  })
+
+  it('returns false when GET /api/connection returns 404', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: false, status: 404,
+      json: async () => null,
+    } as Response)
+    expect(await isConnectionConfigured()).toBe(false)
+  })
+
+  it('caches the result — only one fetch call for two checks', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true, status: 200,
+      json: async () => CONN_INFO,
+    } as Response)
+    await isConnectionConfigured()
+    await isConnectionConfigured()
+    expect(spy).toHaveBeenCalledTimes(1)
+  })
+
+  it('re-fetches after invalidateConnectionCache()', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => CONN_INFO } as Response)
+      .mockResolvedValueOnce({ ok: false, status: 404, json: async () => null } as Response)
+    await isConnectionConfigured()
+    invalidateConnectionCache()
+    expect(await isConnectionConfigured()).toBe(false)
   })
 })
 

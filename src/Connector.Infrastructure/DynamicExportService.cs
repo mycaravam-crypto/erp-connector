@@ -2,6 +2,7 @@ using System.Text.Json;
 using ClosedXML.Excel;
 using Connector.Core.DynamicExport;
 using Connector.Core.Schema;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
 namespace Connector.Infrastructure;
@@ -11,6 +12,7 @@ public static class DynamicExportService
     /// <summary>
     /// ERP field names that must never appear in any export artifact (GDPR Art. 5(1)(c)).
     /// Checked at mapping-save time (API) and stripped at query time as defence-in-depth.
+    /// This is the hardcoded fallback; admins can override via the gdpr_denied_fields AppSetting.
     /// </summary>
     public static readonly IReadOnlySet<string> GdprDeniedFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -23,6 +25,21 @@ public static class DynamicExportService
         "operator_name",
     };
 
+    /// <summary>
+    /// Returns the active GDPR denylist: the DB-stored list if present, else <see cref="GdprDeniedFields"/>.
+    /// </summary>
+    public static async Task<IReadOnlySet<string>> GetDeniedFieldsAsync(ExportLogDbContext db)
+    {
+        var setting = await db.AppSettings.FindAsync("gdpr_denied_fields");
+        if (setting is not null && !string.IsNullOrWhiteSpace(setting.Value))
+        {
+            var parsed = JsonSerializer.Deserialize<string[]>(setting.Value);
+            if (parsed is { Length: > 0 })
+                return new HashSet<string>(parsed, StringComparer.OrdinalIgnoreCase);
+        }
+        return GdprDeniedFields;
+    }
+
     public static IReadOnlyList<string> GetColumnNames(ExportMappingConfig cfg) =>
         cfg.Fields.Where(f => f.Enabled).Select(f => f.TargetName)
             .Concat(cfg.Relations.Where(r => r.Enabled).Select(r => r.TargetField))
@@ -32,7 +49,8 @@ public static class DynamicExportService
         $"Host={cfg.Host};Port={cfg.Port};Database={cfg.Database};Username={cfg.Username};Password={cfg.Password};SSL Mode=Prefer;Trust Server Certificate=true;Timeout=5;Command Timeout=10";
 
     public static async Task<List<Dictionary<string, string>>> ExecuteQueryAsync(
-        NpgsqlConnection conn, ExportMappingConfig cfg, CancellationToken ct, int? limit = null)
+        NpgsqlConnection conn, ExportMappingConfig cfg, CancellationToken ct, int? limit = null,
+        IReadOnlySet<string>? gdprDenylist = null)
     {
         var parts = new List<string>();
 
@@ -83,8 +101,9 @@ public static class DynamicExportService
         }
 
         // Strip any GDPR-denied fields that somehow appeared in the result (defence-in-depth).
+        var effectiveDenylist = gdprDenylist ?? GdprDeniedFields;
         foreach (var row in results)
-            foreach (var denied in GdprDeniedFields)
+            foreach (var denied in effectiveDenylist)
                 row.Remove(denied);
 
         return results;
@@ -133,11 +152,34 @@ public static class DynamicExportService
         for (int c = 0; c < columns.Count; c++)
             ws.Cell(2, c + 1).Value = columns[c];
         ws.Row(2).Style.Font.Bold = true;
+
+        // Track columns where all non-empty values are ISO dates so we can apply date format.
+        var dateColumns = new HashSet<int>();
         for (int r = 0; r < records.Count; r++)
+        {
             for (int c = 0; c < columns.Count; c++)
-                ws.Cell(r + 3, c + 1).Value = records[r].GetValueOrDefault(columns[c], "");
+            {
+                var val = records[r].GetValueOrDefault(columns[c], "");
+                var cell = ws.Cell(r + 3, c + 1);
+                if (!string.IsNullOrEmpty(val) && DateOnly.TryParseExact(val, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var date))
+                {
+                    cell.Value = date.ToDateTime(TimeOnly.MinValue);
+                    cell.Style.NumberFormat.Format = "yyyy-mm-dd";
+                    dateColumns.Add(c + 1);
+                }
+                else
+                {
+                    cell.Value = val;
+                    cell.Style.NumberFormat.NumberFormatId = 49; // "@" = Text
+                }
+            }
+        }
+
+        // Text format for all non-date columns (also protects header + metadata rows from auto-conversion).
         for (int c = 1; c <= columns.Count; c++)
-            ws.Column(c).Style.NumberFormat.NumberFormatId = 49; // "@" = Text
+            if (!dateColumns.Contains(c))
+                ws.Column(c).Style.NumberFormat.NumberFormatId = 49;
+
         ws.Columns().AdjustToContents();
         using var ms = new MemoryStream();
         wb.SaveAs(ms);

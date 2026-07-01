@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { listErpRecords, type ErpCiRecord } from '@/api/erp'
 
 const records = ref<ErpCiRecord[]>([])
+const totalCount = ref(0)
 const loading = ref(true)
 const error = ref<string | null>(null)
 
@@ -14,7 +15,9 @@ const detailId = ref<string | null>(null)
 
 onMounted(async () => {
   try {
-    records.value = await listErpRecords()
+    const result = await listErpRecords()
+    records.value = result.records
+    totalCount.value = result.total
   } catch {
     error.value = 'Could not reach the API. Is the backend service running?'
   } finally {
@@ -109,7 +112,7 @@ const sortedFlat = computed(() => {
     <div class="flex items-center gap-3 mb-2">
       <h1 class="m-0 text-xl font-semibold">ERP Database</h1>
       <span v-if="!loading && !error" class="text-xs text-slate-500">
-        {{ records.length }} CIs total ·
+        {{ totalCount }} CIs total ·
         <span class="text-green-700">{{ inScopeCount }} in scope</span> ·
         <span class="text-slate-500">{{ excludedCount }} excluded</span>
       </span>
@@ -119,6 +122,15 @@ const sortedFlat = computed(() => {
       Live view of the ERP database — shows every CI, its scope status, and the excluded fields
       that confirm the data-minimisation boundary.
     </p>
+
+    <!-- Cap notice: shown when the API returned fewer records than the total -->
+    <div
+      v-if="!loading && !error && records.length < totalCount"
+      class="bg-amber-50 border border-amber-200 rounded-md px-4 py-2.5 text-sm text-amber-900 mb-4"
+    >
+      Showing {{ records.length }} of {{ totalCount }} CIs — the view is capped at 500.
+      Search or filter to narrow results within the loaded set.
+    </div>
 
     <!-- Controls -->
     <div v-if="!loading && !error" class="flex flex-wrap items-center gap-3 mb-4">

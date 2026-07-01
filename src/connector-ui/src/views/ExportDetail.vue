@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getExport, deliverExport, type ExportDetail } from '@/api/exports'
+import { getExport, deliverExport, skipExport, type ExportDetail } from '@/api/exports'
 import ReleaseDialog from '@/components/ReleaseDialog.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 
@@ -51,6 +51,23 @@ onMounted(load)
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return '—'
   return new Date(iso.includes('Z') ? iso : iso + 'Z').toLocaleString()
+}
+
+const skipReason = ref('')
+const skipping = ref(false)
+const skipError = ref<string | null>(null)
+
+async function submitSkip() {
+  if (!run.value) return
+  skipping.value = true
+  skipError.value = null
+  const result = await skipExport(run.value.sequenceNo, { reason: skipReason.value.trim() || null })
+  skipping.value = false
+  if (result.ok) {
+    await load()
+  } else {
+    skipError.value = result.message || `Error ${result.status}`
+  }
 }
 
 const shacopied = ref(false)
@@ -151,6 +168,35 @@ async function copySha(hash: string) {
         @released="load"
       />
 
+      <!-- Skip run form (Pending or Failed) -->
+      <div v-if="run.status === 'Pending' || run.status === 'Failed'" class="skip-card border border-slate-200 rounded-lg px-6 py-5 max-w-sm mt-6">
+        <h2 class="m-0 mb-1 text-base font-semibold text-slate-700">Skip This Run</h2>
+        <p class="text-slate-500 text-sm m-0 mb-4 leading-relaxed">
+          Permanently marks this run as Skipped so it no longer blocks sequence gap detection.
+          Use this when a run can never be released (e.g. no ERP data at that time, file lost).
+        </p>
+
+        <div class="flex flex-col gap-1 mb-3">
+          <label for="skip-reason" class="text-sm font-semibold">Reason (optional)</label>
+          <input
+            id="skip-reason"
+            v-model="skipReason"
+            type="text"
+            maxlength="200"
+            placeholder="e.g. ERP offline during scheduled run"
+            class="px-2.5 py-1.5 border border-slate-300 rounded-md text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          />
+        </div>
+
+        <p v-if="skipError" class="text-red-600 text-sm mb-2">{{ skipError }}</p>
+
+        <button
+          class="px-5 py-2 border border-slate-400 rounded-md bg-white text-slate-700 text-sm font-semibold cursor-pointer hover:enabled:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          :disabled="skipping"
+          @click="submitSkip"
+        >{{ skipping ? 'Skipping…' : 'Skip Run' }}</button>
+      </div>
+
       <!-- Delivery acknowledgement form -->
       <div v-if="run.status === 'Released' && !run.deliveredAt" class="delivery-card border border-slate-200 rounded-lg px-6 py-5 max-w-sm mt-6">
         <h2 class="m-0 mb-1 text-base font-semibold">Record Physical Delivery</h2>
@@ -172,13 +218,17 @@ async function copySha(hash: string) {
         </div>
 
         <div class="flex flex-col gap-1 mb-3">
-          <label for="delivery-notes" class="text-sm font-semibold">Notes (optional)</label>
-          <input
+          <div class="flex items-baseline justify-between">
+            <label for="delivery-notes" class="text-sm font-semibold">Notes (optional)</label>
+            <span class="text-xs text-slate-400">{{ deliveryNotes.length }}/2000</span>
+          </div>
+          <textarea
             id="delivery-notes"
-            type="text"
             v-model="deliveryNotes"
+            maxlength="2000"
+            rows="3"
             placeholder="e.g. USB-007, handed to J. Smith"
-            class="px-2.5 py-1.5 border border-slate-300 rounded-md text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            class="px-2.5 py-1.5 border border-slate-300 rounded-md text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 resize-y"
           />
         </div>
 

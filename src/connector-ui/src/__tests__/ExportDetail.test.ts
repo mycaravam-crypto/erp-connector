@@ -181,4 +181,56 @@ describe('ExportDetail', () => {
     expect(exportsApi.deliverExport).toHaveBeenCalledWith(4, { importedRecordCount: 5, notes: 'USB-007' })
     expect(w.find('.delivery-done').exists()).toBe(true)
   })
+
+  // ── Skip run (Phase 8) ────────────────────────────────────────────────────
+
+  it('shows skip form for Pending runs', async () => {
+    vi.spyOn(exportsApi, 'getExport').mockResolvedValueOnce(PENDING)
+    const w = mount(ExportDetail, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+    expect(w.find('.skip-card').exists()).toBe(true)
+  })
+
+  it('shows skip form for Failed runs', async () => {
+    const FAILED = { ...PENDING, status: 'Failed' }
+    vi.spyOn(exportsApi, 'getExport').mockResolvedValueOnce(FAILED)
+    const w = mount(ExportDetail, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+    expect(w.find('.skip-card').exists()).toBe(true)
+  })
+
+  it('hides skip form for Released runs', async () => {
+    vi.spyOn(exportsApi, 'getExport').mockResolvedValueOnce(RELEASED)
+    const w = mount(ExportDetail, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+    expect(w.find('.skip-card').exists()).toBe(false)
+  })
+
+  it('calls skipExport and reloads on skip submit', async () => {
+    const SKIPPED = { ...PENDING, status: 'Skipped' }
+    vi.spyOn(exportsApi, 'getExport')
+      .mockResolvedValueOnce(PENDING)
+      .mockResolvedValueOnce(SKIPPED)
+    vi.spyOn(exportsApi, 'skipExport').mockResolvedValueOnce({ ok: true, status: 200, message: '' })
+
+    const w = mount(ExportDetail, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+    await w.find('#skip-reason').setValue('ERP offline')
+    await w.find('.skip-card button').trigger('click')
+    await flushPromises()
+    expect(exportsApi.skipExport).toHaveBeenCalledWith(4, { reason: 'ERP offline' })
+    expect(w.find('.skip-card').exists()).toBe(false)
+  })
+
+  it('shows error message when skipExport fails', async () => {
+    vi.spyOn(exportsApi, 'getExport').mockResolvedValueOnce(PENDING)
+    vi.spyOn(exportsApi, 'skipExport').mockResolvedValueOnce({
+      ok: false, status: 409, message: "Run #4 has status 'Released' and cannot be skipped.",
+    })
+    const w = mount(ExportDetail, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+    await w.find('.skip-card button').trigger('click')
+    await flushPromises()
+    expect(w.text()).toContain("cannot be skipped")
+  })
 })

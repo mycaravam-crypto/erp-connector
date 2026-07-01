@@ -85,7 +85,7 @@ describe('ExportView', () => {
     })
     const w = mount(ExportView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
-    expect(w.text()).toContain('Showing 20 of 25')
+    expect(w.text()).toContain('Showing first 20 rows')
   })
 
   it('does not show "Showing N of M" when rows ≤ 20', async () => {

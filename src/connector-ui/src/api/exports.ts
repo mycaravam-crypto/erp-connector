@@ -40,6 +40,10 @@ export interface DeliverRequest {
   notes?: string | null
 }
 
+export interface SkipRequest {
+  reason?: string | null
+}
+
 function authHeaders(): Record<string, string> {
   const token = getToken()
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -68,6 +72,19 @@ export async function releaseExport(
   body: ReleaseRequest,
 ): Promise<{ ok: boolean; status: number; message: string }> {
   const res = await fetch(`/api/exports/${seqNo}/release`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  })
+  const message = res.ok ? '' : await res.text()
+  return { ok: res.ok, status: res.status, message }
+}
+
+export async function skipExport(
+  seqNo: number,
+  body: SkipRequest,
+): Promise<{ ok: boolean; status: number; message: string }> {
+  const res = await fetch(`/api/exports/${seqNo}/skip`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify(body),

@@ -45,6 +45,23 @@ export async function getConnection(): Promise<ErpConnectionInfo | null> {
   return res.json() as Promise<ErpConnectionInfo>
 }
 
+// ── Connection status cache (for route guards) ────────────────────────────────
+
+let _connectionConfigured: boolean | null = null
+
+/** Call after saving a new connection so the route guard re-checks next navigation. */
+export function invalidateConnectionCache(): void {
+  _connectionConfigured = null
+}
+
+/** True if a connection has been configured server-side. Result is cached for the session. */
+export async function isConnectionConfigured(): Promise<boolean> {
+  if (_connectionConfigured !== null) return _connectionConfigured
+  const conn = await getConnection()
+  _connectionConfigured = conn !== null
+  return _connectionConfigured
+}
+
 /**
  * Tests the connection and, on success, persists it server-side and returns the live source schema.
  */
