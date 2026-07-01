@@ -120,6 +120,17 @@ public sealed class ExportWorker(
             await conn.OpenAsync(ct);
             var records = await DynamicExportService.ExecuteQueryAsync(conn, config, ct);
 
+            if (records.Count == 0)
+            {
+                logger.LogError(
+                    "Export #{Seq}: Abgebrochen — 0 Records zurückgegeben. " +
+                    "Mögliche Ursachen: Wartungsplan-Prädikat fehlt im Mapping, ERP-Abfrage-Fehler, oder leere Tabelle.",
+                    sequenceNo);
+                run.Status = ExportRunStatus.Failed;
+                await db.SaveChangesAsync(ct);
+                return;
+            }
+
             var bytes = DynamicExportService.BuildExcelBytes(records, cols, ExportSchema.Version, extractedAt);
             var fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt);
             var checksum = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();

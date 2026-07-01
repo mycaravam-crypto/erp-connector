@@ -8,6 +8,21 @@ namespace Connector.Infrastructure;
 
 public static class DynamicExportService
 {
+    /// <summary>
+    /// ERP field names that must never appear in any export artifact (GDPR Art. 5(1)(c)).
+    /// Checked at mapping-save time (API) and stripped at query time as defence-in-depth.
+    /// </summary>
+    public static readonly IReadOnlySet<string> GdprDeniedFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "technician_name",
+        "technician_id",
+        "employee_id",
+        "contact_name",
+        "contact_email",
+        "contact_phone",
+        "operator_name",
+    };
+
     public static IReadOnlyList<string> GetColumnNames(ExportMappingConfig cfg) =>
         cfg.Fields.Where(f => f.Enabled).Select(f => f.TargetName)
             .Concat(cfg.Relations.Where(r => r.Enabled).Select(r => r.TargetField))
@@ -51,9 +66,26 @@ public static class DynamicExportService
         {
             var row = new Dictionary<string, string>(reader.FieldCount);
             for (int i = 0; i < reader.FieldCount; i++)
-                row[reader.GetName(i)] = await reader.IsDBNullAsync(i, ct) ? "" : (reader.GetValue(i)?.ToString() ?? "");
+            {
+                if (await reader.IsDBNullAsync(i, ct))
+                {
+                    row[reader.GetName(i)] = "";
+                    continue;
+                }
+                // Coerce date/timestamp columns to ISO 8601 (YYYY-MM-DD) regardless of locale.
+                var pgType = reader.GetDataTypeName(i);
+                if (pgType is "date" or "timestamp" or "timestamptz")
+                    row[reader.GetName(i)] = reader.GetDateTime(i).ToString("yyyy-MM-dd");
+                else
+                    row[reader.GetName(i)] = reader.GetValue(i)?.ToString() ?? "";
+            }
             results.Add(row);
         }
+
+        // Strip any GDPR-denied fields that somehow appeared in the result (defence-in-depth).
+        foreach (var row in results)
+            foreach (var denied in GdprDeniedFields)
+                row.Remove(denied);
 
         return results;
     }

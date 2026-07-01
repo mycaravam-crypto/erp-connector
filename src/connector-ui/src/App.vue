@@ -41,6 +41,20 @@ const steps = [
 
     <div v-if="loggedIn" class="flex items-center gap-3 shrink-0">
       <RouterLink
+        :to="{ name: 'erp-database' }"
+        class="text-[0.82rem] text-slate-400 no-underline hover:text-slate-200 transition-colors"
+        active-class="!text-slate-100"
+      >
+        ERP Database
+      </RouterLink>
+      <RouterLink
+        :to="{ name: 'icd-schema' }"
+        class="text-[0.82rem] text-slate-400 no-underline hover:text-slate-200 transition-colors"
+        active-class="!text-slate-100"
+      >
+        ICD Schema
+      </RouterLink>
+      <RouterLink
         :to="{ name: 'settings' }"
         class="text-[0.82rem] text-slate-400 no-underline hover:text-slate-200 transition-colors"
         active-class="!text-slate-100"

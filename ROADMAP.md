@@ -1,7 +1,7 @@
 # Connector — Implementation Roadmap
 
 Tracks progress against the AI Coding Agent Roadmap (session-persistent).  
-Last updated: 2026-06-28 (session 2)
+Last updated: 2026-06-30 (session 3)
 
 ---
 
@@ -102,7 +102,7 @@ Frontend tests (Vitest): ✅ 51/51 passing
 
 ---
 
-## Phase 6 — Operational Enhancements (current)
+## Phase 6 — Operational Enhancements ✅
 
 Goal: close the loop between export and vendor import; make the daily workflow safer and more observable.
 YAGNI constraint: no premature abstraction; each item is the minimum that delivers value.
@@ -114,34 +114,41 @@ YAGNI constraint: no premature abstraction; each item is the minimum that delive
 | 6.3 Sequence gap detection | ✅ | `GET /api/exports/{seqNo}` returns `SequenceGapWarning`; ExportDetail shows banner |
 | 6.4 Delivery acknowledgement | ✅ | `POST /api/exports/{seqNo}/deliver`; delivery fields on `ExportRunEntity`; closes custody chain |
 | 6.5 Schema column persistence | ✅ | `AppSetting` table; `PATCH /api/schema/columns`; SchemaView toggles now saved server-side |
-
 | 6.6 Connection config backend | ✅ | `GET`+`POST /api/connection`; Npgsql introspects live schema; `GET /api/source-schema` falls back to demo when absent |
+
+---
+
+## Phase 7 — Requirements gap closure (current)
+
+Goal: close all gaps identified by requirements audit against `connector_document`. Skipped GAP 1 (maintenance plan predicate enforcement — deferred to Iteration 2 ICD work).
+
+| Task | Status | Notes |
+|---|---|---|
+| 7.1 Zero-count abort | ✅ | Scheduled worker + on-demand handler mark run `Failed` and abort when query returns 0 records |
+| 7.2 ISO 8601 date coercion | ✅ | `DynamicExportService` now explicitly formats `date`/`timestamp`/`timestamptz` as `yyyy-MM-dd` |
+| 7.3 GDPR field denylist | ✅ | `GdprDeniedFields` set enforced at mapping-save validation (400 on violation) and stripped in query results as defence-in-depth |
+| 7.4 ICD Schema view (read-only) | ✅ | `IcdSchemaView.vue` at `/icd-schema` — version badge, 7 ICD columns, excluded-fields section, coalesce key explanation |
+| 7.5 ERP Database CI browser | ✅ | `ErpDatabaseView.vue` at `/erp-database` — BOM tree (expand/collapse), flat list on search/filter, scope filter, per-row detail panel with GDPR/Open Point #4 tags |
 
 ### Not in scope (Iteration 2)
 
 | Item | Reason deferred |
 |---|---|
-| Real Postgres IErpReader (pipeline) | Requires ICD — pipeline still uses DemoErpReader for actual export; connection wiring is done for schema introspection only |
-| Delta/incremental export | Requires ERP change-tracking field and volume assessment (Open Point #5) |
+| Maintenance plan predicate enforcement (GAP 1) | Requires ICD to specify the predicate formally; enforcing it at mapping-save is too fragile without a known table schema |
+| Delta/incremental export | Requires ERP change-tracking and return channel (Open Point #5, #6) |
 
 ---
 
 ## Remaining Work
 
-42 .NET tests · 55 Vitest tests — all passing.
-
-### Verified gaps (Iteration 2 scope)
-
-| Gap | Current state | Work needed |
-|---|---|---|
-| Real Postgres IErpReader (pipeline) | Export pipeline reads from demo SQLite; connection config wires schema introspection only | Wire live `IErpReader` to Npgsql for actual export runs |
+56 .NET tests · 171 Vitest tests — all passing.
 
 ### Open points that will drive future code changes (tracked in `13-open-points.md`):
 | Open Point | When it unblocks | Code impact |
 |---|---|---|
 | #3 Classification marking | Legal decision | Release API may need a marking field |
 | #4 `storagelocation` entitlement | Data owner + legal | `DataMinimizer` and `ExportSchema` update if confirmed in scope |
-| #5 Snapshot volume | ERP data steward | Pagination in `IErpReader` if > ~500k CIs |
+| #5 Snapshot volume | ERP data steward | Pagination in query if > ~500k CIs |
 | #6 Return-channel timing | Vendor + sponsor | Iteration 2 scope and schedule |
 | #7 Retention periods | Legal + DPO | `RetentionDays` config value (default 30 — adjust when decided) |
-| #8 Allocation chart import | ERP + vendor | Production `IErpReader` scope predicate |
+| #8 Allocation chart import | ERP + vendor | Maintenance plan predicate enforcement in mapping validation |

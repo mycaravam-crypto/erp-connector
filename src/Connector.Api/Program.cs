@@ -433,6 +433,15 @@ app.MapPost(
                 await pgConn.OpenAsync(ct);
                 var records = await DynamicExportService.ExecuteQueryAsync(pgConn, config, ct);
 
+                if (records.Count == 0)
+                {
+                    run.Status = ExportRunStatus.Failed;
+                    await db.SaveChangesAsync(ct);
+                    return Results.Problem(
+                        detail: "Export aborted: query returned 0 records. Check that your mapping includes the maintenance_plan scope predicate.",
+                        statusCode: 400);
+                }
+
                 byte[] bytes;
                 string fileName;
                 if (fmt == "csv")
@@ -874,6 +883,15 @@ app.MapPut(
                 return Results.BadRequest(
                     $"Enabled fields must have non-empty target names: {string.Join(", ", badFields)}");
 
+            var gdprViolations = config.Fields
+                .Where(f => f.Enabled && DynamicExportService.GdprDeniedFields.Contains(f.SourceName))
+                .Select(f => f.SourceName)
+                .ToList();
+            if (gdprViolations.Count > 0)
+                return Results.BadRequest(
+                    $"GDPR violation: the following fields are personal data and must not be exported " +
+                    $"(GDPR Art. 5(1)(c) — data minimisation): {string.Join(", ", gdprViolations)}");
+
             var badRels = config.Relations
                 .Where(r => r.Enabled && (
                     string.IsNullOrWhiteSpace(r.RelatedTable) ||
@@ -934,6 +952,15 @@ app.MapPut(
             if (badFields.Count > 0)
                 return Results.BadRequest(
                     $"Enabled fields must have non-empty target names: {string.Join(", ", badFields)}");
+
+            var gdprViolations = config.Fields
+                .Where(f => f.Enabled && DynamicExportService.GdprDeniedFields.Contains(f.SourceName))
+                .Select(f => f.SourceName)
+                .ToList();
+            if (gdprViolations.Count > 0)
+                return Results.BadRequest(
+                    $"GDPR violation: the following fields are personal data and must not be exported " +
+                    $"(GDPR Art. 5(1)(c) — data minimisation): {string.Join(", ", gdprViolations)}");
 
             var badRels = config.Relations
                 .Where(r => r.Enabled && (
