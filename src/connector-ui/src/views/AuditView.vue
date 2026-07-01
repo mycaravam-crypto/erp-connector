@@ -8,7 +8,9 @@ const loadError = ref<string | null>(null)
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return '—'
-  return new Date(iso.includes('Z') ? iso : iso + 'Z').toLocaleString()
+  // .NET "O" format emits +00:00 offset; only append Z for bare timestamps with no timezone.
+  const hasTimezone = iso.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(iso)
+  return new Date(hasTimezone ? iso : iso + 'Z').toLocaleString()
 }
 
 async function load() {

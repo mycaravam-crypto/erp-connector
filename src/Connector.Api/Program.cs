@@ -147,6 +147,23 @@ using (var scope = app.Services.CreateScope())
     var exportLogDb = scope.ServiceProvider.GetRequiredService<ExportLogDbContext>();
     await BootstrapMigrationsAsync(exportLogDb);
     await exportLogDb.Database.MigrateAsync();
+
+    // AuditLog may be missing on databases where InitialSchema was stamped via bootstrap
+    // before Phase 8 added the table. IF NOT EXISTS makes this a safe no-op on intact DBs.
+    await exportLogDb.Database.ExecuteSqlRawAsync(
+        """
+        CREATE TABLE IF NOT EXISTS "AuditLog" (
+            "Id" INTEGER NOT NULL CONSTRAINT "PK_AuditLog" PRIMARY KEY AUTOINCREMENT,
+            "Timestamp" TEXT NOT NULL,
+            "Username" TEXT NOT NULL,
+            "Action" TEXT NOT NULL,
+            "Detail" TEXT NULL
+        )
+        """
+    );
+    await exportLogDb.Database.ExecuteSqlRawAsync(
+        """CREATE INDEX IF NOT EXISTS "IX_AuditLog_Timestamp" ON "AuditLog" ("Timestamp")"""
+    );
 }
 
 // ── User store ────────────────────────────────────────────────────────────────
@@ -223,10 +240,9 @@ async Task BootstrapMigrationsAsync(ExportLogDbContext db)
             )
             .ToListAsync())[0] > 0;
 
-    if (!auditLogExists)
-        return; // partial-upgrade (e.g. pre-Phase-8) — MigrateAsync will add AuditLog cleanly
-
     // Pre-migration database: create history table and stamp the initial migration as applied.
+    // Runs regardless of whether AuditLog exists — if it's absent, the startup CREATE TABLE IF
+    // NOT EXISTS guard below will add it after MigrateAsync is done.
     await db.Database.ExecuteSqlRawAsync(
         """
         CREATE TABLE "__EFMigrationsHistory" (
@@ -238,8 +254,10 @@ async Task BootstrapMigrationsAsync(ExportLogDbContext db)
     await db.Database.ExecuteSqlRawAsync(
         "INSERT INTO \"__EFMigrationsHistory\" VALUES ('20260701083054_InitialSchema', '9.0.6')"
     );
-    // Add the AuditLog Timestamp index — new in InitialSchema, absent from pre-migration databases.
-    await db.Database.ExecuteSqlRawAsync(
-        "CREATE INDEX IF NOT EXISTS \"IX_AuditLog_Timestamp\" ON \"AuditLog\" (\"Timestamp\")"
-    );
+    // Add the AuditLog Timestamp index — only when the table already exists; if it's absent
+    // the startup CREATE TABLE IF NOT EXISTS guard will create both table and index.
+    if (auditLogExists)
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_AuditLog_Timestamp\" ON \"AuditLog\" (\"Timestamp\")"
+        );
 }
