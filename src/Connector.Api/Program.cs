@@ -216,6 +216,16 @@ async Task BootstrapMigrationsAsync(ExportLogDbContext db)
     if (!tablesExist)
         return; // fresh install — MigrateAsync creates everything
 
+    var auditLogExists =
+        (await db.Database
+            .SqlQueryRaw<int>(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='AuditLog'"
+            )
+            .ToListAsync())[0] > 0;
+
+    if (!auditLogExists)
+        return; // partial-upgrade (e.g. pre-Phase-8) — MigrateAsync will add AuditLog cleanly
+
     // Pre-migration database: create history table and stamp the initial migration as applied.
     await db.Database.ExecuteSqlRawAsync(
         """

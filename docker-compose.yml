@@ -4,27 +4,22 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8080:8080"
+      - "8090:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
 
-      # ── Required: generate with `openssl rand -base64 32` ────────────────────
-      Auth__JwtSecret: "REPLACE_WITH_SECURE_SECRET_MINIMUM_32_CHARS"
+      Auth__JwtSecret: "${AUTH_JWT_SECRET}"
 
-      # ── Required: production users with BCrypt hashes ─────────────────────────
-      # Generate hashes by running the app in Development and calling:
-      #   POST /api/auth/hash   {"password": "your-password"}
-      Auth__Users__0__Username: "alice"
-      Auth__Users__0__PasswordHash: "REPLACE_WITH_BCRYPT_HASH"
-      Auth__Users__1__Username: "bob"
-      Auth__Users__1__PasswordHash: "REPLACE_WITH_BCRYPT_HASH"
+      Auth__Users__0__Username: "${AUTH_USER0_NAME}"
+      Auth__Users__0__PasswordHash: "${AUTH_USER0_HASH}"
+      Auth__Users__1__Username: "${AUTH_USER1_NAME}"
+      Auth__Users__1__PasswordHash: "${AUTH_USER1_HASH}"
 
-      # ── Storage paths (match the volume mounts below) ─────────────────────────
       ConnectionStrings__ExportLog: "Data Source=/data/db/export_log.db"
       ConnectionStrings__DemoErp: "Data Source=/data/db/demo_erp.db"
       ExportSink__StagingPath: "/data/staging"
 
-      # ── Optional overrides ────────────────────────────────────────────────────
+      AllowedHosts: "*"
       # ExportWorker__ScheduledTimeUtc: "02:00"
       # ExportWorker__RetentionDays: "30"
       # AllowedOrigins__0: "https://your-domain.com"

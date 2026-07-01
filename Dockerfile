@@ -32,9 +32,14 @@ COPY --from=ui-build /app/ui/dist ./wwwroot
 
 # Non-root user for least-privilege execution
 RUN addgroup -S connector && adduser -S connector -G connector
+
+# Create data directories with correct ownership before declaring them as volumes.
+# Docker initialises named volumes from the image content at these paths, so the
+# ownership must be set here — not after the VOLUME instruction.
+RUN mkdir -p /data/db /data/staging && chown -R connector:connector /data
+
 USER connector
 
-# Data volumes — must be mounted at runtime with writable host paths
 VOLUME ["/data/db", "/data/staging"]
 
 ENV ASPNETCORE_ENVIRONMENT=Production
