@@ -23,9 +23,7 @@ static class ConnectionEndpoints
                     if (cfg is null)
                         return Results.NotFound();
 
-                    return Results.Ok(
-                        new ErpConnectionInfo(cfg.Host, cfg.Port, cfg.Database, cfg.Username)
-                    );
+                    return Results.Ok(new ErpConnectionInfo(cfg.Host, cfg.Port, cfg.Database, cfg.Username));
                 }
             )
             .RequireAuthorization();
@@ -33,11 +31,7 @@ static class ConnectionEndpoints
         // Tests the connection, persists it on success, and returns the live source schema.
         app.MapPost(
                 "/api/connection",
-                async (
-                    ErpConnectionConfig request,
-                    ExportLogDbContext db,
-                    CancellationToken ct
-                ) =>
+                async (ErpConnectionConfig request, ExportLogDbContext db, CancellationToken ct) =>
                 {
                     if (
                         string.IsNullOrWhiteSpace(request.Host)
@@ -58,22 +52,13 @@ static class ConnectionEndpoints
                         var serialized = JsonSerializer.Serialize(request);
                         var setting = await db.AppSettings.FindAsync("erp_connection");
                         if (setting is null)
-                            db.AppSettings.Add(
-                                new AppSettingEntity
-                                {
-                                    Key = "erp_connection",
-                                    Value = serialized,
-                                }
-                            );
+                            db.AppSettings.Add(new AppSettingEntity { Key = "erp_connection", Value = serialized });
                         else
                             setting.Value = serialized;
                         await db.SaveChangesAsync();
 
                         return Results.Ok(
-                            new SourceSchemaDto(
-                                $"{request.Host}:{request.Port}/{request.Database}",
-                                tables
-                            )
+                            new SourceSchemaDto($"{request.Host}:{request.Port}/{request.Database}", tables)
                         );
                     }
                     catch (Exception ex)
@@ -93,9 +78,7 @@ static class ConnectionEndpoints
                     var connSetting = await db.AppSettings.FindAsync("erp_connection");
                     if (connSetting is not null)
                     {
-                        var cfg = JsonSerializer.Deserialize<ErpConnectionConfig>(
-                            connSetting.Value
-                        );
+                        var cfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connSetting.Value);
                         if (cfg is not null)
                         {
                             try
@@ -105,12 +88,7 @@ static class ConnectionEndpoints
                                 );
                                 await conn.OpenAsync(ct);
                                 var tables = await IntrospectSchemaAsync(conn, ct);
-                                return Results.Ok(
-                                    new SourceSchemaDto(
-                                        $"{cfg.Host}:{cfg.Port}/{cfg.Database}",
-                                        tables
-                                    )
-                                );
+                                return Results.Ok(new SourceSchemaDto($"{cfg.Host}:{cfg.Port}/{cfg.Database}", tables));
                             }
                             catch
                             {
@@ -163,20 +141,18 @@ static class ConnectionEndpoints
             var table = reader.GetString(0);
             if (!byTable.ContainsKey(table))
                 byTable[table] = [];
-            byTable[table].Add(
-                new SourceColumnDto(
-                    Name: reader.GetString(1),
-                    Type: reader.GetString(2),
-                    Nullable: reader.GetString(3) == "YES",
-                    PrimaryKey: reader.GetBoolean(4)
-                )
-            );
+            byTable[table]
+                .Add(
+                    new SourceColumnDto(
+                        Name: reader.GetString(1),
+                        Type: reader.GetString(2),
+                        Nullable: reader.GetString(3) == "YES",
+                        PrimaryKey: reader.GetBoolean(4)
+                    )
+                );
         }
 
-        return byTable
-            .Select(kv => new SourceTableDto(kv.Key, "", kv.Value.ToArray()))
-            .OrderBy(t => t.Name)
-            .ToArray();
+        return byTable.Select(kv => new SourceTableDto(kv.Key, "", kv.Value.ToArray())).OrderBy(t => t.Name).ToArray();
     }
 
     // Hardcoded demo schema that mirrors what a real production PostgreSQL ERP database would expose.
@@ -191,32 +167,12 @@ static class ConnectionEndpoints
                     new SourceColumnDto[]
                     {
                         new("id", "uuid", Nullable: false, PrimaryKey: true),
-                        new(
-                            "serial",
-                            "character varying(100)",
-                            Nullable: true,
-                            PrimaryKey: false
-                        ),
+                        new("serial", "character varying(100)", Nullable: true, PrimaryKey: false),
                         new("article_id", "uuid", Nullable: true, PrimaryKey: false),
-                        new(
-                            "status",
-                            "character varying(50)",
-                            Nullable: true,
-                            PrimaryKey: false
-                        ),
+                        new("status", "character varying(50)", Nullable: true, PrimaryKey: false),
                         new("commission_date", "date", Nullable: true, PrimaryKey: false),
-                        new(
-                            "technician_name",
-                            "character varying(100)",
-                            Nullable: true,
-                            PrimaryKey: false
-                        ),
-                        new(
-                            "storage_location",
-                            "character varying(200)",
-                            Nullable: true,
-                            PrimaryKey: false
-                        ),
+                        new("technician_name", "character varying(100)", Nullable: true, PrimaryKey: false),
+                        new("storage_location", "character varying(200)", Nullable: true, PrimaryKey: false),
                     }
                 ),
                 new(
@@ -225,24 +181,9 @@ static class ConnectionEndpoints
                     new SourceColumnDto[]
                     {
                         new("id", "uuid", Nullable: false, PrimaryKey: true),
-                        new(
-                            "article_name",
-                            "character varying(200)",
-                            Nullable: true,
-                            PrimaryKey: false
-                        ),
-                        new(
-                            "part_number",
-                            "character varying(100)",
-                            Nullable: true,
-                            PrimaryKey: false
-                        ),
-                        new(
-                            "manufacturer",
-                            "character varying(100)",
-                            Nullable: true,
-                            PrimaryKey: false
-                        ),
+                        new("article_name", "character varying(200)", Nullable: true, PrimaryKey: false),
+                        new("part_number", "character varying(100)", Nullable: true, PrimaryKey: false),
+                        new("manufacturer", "character varying(100)", Nullable: true, PrimaryKey: false),
                     }
                 ),
                 new(
@@ -251,24 +192,9 @@ static class ConnectionEndpoints
                     new SourceColumnDto[]
                     {
                         new("id", "uuid", Nullable: false, PrimaryKey: true),
-                        new(
-                            "system_configuration_id",
-                            "uuid",
-                            Nullable: false,
-                            PrimaryKey: false
-                        ),
-                        new(
-                            "status",
-                            "character varying(50)",
-                            Nullable: false,
-                            PrimaryKey: false
-                        ),
-                        new(
-                            "allocation_chart_ref",
-                            "character varying(100)",
-                            Nullable: true,
-                            PrimaryKey: false
-                        ),
+                        new("system_configuration_id", "uuid", Nullable: false, PrimaryKey: false),
+                        new("status", "character varying(50)", Nullable: false, PrimaryKey: false),
+                        new("allocation_chart_ref", "character varying(100)", Nullable: true, PrimaryKey: false),
                     }
                 ),
                 new(

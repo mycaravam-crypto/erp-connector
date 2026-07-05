@@ -11,11 +11,7 @@ static class HealthEndpoints
     {
         app.MapGet(
             "/api/health",
-            async (
-                DemoErpDbContext erpDb,
-                ExportLogDbContext logDb,
-                IOptions<ExportSinkOptions> sinkOpts
-            ) =>
+            async (DemoErpDbContext erpDb, ExportLogDbContext logDb, IOptions<ExportSinkOptions> sinkOpts) =>
             {
                 var staging = sinkOpts.Value.StagingPath;
                 var stagingOk = Directory.Exists(staging) && IsStagingWritable(staging);

@@ -38,7 +38,11 @@ public sealed class ExcelPackager : IPackager
         return Task.FromResult(new ExportPackage(manifest, fileBytes, dataFileName));
     }
 
-    private static byte[] BuildExcelFile(IReadOnlyList<MappedExportRecord> records, DateTimeOffset extractedAt, IReadOnlyDictionary<string, string>? nameOverrides)
+    private static byte[] BuildExcelFile(
+        IReadOnlyList<MappedExportRecord> records,
+        DateTimeOffset extractedAt,
+        IReadOnlyDictionary<string, string>? nameOverrides
+    )
     {
         using var workbook = new XLWorkbook();
         var sheet = workbook.Worksheets.Add("Export");

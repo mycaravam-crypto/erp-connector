@@ -41,7 +41,9 @@ public static class DynamicExportService
     }
 
     public static IReadOnlyList<string> GetColumnNames(ExportMappingConfig cfg) =>
-        cfg.Fields.Where(f => f.Enabled).Select(f => f.TargetName)
+        cfg
+            .Fields.Where(f => f.Enabled)
+            .Select(f => f.TargetName)
             .Concat(cfg.Relations.Where(r => r.Enabled).Select(r => r.TargetField))
             .ToList();
 
@@ -49,8 +51,12 @@ public static class DynamicExportService
         $"Host={cfg.Host};Port={cfg.Port};Database={cfg.Database};Username={cfg.Username};Password={cfg.Password};SSL Mode=Prefer;Trust Server Certificate=true;Timeout=5;Command Timeout=10";
 
     public static async Task<List<Dictionary<string, string>>> ExecuteQueryAsync(
-        NpgsqlConnection conn, ExportMappingConfig cfg, CancellationToken ct, int? limit = null,
-        IReadOnlySet<string>? gdprDenylist = null)
+        NpgsqlConnection conn,
+        ExportMappingConfig cfg,
+        CancellationToken ct,
+        int? limit = null,
+        IReadOnlySet<string>? gdprDenylist = null
+    )
     {
         var parts = new List<string>();
 
@@ -61,16 +67,18 @@ public static class DynamicExportService
         {
             var sf = r.StrategyOptions.SourceField;
             var delim = r.StrategyOptions.Delimiter.Replace("'", "''");
-            var agg = r.FlattenStrategy == "string_join"
-                ? $"string_agg({QI(r.RelatedTable)}.{QI(sf)}::text, '{delim}')"
-                : $"array_to_string(array_agg({QI(r.RelatedTable)}.{QI(sf)}::text), ',')";
+            var agg =
+                r.FlattenStrategy == "string_join"
+                    ? $"string_agg({QI(r.RelatedTable)}.{QI(sf)}::text, '{delim}')"
+                    : $"array_to_string(array_agg({QI(r.RelatedTable)}.{QI(sf)}::text), ',')";
             parts.Add(
-                $"(SELECT {agg} FROM {QI(r.RelatedTable)} " +
-                $"WHERE {QI(r.RelatedTable)}.{QI(r.JoinKey)} = s.{QI(r.SourceJoinKey)}) AS {QI(r.TargetField)}"
+                $"(SELECT {agg} FROM {QI(r.RelatedTable)} "
+                    + $"WHERE {QI(r.RelatedTable)}.{QI(r.JoinKey)} = s.{QI(r.SourceJoinKey)}) AS {QI(r.TargetField)}"
             );
         }
 
-        if (parts.Count == 0) return [];
+        if (parts.Count == 0)
+            return [];
 
         var sql = $"SELECT {string.Join(", ", parts)} FROM {QI(cfg.SourceTable)} s";
         if (limit.HasValue)
@@ -103,8 +111,10 @@ public static class DynamicExportService
         // Strip any GDPR-denied fields that somehow appeared in the result (defence-in-depth).
         var effectiveDenylist = gdprDenylist ?? GdprDeniedFields;
         foreach (var row in results)
+        {
             foreach (var denied in effectiveDenylist)
                 row.Remove(denied);
+        }
 
         return results;
     }
@@ -113,7 +123,8 @@ public static class DynamicExportService
         IReadOnlyList<Dictionary<string, string>> records,
         IReadOnlyList<string> columns,
         string schemaVersion,
-        DateTimeOffset extractedAt)
+        DateTimeOffset extractedAt
+    )
     {
         var sb = new System.Text.StringBuilder();
         sb.AppendLine($"# schema_version={schemaVersion},extracted_at={extractedAt:O}");
@@ -126,7 +137,8 @@ public static class DynamicExportService
     public static byte[] BuildJsonBytes(
         IReadOnlyList<Dictionary<string, string>> records,
         string schemaVersion,
-        DateTimeOffset extractedAt)
+        DateTimeOffset extractedAt
+    )
     {
         var obj = new
         {
@@ -141,7 +153,8 @@ public static class DynamicExportService
         IReadOnlyList<Dictionary<string, string>> records,
         IReadOnlyList<string> columns,
         string schemaVersion,
-        DateTimeOffset extractedAt)
+        DateTimeOffset extractedAt
+    )
     {
         using var wb = new XLWorkbook();
         var ws = wb.Worksheets.Add("Export");
@@ -161,7 +174,16 @@ public static class DynamicExportService
             {
                 var val = records[r].GetValueOrDefault(columns[c], "");
                 var cell = ws.Cell(r + 3, c + 1);
-                if (!string.IsNullOrEmpty(val) && DateOnly.TryParseExact(val, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var date))
+                if (
+                    !string.IsNullOrEmpty(val)
+                    && DateOnly.TryParseExact(
+                        val,
+                        "yyyy-MM-dd",
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        System.Globalization.DateTimeStyles.None,
+                        out var date
+                    )
+                )
                 {
                     cell.Value = date.ToDateTime(TimeOnly.MinValue);
                     cell.Style.NumberFormat.Format = "yyyy-mm-dd";
@@ -191,7 +213,8 @@ public static class DynamicExportService
 
     private static string CsvEscape(string? value)
     {
-        if (string.IsNullOrEmpty(value)) return "";
+        if (string.IsNullOrEmpty(value))
+            return "";
         if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
             return '"' + value.Replace("\"", "\"\"") + '"';
         return value;

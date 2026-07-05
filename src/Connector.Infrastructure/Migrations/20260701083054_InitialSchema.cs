@@ -27,9 +27,7 @@ public partial class InitialSchema : Migration
             name: "AuditLog",
             columns: table => new
             {
-                Id = table
-                    .Column<int>(type: "INTEGER", nullable: false)
-                    .Annotation("Sqlite:Autoincrement", true),
+                Id = table.Column<int>(type: "INTEGER", nullable: false).Annotation("Sqlite:Autoincrement", true),
                 Timestamp = table.Column<string>(type: "TEXT", nullable: false),
                 Username = table.Column<string>(type: "TEXT", nullable: false),
                 Action = table.Column<string>(type: "TEXT", nullable: false),
@@ -45,9 +43,7 @@ public partial class InitialSchema : Migration
             name: "ExportRun",
             columns: table => new
             {
-                Id = table
-                    .Column<int>(type: "INTEGER", nullable: false)
-                    .Annotation("Sqlite:Autoincrement", true),
+                Id = table.Column<int>(type: "INTEGER", nullable: false).Annotation("Sqlite:Autoincrement", true),
                 SequenceNo = table.Column<int>(type: "INTEGER", nullable: false),
                 ExtractedAt = table.Column<string>(type: "TEXT", nullable: false),
                 RecordCount = table.Column<int>(type: "INTEGER", nullable: false),
@@ -68,11 +64,7 @@ public partial class InitialSchema : Migration
             }
         );
 
-        migrationBuilder.CreateIndex(
-            name: "IX_AuditLog_Timestamp",
-            table: "AuditLog",
-            column: "Timestamp"
-        );
+        migrationBuilder.CreateIndex(name: "IX_AuditLog_Timestamp", table: "AuditLog", column: "Timestamp");
 
         migrationBuilder.CreateIndex(
             name: "IX_ExportRun_SequenceNo",

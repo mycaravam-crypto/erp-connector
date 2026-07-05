@@ -15,9 +15,7 @@ Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
     .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
     .Enrich.FromLogContext()
-    .WriteTo.Console(
-        outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
-    )
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
     .CreateBootstrapLogger();
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,9 +33,7 @@ builder.Host.UseSerilog(
         if (ctx.HostingEnvironment.IsProduction())
             cfg.WriteTo.Console(new Serilog.Formatting.Json.JsonFormatter());
         else
-            cfg.WriteTo.Console(
-                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
-            );
+            cfg.WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}");
     }
 );
 
@@ -46,8 +42,7 @@ builder.Host.UseSerilog(
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth"));
 
 var jwtSecret =
-    builder.Configuration["Auth:JwtSecret"]
-    ?? throw new InvalidOperationException("Auth:JwtSecret is not configured.");
+    builder.Configuration["Auth:JwtSecret"] ?? throw new InvalidOperationException("Auth:JwtSecret is not configured.");
 
 builder
     .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -66,23 +61,18 @@ builder.Services.AddAuthorization();
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 
-var allowedOrigins =
-    builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? [];
+var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? [];
 if (allowedOrigins.Length > 0)
 {
     builder.Services.AddCors(opts =>
-        opts.AddDefaultPolicy(p =>
-            p.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()
-        )
+        opts.AddDefaultPolicy(p => p.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod())
     );
 }
 
 // ── Infrastructure ────────────────────────────────────────────────────────────
 
 builder.Services.Configure<ExportSinkOptions>(builder.Configuration.GetSection("ExportSink"));
-builder.Services.Configure<ExportWorkerOptions>(
-    builder.Configuration.GetSection("ExportWorker")
-);
+builder.Services.Configure<ExportWorkerOptions>(builder.Configuration.GetSection("ExportWorker"));
 builder.Services.AddSingleton<IExportSink, FileSystemExportSink>();
 
 builder.Services.AddDbContext<ExportLogDbContext>(opt =>
@@ -110,23 +100,25 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.Use(async (ctx, next) =>
-{
-    var headers = ctx.Response.Headers;
-    headers["X-Content-Type-Options"] = "nosniff";
-    headers["X-Frame-Options"] = "DENY";
-    headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-    headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
-    headers["Content-Security-Policy"] =
-        "default-src 'none'; "
-        + "script-src 'self'; "
-        + "style-src 'self' 'unsafe-inline'; "
-        + "img-src 'self' data:; "
-        + "font-src 'self'; "
-        + "connect-src 'self'; "
-        + "frame-ancestors 'none'";
-    await next();
-});
+app.Use(
+    async (ctx, next) =>
+    {
+        var headers = ctx.Response.Headers;
+        headers["X-Content-Type-Options"] = "nosniff";
+        headers["X-Frame-Options"] = "DENY";
+        headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+        headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+        headers["Content-Security-Policy"] =
+            "default-src 'none'; "
+            + "script-src 'self'; "
+            + "style-src 'self' 'unsafe-inline'; "
+            + "img-src 'self' data:; "
+            + "font-src 'self'; "
+            + "connect-src 'self'; "
+            + "frame-ancestors 'none'";
+        await next();
+    }
+);
 
 app.UseStaticFiles();
 
@@ -178,13 +170,8 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-    var authUsers =
-        app.Configuration.GetSection("Auth:Users").Get<List<AuthUser>>() ?? [];
-    userStore = authUsers.ToDictionary(
-        u => u.Username,
-        u => u.PasswordHash,
-        StringComparer.OrdinalIgnoreCase
-    );
+    var authUsers = app.Configuration.GetSection("Auth:Users").Get<List<AuthUser>>() ?? [];
+    userStore = authUsers.ToDictionary(u => u.Username, u => u.PasswordHash, StringComparer.OrdinalIgnoreCase);
 }
 
 // ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -214,31 +201,33 @@ await app.RunAsync();
 async Task BootstrapMigrationsAsync(ExportLogDbContext db)
 {
     var historyExists =
-        (await db.Database
-            .SqlQueryRaw<int>(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='__EFMigrationsHistory'"
-            )
-            .ToListAsync())[0] > 0;
+        (
+            await db
+                .Database.SqlQueryRaw<int>(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='__EFMigrationsHistory'"
+                )
+                .ToListAsync()
+        )[0] > 0;
 
     if (historyExists)
         return;
 
     var tablesExist =
-        (await db.Database
-            .SqlQueryRaw<int>(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='ExportRun'"
-            )
-            .ToListAsync())[0] > 0;
+        (
+            await db
+                .Database.SqlQueryRaw<int>("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='ExportRun'")
+                .ToListAsync()
+        )[0] > 0;
 
     if (!tablesExist)
         return; // fresh install — MigrateAsync creates everything
 
     var auditLogExists =
-        (await db.Database
-            .SqlQueryRaw<int>(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='AuditLog'"
-            )
-            .ToListAsync())[0] > 0;
+        (
+            await db
+                .Database.SqlQueryRaw<int>("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='AuditLog'")
+                .ToListAsync()
+        )[0] > 0;
 
     // Pre-migration database: create history table and stamp the initial migration as applied.
     // Runs regardless of whether AuditLog exists — if it's absent, the startup CREATE TABLE IF

@@ -8,10 +8,7 @@ namespace Connector.Api.Endpoints;
 
 static class AuthEndpoints
 {
-    internal static void MapAuthEndpoints(
-        this WebApplication app,
-        IReadOnlyDictionary<string, string> userStore
-    )
+    internal static void MapAuthEndpoints(this WebApplication app, IReadOnlyDictionary<string, string> userStore)
     {
         app.MapPost(
             "/api/auth/login",
@@ -24,10 +21,7 @@ static class AuthEndpoints
                 )
                     return Results.Unauthorized();
 
-                var expiry = app.Configuration.GetValue<int>(
-                    "Auth:JwtExpiryHours",
-                    defaultValue: 8
-                );
+                var expiry = app.Configuration.GetValue<int>("Auth:JwtExpiryHours", defaultValue: 8);
                 var jwtSecret =
                     app.Configuration["Auth:JwtSecret"]
                     ?? throw new InvalidOperationException("Auth:JwtSecret is not configured.");
@@ -35,18 +29,10 @@ static class AuthEndpoints
                 var token = new JwtSecurityToken(
                     claims: [new Claim(ClaimTypes.Name, req.Username)],
                     expires: DateTime.UtcNow.AddHours(expiry),
-                    signingCredentials: new SigningCredentials(
-                        key,
-                        SecurityAlgorithms.HmacSha256
-                    )
+                    signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
                 );
                 await audit.LogAsync(req.Username, "login");
-                return Results.Ok(
-                    new LoginResponse(
-                        new JwtSecurityTokenHandler().WriteToken(token),
-                        req.Username
-                    )
-                );
+                return Results.Ok(new LoginResponse(new JwtSecurityTokenHandler().WriteToken(token), req.Username));
             }
         );
 
@@ -56,9 +42,7 @@ static class AuthEndpoints
             app.MapPost(
                 "/api/auth/hash",
                 (HashRequest req) =>
-                    Results.Ok(
-                        new { Hash = BCrypt.Net.BCrypt.HashPassword(req.Password, workFactor: 11) }
-                    )
+                    Results.Ok(new { Hash = BCrypt.Net.BCrypt.HashPassword(req.Password, workFactor: 11) })
             );
         }
     }

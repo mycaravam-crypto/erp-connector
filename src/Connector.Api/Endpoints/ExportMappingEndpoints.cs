@@ -36,9 +36,7 @@ static class ExportMappingEndpoints
                         return Results.BadRequest("SourceTable is required.");
 
                     var badFields = config
-                        .Fields.Where(f =>
-                            f.Enabled && string.IsNullOrWhiteSpace(f.TargetName)
-                        )
+                        .Fields.Where(f => f.Enabled && string.IsNullOrWhiteSpace(f.TargetName))
                         .Select(f => f.SourceName)
                         .ToList();
                     if (badFields.Count > 0)
@@ -48,9 +46,7 @@ static class ExportMappingEndpoints
 
                     var activeDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
                     var gdprViolations = config
-                        .Fields.Where(f =>
-                            f.Enabled && activeDenylist.Contains(f.SourceName)
-                        )
+                        .Fields.Where(f => f.Enabled && activeDenylist.Contains(f.SourceName))
                         .Select(f => f.SourceName)
                         .ToList();
                     if (gdprViolations.Count > 0)
@@ -68,13 +64,7 @@ static class ExportMappingEndpoints
                     var serialized = JsonSerializer.Serialize(config);
                     var setting = await db.AppSettings.FindAsync("export_mapping");
                     if (setting is null)
-                        db.AppSettings.Add(
-                            new AppSettingEntity
-                            {
-                                Key = "export_mapping",
-                                Value = serialized,
-                            }
-                        );
+                        db.AppSettings.Add(new AppSettingEntity { Key = "export_mapping", Value = serialized });
                     else
                         setting.Value = serialized;
 
@@ -98,9 +88,8 @@ static class ExportMappingEndpoints
                     if (setting is null)
                         return Results.Ok(new Dictionary<string, ExportMappingConfig>());
                     var presets =
-                        JsonSerializer.Deserialize<Dictionary<string, ExportMappingConfig>>(
-                            setting.Value
-                        ) ?? new Dictionary<string, ExportMappingConfig>();
+                        JsonSerializer.Deserialize<Dictionary<string, ExportMappingConfig>>(setting.Value)
+                        ?? new Dictionary<string, ExportMappingConfig>();
                     return Results.Ok(presets);
                 }
             )
@@ -124,9 +113,7 @@ static class ExportMappingEndpoints
                         return Results.BadRequest("SourceTable is required.");
 
                     var badFields = config
-                        .Fields.Where(f =>
-                            f.Enabled && string.IsNullOrWhiteSpace(f.TargetName)
-                        )
+                        .Fields.Where(f => f.Enabled && string.IsNullOrWhiteSpace(f.TargetName))
                         .Select(f => f.SourceName)
                         .ToList();
                     if (badFields.Count > 0)
@@ -136,9 +123,7 @@ static class ExportMappingEndpoints
 
                     var presetDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
                     var gdprViolations = config
-                        .Fields.Where(f =>
-                            f.Enabled && presetDenylist.Contains(f.SourceName)
-                        )
+                        .Fields.Where(f => f.Enabled && presetDenylist.Contains(f.SourceName))
                         .Select(f => f.SourceName)
                         .ToList();
                     if (gdprViolations.Count > 0)
@@ -154,33 +139,21 @@ static class ExportMappingEndpoints
                         );
 
                     var setting = await db.AppSettings.FindAsync("export_presets");
-                    var presets =
-                        setting is null
-                            ? new Dictionary<string, ExportMappingConfig>()
-                            : JsonSerializer.Deserialize<
-                                Dictionary<string, ExportMappingConfig>
-                            >(setting.Value) ?? new Dictionary<string, ExportMappingConfig>();
+                    var presets = setting is null
+                        ? new Dictionary<string, ExportMappingConfig>()
+                        : JsonSerializer.Deserialize<Dictionary<string, ExportMappingConfig>>(setting.Value)
+                            ?? new Dictionary<string, ExportMappingConfig>();
 
                     presets[name] = config;
                     var serialized = JsonSerializer.Serialize(presets);
 
                     if (setting is null)
-                        db.AppSettings.Add(
-                            new AppSettingEntity
-                            {
-                                Key = "export_presets",
-                                Value = serialized,
-                            }
-                        );
+                        db.AppSettings.Add(new AppSettingEntity { Key = "export_presets", Value = serialized });
                     else
                         setting.Value = serialized;
 
                     await db.SaveChangesAsync();
-                    await audit.LogAsync(
-                        httpContext.User.Identity!.Name!,
-                        "preset_saved",
-                        name
-                    );
+                    await audit.LogAsync(httpContext.User.Identity!.Name!, "preset_saved", name);
                     return Results.Ok(config);
                 }
             )
@@ -189,32 +162,22 @@ static class ExportMappingEndpoints
         // Deletes a single named preset. Returns 404 when the name does not exist.
         app.MapDelete(
                 "/api/export-mapping/presets/{name}",
-                async (
-                    string name,
-                    ExportLogDbContext db,
-                    HttpContext httpContext,
-                    AuditService audit
-                ) =>
+                async (string name, ExportLogDbContext db, HttpContext httpContext, AuditService audit) =>
                 {
                     var setting = await db.AppSettings.FindAsync("export_presets");
                     if (setting is null)
                         return Results.NotFound();
 
                     var presets =
-                        JsonSerializer.Deserialize<Dictionary<string, ExportMappingConfig>>(
-                            setting.Value
-                        ) ?? new Dictionary<string, ExportMappingConfig>();
+                        JsonSerializer.Deserialize<Dictionary<string, ExportMappingConfig>>(setting.Value)
+                        ?? new Dictionary<string, ExportMappingConfig>();
 
                     if (!presets.Remove(name))
                         return Results.NotFound();
 
                     setting.Value = JsonSerializer.Serialize(presets);
                     await db.SaveChangesAsync();
-                    await audit.LogAsync(
-                        httpContext.User.Identity!.Name!,
-                        "preset_deleted",
-                        name
-                    );
+                    await audit.LogAsync(httpContext.User.Identity!.Name!, "preset_deleted", name);
                     return Results.NoContent();
                 }
             )

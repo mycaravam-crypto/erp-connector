@@ -19,10 +19,11 @@ public sealed class DynamicExportServiceTests
     public void GetColumnNames_ReturnsOnlyEnabledFields_WithTargetNames()
     {
         var cfg = MakeConfig(
-            fields: [
-                new("src_id",     "ci_id",   Enabled: true),
-                new("src_serial", "serial",  Enabled: true),
-                new("src_hidden", "hidden",  Enabled: false),
+            fields:
+            [
+                new("src_id", "ci_id", Enabled: true),
+                new("src_serial", "serial", Enabled: true),
+                new("src_hidden", "hidden", Enabled: false),
             ],
             relations: []
         );
@@ -37,7 +38,8 @@ public sealed class DynamicExportServiceTests
     {
         var cfg = MakeConfig(
             fields: [new("id", "ci_id", Enabled: true)],
-            relations: [
+            relations:
+            [
                 MakeRelation("tags", "entity_id", "id", "tag_list", Enabled: true),
                 MakeRelation("notes", "entity_id", "id", "note_list", Enabled: false),
             ]
@@ -51,10 +53,7 @@ public sealed class DynamicExportServiceTests
     [Fact]
     public void GetColumnNames_EmptyWhenAllDisabled()
     {
-        var cfg = MakeConfig(
-            fields: [new("id", "ci_id", Enabled: false)],
-            relations: []
-        );
+        var cfg = MakeConfig(fields: [new("id", "ci_id", Enabled: false)], relations: []);
 
         Assert.Empty(DynamicExportService.GetColumnNames(cfg));
     }
@@ -67,10 +66,17 @@ public sealed class DynamicExportServiceTests
         var cols = new[] { "asset_id", "model_name", "warranty_start" };
         var records = new List<Dictionary<string, string>>
         {
-            new() { ["asset_id"] = "A1", ["model_name"] = "Server X", ["warranty_start"] = "2024-01-01" },
+            new()
+            {
+                ["asset_id"] = "A1",
+                ["model_name"] = "Server X",
+                ["warranty_start"] = "2024-01-01",
+            },
         };
 
-        var csv = ParseCsv(DynamicExportService.BuildCsvBytes(records, cols, ExportSchema.Version, DateTimeOffset.UtcNow));
+        var csv = ParseCsv(
+            DynamicExportService.BuildCsvBytes(records, cols, ExportSchema.Version, DateTimeOffset.UtcNow)
+        );
 
         Assert.Equal("asset_id", csv.Headers[0]);
         Assert.Equal("model_name", csv.Headers[1]);
@@ -88,11 +94,13 @@ public sealed class DynamicExportServiceTests
             new() { ["ci_id"] = "UUID-002", ["part_no"] = "PN-99" },
         };
 
-        var csv = ParseCsv(DynamicExportService.BuildCsvBytes(records, cols, ExportSchema.Version, DateTimeOffset.UtcNow));
+        var csv = ParseCsv(
+            DynamicExportService.BuildCsvBytes(records, cols, ExportSchema.Version, DateTimeOffset.UtcNow)
+        );
 
         Assert.Equal(2, csv.Rows.Count);
         Assert.Equal("UUID-001", csv.Rows[0][0]);
-        Assert.Equal("PN-42",    csv.Rows[0][1]);
+        Assert.Equal("PN-42", csv.Rows[0][1]);
         Assert.Equal("UUID-002", csv.Rows[1][0]);
     }
 
@@ -105,22 +113,23 @@ public sealed class DynamicExportServiceTests
             new() { ["ci_id"] = "X" }, // optional_field absent
         };
 
-        var csv = ParseCsv(DynamicExportService.BuildCsvBytes(records, cols, ExportSchema.Version, DateTimeOffset.UtcNow));
+        var csv = ParseCsv(
+            DynamicExportService.BuildCsvBytes(records, cols, ExportSchema.Version, DateTimeOffset.UtcNow)
+        );
 
         Assert.Equal("X", csv.Rows[0][0]);
-        Assert.Equal("",  csv.Rows[0][1]);
+        Assert.Equal("", csv.Rows[0][1]);
     }
 
     [Fact]
     public void BuildCsvBytes_CommaInValue_IsQuoted()
     {
         var cols = new[] { "name" };
-        var records = new List<Dictionary<string, string>>
-        {
-            new() { ["name"] = "Smith, John" },
-        };
+        var records = new List<Dictionary<string, string>> { new() { ["name"] = "Smith, John" } };
 
-        var csv = ParseCsv(DynamicExportService.BuildCsvBytes(records, cols, ExportSchema.Version, DateTimeOffset.UtcNow));
+        var csv = ParseCsv(
+            DynamicExportService.BuildCsvBytes(records, cols, ExportSchema.Version, DateTimeOffset.UtcNow)
+        );
 
         Assert.Equal("Smith, John", csv.Rows[0][0]);
     }
@@ -136,10 +145,11 @@ public sealed class DynamicExportServiceTests
         };
 
         var doc = JsonDocument.Parse(
-            DynamicExportService.BuildJsonBytes(records, ExportSchema.Version, DateTimeOffset.UtcNow));
+            DynamicExportService.BuildJsonBytes(records, ExportSchema.Version, DateTimeOffset.UtcNow)
+        );
 
         var first = doc.RootElement.GetProperty("records")[0];
-        Assert.Equal("A1",    first.GetProperty("asset_id").GetString());
+        Assert.Equal("A1", first.GetProperty("asset_id").GetString());
         Assert.Equal("SN-001", first.GetProperty("serial_no").GetString());
     }
 
@@ -147,7 +157,8 @@ public sealed class DynamicExportServiceTests
     public void BuildJsonBytes_ContainsSchemaVersion()
     {
         var doc = JsonDocument.Parse(
-            DynamicExportService.BuildJsonBytes([], ExportSchema.Version, DateTimeOffset.UtcNow));
+            DynamicExportService.BuildJsonBytes([], ExportSchema.Version, DateTimeOffset.UtcNow)
+        );
 
         Assert.Equal(ExportSchema.Version, doc.RootElement.GetProperty("schema_version").GetString());
     }
@@ -162,7 +173,8 @@ public sealed class DynamicExportServiceTests
         };
 
         var doc = JsonDocument.Parse(
-            DynamicExportService.BuildJsonBytes(records, ExportSchema.Version, DateTimeOffset.UtcNow));
+            DynamicExportService.BuildJsonBytes(records, ExportSchema.Version, DateTimeOffset.UtcNow)
+        );
 
         var arr = doc.RootElement.GetProperty("records");
         Assert.Equal(2, arr.GetArrayLength());
@@ -181,10 +193,12 @@ public sealed class DynamicExportServiceTests
             new() { ["asset_id"] = "A1", ["model_name"] = "Server X" },
         };
 
-        var ws = OpenExcelSheet(DynamicExportService.BuildExcelBytes(records, cols, ExportSchema.Version, DateTimeOffset.UtcNow));
+        var ws = OpenExcelSheet(
+            DynamicExportService.BuildExcelBytes(records, cols, ExportSchema.Version, DateTimeOffset.UtcNow)
+        );
 
         // Row 1 = metadata, Row 2 = column headers
-        Assert.Equal("asset_id",   ws.Cell(2, 1).GetString());
+        Assert.Equal("asset_id", ws.Cell(2, 1).GetString());
         Assert.Equal("model_name", ws.Cell(2, 2).GetString());
     }
 
@@ -198,10 +212,12 @@ public sealed class DynamicExportServiceTests
             new() { ["ci_id"] = "UUID-002", ["part_no"] = "PN-99" },
         };
 
-        var ws = OpenExcelSheet(DynamicExportService.BuildExcelBytes(records, cols, ExportSchema.Version, DateTimeOffset.UtcNow));
+        var ws = OpenExcelSheet(
+            DynamicExportService.BuildExcelBytes(records, cols, ExportSchema.Version, DateTimeOffset.UtcNow)
+        );
 
         Assert.Equal("UUID-001", ws.Cell(3, 1).GetString());
-        Assert.Equal("PN-42",   ws.Cell(3, 2).GetString());
+        Assert.Equal("PN-42", ws.Cell(3, 2).GetString());
         Assert.Equal("UUID-002", ws.Cell(4, 1).GetString());
     }
 
@@ -210,15 +226,14 @@ public sealed class DynamicExportServiceTests
     {
         // Mapping: source "sys_serial" → target "serial_number"
         var cols = new[] { "serial_number" };
-        var records = new List<Dictionary<string, string>>
-        {
-            new() { ["serial_number"] = "SN-RACK-001" },
-        };
+        var records = new List<Dictionary<string, string>> { new() { ["serial_number"] = "SN-RACK-001" } };
 
-        var ws = OpenExcelSheet(DynamicExportService.BuildExcelBytes(records, cols, ExportSchema.Version, DateTimeOffset.UtcNow));
+        var ws = OpenExcelSheet(
+            DynamicExportService.BuildExcelBytes(records, cols, ExportSchema.Version, DateTimeOffset.UtcNow)
+        );
 
         Assert.Equal("serial_number", ws.Cell(2, 1).GetString());
-        Assert.Equal("SN-RACK-001",   ws.Cell(3, 1).GetString());
+        Assert.Equal("SN-RACK-001", ws.Cell(3, 1).GetString());
     }
 
     // ── Full mapping round-trip ───────────────────────────────────────────────
@@ -228,11 +243,12 @@ public sealed class DynamicExportServiceTests
     {
         // Simulate: source has 4 columns, export mapping enables 2 with renamed targets.
         var cfg = MakeConfig(
-            fields: [
-                new("sys_id",          "asset_id",       Enabled: true),
-                new("sys_serial",      "serial_number",  Enabled: true),
-                new("sys_hidden_cost", "cost",           Enabled: false),
-                new("technician_name", "technician",     Enabled: false),
+            fields:
+            [
+                new("sys_id", "asset_id", Enabled: true),
+                new("sys_serial", "serial_number", Enabled: true),
+                new("sys_hidden_cost", "cost", Enabled: false),
+                new("technician_name", "technician", Enabled: false),
             ],
             relations: []
         );
@@ -246,16 +262,18 @@ public sealed class DynamicExportServiceTests
             new() { ["asset_id"] = "UUID-B", ["serial_number"] = "SN-002" },
         };
 
-        var csv = ParseCsv(DynamicExportService.BuildCsvBytes(records, cols, ExportSchema.Version, DateTimeOffset.UtcNow));
+        var csv = ParseCsv(
+            DynamicExportService.BuildCsvBytes(records, cols, ExportSchema.Version, DateTimeOffset.UtcNow)
+        );
 
         // Only 2 enabled columns appear; source names and disabled columns are absent.
         Assert.Equal(2, csv.Headers.Count);
-        Assert.Equal("asset_id",      csv.Headers[0]);
+        Assert.Equal("asset_id", csv.Headers[0]);
         Assert.Equal("serial_number", csv.Headers[1]);
-        Assert.DoesNotContain("cost",           csv.Headers);
-        Assert.DoesNotContain("technician",     csv.Headers);
-        Assert.DoesNotContain("sys_id",         csv.Headers);
-        Assert.DoesNotContain("sys_serial",     csv.Headers);
+        Assert.DoesNotContain("cost", csv.Headers);
+        Assert.DoesNotContain("technician", csv.Headers);
+        Assert.DoesNotContain("sys_id", csv.Headers);
+        Assert.DoesNotContain("sys_serial", csv.Headers);
 
         Assert.Equal(2, csv.Rows.Count);
         Assert.Equal("UUID-A", csv.Rows[0][0]);
@@ -264,15 +282,25 @@ public sealed class DynamicExportServiceTests
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private static ExportMappingConfig MakeConfig(
-        ExportMappingField[] fields,
-        ExportMappingRelation[] relations) =>
+    private static ExportMappingConfig MakeConfig(ExportMappingField[] fields, ExportMappingRelation[] relations) =>
         new("test_table", fields, relations);
 
     private static ExportMappingRelation MakeRelation(
-        string table, string joinKey, string sourceJoinKey, string targetField, bool Enabled) =>
-        new(table, joinKey, sourceJoinKey, targetField, Enabled,
-            "string_join", new ExportMappingStrategyOptions("value", ","));
+        string table,
+        string joinKey,
+        string sourceJoinKey,
+        string targetField,
+        bool Enabled
+    ) =>
+        new(
+            table,
+            joinKey,
+            sourceJoinKey,
+            targetField,
+            Enabled,
+            "string_join",
+            new ExportMappingStrategyOptions("value", ",")
+        );
 
     private static IXLWorksheet OpenExcelSheet(byte[] bytes)
     {
@@ -285,7 +313,8 @@ public sealed class DynamicExportServiceTests
 
     private static CsvResult ParseCsv(byte[] bytes)
     {
-        var lines = Encoding.UTF8.GetString(bytes)
+        var lines = Encoding
+            .UTF8.GetString(bytes)
             .Split('\n', StringSplitOptions.RemoveEmptyEntries)
             .Where(l => !l.StartsWith('#'))
             .ToList();
@@ -302,8 +331,17 @@ public sealed class DynamicExportServiceTests
         bool inQuotes = false;
         foreach (var ch in line.Trim())
         {
-            if (ch == '"') { inQuotes = !inQuotes; continue; }
-            if (ch == ',' && !inQuotes) { result.Add(sb.ToString()); sb.Clear(); continue; }
+            if (ch == '"')
+            {
+                inQuotes = !inQuotes;
+                continue;
+            }
+            if (ch == ',' && !inQuotes)
+            {
+                result.Add(sb.ToString());
+                sb.Clear();
+                continue;
+            }
             sb.Append(ch);
         }
         result.Add(sb.ToString());

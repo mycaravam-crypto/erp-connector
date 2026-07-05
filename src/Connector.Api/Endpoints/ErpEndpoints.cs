@@ -19,7 +19,7 @@ static class ErpEndpoints
                         .Include(sc => sc.Article)
                         .Include(sc => sc.MaintenancePlans)
                         .Include(sc => sc.ParentLinks)
-                        .ThenInclude(l => l.Parent)
+                            .ThenInclude(l => l.Parent)
                         .OrderBy(sc => sc.Id)
                         .Take(cap)
                         .ToListAsync();
@@ -27,9 +27,7 @@ static class ErpEndpoints
                     var records = configs
                         .Select(sc =>
                         {
-                            var activePlan = sc.MaintenancePlans.FirstOrDefault(
-                                mp => mp.Status == "Active"
-                            );
+                            var activePlan = sc.MaintenancePlans.FirstOrDefault(mp => mp.Status == "Active");
                             var anyPlan = sc.MaintenancePlans.FirstOrDefault();
                             bool inScope = activePlan != null;
                             string? exclusionReason = null;
@@ -47,8 +45,7 @@ static class ErpEndpoints
                                 PartNumber: sc.Article?.PartNumber,
                                 Manufacturer: sc.Article?.Manufacturer,
                                 MaintenancePlanStatus: activePlan?.Status ?? anyPlan?.Status,
-                                AllocationChartRef: activePlan?.AllocationChartRef
-                                    ?? anyPlan?.AllocationChartRef,
+                                AllocationChartRef: activePlan?.AllocationChartRef ?? anyPlan?.AllocationChartRef,
                                 ParentId: sc.ParentLinks.FirstOrDefault()?.ParentId,
                                 ParentSerial: sc.ParentLinks.FirstOrDefault()?.Parent?.Serial,
                                 InScope: inScope,

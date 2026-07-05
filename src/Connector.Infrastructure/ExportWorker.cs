@@ -62,7 +62,16 @@ public sealed class ExportWorker(
             if (setting is not null)
             {
                 var data = JsonSerializer.Deserialize<SchedulerConfigData>(setting.Value);
-                if (data is not null && TimeSpan.TryParse(data.ScheduledTimeUtc, System.Globalization.CultureInfo.InvariantCulture, out var ts) && ts >= TimeSpan.Zero && ts < TimeSpan.FromDays(1))
+                if (
+                    data is not null
+                    && TimeSpan.TryParse(
+                        data.ScheduledTimeUtc,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out var ts
+                    )
+                    && ts >= TimeSpan.Zero
+                    && ts < TimeSpan.FromDays(1)
+                )
                     return (ts, Math.Max(1, data.RetentionDays));
             }
         }
@@ -128,9 +137,10 @@ public sealed class ExportWorker(
             if (records.Count == 0)
             {
                 logger.LogError(
-                    "Export #{Seq}: aborted — query returned 0 records. " +
-                    "Possible causes: missing maintenance-plan predicate in mapping, ERP query error, or empty table.",
-                    sequenceNo);
+                    "Export #{Seq}: aborted — query returned 0 records. "
+                        + "Possible causes: missing maintenance-plan predicate in mapping, ERP query error, or empty table.",
+                    sequenceNo
+                );
                 run.Status = ExportRunStatus.Failed;
                 await db.SaveChangesAsync(ct);
                 await audit.LogAsync("scheduler", "export_failed", $"#{sequenceNo}: 0 records");

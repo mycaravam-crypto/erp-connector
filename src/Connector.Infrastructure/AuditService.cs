@@ -25,11 +25,7 @@ public sealed class AuditService(ExportLogDbContext db, ILogger<AuditService> lo
         }
         catch (Exception ex)
         {
-            logger.LogWarning(
-                ex,
-                "Audit log write failed (non-fatal): action={Action}",
-                action
-            );
+            logger.LogWarning(ex, "Audit log write failed (non-fatal): action={Action}", action);
         }
     }
 }

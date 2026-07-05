@@ -18,9 +18,7 @@ static class SettingsEndpoints
                     var setting = await db.AppSettings.FindAsync("scheduler_config");
                     if (setting is not null)
                     {
-                        var stored = JsonSerializer.Deserialize<SchedulerConfigData>(
-                            setting.Value
-                        );
+                        var stored = JsonSerializer.Deserialize<SchedulerConfigData>(setting.Value);
                         if (stored is not null)
                             return Results.Ok(stored);
                     }
@@ -37,12 +35,7 @@ static class SettingsEndpoints
         // Validates and persists the scheduler config. Takes effect on the worker's next sleep cycle.
         app.MapPut(
                 "/api/settings/scheduler",
-                async (
-                    SchedulerConfigData dto,
-                    ExportLogDbContext db,
-                    HttpContext httpContext,
-                    AuditService audit
-                ) =>
+                async (SchedulerConfigData dto, ExportLogDbContext db, HttpContext httpContext, AuditService audit) =>
                 {
                     if (
                         !TimeSpan.TryParse(
@@ -57,20 +50,12 @@ static class SettingsEndpoints
                             "ScheduledTimeUtc must be a valid time in HH:mm format (00:00 – 23:59)."
                         );
                     if (dto.RetentionDays < 1 || dto.RetentionDays > 3650)
-                        return Results.BadRequest(
-                            "RetentionDays must be between 1 and 3650."
-                        );
+                        return Results.BadRequest("RetentionDays must be between 1 and 3650.");
 
                     var serialized = JsonSerializer.Serialize(dto);
                     var setting = await db.AppSettings.FindAsync("scheduler_config");
                     if (setting is null)
-                        db.AppSettings.Add(
-                            new AppSettingEntity
-                            {
-                                Key = "scheduler_config",
-                                Value = serialized,
-                            }
-                        );
+                        db.AppSettings.Add(new AppSettingEntity { Key = "scheduler_config", Value = serialized });
                     else
                         setting.Value = serialized;
                     await db.SaveChangesAsync();
@@ -109,24 +94,14 @@ static class SettingsEndpoints
                     if (request.Fields is null || request.Fields.Count == 0)
                         return Results.BadRequest("At least one field is required.");
                     if (request.Fields.Any(f => string.IsNullOrWhiteSpace(f)))
-                        return Results.BadRequest(
-                            "Field names must not be empty or whitespace."
-                        );
+                        return Results.BadRequest("Field names must not be empty or whitespace.");
                     if (request.Fields.Count > 50)
-                        return Results.BadRequest(
-                            "Maximum 50 fields allowed in the GDPR denylist."
-                        );
+                        return Results.BadRequest("Maximum 50 fields allowed in the GDPR denylist.");
 
                     var serialized = JsonSerializer.Serialize(request.Fields);
                     var setting = await db.AppSettings.FindAsync("gdpr_denied_fields");
                     if (setting is null)
-                        db.AppSettings.Add(
-                            new AppSettingEntity
-                            {
-                                Key = "gdpr_denied_fields",
-                                Value = serialized,
-                            }
-                        );
+                        db.AppSettings.Add(new AppSettingEntity { Key = "gdpr_denied_fields", Value = serialized });
                     else
                         setting.Value = serialized;
 
@@ -147,16 +122,10 @@ static class SettingsEndpoints
                 async (ExportLogDbContext db, int? limit) =>
                 {
                     var cap = limit ?? 100;
-                    var entries = await db.AuditLog
-                        .OrderByDescending(a => a.Id)
+                    var entries = await db
+                        .AuditLog.OrderByDescending(a => a.Id)
                         .Take(cap)
-                        .Select(a => new AuditEntryDto(
-                            a.Id,
-                            a.Timestamp,
-                            a.Username,
-                            a.Action,
-                            a.Detail
-                        ))
+                        .Select(a => new AuditEntryDto(a.Id, a.Timestamp, a.Username, a.Action, a.Detail))
                         .ToListAsync();
                     return Results.Ok(entries);
                 }

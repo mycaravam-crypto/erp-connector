@@ -33,8 +33,7 @@ static class PipelineEndpoints
                         _ => "xlsx",
                     };
 
-                    var sequenceNo =
-                        (await db.ExportRuns.MaxAsync(r => (int?)r.SequenceNo, ct) ?? 0) + 1;
+                    var sequenceNo = (await db.ExportRuns.MaxAsync(r => (int?)r.SequenceNo, ct) ?? 0) + 1;
                     var run = new ExportRunEntity
                     {
                         SequenceNo = sequenceNo,
@@ -54,9 +53,7 @@ static class PipelineEndpoints
                             statusCode: 400
                         );
                     }
-                    var config = JsonSerializer.Deserialize<ExportMappingConfig>(
-                        mappingSetting.Value
-                    )!;
+                    var config = JsonSerializer.Deserialize<ExportMappingConfig>(mappingSetting.Value)!;
 
                     var connSetting = await db.AppSettings.FindAsync("erp_connection");
                     if (connSetting is null)
@@ -68,9 +65,7 @@ static class PipelineEndpoints
                             statusCode: 400
                         );
                     }
-                    var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(
-                        connSetting.Value
-                    )!;
+                    var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connSetting.Value)!;
 
                     try
                     {
@@ -113,16 +108,8 @@ static class PipelineEndpoints
                         }
                         else if (fmt == "json")
                         {
-                            bytes = DynamicExportService.BuildJsonBytes(
-                                records,
-                                ExportSchema.Version,
-                                extractedAt
-                            );
-                            fileName = ExportSchema.BuildFileName(
-                                sequenceNo,
-                                extractedAt,
-                                "json"
-                            );
+                            bytes = DynamicExportService.BuildJsonBytes(records, ExportSchema.Version, extractedAt);
+                            fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "json");
                         }
                         else
                         {
@@ -135,16 +122,9 @@ static class PipelineEndpoints
                             fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt);
                         }
 
-                        var checksum = Convert.ToHexString(SHA256.HashData(bytes))
-                            .ToLowerInvariant();
+                        var checksum = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
                         var package = new ExportPackage(
-                            new ExportManifest(
-                                sequenceNo,
-                                ExportSchema.Version,
-                                extractedAt,
-                                records.Count,
-                                checksum
-                            ),
+                            new ExportManifest(sequenceNo, ExportSchema.Version, extractedAt, records.Count, checksum),
                             bytes,
                             fileName
                         );
@@ -170,19 +150,12 @@ static class PipelineEndpoints
                             $"#{sequenceNo} fmt={fmt} records={run.RecordCount}"
                         );
 
-                        var sha256Short =
-                            run.Sha256.Length >= 12 ? run.Sha256[..12] : run.Sha256;
-                        return Results.Ok(
-                            new RunNowResult(sequenceNo, run.RecordCount, sha256Short)
-                        );
+                        var sha256Short = run.Sha256.Length >= 12 ? run.Sha256[..12] : run.Sha256;
+                        return Results.Ok(new RunNowResult(sequenceNo, run.RecordCount, sha256Short));
                     }
                     catch (Exception ex) when (ex is not OperationCanceledException)
                     {
-                        logger.LogError(
-                            ex,
-                            "On-demand export #{Seq} failed",
-                            sequenceNo
-                        );
+                        logger.LogError(ex, "On-demand export #{Seq} failed", sequenceNo);
                         run.Status = ExportRunStatus.Failed;
                         await db.SaveChangesAsync(CancellationToken.None);
                         return Results.Problem(ex.Message, statusCode: 500);
@@ -209,28 +182,18 @@ static class PipelineEndpoints
                             )
                         );
 
-                    var config = JsonSerializer.Deserialize<ExportMappingConfig>(
-                        mappingConfigSetting.Value
-                    )!;
+                    var config = JsonSerializer.Deserialize<ExportMappingConfig>(mappingConfigSetting.Value)!;
 
                     PreviewResult EmptyResult(string msg) =>
                         new(0, ExportSchema.Version, [], [], "error", config.SourceTable, msg);
 
                     var connSetting = await db.AppSettings.FindAsync("erp_connection");
                     if (connSetting is null)
-                        return Results.Ok(
-                            EmptyResult(
-                                "No database connection configured. Set it up in Step 1."
-                            )
-                        );
+                        return Results.Ok(EmptyResult("No database connection configured. Set it up in Step 1."));
 
-                    var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(
-                        connSetting.Value
-                    );
+                    var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connSetting.Value);
                     if (connCfg is null)
-                        return Results.Ok(
-                            EmptyResult("Stored connection config could not be read.")
-                        );
+                        return Results.Ok(EmptyResult("Stored connection config could not be read."));
 
                     try
                     {

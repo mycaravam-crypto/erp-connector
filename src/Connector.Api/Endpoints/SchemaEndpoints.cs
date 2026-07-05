@@ -14,20 +14,14 @@ static class SchemaEndpoints
                 async (ExportLogDbContext db) =>
                 {
                     var activeSetting = await db.AppSettings.FindAsync("active_columns");
-                    var activeSet =
-                        activeSetting is null
-                            ? new HashSet<string>(ExportSchema.Columns)
-                            : new HashSet<string>(
-                                JsonSerializer.Deserialize<string[]>(activeSetting.Value) ?? []
-                            );
+                    var activeSet = activeSetting is null
+                        ? new HashSet<string>(ExportSchema.Columns)
+                        : new HashSet<string>(JsonSerializer.Deserialize<string[]>(activeSetting.Value) ?? []);
 
                     var mappingSetting = await db.AppSettings.FindAsync("column_mappings");
-                    var mapping =
-                        mappingSetting is null
-                            ? new Dictionary<string, string>()
-                            : JsonSerializer.Deserialize<Dictionary<string, string>>(
-                                mappingSetting.Value
-                            ) ?? new();
+                    var mapping = mappingSetting is null
+                        ? new Dictionary<string, string>()
+                        : JsonSerializer.Deserialize<Dictionary<string, string>>(mappingSetting.Value) ?? new();
 
                     string? ExportName(string n) => mapping.GetValueOrDefault(n);
 
@@ -100,21 +94,12 @@ static class SchemaEndpoints
                 "/api/schema/columns",
                 async (ColumnPatchRequest request, ExportLogDbContext db) =>
                 {
-                    var valid = request
-                        .Columns.Where(c => ExportSchema.Columns.Contains(c))
-                        .Distinct()
-                        .ToArray();
+                    var valid = request.Columns.Where(c => ExportSchema.Columns.Contains(c)).Distinct().ToArray();
 
                     var serialized = JsonSerializer.Serialize(valid);
                     var setting = await db.AppSettings.FindAsync("active_columns");
                     if (setting is null)
-                        db.AppSettings.Add(
-                            new AppSettingEntity
-                            {
-                                Key = "active_columns",
-                                Value = serialized,
-                            }
-                        );
+                        db.AppSettings.Add(new AppSettingEntity { Key = "active_columns", Value = serialized });
                     else
                         setting.Value = serialized;
 
@@ -131,21 +116,14 @@ static class SchemaEndpoints
                 {
                     var valid = request
                         .Mappings.Where(kvp =>
-                            ExportSchema.Columns.Contains(kvp.Key)
-                            && !string.IsNullOrWhiteSpace(kvp.Value)
+                            ExportSchema.Columns.Contains(kvp.Key) && !string.IsNullOrWhiteSpace(kvp.Value)
                         )
                         .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Trim());
 
                     var serialized = JsonSerializer.Serialize(valid);
                     var setting = await db.AppSettings.FindAsync("column_mappings");
                     if (setting is null)
-                        db.AppSettings.Add(
-                            new AppSettingEntity
-                            {
-                                Key = "column_mappings",
-                                Value = serialized,
-                            }
-                        );
+                        db.AppSettings.Add(new AppSettingEntity { Key = "column_mappings", Value = serialized });
                     else
                         setting.Value = serialized;
 

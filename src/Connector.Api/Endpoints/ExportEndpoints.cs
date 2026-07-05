@@ -5,10 +5,7 @@ namespace Connector.Api.Endpoints;
 
 static class ExportEndpoints
 {
-    internal static void MapExportEndpoints(
-        this WebApplication app,
-        IReadOnlyDictionary<string, string> userStore
-    )
+    internal static void MapExportEndpoints(this WebApplication app, IReadOnlyDictionary<string, string> userStore)
     {
         // Returns the run list with an IsStale flag so the UI can warn about long-pending runs.
         app.MapGet(
@@ -16,34 +13,32 @@ static class ExportEndpoints
                 async (ExportLogDbContext db) =>
                 {
                     var now = DateTimeOffset.UtcNow;
-                    var runs = await db.ExportRuns
-                        .OrderByDescending(r => r.SequenceNo)
-                        .ToListAsync();
+                    var runs = await db.ExportRuns.OrderByDescending(r => r.SequenceNo).ToListAsync();
 
                     return runs.Select(r =>
-                    {
-                        var isStale =
-                            r.Status == ExportRunStatus.Pending
-                            && DateTimeOffset.TryParse(
-                                r.ExtractedAt,
-                                System.Globalization.CultureInfo.InvariantCulture,
-                                System.Globalization.DateTimeStyles.RoundtripKind,
-                                out var ts
-                            )
-                            && (now - ts).TotalHours > 24;
+                        {
+                            var isStale =
+                                r.Status == ExportRunStatus.Pending
+                                && DateTimeOffset.TryParse(
+                                    r.ExtractedAt,
+                                    System.Globalization.CultureInfo.InvariantCulture,
+                                    System.Globalization.DateTimeStyles.RoundtripKind,
+                                    out var ts
+                                )
+                                && (now - ts).TotalHours > 24;
 
-                        var sha256Short =
-                            r.Sha256.Length >= 12 ? r.Sha256[..12] : r.Sha256;
-                        return new ExportRunSummary(
-                            r.SequenceNo,
-                            r.ExtractedAt,
-                            r.RecordCount,
-                            sha256Short,
-                            r.Status,
-                            r.DataFileName,
-                            isStale
-                        );
-                    }).ToList();
+                            var sha256Short = r.Sha256.Length >= 12 ? r.Sha256[..12] : r.Sha256;
+                            return new ExportRunSummary(
+                                r.SequenceNo,
+                                r.ExtractedAt,
+                                r.RecordCount,
+                                sha256Short,
+                                r.Status,
+                                r.DataFileName,
+                                isStale
+                            );
+                        })
+                        .ToList();
                 }
             )
             .RequireAuthorization();
@@ -53,21 +48,18 @@ static class ExportEndpoints
                 "/api/exports/{seqNo:int}",
                 async (int seqNo, ExportLogDbContext db) =>
                 {
-                    var run = await db.ExportRuns.FirstOrDefaultAsync(
-                        r => r.SequenceNo == seqNo
-                    );
+                    var run = await db.ExportRuns.FirstOrDefaultAsync(r => r.SequenceNo == seqNo);
                     if (run is null)
                         return Results.NotFound();
 
                     string? gapWarning = null;
                     if (run.Status == ExportRunStatus.Pending)
                     {
-                        var unhandled = await db.ExportRuns
-                            .Where(
-                                r =>
-                                    r.SequenceNo < seqNo
-                                    && r.Status != ExportRunStatus.Released
-                                    && r.Status != ExportRunStatus.Skipped
+                        var unhandled = await db
+                            .ExportRuns.Where(r =>
+                                r.SequenceNo < seqNo
+                                && r.Status != ExportRunStatus.Released
+                                && r.Status != ExportRunStatus.Skipped
                             )
                             .Select(r => r.SequenceNo)
                             .OrderByDescending(n => n)
@@ -119,13 +111,7 @@ static class ExportEndpoints
 
                     var operatorName = httpContext.User.Identity!.Name!;
 
-                    if (
-                        string.Equals(
-                            operatorName,
-                            request.Approver,
-                            StringComparison.OrdinalIgnoreCase
-                        )
-                    )
+                    if (string.Equals(operatorName, request.Approver, StringComparison.OrdinalIgnoreCase))
                         return Results.BadRequest(
                             "Operator and approver must be different users (four-eyes principle)."
                         );
@@ -135,9 +121,7 @@ static class ExportEndpoints
                             $"Unknown approver: '{request.Approver}'. Only registered users can approve a release."
                         );
 
-                    var run = await db.ExportRuns.FirstOrDefaultAsync(
-                        r => r.SequenceNo == seqNo
-                    );
+                    var run = await db.ExportRuns.FirstOrDefaultAsync(r => r.SequenceNo == seqNo);
                     if (run is null)
                         return Results.NotFound();
                     if (run.Status != ExportRunStatus.Pending)
@@ -149,11 +133,7 @@ static class ExportEndpoints
                     run.ReleasedAt = DateTimeOffset.UtcNow.ToString("O");
                     await db.SaveChangesAsync();
 
-                    await audit.LogAsync(
-                        operatorName,
-                        "export_released",
-                        $"#{seqNo} approved by {request.Approver}"
-                    );
+                    await audit.LogAsync(operatorName, "export_released", $"#{seqNo} approved by {request.Approver}");
                     return Results.Ok();
                 }
             )
@@ -169,21 +149,15 @@ static class ExportEndpoints
                     AuditService audit
                 ) =>
                 {
-                    var run = await db.ExportRuns.FirstOrDefaultAsync(
-                        r => r.SequenceNo == seqNo
-                    );
+                    var run = await db.ExportRuns.FirstOrDefaultAsync(r => r.SequenceNo == seqNo);
                     if (run is null)
                         return Results.NotFound();
                     if (run.Status != ExportRunStatus.Released)
                         return Results.BadRequest("Only released runs can be marked as delivered.");
                     if (run.DeliveredAt is not null)
-                        return Results.Conflict(
-                            $"Run #{seqNo} has already been recorded as delivered."
-                        );
+                        return Results.Conflict($"Run #{seqNo} has already been recorded as delivered.");
                     if (request.Notes?.Length > 2000)
-                        return Results.BadRequest(
-                            "Delivery notes cannot exceed 2,000 characters."
-                        );
+                        return Results.BadRequest("Delivery notes cannot exceed 2,000 characters.");
 
                     var user = httpContext.User.Identity!.Name!;
                     run.DeliveredAt = DateTimeOffset.UtcNow.ToString("O");
@@ -208,15 +182,11 @@ static class ExportEndpoints
                     AuditService audit
                 ) =>
                 {
-                    var run = await db.ExportRuns.FirstOrDefaultAsync(
-                        r => r.SequenceNo == seqNo
-                    );
+                    var run = await db.ExportRuns.FirstOrDefaultAsync(r => r.SequenceNo == seqNo);
                     if (run is null)
                         return Results.NotFound();
                     if (run.Status is not (ExportRunStatus.Pending or ExportRunStatus.Failed))
-                        return Results.Conflict(
-                            $"Run #{seqNo} has status '{run.Status}' and cannot be skipped."
-                        );
+                        return Results.Conflict($"Run #{seqNo} has status '{run.Status}' and cannot be skipped.");
 
                     run.Status = ExportRunStatus.Skipped;
                     await db.SaveChangesAsync();

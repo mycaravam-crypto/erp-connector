@@ -18,11 +18,7 @@ public record ExportMappingRelation(
 );
 
 /// <summary>The complete mapping config for one source table, including field remaps and relation flattening.</summary>
-public record ExportMappingConfig(
-    string SourceTable,
-    ExportMappingField[] Fields,
-    ExportMappingRelation[] Relations
-);
+public record ExportMappingConfig(string SourceTable, ExportMappingField[] Fields, ExportMappingRelation[] Relations);
 
 /// <summary>ERP PostgreSQL connection parameters used to open a live Npgsql connection.</summary>
 public record ErpConnectionConfig(string Host, int Port, string Database, string Username, string Password);

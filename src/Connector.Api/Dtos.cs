@@ -71,14 +71,7 @@ record ErpCiRecord(
     string? StorageLocation
 );
 
-record SchemaColumnDto(
-    string Name,
-    string ErpSource,
-    string Type,
-    string Notes,
-    bool Active,
-    string? ExportName
-);
+record SchemaColumnDto(string Name, string ErpSource, string Type, string Notes, bool Active, string? ExportName);
 
 record SchemaDto(string Version, SchemaColumnDto[] Columns);
 
