@@ -1,6 +1,6 @@
-# ERP → ServiceNow CI Connector
+# ERP → CI Connector
 
-A self-contained .NET 9 + Vue 3 application that extracts warranty-relevant Configuration Items from an ERP system, runs them through a GDPR-compliant data pipeline, and produces a daily export package (Excel / CSV / JSON + SHA-256 manifest) for four-eyes review before air-gapped physical transfer to a vendor's ServiceNow CMDB.
+A self-contained .NET 9 + Vue 3 application that extracts warranty-relevant Configuration Items from an ERP system, runs them through a GDPR-compliant data pipeline, and produces a daily export package (Excel / CSV / JSON + SHA-256 manifest) for four-eyes review before physical transfer to a vendor's CMDB.
 
 **Stack:** .NET 9 · ASP.NET Core Minimal API · EF Core 9 · SQLite · ClosedXML · Vue 3 · TypeScript · Tailwind CSS · Serilog
 
@@ -19,7 +19,7 @@ Map      — ISO-8601 dates, all IDs as strings, configurable column names
     ↓
 Package  — Excel (ClosedXML) / CSV / JSON + SHA-256 manifest
     ↓
-Staging folder (operator-controlled air-gap transfer to vendor)
+Staging folder (operator-controlled transfer to vendor)
 ```
 
 Every run is logged in SQLite. A pending run stays locked until **two different registered users** confirm it (four-eyes release). Delivery back-acknowledgement closes the custody chain.
