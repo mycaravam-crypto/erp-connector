@@ -22,7 +22,7 @@ jobs:
         run: dotnet tool restore
 
       - name: Check formatting (CSharpier)
-        run: dotnet csharpier --check .
+        run: dotnet csharpier check .
 
       - name: Restore packages
         run: dotnet restore Connector.sln
