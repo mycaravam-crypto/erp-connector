@@ -89,6 +89,23 @@ Starts the API on `:5189` and the Vite dev server on `:5173`. Ctrl-C stops both.
 
 **Dev credentials:** `alice / alice123` and `bob / bob123` (hard-coded in Development mode only).
 
+#### Alternative: one-command Docker dev environment
+
+No local .NET/Node toolchain required. Runs the API (`dotnet watch`), the UI (Vite dev
+server with hot reload), and the test Postgres ERP source together:
+
+```bash
+docker-compose -f docker-compose.dev.yml up
+```
+
+- UI: `http://localhost:5173` — API: `http://localhost:5189` — Postgres: `localhost:5432`
+- Edits to `src/Connector.Api` (and the other `src/Connector.*` projects) or `src/connector-ui`
+  on the host are picked up live inside the containers.
+- All three services' output is interleaved in one `docker-compose` log stream, each line
+  prefixed `api |` / `ui |` / `testdb |` — `Ctrl-C` stops everything.
+- This is a separate file from [`docker-compose.yml`](docker-compose.yml), which builds the
+  production image instead (compiled UI baked into the API container, no hot reload).
+
 ### Run tests
 
 ```bash
