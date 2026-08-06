@@ -103,10 +103,44 @@ export interface MappingRelation {
   fields: MappingRelationField[]
 }
 
+// ── Nested JSON structure (JSON export only) ──────────────────────────────────
+
+export interface MappingNestedField {
+  sourceField: string
+  targetKey: string
+  enabled: boolean
+}
+
+export interface MappingNestedGroup {
+  targetKey: string
+  relatedTable: string
+  joinKey: string
+  sourceJoinKey: string
+  enabled: boolean
+  kind: 'object' | 'array'
+  fields: MappingNestedField[]
+  children: MappingNestedGroup[]
+}
+
+export interface ExportJsonMetadataField {
+  key: string
+  value: string
+  isDynamicTimestamp: boolean
+}
+
+export interface ExportJsonWrapperConfig {
+  rootKey: string
+  itemsKey: string
+  metadataKey: string
+  metadataFields: ExportJsonMetadataField[]
+}
+
 export interface ExportMappingConfig {
   sourceTable: string
   fields: MappingField[]
   relations: MappingRelation[]
+  nestedGroups: MappingNestedGroup[]
+  jsonWrapper: ExportJsonWrapperConfig | null
 }
 
 /** Returns the stored export mapping config, or null if none is saved yet. */

@@ -4,11 +4,27 @@
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+CREATE TABLE manufacturer (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    name character varying(200),
+    contact_email character varying(200)
+);
+
+CREATE TABLE manufacturer_address (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    manufacturer_id uuid NOT NULL REFERENCES manufacturer(id),
+    address_type character varying(100),
+    street character varying(200),
+    city character varying(100),
+    country character varying(100)
+);
+
 CREATE TABLE masterdata (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     article_name character varying(200),
     part_number character varying(100),
-    manufacturer character varying(100)
+    manufacturer character varying(100),
+    manufacturer_id uuid REFERENCES manufacturer(id)
 );
 
 CREATE TABLE systemconfiguration (
@@ -34,10 +50,20 @@ CREATE TABLE articlestructure (
     child_id uuid REFERENCES masterdata(id)
 );
 
-INSERT INTO masterdata (id, article_name, part_number, manufacturer) VALUES
-    ('11111111-1111-1111-1111-111111111111', 'Compressor Unit CU-200', 'CU-200', 'Acme Industrial'),
-    ('22222222-2222-2222-2222-222222222222', 'Control Valve CV-45', 'CV-45', 'Acme Industrial'),
-    ('33333333-3333-3333-3333-333333333333', 'Sensor Array SA-10', 'SA-10', 'Northbridge Sensors');
+-- Manufacturer AAAAAAAA has two addresses (exercises array-of-objects nesting);
+-- manufacturer BBBBBBBB has zero addresses (exercises the empty-array COALESCE path).
+INSERT INTO manufacturer (id, name, contact_email) VALUES
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Acme Industrial', 'info@acme-industrial.example'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Northbridge Sensors', 'contact@northbridge.example');
+
+INSERT INTO manufacturer_address (id, manufacturer_id, address_type, street, city, country) VALUES
+    ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Headquarters', '100 Innovation Way', 'San Jose', 'USA'),
+    ('dddddddd-dddd-dddd-dddd-dddddddddddd', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Distribution Center', '456 Industrial Blvd', 'Austin', 'USA');
+
+INSERT INTO masterdata (id, article_name, part_number, manufacturer, manufacturer_id) VALUES
+    ('11111111-1111-1111-1111-111111111111', 'Compressor Unit CU-200', 'CU-200', 'Acme Industrial', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
+    ('22222222-2222-2222-2222-222222222222', 'Control Valve CV-45', 'CV-45', 'Acme Industrial', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
+    ('33333333-3333-3333-3333-333333333333', 'Sensor Array SA-10', 'SA-10', 'Northbridge Sensors', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
 
 INSERT INTO systemconfiguration (id, serial, article_id, status, commission_date, technician_name, storage_location) VALUES
     ('44444444-4444-4444-4444-444444444444', 'SN-00042', '11111111-1111-1111-1111-111111111111', 'active', '2024-03-15', 'J. Alvarez', 'Bay 3'),

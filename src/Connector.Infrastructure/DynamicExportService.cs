@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using ClosedXML.Excel;
 using Connector.Core.DynamicExport;
 using Connector.Core.Schema;
@@ -24,6 +25,15 @@ public static class DynamicExportService
         "contact_phone",
         "operator_name",
     };
+
+    /// <summary>
+    /// Recursion cap for JSON-only nested groups, enforced at save time (the primary, user-facing
+    /// rejection point) and again defensively inside <see cref="BuildNestedGroupExpr"/> for any config
+    /// that reaches query-build time without going through save-time validation. Far beyond any realistic
+    /// use case (item → manufacturer → addresses is depth 2) — this exists solely to turn an unbounded
+    /// recursive build into a catchable exception instead of an uncatchable <see cref="StackOverflowException"/>.
+    /// </summary>
+    public const int MaxNestedDepth = 16;
 
     /// <summary>
     /// Returns the active GDPR denylist: the DB-stored list if present, else <see cref="GdprDeniedFields"/>.
@@ -124,6 +134,119 @@ public static class DynamicExportService
         return results;
     }
 
+    // Single-quote escaping for a value embedded as a JSON key STRING LITERAL inside
+    // json_build_object('key', expr, ...). Distinct from QI(), which double-quote-escapes SQL
+    // IDENTIFIERS — reusing QI() here would be a correctness bug (Postgres would try to resolve
+    // "key" as a column reference instead of treating it as a JSON object key).
+    private static string SqlLit(string value) => "'" + value.Replace("'", "''") + "'";
+
+    // Recursively emits a json_build_object(...) expression for an "object" (N:1) group, or a
+    // (SELECT json_agg(...) ...) expression for an "array" (1:N) group, recursing into Children so
+    // further nested keys are built within the same expression — this is what lets nested groups
+    // reach unlimited depth without any depth-specific SQL-building logic.
+    private static string BuildNestedGroupExpr(
+        ExportMappingNestedGroup g,
+        string parentAlias,
+        ref int aliasCounter,
+        int depth
+    )
+    {
+        if (depth > MaxNestedDepth)
+            throw new InvalidOperationException(
+                $"Nested group '{g.TargetKey}' exceeds the maximum nesting depth of {MaxNestedDepth}."
+            );
+
+        // Synthetic alias (not derived from RelatedTable/TargetKey): avoids alias collisions when two
+        // groups join the same related table, and is QI-safe by construction rather than needing
+        // identifier validation against admin-supplied text.
+        var alias = $"ng{aliasCounter++}";
+
+        var args = new List<string>();
+        foreach (var f in g.Fields.Where(x => x.Enabled))
+            args.Add($"{SqlLit(f.TargetKey)}, {alias}.{QI(f.SourceField)}");
+        foreach (var child in g.Children.Where(x => x.Enabled))
+            args.Add($"{SqlLit(child.TargetKey)}, {BuildNestedGroupExpr(child, alias, ref aliasCounter, depth + 1)}");
+
+        var objectExpr = $"json_build_object({string.Join(", ", args)})";
+        // json_agg() over zero matching rows returns SQL NULL, not '[]' — without the COALESCE, a
+        // manufacturer with no addresses would wrongly serialize as "addresses": null instead of [].
+        // Object-kind groups deliberately skip the COALESCE: a genuinely absent N:1 row should become
+        // JSON null, which is the correct representation of "no manufacturer".
+        var agg = g.Kind == "array" ? $"COALESCE(json_agg({objectExpr}), '[]'::json)" : objectExpr;
+
+        return $"(SELECT {agg} FROM {QI(g.RelatedTable)} {alias} "
+            + $"WHERE {alias}.{QI(g.JoinKey)} = {parentAlias}.{QI(g.SourceJoinKey)})";
+    }
+
+    /// <summary>
+    /// JSON-only sibling of <see cref="ExecuteQueryAsync"/>: builds one query that returns a single
+    /// <c>json</c> column per row (top-level fields plus recursively nested groups), using Postgres's
+    /// native <c>json_build_object</c>/<c>json_agg</c> to construct the nested tree in SQL rather than
+    /// materializing it by hand in C#. Existing flat CSV/Excel/legacy-JSON export is entirely unaffected —
+    /// this never calls, and is never called by, <see cref="ExecuteQueryAsync"/>.
+    /// </summary>
+    public static async Task<List<JsonObject>> ExecuteNestedJsonQueryAsync(
+        NpgsqlConnection conn,
+        ExportMappingConfig cfg,
+        CancellationToken ct,
+        int? limit = null,
+        IReadOnlySet<string>? gdprDenylist = null
+    )
+    {
+        var args = new List<string>();
+        foreach (var f in cfg.Fields.Where(x => x.Enabled))
+            args.Add($"{SqlLit(f.TargetName)}, s.{QI(f.SourceName)}");
+
+        var aliasCounter = 0;
+        foreach (var g in (cfg.NestedGroups ?? []).Where(x => x.Enabled))
+            args.Add($"{SqlLit(g.TargetKey)}, {BuildNestedGroupExpr(g, "s", ref aliasCounter, depth: 1)}");
+
+        var results = new List<JsonObject>();
+        if (args.Count == 0)
+            return results;
+
+        var sql = $"SELECT json_build_object({string.Join(", ", args)}) AS row_json FROM {QI(cfg.SourceTable)} s";
+        if (limit.HasValue)
+            sql += $" LIMIT {limit.Value}";
+
+        var effectiveDenylist = gdprDenylist ?? GdprDeniedFields;
+
+        await using var cmd = new NpgsqlCommand(sql, conn) { CommandTimeout = 30 };
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        while (await reader.ReadAsync(ct))
+        {
+            // Npgsql's default json/jsonb -> string mapping (no custom type mapping in this repo)
+            // returns the raw JSON text; parsing it into a mutable JsonObject (rather than treating it
+            // as an opaque string) is what lets it be spliced into the final output tree as real nested
+            // JSON instead of a JSON-encoded string-within-a-string.
+            var text = await reader.IsDBNullAsync(0, ct) ? "{}" : reader.GetString(0);
+            var node = JsonNode.Parse(text) as JsonObject ?? [];
+            StripGdprFieldsRecursive(node, effectiveDenylist);
+            results.Add(node);
+        }
+
+        return results;
+    }
+
+    // Walks the parsed JSON tree removing any property whose key matches the GDPR denylist, at every
+    // depth. Same "match by output key name" defence-in-depth heuristic the flat ExecuteQueryAsync path
+    // already applies post-query, made recursive for nested objects/arrays.
+    private static void StripGdprFieldsRecursive(JsonNode? node, IReadOnlySet<string> denylist)
+    {
+        if (node is JsonObject obj)
+        {
+            foreach (var key in obj.Select(kv => kv.Key).Where(denylist.Contains).ToList())
+                obj.Remove(key);
+            foreach (var kv in obj)
+                StripGdprFieldsRecursive(kv.Value, denylist);
+        }
+        else if (node is JsonArray arr)
+        {
+            foreach (var item in arr)
+                StripGdprFieldsRecursive(item, denylist);
+        }
+    }
+
     public static byte[] BuildCsvBytes(
         IReadOnlyList<Dictionary<string, string>> records,
         IReadOnlyList<string> columns,
@@ -152,6 +275,69 @@ public static class DynamicExportService
             records,
         };
         return JsonSerializer.SerializeToUtf8Bytes(obj, new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    /// <summary>
+    /// JSON-only sibling of <see cref="BuildJsonBytes"/> for nested records produced by
+    /// <see cref="ExecuteNestedJsonQueryAsync"/>. <see cref="BuildJsonBytes"/> itself is left completely
+    /// untouched, so backward compatibility is structural (an old config never reaches this method at
+    /// all via <c>PipelineEndpoints</c>), not just "produces equivalent bytes." When <paramref name="wrapper"/>
+    /// is null this still reproduces the exact legacy envelope shape as a defensive fallback.
+    /// </summary>
+    public static byte[] BuildNestedJsonBytes(
+        IReadOnlyList<JsonObject> records,
+        ExportJsonWrapperConfig? wrapper,
+        string schemaVersion,
+        DateTimeOffset extractedAt
+    )
+    {
+        var itemsArray = new JsonArray(records.Select(r => (JsonNode?)r.DeepClone()).ToArray());
+
+        if (wrapper is null)
+        {
+            var legacy = new JsonObject
+            {
+                ["schema_version"] = schemaVersion,
+                ["extracted_at"] = extractedAt.ToString("O"),
+                ["records"] = itemsArray,
+            };
+            return JsonSerializer.SerializeToUtf8Bytes(legacy, new JsonSerializerOptions { WriteIndented = true });
+        }
+
+        var itemsKey = string.IsNullOrWhiteSpace(wrapper.ItemsKey) ? "records" : wrapper.ItemsKey;
+
+        var metadata = new JsonObject();
+        if (wrapper.MetadataFields is not { Length: > 0 })
+        {
+            metadata["schema_version"] = schemaVersion;
+            metadata["extracted_at"] = extractedAt.ToString("O");
+        }
+        else
+        {
+            foreach (var m in wrapper.MetadataFields)
+                metadata[m.Key] = m.IsDynamicTimestamp ? extractedAt.ToString("O") : m.Value;
+        }
+
+        var inner = new JsonObject();
+        if (string.IsNullOrWhiteSpace(wrapper.MetadataKey))
+        {
+            foreach (var kv in metadata.ToList())
+            {
+                metadata.Remove(kv.Key);
+                inner[kv.Key] = kv.Value;
+            }
+        }
+        else
+        {
+            inner[wrapper.MetadataKey] = metadata;
+        }
+        inner[itemsKey] = itemsArray;
+
+        JsonNode root = string.IsNullOrWhiteSpace(wrapper.RootKey)
+            ? inner
+            : new JsonObject { [wrapper.RootKey] = inner };
+
+        return JsonSerializer.SerializeToUtf8Bytes(root, new JsonSerializerOptions { WriteIndented = true });
     }
 
     public static byte[] BuildExcelBytes(

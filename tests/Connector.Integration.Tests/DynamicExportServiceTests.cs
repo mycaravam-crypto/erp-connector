@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using ClosedXML.Excel;
 using Connector.Core.DynamicExport;
 using Connector.Core.Schema;
@@ -207,6 +208,138 @@ public sealed class DynamicExportServiceTests
         Assert.Equal(2, arr.GetArrayLength());
         Assert.Equal("CI-002", arr[1].GetProperty("ci_identifier").GetString());
         Assert.Equal("retired", arr[1].GetProperty("install_status").GetString());
+    }
+
+    // ── BuildNestedJsonBytes ──────────────────────────────────────────────────
+
+    [Fact]
+    public void BuildNestedJsonBytes_NoWrapper_MatchesLegacyBuildJsonBytesShape()
+    {
+        var flatRecords = new List<Dictionary<string, string>> { new() { ["asset_id"] = "A1" } };
+        var nestedRecords = new List<JsonObject> { new() { ["asset_id"] = "A1" } };
+        var extractedAt = DateTimeOffset.UtcNow;
+
+        var legacyDoc = JsonDocument.Parse(
+            DynamicExportService.BuildJsonBytes(flatRecords, ExportSchema.Version, extractedAt)
+        );
+        var nestedDoc = JsonDocument.Parse(
+            DynamicExportService.BuildNestedJsonBytes(nestedRecords, null, ExportSchema.Version, extractedAt)
+        );
+
+        Assert.Equal(
+            legacyDoc.RootElement.GetProperty("schema_version").GetString(),
+            nestedDoc.RootElement.GetProperty("schema_version").GetString()
+        );
+        Assert.Equal(
+            legacyDoc.RootElement.GetProperty("extracted_at").GetString(),
+            nestedDoc.RootElement.GetProperty("extracted_at").GetString()
+        );
+        Assert.Equal("A1", nestedDoc.RootElement.GetProperty("records")[0].GetProperty("asset_id").GetString());
+    }
+
+    [Fact]
+    public void BuildNestedJsonBytes_CustomRootItemsMetadataKeys_ProducesConfiguredEnvelope()
+    {
+        var records = new List<JsonObject> { new() { ["itemId"] = "ITEM-001" } };
+        var wrapper = new ExportJsonWrapperConfig(
+            RootKey: "masterData",
+            ItemsKey: "items",
+            MetadataKey: "metadata",
+            MetadataFields: [new ExportJsonMetadataField("version", "1.0", IsDynamicTimestamp: false)]
+        );
+
+        var doc = JsonDocument.Parse(
+            DynamicExportService.BuildNestedJsonBytes(records, wrapper, ExportSchema.Version, DateTimeOffset.UtcNow)
+        );
+
+        var root = doc.RootElement.GetProperty("masterData");
+        Assert.Equal("1.0", root.GetProperty("metadata").GetProperty("version").GetString());
+        Assert.Equal("ITEM-001", root.GetProperty("items")[0].GetProperty("itemId").GetString());
+    }
+
+    [Fact]
+    public void BuildNestedJsonBytes_DynamicTimestampMetadataField_UsesExtractedAt()
+    {
+        var extractedAt = new DateTimeOffset(2026, 8, 6, 14, 35, 0, TimeSpan.Zero);
+        var wrapper = new ExportJsonWrapperConfig(
+            RootKey: "",
+            ItemsKey: "items",
+            MetadataKey: "metadata",
+            MetadataFields: [new ExportJsonMetadataField("lastUpdated", "ignored", IsDynamicTimestamp: true)]
+        );
+
+        var doc = JsonDocument.Parse(
+            DynamicExportService.BuildNestedJsonBytes([], wrapper, ExportSchema.Version, extractedAt)
+        );
+
+        Assert.Equal(
+            extractedAt.ToString("O"),
+            doc.RootElement.GetProperty("metadata").GetProperty("lastUpdated").GetString()
+        );
+    }
+
+    [Fact]
+    public void BuildNestedJsonBytes_BlankMetadataKey_FlattensMetadataAsSiblingsOfItems()
+    {
+        var wrapper = new ExportJsonWrapperConfig(
+            RootKey: "",
+            ItemsKey: "items",
+            MetadataKey: "",
+            MetadataFields: [new ExportJsonMetadataField("version", "2.0", IsDynamicTimestamp: false)]
+        );
+
+        var doc = JsonDocument.Parse(
+            DynamicExportService.BuildNestedJsonBytes([], wrapper, ExportSchema.Version, DateTimeOffset.UtcNow)
+        );
+
+        Assert.Equal("2.0", doc.RootElement.GetProperty("version").GetString());
+        Assert.Equal(0, doc.RootElement.GetProperty("items").GetArrayLength());
+    }
+
+    [Fact]
+    public void BuildNestedJsonBytes_BlankRootKey_OmitsOuterWrapper()
+    {
+        var wrapper = new ExportJsonWrapperConfig("", "items", "metadata", []);
+
+        var doc = JsonDocument.Parse(
+            DynamicExportService.BuildNestedJsonBytes([], wrapper, ExportSchema.Version, DateTimeOffset.UtcNow)
+        );
+
+        // No extra wrapper key: "items"/"metadata" sit directly at the document root.
+        Assert.True(doc.RootElement.TryGetProperty("items", out _));
+        Assert.True(doc.RootElement.TryGetProperty("metadata", out _));
+    }
+
+    [Fact]
+    public void BuildNestedJsonBytes_NestedArrayInRecord_StaysJsonArray_NotDoubleStringified()
+    {
+        var record = new JsonObject
+        {
+            ["manufacturer"] = new JsonObject
+            {
+                ["name"] = "Acme",
+                ["addresses"] = new JsonArray(new JsonObject { ["city"] = "Austin" }),
+            },
+        };
+
+        var doc = JsonDocument.Parse(
+            DynamicExportService.BuildNestedJsonBytes([record], null, ExportSchema.Version, DateTimeOffset.UtcNow)
+        );
+
+        var addresses = doc.RootElement.GetProperty("records")[0].GetProperty("manufacturer").GetProperty("addresses");
+        Assert.Equal(JsonValueKind.Array, addresses.ValueKind);
+        Assert.Equal("Austin", addresses[0].GetProperty("city").GetString());
+    }
+
+    [Fact]
+    public void BuildNestedJsonBytes_EmptyRecords_ItemsArrayIsEmptyNotNull()
+    {
+        var doc = JsonDocument.Parse(
+            DynamicExportService.BuildNestedJsonBytes([], null, ExportSchema.Version, DateTimeOffset.UtcNow)
+        );
+
+        Assert.Equal(JsonValueKind.Array, doc.RootElement.GetProperty("records").ValueKind);
+        Assert.Equal(0, doc.RootElement.GetProperty("records").GetArrayLength());
     }
 
     // ── BuildExcelBytes ───────────────────────────────────────────────────────

@@ -73,6 +73,7 @@ async function loadMapping() {
 
 const enabledFields = computed(() => exportMapping.value?.fields.filter(f => f.enabled) ?? [])
 const enabledRelations = computed(() => exportMapping.value?.relations.filter(r => r.enabled) ?? [])
+const enabledNestedGroups = computed(() => exportMapping.value?.nestedGroups?.filter(g => g.enabled) ?? [])
 const enabledRelationFields = computed(() =>
   enabledRelations.value.flatMap((r) =>
     (r.fields ?? []).filter((f) => f.enabled).map((f) => ({ relatedTable: r.relatedTable, ...f })),
@@ -199,6 +200,10 @@ async function copySha(seqNo: number, hash: string) {
           &nbsp;·&nbsp;{{ enabledFields.length }} field<span v-if="enabledFields.length !== 1">s</span>
           <template v-if="enabledRelations.length > 0">
             &nbsp;+&nbsp;{{ enabledRelations.length }} relation<span v-if="enabledRelations.length !== 1">s</span>
+          </template>
+          <template v-if="enabledNestedGroups.length > 0">
+            &nbsp;+&nbsp;{{ enabledNestedGroups.length }} nested group<span v-if="enabledNestedGroups.length !== 1">s</span>
+            <span class="text-slate-400">(JSON only)</span>
           </template>
         </p>
         <div class="flex flex-wrap gap-1.5">

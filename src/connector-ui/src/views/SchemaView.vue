@@ -11,8 +11,11 @@ import {
   type MappingField,
   type MappingRelation,
   type MappingRelationField,
+  type MappingNestedGroup,
+  type ExportJsonWrapperConfig,
   type ExportMappingConfig,
 } from '@/api/erp'
+import NestedGroupEditor from '@/components/NestedGroupEditor.vue'
 
 const router = useRouter()
 
@@ -25,6 +28,8 @@ const error = ref<string | null>(null)
 const selectedTable = ref('')
 const fields = ref<MappingField[]>([])
 const relations = ref<MappingRelation[]>([])
+const nestedGroups = ref<MappingNestedGroup[]>([])
+const jsonWrapper = ref<ExportJsonWrapperConfig | null>(null)
 const saving = ref(false)
 const saveError = ref<string | null>(null)
 const saved = ref(false)
@@ -58,6 +63,8 @@ function applyPreset(name: string) {
   if (!cfg) return
   fields.value = cfg.fields.map((f) => ({ ...f }))
   relations.value = cfg.relations.map(cloneRelation)
+  nestedGroups.value = (cfg.nestedGroups ?? []).map(cloneNestedGroup)
+  jsonWrapper.value = cloneWrapper(cfg.jsonWrapper)
   snapshotToCache(cfg.sourceTable)
   selectedTable.value = cfg.sourceTable
   saved.value = false
@@ -90,6 +97,8 @@ async function confirmSavePreset() {
       enabled: f.enabled,
     })),
     relations: relations.value,
+    nestedGroups: nestedGroups.value,
+    jsonWrapper: jsonWrapper.value,
   }
 
   presetSaving.value = true
@@ -158,6 +167,19 @@ function cloneRelation(r: MappingRelation): MappingRelation {
   return { ...r, fields: (r.fields ?? []).map((f) => ({ ...f })) }
 }
 
+function cloneNestedGroup(g: MappingNestedGroup): MappingNestedGroup {
+  return {
+    ...g,
+    fields: (g.fields ?? []).map((f) => ({ ...f })),
+    children: (g.children ?? []).map(cloneNestedGroup),
+  }
+}
+
+function cloneWrapper(w: ExportJsonWrapperConfig | null): ExportJsonWrapperConfig | null {
+  if (!w) return null
+  return { ...w, metadataFields: (w.metadataFields ?? []).map((f) => ({ ...f })) }
+}
+
 // Default field picker for a relation's related table: every column, unchecked, renamed to itself.
 function fieldsForTable(tableName: string): MappingRelationField[] {
   return getTableColumns(tableName).map((c) => ({
@@ -168,14 +190,19 @@ function fieldsForTable(tableName: string): MappingRelationField[] {
 }
 
 // ── Per-table state cache ──────────────────────────────────────────────────────
-// Keeps field/relation edits alive when the user switches between tables.
-const tableCache = new Map<string, { fields: MappingField[]; relations: MappingRelation[] }>()
+// Keeps field/relation/nested-group edits alive when the user switches between tables.
+// jsonWrapper is envelope-level (not tied to a source table), so it's intentionally NOT cached here.
+const tableCache = new Map<
+  string,
+  { fields: MappingField[]; relations: MappingRelation[]; nestedGroups: MappingNestedGroup[] }
+>()
 
 function snapshotToCache(tableName: string) {
   if (!tableName) return
   tableCache.set(tableName, {
     fields: fields.value.map((f) => ({ ...f })),
     relations: relations.value.map(cloneRelation),
+    nestedGroups: nestedGroups.value.map(cloneNestedGroup),
   })
 }
 
@@ -189,6 +216,7 @@ watch(selectedTable, (newTable, oldTable) => {
   if (cached) {
     fields.value = cached.fields.map((f) => ({ ...f }))
     relations.value = cached.relations.map(cloneRelation)
+    nestedGroups.value = cached.nestedGroups.map(cloneNestedGroup)
   } else {
     const cols = sourceSchema.value?.tables.find((t) => t.name === newTable)?.columns ?? []
     fields.value = cols.map((col) => ({
@@ -197,6 +225,7 @@ watch(selectedTable, (newTable, oldTable) => {
       enabled: col.primaryKey,
     }))
     relations.value = []
+    nestedGroups.value = []
   }
   saved.value = false
   dirty.value = true
@@ -288,6 +317,58 @@ function deselectAllRelationFields(rel: MappingRelation) {
   dirty.value = true
 }
 
+// ── Nested JSON structure (JSON export only) ────────────────────────────────────
+function addNestedGroup() {
+  nestedGroups.value.push({
+    targetKey: '',
+    relatedTable: '',
+    joinKey: '',
+    sourceJoinKey: sourcePkColumn.value,
+    enabled: true,
+    kind: 'object',
+    fields: [],
+    children: [],
+  })
+  saved.value = false
+  dirty.value = true
+}
+
+function removeNestedGroup(idx: number) {
+  nestedGroups.value.splice(idx, 1)
+  saved.value = false
+  dirty.value = true
+}
+
+function markNestedGroupsDirty() {
+  saved.value = false
+  dirty.value = true
+}
+
+// ── JSON envelope wrapper ────────────────────────────────────────────────────────
+function enableWrapper() {
+  jsonWrapper.value = { rootKey: '', itemsKey: 'records', metadataKey: 'metadata', metadataFields: [] }
+  saved.value = false
+  dirty.value = true
+}
+
+function disableWrapper() {
+  jsonWrapper.value = null
+  saved.value = false
+  dirty.value = true
+}
+
+function addMetadataField() {
+  jsonWrapper.value?.metadataFields.push({ key: '', value: '', isDynamicTimestamp: false })
+  saved.value = false
+  dirty.value = true
+}
+
+function removeMetadataField(idx: number) {
+  jsonWrapper.value?.metadataFields.splice(idx, 1)
+  saved.value = false
+  dirty.value = true
+}
+
 // ── Bulk column selection ──────────────────────────────────────────────────────
 function selectAllFields() {
   fields.value.forEach((f) => { f.enabled = true })
@@ -326,6 +407,8 @@ async function saveMapping(): Promise<boolean> {
       enabled: f.enabled,
     })),
     relations: relations.value,
+    nestedGroups: nestedGroups.value,
+    jsonWrapper: jsonWrapper.value,
   }
 
   saving.value = true
@@ -367,6 +450,8 @@ async function load() {
     if (existingMapping) {
       fields.value = existingMapping.fields.map((f) => ({ ...f }))
       relations.value = existingMapping.relations.map(cloneRelation)
+      nestedGroups.value = (existingMapping.nestedGroups ?? []).map(cloneNestedGroup)
+      jsonWrapper.value = cloneWrapper(existingMapping.jsonWrapper)
       // Seed the cache so switching away and back restores the saved state.
       snapshotToCache(existingMapping.sourceTable)
       selectedTable.value = existingMapping.sourceTable
@@ -691,6 +776,87 @@ onMounted(() => { load(); loadPresets() })
             <span class="text-sm font-semibold text-slate-900">{{ fmt.label }}</span>
             <span class="text-xs text-slate-500 leading-snug">{{ fmt.desc }}</span>
           </button>
+        </div>
+      </div>
+
+      <!-- Nested JSON Structure (JSON export only) -->
+      <div v-if="selectedTable && selectedFormat === 'json'" class="mb-7">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-base font-semibold text-slate-900 m-0">Nested JSON Structure</h2>
+          <button
+            class="add-nested-group-btn px-3 py-1.5 border border-slate-300 rounded-md bg-white text-sm text-slate-500 cursor-pointer whitespace-nowrap hover:bg-slate-50"
+            @click="addNestedGroup"
+          >+ Add Nested Group</button>
+        </div>
+        <p class="text-sm text-slate-500 mb-3 leading-snug">
+          Applies to JSON export only. Embed a related table as a single object (1:1 lookup, e.g. <em>manufacturer</em>)
+          or an array of objects (1:many, e.g. <em>addresses</em>) — nested groups can themselves contain further
+          nested groups, so an array can hold objects that have their own nested arrays.
+        </p>
+
+        <div v-if="nestedGroups.length === 0" class="text-sm text-slate-400 px-4 py-3 border border-dashed border-slate-300 rounded-md text-center">
+          No nested groups configured — JSON export will use the flat field/relation mapping above.
+        </div>
+
+        <NestedGroupEditor
+          v-for="(group, idx) in nestedGroups"
+          :key="idx"
+          :group="group"
+          :available-tables="sourceSchema.tables"
+          :depth="1"
+          @remove="removeNestedGroup(idx)"
+          @dirty="markNestedGroupsDirty"
+        />
+      </div>
+
+      <!-- JSON envelope / root wrapper (JSON export only) -->
+      <div v-if="selectedTable && selectedFormat === 'json'" class="mb-7">
+        <h2 class="text-base font-semibold text-slate-900 mb-1">JSON Envelope</h2>
+        <p class="text-sm text-slate-500 mb-3 leading-snug">
+          Applies to JSON export only. By default the export uses <code>{ schema_version, extracted_at, records }</code>.
+          Customize it to match a target system's expected shape.
+        </p>
+
+        <div v-if="!jsonWrapper" class="flex items-center gap-3">
+          <span class="text-sm text-slate-500">Using the default envelope.</span>
+          <button class="customize-wrapper-btn px-3 py-1.5 border border-slate-300 rounded-md bg-white text-sm text-slate-700 cursor-pointer hover:bg-slate-50" @click="enableWrapper">Customize…</button>
+        </div>
+
+        <div v-else class="border border-slate-200 rounded-lg px-4 py-3 bg-white flex flex-col gap-3">
+          <div class="flex justify-end">
+            <button class="reset-wrapper-btn px-2.5 py-1 border border-slate-300 rounded text-xs text-slate-500 bg-white cursor-pointer hover:bg-slate-50" @click="disableWrapper">Reset to default</button>
+          </div>
+          <div class="flex gap-2.5 flex-wrap">
+            <div class="flex flex-col gap-1 flex-1 min-w-36">
+              <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Root Key</label>
+              <input class="root-key-input px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900" type="text" v-model="jsonWrapper.rootKey" placeholder="e.g. masterData — blank for none" @input="saved = false; dirty = true" />
+            </div>
+            <div class="flex flex-col gap-1 flex-1 min-w-36">
+              <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Items Key</label>
+              <input class="items-key-input px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900" type="text" v-model="jsonWrapper.itemsKey" placeholder="records" @input="saved = false; dirty = true" />
+            </div>
+            <div class="flex flex-col gap-1 flex-1 min-w-36">
+              <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Metadata Key</label>
+              <input class="metadata-key-input px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900" type="text" v-model="jsonWrapper.metadataKey" placeholder="metadata — blank flattens" @input="saved = false; dirty = true" />
+            </div>
+          </div>
+
+          <div>
+            <div class="flex items-center gap-2 mb-1.5">
+              <span class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Metadata Fields</span>
+              <button type="button" class="add-metadata-field-btn ml-auto px-2 py-0.5 border border-slate-300 rounded text-[0.7rem] text-slate-600 bg-white cursor-pointer hover:bg-slate-100" @click="addMetadataField">+ Add Field</button>
+            </div>
+            <p v-if="jsonWrapper.metadataFields.length === 0" class="text-[0.7rem] text-slate-400">None — falls back to schema_version/extracted_at.</p>
+            <div v-for="(m, mIdx) in jsonWrapper.metadataFields" :key="mIdx" class="flex items-center gap-2 mb-1.5">
+              <input class="metadata-field-key-input flex-1 px-2 py-1 border border-slate-300 rounded text-xs font-mono text-slate-900 bg-white outline-none focus:border-slate-900" type="text" v-model="m.key" placeholder="key, e.g. version" @input="saved = false; dirty = true" />
+              <input class="metadata-field-value-input flex-1 px-2 py-1 border border-slate-300 rounded text-xs font-mono text-slate-900 bg-white outline-none focus:border-slate-900 disabled:bg-slate-50" type="text" v-model="m.value" :disabled="m.isDynamicTimestamp" placeholder="value, e.g. 1.0" @input="saved = false; dirty = true" />
+              <label class="flex items-center gap-1 text-[0.7rem] text-slate-500 whitespace-nowrap">
+                <input type="checkbox" v-model="m.isDynamicTimestamp" @change="saved = false; dirty = true" />
+                Use export timestamp
+              </label>
+              <button type="button" class="remove-metadata-field-btn shrink-0 px-2 py-1 border border-red-200 rounded text-red-600 bg-white text-sm leading-none cursor-pointer hover:bg-red-50" @click="removeMetadataField(mIdx)" title="Remove field">×</button>
+            </div>
+          </div>
         </div>
       </div>
 

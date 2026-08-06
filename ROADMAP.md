@@ -4,6 +4,21 @@ Last updated: 2026-08-06
 
 ---
 
+## Phase 12 — Nested JSON export ✅
+
+| Item | Notes |
+|---|---|
+| Nested JSON structure | `ExportMappingNestedGroup`/`ExportMappingNestedField` — JSON-export-only, additive to `ExportMappingConfig`; `object` (N:1 lookup) or `array` (1:N) kind, nestable to arbitrary depth via `Children` |
+| SQL generation | `DynamicExportService.ExecuteNestedJsonQueryAsync`/`BuildNestedGroupExpr` build one query using native `json_build_object`/`json_agg`; a zero-match array COALESCEs to `[]`, not `null` |
+| JSON envelope wrapper | `ExportJsonWrapperConfig` — optional root key, items key, and a metadata block with dynamic-timestamp fields; `BuildNestedJsonBytes` reproduces the legacy flat envelope when unset, so existing saved mappings are unaffected |
+| `NestedGroupEditor.vue` | Recursive, self-referencing component in `SchemaView`'s "Nested JSON Structure" section (shown for JSON format only); per-group field picker, add/remove children |
+| Save-time validation | `ValidateNestedGroups` checks depth cap (16), required fields, identifier safety, GDPR denylist, and duplicate export keys at every depth. It does **not** check that `JoinKey`/`SourceJoinKey` exist in the schema or are type-compatible — a bad pairing still only surfaces as a raw Postgres error (e.g. `42883: operator does not exist`) at export time, not a validation message at save time |
+| Wired into Run Now only | `POST /api/pipeline/run?format=json` branches to the nested path when `NestedGroups`/`JsonWrapper` are set. **Preview** and the nightly `ExportWorker` (Excel-only) still use the flat query path — Preview output will not reflect a nested-group mapping |
+| Local Postgres test fixture | `docker-compose --profile test up -d testdb` (`testdb/init.sql`) seeds a schema including `manufacturer`/`manufacturer_address` (exercises array-of-objects nesting and the empty-array case) — backs both `connection.spec.ts`'s live-connection e2e test and the integration tests below |
+| Tests | `DynamicExportServiceNestedJsonPostgresTests.cs` — 7 real-Postgres integration tests (object/array kinds, 2-hop nesting, GDPR stripping, empty-array coalesce, identifier escaping) run against the `testdb` fixture |
+
+---
+
 ## Phase 11 — Legacy mapping data regression fix ✅
 
 | Item | Notes |

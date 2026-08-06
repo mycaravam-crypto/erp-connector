@@ -101,4 +101,134 @@ public sealed class ExportMappingJsonTests
         Assert.NotNull(relation.Fields);
         Assert.Empty(relation.Fields);
     }
+
+    [Fact]
+    public void DeserializeConfig_NoNestedGroupsOrWrapper_BackfilledToEmptyAndNull()
+    {
+        // Every mapping saved before this feature shipped has no NestedGroups/JsonWrapper
+        // property at all — must backfill to [] / null, never crash on missing properties.
+        var config = ExportMappingJson.DeserializeConfig(LegacyConfigJson);
+
+        Assert.NotNull(config!.NestedGroups);
+        Assert.Empty(config.NestedGroups!);
+        Assert.Null(config.JsonWrapper);
+    }
+
+    [Fact]
+    public void DeserializeConfig_NestedGroupMissingChildrenAndFields_BackfilledRecursivelyThreeLevelsDeep()
+    {
+        const string json = """
+            {
+                "SourceTable": "masterdata",
+                "Fields": [],
+                "Relations": [],
+                "NestedGroups": [
+                    {
+                        "TargetKey": "manufacturer",
+                        "RelatedTable": "manufacturer",
+                        "JoinKey": "id",
+                        "SourceJoinKey": "manufacturer_id",
+                        "Enabled": true,
+                        "Kind": "object",
+                        "Children": [
+                            {
+                                "TargetKey": "addresses",
+                                "RelatedTable": "manufacturer_address",
+                                "JoinKey": "manufacturer_id",
+                                "SourceJoinKey": "id",
+                                "Enabled": true,
+                                "Kind": "array",
+                                "Children": [
+                                    {
+                                        "TargetKey": "tags",
+                                        "RelatedTable": "address_tag",
+                                        "JoinKey": "address_id",
+                                        "SourceJoinKey": "id",
+                                        "Enabled": true,
+                                        "Kind": "array"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+            """;
+
+        var config = ExportMappingJson.DeserializeConfig(json);
+
+        var manufacturer = Assert.Single(config!.NestedGroups!);
+        Assert.NotNull(manufacturer.Fields);
+        Assert.Empty(manufacturer.Fields);
+
+        var addresses = Assert.Single(manufacturer.Children);
+        Assert.NotNull(addresses.Fields);
+        Assert.Empty(addresses.Fields);
+
+        var tags = Assert.Single(addresses.Children);
+        Assert.NotNull(tags.Fields);
+        Assert.Empty(tags.Fields);
+        Assert.NotNull(tags.Children);
+        Assert.Empty(tags.Children);
+    }
+
+    [Fact]
+    public void DeserializeConfig_NestedGroupMissingKind_DefaultsToObject()
+    {
+        const string json = """
+            {
+                "SourceTable": "masterdata",
+                "Fields": [],
+                "Relations": [],
+                "NestedGroups": [
+                    { "TargetKey": "manufacturer", "RelatedTable": "manufacturer", "JoinKey": "id", "SourceJoinKey": "manufacturer_id", "Enabled": true }
+                ]
+            }
+            """;
+
+        var config = ExportMappingJson.DeserializeConfig(json);
+
+        Assert.Equal("object", Assert.Single(config!.NestedGroups!).Kind);
+    }
+
+    [Fact]
+    public void DeserializeConfig_JsonWrapperPresentWithoutMetadataFields_BackfilledToEmpty()
+    {
+        const string json = """
+            {
+                "SourceTable": "masterdata",
+                "Fields": [],
+                "Relations": [],
+                "JsonWrapper": { "RootKey": "masterData", "ItemsKey": "items", "MetadataKey": "metadata" }
+            }
+            """;
+
+        var config = ExportMappingJson.DeserializeConfig(json);
+
+        Assert.NotNull(config!.JsonWrapper);
+        Assert.NotNull(config.JsonWrapper!.MetadataFields);
+        Assert.Empty(config.JsonWrapper.MetadataFields);
+    }
+
+    [Fact]
+    public void DeserializePresets_NestedGroupMissingChildren_BackfilledToEmptyArray()
+    {
+        const string json = """
+            {
+                "SourceTable": "masterdata",
+                "Fields": [],
+                "Relations": [],
+                "NestedGroups": [
+                    { "TargetKey": "manufacturer", "RelatedTable": "manufacturer", "JoinKey": "id", "SourceJoinKey": "manufacturer_id", "Enabled": true, "Kind": "object" }
+                ]
+            }
+            """;
+        var wrapped = $$"""{ "My Preset": {{json}} }""";
+
+        var presets = ExportMappingJson.DeserializePresets(wrapped);
+
+        var group = Assert.Single(presets["My Preset"].NestedGroups!);
+        Assert.NotNull(group.Children);
+        Assert.Empty(group.Children);
+    }
 }

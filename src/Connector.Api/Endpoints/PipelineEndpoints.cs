@@ -67,9 +67,11 @@ static class PipelineEndpoints
                     }
                     var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connSetting.Value)!;
 
+                    var usesNestedJson =
+                        fmt == "json" && (config.NestedGroups is { Length: > 0 } || config.JsonWrapper is not null);
+
                     try
                     {
-                        var cols = DynamicExportService.GetColumnNames(config);
                         var extractedAt = DateTimeOffset.UtcNow;
                         var gdprDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
 
@@ -77,54 +79,90 @@ static class PipelineEndpoints
                             DynamicExportService.BuildConnectionString(connCfg)
                         );
                         await pgConn.OpenAsync(ct);
-                        var records = await DynamicExportService.ExecuteQueryAsync(
-                            pgConn,
-                            config,
-                            ct,
-                            gdprDenylist: gdprDenylist
-                        );
-
-                        if (records.Count == 0)
-                        {
-                            run.Status = ExportRunStatus.Failed;
-                            await db.SaveChangesAsync(ct);
-                            return Results.Problem(
-                                detail: "Export aborted: query returned 0 records. Check that your mapping includes the maintenance_plan scope predicate.",
-                                statusCode: 400
-                            );
-                        }
 
                         byte[] bytes;
                         string fileName;
-                        if (fmt == "csv")
+                        int recordCount;
+
+                        if (usesNestedJson)
                         {
-                            bytes = DynamicExportService.BuildCsvBytes(
-                                records,
-                                cols,
+                            var nestedRecords = await DynamicExportService.ExecuteNestedJsonQueryAsync(
+                                pgConn,
+                                config,
+                                ct,
+                                gdprDenylist: gdprDenylist
+                            );
+
+                            if (nestedRecords.Count == 0)
+                            {
+                                run.Status = ExportRunStatus.Failed;
+                                await db.SaveChangesAsync(ct);
+                                return Results.Problem(
+                                    detail: "Export aborted: query returned 0 records. Check that your mapping includes the maintenance_plan scope predicate.",
+                                    statusCode: 400
+                                );
+                            }
+
+                            recordCount = nestedRecords.Count;
+                            bytes = DynamicExportService.BuildNestedJsonBytes(
+                                nestedRecords,
+                                config.JsonWrapper,
                                 ExportSchema.Version,
                                 extractedAt
                             );
-                            fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "csv");
-                        }
-                        else if (fmt == "json")
-                        {
-                            bytes = DynamicExportService.BuildJsonBytes(records, ExportSchema.Version, extractedAt);
                             fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "json");
                         }
                         else
                         {
-                            bytes = DynamicExportService.BuildExcelBytes(
-                                records,
-                                cols,
-                                ExportSchema.Version,
-                                extractedAt
+                            var cols = DynamicExportService.GetColumnNames(config);
+                            var records = await DynamicExportService.ExecuteQueryAsync(
+                                pgConn,
+                                config,
+                                ct,
+                                gdprDenylist: gdprDenylist
                             );
-                            fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt);
+
+                            if (records.Count == 0)
+                            {
+                                run.Status = ExportRunStatus.Failed;
+                                await db.SaveChangesAsync(ct);
+                                return Results.Problem(
+                                    detail: "Export aborted: query returned 0 records. Check that your mapping includes the maintenance_plan scope predicate.",
+                                    statusCode: 400
+                                );
+                            }
+
+                            recordCount = records.Count;
+                            if (fmt == "csv")
+                            {
+                                bytes = DynamicExportService.BuildCsvBytes(
+                                    records,
+                                    cols,
+                                    ExportSchema.Version,
+                                    extractedAt
+                                );
+                                fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "csv");
+                            }
+                            else if (fmt == "json")
+                            {
+                                bytes = DynamicExportService.BuildJsonBytes(records, ExportSchema.Version, extractedAt);
+                                fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "json");
+                            }
+                            else
+                            {
+                                bytes = DynamicExportService.BuildExcelBytes(
+                                    records,
+                                    cols,
+                                    ExportSchema.Version,
+                                    extractedAt
+                                );
+                                fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt);
+                            }
                         }
 
                         var checksum = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
                         var package = new ExportPackage(
-                            new ExportManifest(sequenceNo, ExportSchema.Version, extractedAt, records.Count, checksum),
+                            new ExportManifest(sequenceNo, ExportSchema.Version, extractedAt, recordCount, checksum),
                             bytes,
                             fileName
                         );
