@@ -98,7 +98,7 @@ test.describe('Connection (Step 1)', () => {
     await page.locator('#username').fill('erp_test')
     await page.locator('#password').fill('erp_test_pw')
     await page.getByRole('button', { name: /test connection/i }).click()
-    await expect(page.getByText(/connected — found 4 tables in "localhost:5432\/erp_testdb"/i)).toBeVisible({
+    await expect(page.getByText(/connected — found 6 tables in "localhost:5432\/erp_testdb"/i)).toBeVisible({
       timeout: 15000,
     })
     await expect(page.getByText('Connected:')).toBeVisible()
