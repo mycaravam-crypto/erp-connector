@@ -16,7 +16,7 @@ static class ExportMappingEndpoints
                     var setting = await db.AppSettings.FindAsync("export_mapping");
                     if (setting is null)
                         return Results.NotFound();
-                    var config = JsonSerializer.Deserialize<ExportMappingConfig>(setting.Value);
+                    var config = ExportMappingJson.DeserializeConfig(setting.Value);
                     return config is null ? Results.NotFound() : Results.Ok(config);
                 }
             )
@@ -84,9 +84,7 @@ static class ExportMappingEndpoints
                     var setting = await db.AppSettings.FindAsync("export_presets");
                     if (setting is null)
                         return Results.Ok(new Dictionary<string, ExportMappingConfig>());
-                    var presets =
-                        JsonSerializer.Deserialize<Dictionary<string, ExportMappingConfig>>(setting.Value)
-                        ?? new Dictionary<string, ExportMappingConfig>();
+                    var presets = ExportMappingJson.DeserializePresets(setting.Value);
                     return Results.Ok(presets);
                 }
             )
@@ -135,8 +133,7 @@ static class ExportMappingEndpoints
                     var setting = await db.AppSettings.FindAsync("export_presets");
                     var presets = setting is null
                         ? new Dictionary<string, ExportMappingConfig>()
-                        : JsonSerializer.Deserialize<Dictionary<string, ExportMappingConfig>>(setting.Value)
-                            ?? new Dictionary<string, ExportMappingConfig>();
+                        : ExportMappingJson.DeserializePresets(setting.Value);
 
                     presets[name] = config;
                     var serialized = JsonSerializer.Serialize(presets);
@@ -162,9 +159,7 @@ static class ExportMappingEndpoints
                     if (setting is null)
                         return Results.NotFound();
 
-                    var presets =
-                        JsonSerializer.Deserialize<Dictionary<string, ExportMappingConfig>>(setting.Value)
-                        ?? new Dictionary<string, ExportMappingConfig>();
+                    var presets = ExportMappingJson.DeserializePresets(setting.Value);
 
                     if (!presets.Remove(name))
                         return Results.NotFound();
@@ -186,8 +181,8 @@ static class ExportMappingEndpoints
                     string.IsNullOrWhiteSpace(r.RelatedTable)
                     || string.IsNullOrWhiteSpace(r.JoinKey)
                     || string.IsNullOrWhiteSpace(r.SourceJoinKey)
-                    || !r.Fields.Any(f => f.Enabled)
-                    || r.Fields.Any(f => f.Enabled && string.IsNullOrWhiteSpace(f.TargetField))
+                    || !(r.Fields ?? []).Any(f => f.Enabled)
+                    || (r.Fields ?? []).Any(f => f.Enabled && string.IsNullOrWhiteSpace(f.TargetField))
                 )
             )
             .Cast<object>()
@@ -200,7 +195,7 @@ static class ExportMappingEndpoints
             .Concat(
                 config
                     .Relations.Where(r => r.Enabled)
-                    .SelectMany(r => r.Fields)
+                    .SelectMany(r => r.Fields ?? [])
                     .Where(f => f.Enabled && denylist.Contains(f.SourceField))
                     .Select(f => f.SourceField)
             )

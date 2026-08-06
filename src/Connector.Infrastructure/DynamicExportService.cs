@@ -46,7 +46,7 @@ public static class DynamicExportService
             .Select(f => f.TargetName)
             .Concat(
                 cfg.Relations.Where(r => r.Enabled)
-                    .SelectMany(r => r.Fields.Where(f => f.Enabled).Select(f => f.TargetField))
+                    .SelectMany(r => (r.Fields ?? []).Where(f => f.Enabled).Select(f => f.TargetField))
             )
             .ToList();
 
@@ -68,8 +68,8 @@ public static class DynamicExportService
 
         foreach (var r in cfg.Relations.Where(x => x.Enabled))
         {
-            var delim = r.Delimiter.Replace("'", "''");
-            foreach (var f in r.Fields.Where(x => x.Enabled))
+            var delim = (r.Delimiter ?? ", ").Replace("'", "''");
+            foreach (var f in (r.Fields ?? []).Where(x => x.Enabled))
             {
                 var agg =
                     r.FlattenStrategy == "string_join"

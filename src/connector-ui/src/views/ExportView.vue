@@ -75,7 +75,7 @@ const enabledFields = computed(() => exportMapping.value?.fields.filter(f => f.e
 const enabledRelations = computed(() => exportMapping.value?.relations.filter(r => r.enabled) ?? [])
 const enabledRelationFields = computed(() =>
   enabledRelations.value.flatMap((r) =>
-    r.fields.filter((f) => f.enabled).map((f) => ({ relatedTable: r.relatedTable, ...f })),
+    (r.fields ?? []).filter((f) => f.enabled).map((f) => ({ relatedTable: r.relatedTable, ...f })),
   ),
 )
 

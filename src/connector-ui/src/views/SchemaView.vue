@@ -155,7 +155,7 @@ function getTableColumns(tableName: string): SourceColumn[] {
 }
 
 function cloneRelation(r: MappingRelation): MappingRelation {
-  return { ...r, fields: r.fields.map((f) => ({ ...f })) }
+  return { ...r, fields: (r.fields ?? []).map((f) => ({ ...f })) }
 }
 
 // Default field picker for a relation's related table: every column, unchecked, renamed to itself.

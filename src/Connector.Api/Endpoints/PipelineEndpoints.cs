@@ -53,7 +53,7 @@ static class PipelineEndpoints
                             statusCode: 400
                         );
                     }
-                    var config = JsonSerializer.Deserialize<ExportMappingConfig>(mappingSetting.Value)!;
+                    var config = ExportMappingJson.DeserializeConfig(mappingSetting.Value)!;
 
                     var connSetting = await db.AppSettings.FindAsync("erp_connection");
                     if (connSetting is null)

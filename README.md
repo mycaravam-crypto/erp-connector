@@ -55,7 +55,7 @@ Connector.sln
 │   └── Connector.Api           ← ASP.NET Core host; 9 endpoint modules; JWT auth; Serilog
 │
 └── tests/
-    ├── Connector.Core.Tests        ← Unit tests (56 tests, no I/O)
+    ├── Connector.Core.Tests        ← Unit tests (24 tests, no I/O)
     └── Connector.Integration.Tests ← Full pipeline tests against demo ERP DB
 ```
 
@@ -92,7 +92,7 @@ Starts the API on `:5189` and the Vite dev server on `:5173`. Ctrl-C stops both.
 ### Run tests
 
 ```bash
-# .NET (56 unit + integration tests)
+# .NET (61 unit + integration tests)
 dotnet test
 
 # Frontend (187 Vitest tests)

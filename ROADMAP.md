@@ -4,6 +4,16 @@ Last updated: 2026-08-06
 
 ---
 
+## Phase 11 — Legacy mapping data regression fix ✅
+
+| Item | Notes |
+|---|---|
+| Fixed crash on pre-Phase-10 mapping data | `export_mapping`/`export_presets` saved before relations gained `Fields`/`Delimiter`/`FlattenStrategy` deserialized those properties as `null` (System.Text.Json leaves missing properties `null`, not empty), crashing `SchemaView.vue`'s load path (misreported to users as "Could not reach the API") and, latently, `DynamicExportService.ExecuteQueryAsync`/`GetColumnNames` for Preview, Run Now, and the scheduled `ExportWorker` |
+| `ExportMappingJson` normalization helper | New `Connector.Core.DynamicExport.ExportMappingJson.DeserializeConfig`/`DeserializePresets` backfill `Fields → []`, `Delimiter → ", "`, `FlattenStrategy → "string_join"` on read; all 6 backend read sites (`ExportMappingEndpoints`, `PipelineEndpoints` ×2, `ExportWorker`) route through it instead of raw `JsonSerializer.Deserialize` |
+| Defense-in-depth guards | `DynamicExportService.GetColumnNames`/`ExecuteQueryAsync` null-coalesce `r.Fields`/`r.Delimiter` at point of use; `SchemaView.vue`'s `cloneRelation` and `ExportView.vue`'s `enabledRelationFields` guard `r.fields` the same way |
+
+---
+
 ## Phase 10 — Export mapping usability ✅
 
 | Item | Notes |

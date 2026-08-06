@@ -113,7 +113,7 @@ public sealed class ExportWorker(
                 await audit.LogAsync("scheduler", "export_failed", $"#{sequenceNo}: no export_mapping");
                 return;
             }
-            var config = JsonSerializer.Deserialize<ExportMappingConfig>(mappingSetting.Value)!;
+            var config = ExportMappingJson.DeserializeConfig(mappingSetting.Value)!;
 
             var connSetting = await db.AppSettings.FindAsync("erp_connection");
             if (connSetting is null)
