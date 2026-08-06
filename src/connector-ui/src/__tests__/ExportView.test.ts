@@ -102,6 +102,36 @@ describe('ExportView', () => {
     expect(w.text()).toContain('2 fields')
   })
 
+  it('shows one chip per enabled relation field, not per relation', async () => {
+    vi.spyOn(erpApi, 'getExportMapping').mockResolvedValueOnce({
+      ...MAPPING,
+      relations: [
+        {
+          relatedTable: 'masterdata',
+          joinKey: 'id',
+          sourceJoinKey: 'article_id',
+          enabled: true,
+          flattenStrategy: 'string_join',
+          delimiter: ', ',
+          fields: [
+            { sourceField: 'article_name', targetField: 'article_names', enabled: true },
+            { sourceField: 'part_number', targetField: 'part_numbers', enabled: true },
+            { sourceField: 'manufacturer', targetField: 'manufacturer', enabled: false },
+          ],
+        },
+      ],
+    })
+    const w = mount(ExportView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    expect(w.text()).toContain('masterdata.article_name')
+    expect(w.text()).toContain('article_names')
+    expect(w.text()).toContain('masterdata.part_number')
+    expect(w.text()).toContain('part_numbers')
+    // Disabled field must not produce a chip.
+    expect(w.text()).not.toContain('masterdata.manufacturer')
+  })
+
   it('shows "Not configured" badge when no mapping exists', async () => {
     const w = mount(ExportView, { global: { plugins: [buildRouter()] } })
     await flushPromises()

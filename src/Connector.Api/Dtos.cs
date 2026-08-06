@@ -75,7 +75,14 @@ record SchemaColumnDto(string Name, string ErpSource, string Type, string Notes,
 
 record SchemaDto(string Version, SchemaColumnDto[] Columns);
 
-record SourceColumnDto(string Name, string Type, bool Nullable, bool PrimaryKey);
+record SourceColumnDto(
+    string Name,
+    string Type,
+    bool Nullable,
+    bool PrimaryKey,
+    string? ForeignKeyTable = null,
+    string? ForeignKeyColumn = null
+);
 
 record SourceTableDto(string Name, string Description, SourceColumnDto[] Columns);
 

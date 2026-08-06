@@ -44,7 +44,10 @@ public static class DynamicExportService
         cfg
             .Fields.Where(f => f.Enabled)
             .Select(f => f.TargetName)
-            .Concat(cfg.Relations.Where(r => r.Enabled).Select(r => r.TargetField))
+            .Concat(
+                cfg.Relations.Where(r => r.Enabled)
+                    .SelectMany(r => r.Fields.Where(f => f.Enabled).Select(f => f.TargetField))
+            )
             .ToList();
 
     public static string BuildConnectionString(ErpConnectionConfig cfg) =>
@@ -65,16 +68,18 @@ public static class DynamicExportService
 
         foreach (var r in cfg.Relations.Where(x => x.Enabled))
         {
-            var sf = r.StrategyOptions.SourceField;
-            var delim = r.StrategyOptions.Delimiter.Replace("'", "''");
-            var agg =
-                r.FlattenStrategy == "string_join"
-                    ? $"string_agg({QI(r.RelatedTable)}.{QI(sf)}::text, '{delim}')"
-                    : $"array_to_string(array_agg({QI(r.RelatedTable)}.{QI(sf)}::text), ',')";
-            parts.Add(
-                $"(SELECT {agg} FROM {QI(r.RelatedTable)} "
-                    + $"WHERE {QI(r.RelatedTable)}.{QI(r.JoinKey)} = s.{QI(r.SourceJoinKey)}) AS {QI(r.TargetField)}"
-            );
+            var delim = r.Delimiter.Replace("'", "''");
+            foreach (var f in r.Fields.Where(x => x.Enabled))
+            {
+                var agg =
+                    r.FlattenStrategy == "string_join"
+                        ? $"string_agg({QI(r.RelatedTable)}.{QI(f.SourceField)}::text, '{delim}')"
+                        : $"array_to_string(array_agg({QI(r.RelatedTable)}.{QI(f.SourceField)}::text), ',')";
+                parts.Add(
+                    $"(SELECT {agg} FROM {QI(r.RelatedTable)} "
+                        + $"WHERE {QI(r.RelatedTable)}.{QI(r.JoinKey)} = s.{QI(r.SourceJoinKey)}) AS {QI(f.TargetField)}"
+                );
+            }
         }
 
         if (parts.Count == 0)

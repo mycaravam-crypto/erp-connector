@@ -40,14 +40,41 @@ public sealed class DynamicExportServiceTests
             fields: [new("id", "ci_id", Enabled: true)],
             relations:
             [
-                MakeRelation("tags", "entity_id", "id", "tag_list", Enabled: true),
-                MakeRelation("notes", "entity_id", "id", "note_list", Enabled: false),
+                MakeRelation("tags", "entity_id", "id", Enabled: true, fields: [new("value", "tag_list", true)]),
+                MakeRelation("notes", "entity_id", "id", Enabled: false, fields: [new("value", "note_list", true)]),
             ]
         );
 
         var cols = DynamicExportService.GetColumnNames(cfg);
 
         Assert.Equal(["ci_id", "tag_list"], cols);
+    }
+
+    [Fact]
+    public void GetColumnNames_IncludesEveryEnabledFieldOnARelation()
+    {
+        var cfg = MakeConfig(
+            fields: [new("id", "ci_id", Enabled: true)],
+            relations:
+            [
+                MakeRelation(
+                    "maintenance_plan",
+                    "system_configuration_id",
+                    "id",
+                    Enabled: true,
+                    fields:
+                    [
+                        new("status", "plan_status", true),
+                        new("allocation_chart_ref", "plan_ref", true),
+                        new("hidden_notes", "notes", false),
+                    ]
+                ),
+            ]
+        );
+
+        var cols = DynamicExportService.GetColumnNames(cfg);
+
+        Assert.Equal(["ci_id", "plan_status", "plan_ref"], cols);
     }
 
     [Fact]
@@ -289,18 +316,9 @@ public sealed class DynamicExportServiceTests
         string table,
         string joinKey,
         string sourceJoinKey,
-        string targetField,
-        bool Enabled
-    ) =>
-        new(
-            table,
-            joinKey,
-            sourceJoinKey,
-            targetField,
-            Enabled,
-            "string_join",
-            new ExportMappingStrategyOptions("value", ",")
-        );
+        bool Enabled,
+        ExportMappingRelationField[] fields
+    ) => new(table, joinKey, sourceJoinKey, Enabled, "string_join", ",", fields);
 
     private static IXLWorksheet OpenExcelSheet(byte[] bytes)
     {

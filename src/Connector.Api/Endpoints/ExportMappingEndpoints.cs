@@ -45,10 +45,7 @@ static class ExportMappingEndpoints
                         );
 
                     var activeDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
-                    var gdprViolations = config
-                        .Fields.Where(f => f.Enabled && activeDenylist.Contains(f.SourceName))
-                        .Select(f => f.SourceName)
-                        .ToList();
+                    var gdprViolations = GetGdprViolations(config, activeDenylist);
                     if (gdprViolations.Count > 0)
                         return Results.BadRequest(
                             $"GDPR violation: the following fields are personal data and must not be exported "
@@ -58,7 +55,7 @@ static class ExportMappingEndpoints
                     var badRels = ValidateRelations(config);
                     if (badRels.Count > 0)
                         return Results.BadRequest(
-                            "Enabled relations must specify RelatedTable, JoinKey, SourceJoinKey, TargetField, and SourceField."
+                            "Enabled relations must specify RelatedTable, JoinKey, SourceJoinKey, at least one enabled field, and a non-empty target name for every enabled field."
                         );
 
                     var serialized = JsonSerializer.Serialize(config);
@@ -122,10 +119,7 @@ static class ExportMappingEndpoints
                         );
 
                     var presetDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
-                    var gdprViolations = config
-                        .Fields.Where(f => f.Enabled && presetDenylist.Contains(f.SourceName))
-                        .Select(f => f.SourceName)
-                        .ToList();
+                    var gdprViolations = GetGdprViolations(config, presetDenylist);
                     if (gdprViolations.Count > 0)
                         return Results.BadRequest(
                             $"GDPR violation: the following fields are personal data and must not be exported "
@@ -135,7 +129,7 @@ static class ExportMappingEndpoints
                     var badRels = ValidateRelations(config);
                     if (badRels.Count > 0)
                         return Results.BadRequest(
-                            "Enabled relations must specify RelatedTable, JoinKey, SourceJoinKey, TargetField, and SourceField."
+                            "Enabled relations must specify RelatedTable, JoinKey, SourceJoinKey, at least one enabled field, and a non-empty target name for every enabled field."
                         );
 
                     var setting = await db.AppSettings.FindAsync("export_presets");
@@ -192,10 +186,24 @@ static class ExportMappingEndpoints
                     string.IsNullOrWhiteSpace(r.RelatedTable)
                     || string.IsNullOrWhiteSpace(r.JoinKey)
                     || string.IsNullOrWhiteSpace(r.SourceJoinKey)
-                    || string.IsNullOrWhiteSpace(r.TargetField)
-                    || string.IsNullOrWhiteSpace(r.StrategyOptions.SourceField)
+                    || !r.Fields.Any(f => f.Enabled)
+                    || r.Fields.Any(f => f.Enabled && string.IsNullOrWhiteSpace(f.TargetField))
                 )
             )
             .Cast<object>()
+            .ToList();
+
+    private static List<string> GetGdprViolations(ExportMappingConfig config, IReadOnlySet<string> denylist) =>
+        config
+            .Fields.Where(f => f.Enabled && denylist.Contains(f.SourceName))
+            .Select(f => f.SourceName)
+            .Concat(
+                config
+                    .Relations.Where(r => r.Enabled)
+                    .SelectMany(r => r.Fields)
+                    .Where(f => f.Enabled && denylist.Contains(f.SourceField))
+                    .Select(f => f.SourceField)
+            )
+            .Distinct()
             .ToList();
 }

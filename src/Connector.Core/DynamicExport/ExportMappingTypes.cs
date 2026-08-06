@@ -3,18 +3,18 @@ namespace Connector.Core.DynamicExport;
 /// <summary>A single column mapping with source name, target export name, and enabled flag.</summary>
 public record ExportMappingField(string SourceName, string TargetName, bool Enabled);
 
-/// <summary>Configuration for a flattening strategy applied to a 1:N relation (source field + delimiter).</summary>
-public record ExportMappingStrategyOptions(string SourceField, string Delimiter);
+/// <summary>A single value column pulled from a related table, with its own export name and enabled flag.</summary>
+public record ExportMappingRelationField(string SourceField, string TargetField, bool Enabled);
 
-/// <summary>A 1:N relation config for joining and flattening a related table into the parent row.</summary>
+/// <summary>A 1:N relation config for joining and flattening one or more columns of a related table into the parent row.</summary>
 public record ExportMappingRelation(
     string RelatedTable,
     string JoinKey,
     string SourceJoinKey,
-    string TargetField,
     bool Enabled,
     string FlattenStrategy,
-    ExportMappingStrategyOptions StrategyOptions
+    string Delimiter,
+    ExportMappingRelationField[] Fields
 );
 
 /// <summary>The complete mapping config for one source table, including field remaps and relation flattening.</summary>

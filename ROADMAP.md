@@ -1,6 +1,16 @@
 # Connector — Changelog
 
-Last updated: 2026-07-01
+Last updated: 2026-08-06
+
+---
+
+## Phase 10 — Export mapping usability ✅
+
+| Item | Notes |
+|---|---|
+| Foreign-key auto-detection | `IntrospectSchemaAsync` detects FK constraints via `information_schema`; `SourceColumnDto` carries `ForeignKeyTable`/`ForeignKeyColumn`; `SchemaView.vue` shows a "Suggested Relations" list with one-click add, prefilling the join |
+| Multi-field relations | `ExportMappingRelation.Fields` replaces the old single source/target field pair; each 1:N join now pulls any number of independently renamed columns from the related table, with a Select All / Deselect All picker mirroring the primary column table |
+| GDPR denylist gap closed | Save-time denylist validation now also scans relation fields, not just primary columns |
 
 ---
 

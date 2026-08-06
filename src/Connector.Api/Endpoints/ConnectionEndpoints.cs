@@ -126,8 +126,25 @@ static class ConnectionEndpoints
                     WHERE tc.constraint_type = 'PRIMARY KEY'
                       AND tc.table_schema    = 'public'
                       AND tc.table_name      = c.table_name
-                ) AS is_pk
+                ) AS is_pk,
+                fk.foreign_table_name,
+                fk.foreign_column_name
             FROM information_schema.columns c
+            LEFT JOIN LATERAL (
+                SELECT ccu.table_name AS foreign_table_name, ccu.column_name AS foreign_column_name
+                FROM information_schema.table_constraints tc
+                JOIN information_schema.key_column_usage kcu
+                    ON kcu.constraint_name = tc.constraint_name
+                    AND kcu.table_schema   = tc.table_schema
+                JOIN information_schema.constraint_column_usage ccu
+                    ON ccu.constraint_name = tc.constraint_name
+                    AND ccu.table_schema   = tc.table_schema
+                WHERE tc.constraint_type = 'FOREIGN KEY'
+                  AND tc.table_schema    = 'public'
+                  AND tc.table_name      = c.table_name
+                  AND kcu.column_name    = c.column_name
+                LIMIT 1
+            ) fk ON true
             WHERE c.table_schema = 'public'
             ORDER BY c.table_name, c.ordinal_position
             """;
@@ -147,7 +164,9 @@ static class ConnectionEndpoints
                         Name: reader.GetString(1),
                         Type: reader.GetString(2),
                         Nullable: reader.GetString(3) == "YES",
-                        PrimaryKey: reader.GetBoolean(4)
+                        PrimaryKey: reader.GetBoolean(4),
+                        ForeignKeyTable: await reader.IsDBNullAsync(5, ct) ? null : reader.GetString(5),
+                        ForeignKeyColumn: await reader.IsDBNullAsync(6, ct) ? null : reader.GetString(6)
                     )
                 );
         }
@@ -168,7 +187,14 @@ static class ConnectionEndpoints
                     {
                         new("id", "uuid", Nullable: false, PrimaryKey: true),
                         new("serial", "character varying(100)", Nullable: true, PrimaryKey: false),
-                        new("article_id", "uuid", Nullable: true, PrimaryKey: false),
+                        new(
+                            "article_id",
+                            "uuid",
+                            Nullable: true,
+                            PrimaryKey: false,
+                            ForeignKeyTable: "masterdata",
+                            ForeignKeyColumn: "id"
+                        ),
                         new("status", "character varying(50)", Nullable: true, PrimaryKey: false),
                         new("commission_date", "date", Nullable: true, PrimaryKey: false),
                         new("technician_name", "character varying(100)", Nullable: true, PrimaryKey: false),
@@ -192,7 +218,14 @@ static class ConnectionEndpoints
                     new SourceColumnDto[]
                     {
                         new("id", "uuid", Nullable: false, PrimaryKey: true),
-                        new("system_configuration_id", "uuid", Nullable: false, PrimaryKey: false),
+                        new(
+                            "system_configuration_id",
+                            "uuid",
+                            Nullable: false,
+                            PrimaryKey: false,
+                            ForeignKeyTable: "systemconfiguration",
+                            ForeignKeyColumn: "id"
+                        ),
                         new("status", "character varying(50)", Nullable: false, PrimaryKey: false),
                         new("allocation_chart_ref", "character varying(100)", Nullable: true, PrimaryKey: false),
                     }
@@ -203,8 +236,22 @@ static class ConnectionEndpoints
                     new SourceColumnDto[]
                     {
                         new("id", "uuid", Nullable: false, PrimaryKey: true),
-                        new("parent_id", "uuid", Nullable: true, PrimaryKey: false),
-                        new("child_id", "uuid", Nullable: true, PrimaryKey: false),
+                        new(
+                            "parent_id",
+                            "uuid",
+                            Nullable: true,
+                            PrimaryKey: false,
+                            ForeignKeyTable: "masterdata",
+                            ForeignKeyColumn: "id"
+                        ),
+                        new(
+                            "child_id",
+                            "uuid",
+                            Nullable: true,
+                            PrimaryKey: false,
+                            ForeignKeyTable: "masterdata",
+                            ForeignKeyColumn: "id"
+                        ),
                     }
                 ),
             }

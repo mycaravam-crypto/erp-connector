@@ -33,7 +33,7 @@ Every run is logged in SQLite. A pending run stays locked until **two different 
 | **GDPR compliance** | Personal fields removed by the type system before any file write; runtime denylist configurable via UI; GDPR Art. 5(1)(c) enforced at mapping-save |
 | **Four-eyes release** | Operator ≠ Approver enforced server-side; JWT identity non-spoofable; audit trail entry on every action |
 | **Full audit log** | Every state-changing action (login, release, deliver, skip, mapping changes, scheduler changes) written to `AuditLog` table; browsable in UI |
-| **Dynamic ERP mapping** | Source table, columns, and 1:N joins configured at runtime via UI — no hardcoded schema |
+| **Dynamic ERP mapping** | Source table, columns, and 1:N joins configured at runtime via UI — no hardcoded schema; foreign keys auto-detected and suggested as candidate joins; each join can pull multiple independently renamed columns |
 | **Multi-format export** | xlsx (default), csv, json; SHA-256 checksum on every package |
 | **Sequence integrity** | Gap detection warns when an earlier run is unresolved before release; Skipped status for permanent failures |
 | **Delivery tracking** | Records imported record count and notes when the physical handover is completed |

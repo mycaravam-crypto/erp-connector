@@ -5,6 +5,8 @@ export interface SourceColumn {
   type: string
   nullable: boolean
   primaryKey: boolean
+  foreignKeyTable: string | null
+  foreignKeyColumn: string | null
 }
 
 export interface SourceTable {

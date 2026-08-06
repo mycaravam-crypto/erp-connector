@@ -25,15 +25,15 @@ const SCHEMA: SourceSchema = {
       name: 'parts',
       description: 'Parts table',
       columns: [
-        { name: 'id',   type: 'uuid', nullable: false, primaryKey: true },
-        { name: 'name', type: 'text', nullable: true,  primaryKey: false },
+        { name: 'id',   type: 'uuid', nullable: false, primaryKey: true,  foreignKeyTable: null, foreignKeyColumn: null },
+        { name: 'name', type: 'text', nullable: true,  primaryKey: false, foreignKeyTable: null, foreignKeyColumn: null },
       ],
     },
     {
       name: 'orders',
       description: 'Orders table',
       columns: [
-        { name: 'id', type: 'uuid', nullable: false, primaryKey: true },
+        { name: 'id', type: 'uuid', nullable: false, primaryKey: true, foreignKeyTable: null, foreignKeyColumn: null },
       ],
     },
   ],

@@ -73,6 +73,11 @@ async function loadMapping() {
 
 const enabledFields = computed(() => exportMapping.value?.fields.filter(f => f.enabled) ?? [])
 const enabledRelations = computed(() => exportMapping.value?.relations.filter(r => r.enabled) ?? [])
+const enabledRelationFields = computed(() =>
+  enabledRelations.value.flatMap((r) =>
+    r.fields.filter((f) => f.enabled).map((f) => ({ relatedTable: r.relatedTable, ...f })),
+  ),
+)
 
 // ── export runs ────────────────────────────────────────────────────────────────
 const runs = ref<ExportSummary[]>([])
@@ -204,10 +209,10 @@ async function copySha(seqNo: number, hash: string) {
               <span class="text-slate-900 font-semibold">{{ f.targetName }}</span>
             </template>
           </span>
-          <span v-for="r in enabledRelations" :key="r.targetField" class="inline-flex items-center gap-1 bg-indigo-50 border border-indigo-200 rounded-full px-2.5 py-0.5 text-xs">
-            <span class="text-slate-500">{{ r.relatedTable }}</span>
+          <span v-for="f in enabledRelationFields" :key="`${f.relatedTable}.${f.sourceField}`" class="inline-flex items-center gap-1 bg-indigo-50 border border-indigo-200 rounded-full px-2.5 py-0.5 text-xs">
+            <span class="text-slate-500">{{ f.relatedTable }}.{{ f.sourceField }}</span>
             <span class="text-slate-300 text-xs">→</span>
-            <span class="text-slate-900 font-semibold">{{ r.targetField }}</span>
+            <span class="text-slate-900 font-semibold">{{ f.targetField }}</span>
           </span>
         </div>
       </div>

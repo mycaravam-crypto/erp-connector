@@ -87,19 +87,20 @@ export interface MappingField {
   enabled: boolean
 }
 
-export interface MappingStrategyOptions {
+export interface MappingRelationField {
   sourceField: string
-  delimiter: string
+  targetField: string
+  enabled: boolean
 }
 
 export interface MappingRelation {
   relatedTable: string
   joinKey: string
   sourceJoinKey: string
-  targetField: string
   enabled: boolean
   flattenStrategy: 'string_join' | 'array'
-  strategyOptions: MappingStrategyOptions
+  delimiter: string
+  fields: MappingRelationField[]
 }
 
 export interface ExportMappingConfig {

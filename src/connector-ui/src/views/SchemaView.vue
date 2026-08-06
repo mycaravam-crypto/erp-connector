@@ -10,6 +10,7 @@ import {
   deletePreset,
   type MappingField,
   type MappingRelation,
+  type MappingRelationField,
   type ExportMappingConfig,
 } from '@/api/erp'
 
@@ -56,7 +57,7 @@ function applyPreset(name: string) {
   const cfg = presets.value[name]
   if (!cfg) return
   fields.value = cfg.fields.map((f) => ({ ...f }))
-  relations.value = cfg.relations.map((r) => ({ ...r, strategyOptions: { ...r.strategyOptions } }))
+  relations.value = cfg.relations.map(cloneRelation)
   snapshotToCache(cfg.sourceTable)
   selectedTable.value = cfg.sourceTable
   saved.value = false
@@ -153,6 +154,19 @@ function getTableColumns(tableName: string): SourceColumn[] {
   return sourceSchema.value?.tables.find((t) => t.name === tableName)?.columns ?? []
 }
 
+function cloneRelation(r: MappingRelation): MappingRelation {
+  return { ...r, fields: r.fields.map((f) => ({ ...f })) }
+}
+
+// Default field picker for a relation's related table: every column, unchecked, renamed to itself.
+function fieldsForTable(tableName: string): MappingRelationField[] {
+  return getTableColumns(tableName).map((c) => ({
+    sourceField: c.name,
+    targetField: c.name,
+    enabled: false,
+  }))
+}
+
 // ── Per-table state cache ──────────────────────────────────────────────────────
 // Keeps field/relation edits alive when the user switches between tables.
 const tableCache = new Map<string, { fields: MappingField[]; relations: MappingRelation[] }>()
@@ -161,7 +175,7 @@ function snapshotToCache(tableName: string) {
   if (!tableName) return
   tableCache.set(tableName, {
     fields: fields.value.map((f) => ({ ...f })),
-    relations: relations.value.map((r) => ({ ...r, strategyOptions: { ...r.strategyOptions } })),
+    relations: relations.value.map(cloneRelation),
   })
 }
 
@@ -174,7 +188,7 @@ watch(selectedTable, (newTable, oldTable) => {
   const cached = tableCache.get(newTable)
   if (cached) {
     fields.value = cached.fields.map((f) => ({ ...f }))
-    relations.value = cached.relations.map((r) => ({ ...r, strategyOptions: { ...r.strategyOptions } }))
+    relations.value = cached.relations.map(cloneRelation)
   } else {
     const cols = sourceSchema.value?.tables.find((t) => t.name === newTable)?.columns ?? []
     fields.value = cols.map((col) => ({
@@ -188,16 +202,61 @@ watch(selectedTable, (newTable, oldTable) => {
   dirty.value = true
 })
 
+// ── Suggested relations (from FK metadata) ─────────────────────────────────────
+interface SuggestedRelation {
+  relatedTable: string
+  joinKey: string
+  sourceJoinKey: string
+}
+
+const suggestedRelations = computed<SuggestedRelation[]>(() => {
+  if (!sourceSchema.value || !selectedTable.value) return []
+
+  const suggestions: SuggestedRelation[] = []
+  for (const t of sourceSchema.value.tables) {
+    if (t.name === selectedTable.value) continue
+    for (const c of t.columns) {
+      if (c.foreignKeyTable === selectedTable.value && c.foreignKeyColumn) {
+        suggestions.push({ relatedTable: t.name, joinKey: c.name, sourceJoinKey: c.foreignKeyColumn })
+      }
+    }
+  }
+
+  return suggestions.filter(
+    (s) =>
+      !relations.value.some(
+        (r) =>
+          r.relatedTable === s.relatedTable &&
+          r.joinKey === s.joinKey &&
+          r.sourceJoinKey === s.sourceJoinKey,
+      ),
+  )
+})
+
+function addSuggestedRelation(s: SuggestedRelation) {
+  relations.value.push({
+    relatedTable: s.relatedTable,
+    joinKey: s.joinKey,
+    sourceJoinKey: s.sourceJoinKey,
+    enabled: true,
+    flattenStrategy: 'string_join',
+    delimiter: ', ',
+    fields: fieldsForTable(s.relatedTable),
+  })
+  saved.value = false
+  dirty.value = true
+}
+
 // ── Relation management ────────────────────────────────────────────────────────
 function addRelation() {
   relations.value.push({
     relatedTable: '',
     joinKey: '',
     sourceJoinKey: sourcePkColumn.value,
-    targetField: '',
     enabled: true,
     flattenStrategy: 'string_join',
-    strategyOptions: { sourceField: '', delimiter: ', ' },
+    delimiter: ', ',
+    fields: [],
   })
   saved.value = false
   dirty.value = true
@@ -205,6 +264,26 @@ function addRelation() {
 
 function removeRelation(idx: number) {
   relations.value.splice(idx, 1)
+  saved.value = false
+  dirty.value = true
+}
+
+// Related table changed on an existing relation card: the old field list refers to
+// columns of the previous table, so it must be rebuilt for the newly selected one.
+function onRelatedTableChanged(rel: MappingRelation) {
+  rel.fields = fieldsForTable(rel.relatedTable)
+  saved.value = false
+  dirty.value = true
+}
+
+function selectAllRelationFields(rel: MappingRelation) {
+  rel.fields.forEach((f) => { f.enabled = true })
+  saved.value = false
+  dirty.value = true
+}
+
+function deselectAllRelationFields(rel: MappingRelation) {
+  rel.fields.forEach((f) => { f.enabled = false })
   saved.value = false
   dirty.value = true
 }
@@ -287,10 +366,7 @@ async function load() {
 
     if (existingMapping) {
       fields.value = existingMapping.fields.map((f) => ({ ...f }))
-      relations.value = existingMapping.relations.map((r) => ({
-        ...r,
-        strategyOptions: { ...r.strategyOptions },
-      }))
+      relations.value = existingMapping.relations.map(cloneRelation)
       // Seed the cache so switching away and back restores the saved state.
       snapshotToCache(existingMapping.sourceTable)
       selectedTable.value = existingMapping.sourceTable
@@ -467,6 +543,27 @@ onMounted(() => { load(); loadPresets() })
         </table>
       </div>
 
+      <!-- Suggested relations (detected from foreign keys) -->
+      <div v-if="selectedTable && suggestedRelations.length > 0" class="mb-5">
+        <h2 class="text-base font-semibold text-slate-900 mb-1">Suggested Relations</h2>
+        <p class="text-sm text-slate-500 mb-3 leading-snug">
+          Detected from foreign keys in the source schema.
+        </p>
+        <div class="flex flex-col gap-2">
+          <div
+            v-for="s in suggestedRelations"
+            :key="`${s.relatedTable}.${s.joinKey}`"
+            class="suggested-relation-card flex items-center justify-between gap-3 px-4 py-2.5 border border-dashed border-blue-300 bg-blue-50 rounded-lg"
+          >
+            <code class="text-sm text-slate-700">{{ s.relatedTable }}.{{ s.joinKey }} → {{ selectedTable }}.{{ s.sourceJoinKey }}</code>
+            <button
+              class="suggested-add-btn px-3 py-1 border border-blue-300 rounded-md bg-white text-sm text-blue-700 cursor-pointer whitespace-nowrap shrink-0 hover:bg-blue-100"
+              @click="addSuggestedRelation(s)"
+            >+ Add</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Relations -->
       <div v-if="selectedTable" class="mb-7">
         <div class="flex items-center justify-between mb-2">
@@ -477,7 +574,7 @@ onMounted(() => { load(); loadPresets() })
           >+ Add Relation</button>
         </div>
         <p class="text-sm text-slate-500 mb-3 leading-snug">
-          Add 1:N joins to pull aggregated values from related tables into the export row.
+          Add 1:N joins to pull one or more columns from a related table into the export row, each independently renamed.
           Use <em>String Join</em> to concatenate values, or <em>Array</em> to comma-separate them.
         </p>
 
@@ -498,7 +595,7 @@ onMounted(() => { load(); loadPresets() })
             <div class="flex gap-2.5 flex-wrap">
               <div class="flex flex-col gap-1 flex-1 min-w-36">
                 <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Related Table</label>
-                <select v-model="rel.relatedTable" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full" @change="saved = false; dirty = true">
+                <select v-model="rel.relatedTable" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full" @change="onRelatedTableChanged(rel)">
                   <option value="" disabled>— select —</option>
                   <option v-for="t in sourceSchema.tables.filter((t) => t.name !== selectedTable)" :key="t.name" :value="t.name">{{ t.name }}</option>
                 </select>
@@ -518,20 +615,6 @@ onMounted(() => { load(); loadPresets() })
                 </select>
               </div>
               <div class="flex flex-col gap-1 flex-1 min-w-36">
-                <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Target Field Name</label>
-                <input class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900" type="text" placeholder="e.g. maintenance_states" v-model="rel.targetField" @input="saved = false; dirty = true" />
-              </div>
-            </div>
-
-            <div class="flex gap-2.5 flex-wrap">
-              <div class="flex flex-col gap-1 flex-1 min-w-36">
-                <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Value Column (from {{ rel.relatedTable || '…' }})</label>
-                <select v-model="rel.strategyOptions.sourceField" :disabled="!rel.relatedTable" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full disabled:bg-slate-50 disabled:text-slate-400" @change="saved = false; dirty = true">
-                  <option value="" disabled>— select —</option>
-                  <option v-for="c in getTableColumns(rel.relatedTable)" :key="c.name" :value="c.name">{{ c.name }}</option>
-                </select>
-              </div>
-              <div class="flex flex-col gap-1 flex-1 min-w-36">
                 <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Flatten Strategy</label>
                 <select v-model="rel.flattenStrategy" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full" @change="saved = false; dirty = true">
                   <option value="string_join">String Join (concatenate with delimiter)</option>
@@ -540,8 +623,46 @@ onMounted(() => { load(); loadPresets() })
               </div>
               <div v-if="rel.flattenStrategy === 'string_join'" class="flex flex-col gap-1 w-24 shrink-0">
                 <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Delimiter</label>
-                <input class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900" type="text" v-model="rel.strategyOptions.delimiter" placeholder=", " @input="saved = false; dirty = true" />
+                <input class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900" type="text" v-model="rel.delimiter" placeholder=", " @input="saved = false; dirty = true" />
               </div>
+            </div>
+
+            <!-- Per-relation field picker: which columns of the related table to pull, and what to rename them to. -->
+            <div v-if="rel.relatedTable" class="border border-slate-200 rounded-md overflow-hidden">
+              <div class="flex items-center gap-2 px-2.5 py-1.5 bg-slate-50 border-b border-slate-200">
+                <span class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Fields from {{ rel.relatedTable }}</span>
+                <span class="text-[0.7rem] text-slate-400">{{ rel.fields.filter((f) => f.enabled).length }} / {{ rel.fields.length }} selected</span>
+                <div class="ml-auto flex gap-1.5">
+                  <button type="button" class="rel-select-all-btn px-2 py-0.5 border border-slate-300 rounded text-[0.7rem] text-slate-600 bg-white cursor-pointer hover:bg-slate-100" @click="selectAllRelationFields(rel)">Select All</button>
+                  <button type="button" class="rel-deselect-all-btn px-2 py-0.5 border border-slate-300 rounded text-[0.7rem] text-slate-600 bg-white cursor-pointer hover:bg-slate-100" @click="deselectAllRelationFields(rel)">Deselect All</button>
+                </div>
+              </div>
+              <table class="rel-fields-table w-full border-collapse text-sm">
+                <tbody>
+                  <tr
+                    v-for="rf in rel.fields"
+                    :key="rf.sourceField"
+                    :class="rf.enabled ? 'bg-green-50' : 'bg-white opacity-60'"
+                  >
+                    <td class="px-2.5 py-1.5 border-b border-slate-100 align-middle text-center w-8">
+                      <input type="checkbox" v-model="rf.enabled" @change="saved = false; dirty = true" />
+                    </td>
+                    <td class="px-2.5 py-1.5 border-b border-slate-100 align-middle">
+                      <code :class="['text-xs font-semibold', rf.enabled ? 'text-slate-900' : 'text-slate-400']">{{ rf.sourceField }}</code>
+                    </td>
+                    <td class="px-2.5 py-1.5 border-b border-slate-100 align-middle min-w-32">
+                      <input
+                        class="rel-field-export-as-input w-full px-1.5 py-1 border border-slate-300 rounded text-xs font-mono text-slate-900 bg-white box-border outline-none focus:border-slate-900 placeholder-slate-400 disabled:bg-slate-50"
+                        type="text"
+                        :placeholder="rf.sourceField"
+                        v-model="rf.targetField"
+                        :disabled="!rf.enabled"
+                        @input="saved = false; dirty = true"
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 

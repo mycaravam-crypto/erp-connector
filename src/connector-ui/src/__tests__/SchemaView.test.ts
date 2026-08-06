@@ -26,18 +26,27 @@ const SCHEMA: SourceSchema = {
       name: 'systemconfiguration',
       description: 'CI instances',
       columns: [
-        { name: 'id',           type: 'uuid',                      nullable: false, primaryKey: true },
-        { name: 'serial',       type: 'character varying(100)',     nullable: true,  primaryKey: false },
-        { name: 'article_id',   type: 'uuid',                      nullable: true,  primaryKey: false },
-        { name: 'status',       type: 'character varying(50)',      nullable: true,  primaryKey: false },
+        { name: 'id',           type: 'uuid',                      nullable: false, primaryKey: true,  foreignKeyTable: null,         foreignKeyColumn: null },
+        { name: 'serial',       type: 'character varying(100)',     nullable: true,  primaryKey: false, foreignKeyTable: null,         foreignKeyColumn: null },
+        { name: 'article_id',   type: 'uuid',                      nullable: true,  primaryKey: false, foreignKeyTable: 'masterdata', foreignKeyColumn: 'id' },
+        { name: 'status',       type: 'character varying(50)',      nullable: true,  primaryKey: false, foreignKeyTable: null,         foreignKeyColumn: null },
       ],
     },
     {
       name: 'masterdata',
       description: 'Article master',
       columns: [
-        { name: 'id',           type: 'uuid',                      nullable: false, primaryKey: true },
-        { name: 'article_name', type: 'character varying(200)',     nullable: true,  primaryKey: false },
+        { name: 'id',           type: 'uuid',                      nullable: false, primaryKey: true,  foreignKeyTable: null, foreignKeyColumn: null },
+        { name: 'article_name', type: 'character varying(200)',     nullable: true,  primaryKey: false, foreignKeyTable: null, foreignKeyColumn: null },
+      ],
+    },
+    {
+      name: 'maintenance_plan',
+      description: 'Maintenance plans',
+      columns: [
+        { name: 'id',                   type: 'uuid',                   nullable: false, primaryKey: true,  foreignKeyTable: null, foreignKeyColumn: null },
+        { name: 'status',               type: 'character varying(50)',  nullable: false, primaryKey: false, foreignKeyTable: null, foreignKeyColumn: null },
+        { name: 'allocation_chart_ref', type: 'character varying(100)', nullable: true,  primaryKey: false, foreignKeyTable: null, foreignKeyColumn: null },
       ],
     },
   ],
@@ -150,6 +159,127 @@ describe('SchemaView', () => {
     expect(w.findAll('.relation-card')).toHaveLength(1)
     await w.find('.rel-remove-btn').trigger('click')
     expect(w.findAll('.relation-card')).toHaveLength(0)
+  })
+
+  it('shows a suggested relation card for an inbound foreign key', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('masterdata')
+    await w.vm.$nextTick()
+
+    const cards = w.findAll('.suggested-relation-card')
+    expect(cards).toHaveLength(1)
+    expect(cards[0].text()).toContain('systemconfiguration.article_id')
+    expect(cards[0].text()).toContain('masterdata.id')
+  })
+
+  it('does not suggest relations for a table with no inbound foreign keys', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+
+    expect(w.findAll('.suggested-relation-card')).toHaveLength(0)
+  })
+
+  it('adds a prefilled relation and removes the suggestion when Add is clicked', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('masterdata')
+    await w.vm.$nextTick()
+
+    expect(w.findAll('.relation-card')).toHaveLength(0)
+    await w.find('.suggested-add-btn').trigger('click')
+
+    const cards = w.findAll('.relation-card')
+    expect(cards).toHaveLength(1)
+    expect(cards[0].find('select').element.value).toBe('systemconfiguration')
+    expect(w.findAll('.suggested-relation-card')).toHaveLength(0)
+  })
+
+  it('selecting a related table populates an unchecked field picker for every column', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+    await w.find('.add-btn').trigger('click')
+
+    const card = w.find('.relation-card')
+    await card.find('select').setValue('masterdata')
+    await w.vm.$nextTick()
+
+    const rows = card.findAll('.rel-fields-table tbody tr')
+    expect(rows).toHaveLength(2) // masterdata: id, article_name
+    rows.forEach((row) => {
+      expect((row.find('input[type="checkbox"]').element as HTMLInputElement).checked).toBe(false)
+    })
+  })
+
+  it('Select All / Deselect All toggle every field within a relation card', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+    await w.find('.add-btn').trigger('click')
+
+    const card = w.find('.relation-card')
+    await card.find('select').setValue('masterdata')
+    await w.vm.$nextTick()
+
+    await card.find('.rel-select-all-btn').trigger('click')
+    let checkboxes = card.findAll('.rel-fields-table input[type="checkbox"]')
+    expect(checkboxes.every((cb) => (cb.element as HTMLInputElement).checked)).toBe(true)
+
+    await card.find('.rel-deselect-all-btn').trigger('click')
+    checkboxes = card.findAll('.rel-fields-table input[type="checkbox"]')
+    expect(checkboxes.every((cb) => !(cb.element as HTMLInputElement).checked)).toBe(true)
+  })
+
+  it('renaming a relation field export-as value persists', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+    await w.find('.add-btn').trigger('click')
+
+    const card = w.find('.relation-card')
+    await card.find('select').setValue('masterdata')
+    await w.vm.$nextTick()
+
+    const input = card.find('.rel-field-export-as-input')
+    await input.setValue('article_display_name')
+    expect((input.element as HTMLInputElement).value).toBe('article_display_name')
+  })
+
+  it('switching a relation card related table resets its field list', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+    await w.find('.add-btn').trigger('click')
+
+    const card = w.find('.relation-card')
+    await card.find('select').setValue('masterdata')
+    await w.vm.$nextTick()
+    expect(card.findAll('.rel-fields-table tbody tr')).toHaveLength(2) // masterdata columns
+
+    await card.find('select').setValue('maintenance_plan')
+    await w.vm.$nextTick()
+    expect(card.findAll('.rel-fields-table tbody tr')).toHaveLength(3) // maintenance_plan columns
   })
 
   it('shows format buttons', async () => {
