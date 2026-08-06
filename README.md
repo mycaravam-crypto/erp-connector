@@ -102,6 +102,13 @@ cd src/connector-ui && npm test
 cd src/connector-ui && npm run test:e2e
 ```
 
+One connection e2e test exercises a real successful Step 1 connection and self-skips if
+it can't reach a database; start a disposable local Postgres fixture for it with:
+
+```bash
+docker-compose --profile test up -d testdb   # localhost:5432, erp_test/erp_test_pw/erp_testdb
+```
+
 ### Build manually
 
 ```bash

@@ -34,6 +34,26 @@ services:
       retries: 3
       start_period: 10s
 
+  # Local/test-only ERP source database — NOT part of the production stack.
+  # Real deployments point Step 1 at the vendor's own PostgreSQL instance.
+  # Start explicitly with: docker-compose --profile test up -d testdb
+  testdb:
+    image: postgres:16-alpine
+    profiles: ["test"]
+    environment:
+      POSTGRES_USER: erp_test
+      POSTGRES_PASSWORD: erp_test_pw
+      POSTGRES_DB: erp_testdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./testdb/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_test -d erp_testdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   connector-db:
   connector-staging:

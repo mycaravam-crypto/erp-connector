@@ -17,4 +17,6 @@ export default defineConfig({
   ],
   // The e2e tests expect both the Vite dev server AND the .NET API to be running externally.
   // Start them before running: `npm run dev` and `dotnet run --project src/Connector.Api`
+  // One connection.spec.ts test also wants a local Postgres fixture — it self-skips if absent:
+  // `docker compose --profile test up -d testdb` (see /testdb/init.sql)
 })

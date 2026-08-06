@@ -1,4 +1,20 @@
 import { test, expect } from '@playwright/test'
+import net from 'node:net'
+
+function isPortOpen(host: string, port: number, timeoutMs = 1000): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = new net.Socket()
+    const done = (result: boolean) => {
+      socket.destroy()
+      resolve(result)
+    }
+    socket.setTimeout(timeoutMs)
+    socket.once('connect', () => done(true))
+    socket.once('timeout', () => done(false))
+    socket.once('error', () => done(false))
+    socket.connect(port, host)
+  })
+}
 
 async function loginAs(page: import('@playwright/test').Page, user = 'alice', pass = 'alice123') {
   await page.goto('/login')
@@ -66,5 +82,25 @@ test.describe('Connection (Step 1)', () => {
       await expect(page).toHaveURL(/\/connect\?notice=needs-connection/)
       await expect(page.getByText(/a database connection is required/i)).toBeVisible()
     }
+  })
+
+  // Run last: this is the only test that persists a real connection, which would otherwise
+  // change the outcome of the "Proceed" guard test above for the rest of the suite's lifetime.
+  test('successfully connects to the local test database and shows discovered tables', async ({ page }) => {
+    test.skip(
+      !(await isPortOpen('localhost', 5432)),
+      'testdb not running — start with: docker compose --profile test up -d testdb',
+    )
+    await loginAs(page)
+    await page.locator('#host').fill('localhost')
+    await page.locator('#port').fill('5432')
+    await page.locator('#database').fill('erp_testdb')
+    await page.locator('#username').fill('erp_test')
+    await page.locator('#password').fill('erp_test_pw')
+    await page.getByRole('button', { name: /test connection/i }).click()
+    await expect(page.getByText(/connected — found 4 tables in "localhost:5432\/erp_testdb"/i)).toBeVisible({
+      timeout: 15000,
+    })
+    await expect(page.getByText('Connected:')).toBeVisible()
   })
 })
