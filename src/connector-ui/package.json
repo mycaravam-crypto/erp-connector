@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "check:fallow": "fallow audit"
   },
   "dependencies": {
     "vue": "^3.5.38",
@@ -28,6 +29,7 @@
     "@vitest/coverage-v8": "^3.2.6",
     "@vue/test-utils": "^2.4.11",
     "@vue/tsconfig": "^0.9.1",
+    "fallow": "^3.14.0",
     "happy-dom": "^20.10.6",
     "npm-run-all2": "^9.0.2",
     "tailwindcss": "^4.3.2",
