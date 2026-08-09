@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { listErpRecords, type ErpCiRecord } from '@/api/erp'
+import CiDetailPanel from '@/components/CiDetailPanel.vue'
 
 const records = ref<ErpCiRecord[]>([])
 const totalCount = ref(0)
@@ -200,26 +201,7 @@ const sortedFlat = computed(() => {
               <!-- Detail panel -->
               <tr v-if="detailId === r.id" class="bg-indigo-50 border-b border-slate-100">
                 <td colspan="6" class="px-4 py-3">
-                  <div class="text-xs space-y-1.5">
-                    <p><span class="text-slate-500 w-36 inline-block">ERP ID (GUID)</span><code class="font-mono">{{ r.id }}</code></p>
-                    <p><span class="text-slate-500 w-36 inline-block">Commission date</span>{{ r.commissionDate ?? '—' }}</p>
-                    <p><span class="text-slate-500 w-36 inline-block">Maint. plan status</span>{{ r.maintenancePlanStatus ?? '—' }}</p>
-                    <p><span class="text-slate-500 w-36 inline-block">Allocation chart ref</span>{{ r.allocationChartRef ?? '—' }}</p>
-                    <p><span class="text-slate-500 w-36 inline-block">Parent serial</span>{{ r.parentSerial ?? '—' }}</p>
-                    <div class="mt-2 pt-2 border-t border-indigo-200 space-y-1">
-                      <p class="text-slate-400 font-medium mb-1">Excluded from export:</p>
-                      <p>
-                        <span class="text-slate-500 w-36 inline-block">Technician name</span>
-                        <span class="text-slate-700">{{ r.technicianName ?? '—' }}</span>
-                        <span class="ml-2 text-[0.65rem] bg-red-100 text-red-700 px-1.5 py-0.5 rounded uppercase font-bold">GDPR</span>
-                      </p>
-                      <p>
-                        <span class="text-slate-500 w-36 inline-block">Storage location</span>
-                        <span class="text-slate-700">{{ r.storageLocation ?? '—' }}</span>
-                        <span class="ml-2 text-[0.65rem] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded uppercase font-bold">Open Point #4</span>
-                      </p>
-                    </div>
-                  </div>
+                  <CiDetailPanel :record="r" show-parent-serial />
                 </td>
               </tr>
             </template>
@@ -279,25 +261,7 @@ const sortedFlat = computed(() => {
               <!-- Root detail panel -->
               <tr v-if="detailId === root.id" class="bg-indigo-50 border-b border-slate-100">
                 <td colspan="4" class="px-4 py-3">
-                  <div class="text-xs space-y-1.5">
-                    <p><span class="text-slate-500 w-36 inline-block">ERP ID (GUID)</span><code class="font-mono">{{ root.id }}</code></p>
-                    <p><span class="text-slate-500 w-36 inline-block">Commission date</span>{{ root.commissionDate ?? '—' }}</p>
-                    <p><span class="text-slate-500 w-36 inline-block">Maint. plan status</span>{{ root.maintenancePlanStatus ?? '—' }}</p>
-                    <p><span class="text-slate-500 w-36 inline-block">Allocation chart ref</span>{{ root.allocationChartRef ?? '—' }}</p>
-                    <div class="mt-2 pt-2 border-t border-indigo-200 space-y-1">
-                      <p class="text-slate-400 font-medium mb-1">Excluded from export:</p>
-                      <p>
-                        <span class="text-slate-500 w-36 inline-block">Technician name</span>
-                        <span class="text-slate-700">{{ root.technicianName ?? '—' }}</span>
-                        <span class="ml-2 text-[0.65rem] bg-red-100 text-red-700 px-1.5 py-0.5 rounded uppercase font-bold">GDPR</span>
-                      </p>
-                      <p>
-                        <span class="text-slate-500 w-36 inline-block">Storage location</span>
-                        <span class="text-slate-700">{{ root.storageLocation ?? '—' }}</span>
-                        <span class="ml-2 text-[0.65rem] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded uppercase font-bold">Open Point #4</span>
-                      </p>
-                    </div>
-                  </div>
+                  <CiDetailPanel :record="root" />
                 </td>
               </tr>
 
@@ -333,25 +297,7 @@ const sortedFlat = computed(() => {
                   <!-- Child detail panel -->
                   <tr v-if="detailId === child.id" class="bg-indigo-50 border-b border-slate-100">
                     <td colspan="4" class="pl-12 pr-4 py-3">
-                      <div class="text-xs space-y-1.5">
-                        <p><span class="text-slate-500 w-36 inline-block">ERP ID (GUID)</span><code class="font-mono">{{ child.id }}</code></p>
-                        <p><span class="text-slate-500 w-36 inline-block">Commission date</span>{{ child.commissionDate ?? '—' }}</p>
-                        <p><span class="text-slate-500 w-36 inline-block">Maint. plan status</span>{{ child.maintenancePlanStatus ?? '—' }}</p>
-                        <p><span class="text-slate-500 w-36 inline-block">Allocation chart ref</span>{{ child.allocationChartRef ?? '—' }}</p>
-                        <div class="mt-2 pt-2 border-t border-indigo-200 space-y-1">
-                          <p class="text-slate-400 font-medium mb-1">Excluded from export:</p>
-                          <p>
-                            <span class="text-slate-500 w-36 inline-block">Technician name</span>
-                            <span class="text-slate-700">{{ child.technicianName ?? '—' }}</span>
-                            <span class="ml-2 text-[0.65rem] bg-red-100 text-red-700 px-1.5 py-0.5 rounded uppercase font-bold">GDPR</span>
-                          </p>
-                          <p>
-                            <span class="text-slate-500 w-36 inline-block">Storage location</span>
-                            <span class="text-slate-700">{{ child.storageLocation ?? '—' }}</span>
-                            <span class="ml-2 text-[0.65rem] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded uppercase font-bold">Open Point #4</span>
-                          </p>
-                        </div>
-                      </div>
+                      <CiDetailPanel :record="child" />
                     </td>
                   </tr>
                 </template>

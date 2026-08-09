@@ -57,28 +57,6 @@ export async function getSchema(): Promise<SchemaDefinition | null> {
   return res.json() as Promise<SchemaDefinition>
 }
 
-/** Persists the active column set server-side. Returns the validated list actually saved. */
-export async function patchSchemaColumns(columns: string[]): Promise<string[]> {
-  const res = await fetch('/api/schema/columns', {
-    method: 'PATCH',
-    headers: authHeaders(),
-    body: JSON.stringify({ columns }),
-  })
-  if (!res.ok) return columns
-  return res.json() as Promise<string[]>
-}
-
-/** Persists per-column export name overrides. Keys not in the schema are dropped server-side. */
-export async function patchSchemaColumnMappings(mappings: Record<string, string>): Promise<Record<string, string>> {
-  const res = await fetch('/api/schema/mappings', {
-    method: 'PATCH',
-    headers: authHeaders(),
-    body: JSON.stringify({ mappings }),
-  })
-  if (!res.ok) return mappings
-  return res.json() as Promise<Record<string, string>>
-}
-
 // ── Dynamic export mapping ────────────────────────────────────────────────────
 
 export interface MappingField {
