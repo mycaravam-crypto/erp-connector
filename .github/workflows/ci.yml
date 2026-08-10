@@ -32,3 +32,34 @@ jobs:
 
       - name: Test
         run: dotnet test Connector.sln -c Release --no-build --verbosity normal
+
+  frontend-checks:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: src/connector-ui
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: src/connector-ui/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Test
+        run: npm run test
+
+      - name: Check JS/TS code health (fallow)
+        run: npm run check:fallow -- --base origin/main

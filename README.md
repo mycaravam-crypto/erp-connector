@@ -95,11 +95,14 @@ Starts the API on `:5189` and the Vite dev server on `:5173`. Ctrl-C stops both.
 # .NET (61 unit + integration tests)
 dotnet test
 
-# Frontend (187 Vitest tests)
+# Frontend (195 Vitest tests)
 cd src/connector-ui && npm test
 
 # E2E (Playwright — requires both servers running)
 cd src/connector-ui && npm run test:e2e
+
+# JS/TS code health (dead code, duplication, complexity — gated on changed files)
+cd src/connector-ui && npm run check:fallow
 ```
 
 One connection e2e test exercises a real successful Step 1 connection and self-skips if
