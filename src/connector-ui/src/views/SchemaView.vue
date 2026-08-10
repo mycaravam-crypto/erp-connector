@@ -82,14 +82,10 @@ function openSaveInput() {
   presetError.value = null
 }
 
-async function confirmSavePreset() {
-  const name = saveInputName.value.trim()
-  if (!name) {
-    presetError.value = 'Preset name cannot be empty.'
-    return
-  }
-
-  const config: ExportMappingConfig = {
+// Builds the config object from current mapping state; shared by preset-save and mapping-save,
+// which both persist the same shape to different endpoints.
+function buildMappingConfig(): ExportMappingConfig {
+  return {
     sourceTable: selectedTable.value,
     fields: fields.value.map((f) => ({
       sourceName: f.sourceName,
@@ -100,6 +96,16 @@ async function confirmSavePreset() {
     nestedGroups: nestedGroups.value,
     jsonWrapper: jsonWrapper.value,
   }
+}
+
+async function confirmSavePreset() {
+  const name = saveInputName.value.trim()
+  if (!name) {
+    presetError.value = 'Preset name cannot be empty.'
+    return
+  }
+
+  const config = buildMappingConfig()
 
   presetSaving.value = true
   presetError.value = null
@@ -399,17 +405,7 @@ async function saveMapping(): Promise<boolean> {
     return false
   }
 
-  const config: ExportMappingConfig = {
-    sourceTable: selectedTable.value,
-    fields: fields.value.map((f) => ({
-      sourceName: f.sourceName,
-      targetName: f.targetName.trim() || f.sourceName,
-      enabled: f.enabled,
-    })),
-    relations: relations.value,
-    nestedGroups: nestedGroups.value,
-    jsonWrapper: jsonWrapper.value,
-  }
+  const config = buildMappingConfig()
 
   saving.value = true
   const result = await saveExportMapping(config)
