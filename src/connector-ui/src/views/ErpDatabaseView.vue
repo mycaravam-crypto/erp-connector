@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { listErpRecords, type ErpCiRecord } from '@/api/erp'
-import CiDetailPanel from '@/components/CiDetailPanel.vue'
+import FlatRecordsTable, { type SortKey } from '@/components/FlatRecordsTable.vue'
+import BomTree from '@/components/BomTree.vue'
 
 const records = ref<ErpCiRecord[]>([])
 const totalCount = ref(0)
@@ -82,18 +83,12 @@ const inScopeCount = computed(() => records.value.filter((r) => r.inScope).lengt
 const excludedCount = computed(() => records.value.filter((r) => !r.inScope).length)
 
 // Sorting for flat list
-type SortKey = 'serial' | 'articleName' | 'partNumber' | 'manufacturer' | 'status' | 'inScope'
 const sortKey = ref<SortKey>('serial')
 const sortAsc = ref(true)
 
 function setSort(key: SortKey) {
   if (sortKey.value === key) sortAsc.value = !sortAsc.value
   else { sortKey.value = key; sortAsc.value = true }
-}
-
-function sortIcon(key: SortKey) {
-  if (sortKey.value !== key) return '↕'
-  return sortAsc.value ? '↑' : '↓'
 }
 
 const sortedFlat = computed(() => {
@@ -162,151 +157,25 @@ const sortedFlat = computed(() => {
     <div v-else-if="filtered.length === 0" class="text-slate-500 text-sm">No records match the current filter.</div>
 
     <!-- ── Flat list mode ─────────────────────────────────────────────────────── -->
-    <template v-else-if="isFlatMode">
-      <div class="rounded-lg border border-slate-200 overflow-hidden text-sm">
-        <table class="w-full">
-          <thead>
-            <tr class="bg-slate-50 border-b border-slate-200">
-              <th
-                v-for="[key, label] in [['serial','Serial'], ['articleName','Model'], ['partNumber','Part #'], ['manufacturer','Manufacturer'], ['status','Status'], ['inScope','Scope']]"
-                :key="key"
-                class="text-left px-3 py-2 text-slate-600 font-medium cursor-pointer select-none hover:bg-slate-100"
-                @click="setSort(key as SortKey)"
-              >
-                {{ label }} <span class="text-slate-400 text-xs">{{ sortIcon(key as SortKey) }}</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <template v-for="r in sortedFlat" :key="r.id">
-              <tr
-                class="border-b border-slate-100 last:border-0 cursor-pointer hover:bg-slate-50 transition-colors"
-                :class="detailId === r.id ? 'bg-indigo-50' : ''"
-                @click="toggleDetail(r.id)"
-              >
-                <td class="px-3 py-2 font-mono text-xs">{{ r.serial ?? '—' }}</td>
-                <td class="px-3 py-2">{{ r.articleName ?? '—' }}</td>
-                <td class="px-3 py-2 font-mono text-xs">{{ r.partNumber ?? '—' }}</td>
-                <td class="px-3 py-2">{{ r.manufacturer ?? '—' }}</td>
-                <td class="px-3 py-2">{{ r.status ?? '—' }}</td>
-                <td class="px-3 py-2">
-                  <span
-                    class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full"
-                    :class="r.inScope ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'"
-                  >
-                    {{ r.inScope ? 'In Scope' : r.exclusionReason ?? 'Excluded' }}
-                  </span>
-                </td>
-              </tr>
-              <!-- Detail panel -->
-              <tr v-if="detailId === r.id" class="bg-indigo-50 border-b border-slate-100">
-                <td colspan="6" class="px-4 py-3">
-                  <CiDetailPanel :record="r" show-parent-serial />
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
-    </template>
+    <FlatRecordsTable
+      v-else-if="isFlatMode"
+      :records="sortedFlat"
+      :sort-key="sortKey"
+      :sort-asc="sortAsc"
+      :detail-id="detailId"
+      @sort="setSort"
+      @toggle-detail="toggleDetail"
+    />
 
     <!-- ── BOM tree mode ──────────────────────────────────────────────────────── -->
-    <template v-else>
-      <div class="rounded-lg border border-slate-200 overflow-hidden text-sm">
-        <table class="w-full">
-          <thead>
-            <tr class="bg-slate-50 border-b border-slate-200">
-              <th class="text-left px-3 py-2 text-slate-600 font-medium">Serial / Model</th>
-              <th class="text-left px-3 py-2 text-slate-600 font-medium">Part #</th>
-              <th class="text-left px-3 py-2 text-slate-600 font-medium">Status</th>
-              <th class="text-left px-3 py-2 text-slate-600 font-medium">Scope</th>
-            </tr>
-          </thead>
-          <tbody>
-            <template v-for="root in roots" :key="root.id">
-              <!-- Root row -->
-              <tr
-                class="border-b border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors"
-                :class="detailId === root.id ? 'bg-indigo-50' : ''"
-                @click="toggleDetail(root.id)"
-              >
-                <td class="px-3 py-2">
-                  <div class="flex items-center gap-2">
-                    <button
-                      v-if="childrenOf.get(root.id)?.length"
-                      class="w-5 h-5 flex items-center justify-center border border-slate-300 rounded text-slate-500 text-xs bg-white hover:bg-slate-100 shrink-0"
-                      @click.stop="toggleExpand(root.id)"
-                    >
-                      {{ expandedIds.has(root.id) ? '−' : '+' }}
-                    </button>
-                    <span v-else class="w-5 shrink-0 text-center text-slate-300 text-xs select-none">·</span>
-                    <div>
-                      <span class="font-mono text-xs">{{ root.serial ?? '—' }}</span>
-                      <span v-if="root.articleName" class="text-slate-500 text-xs ml-1.5">{{ root.articleName }}</span>
-                    </div>
-                  </div>
-                </td>
-                <td class="px-3 py-2 font-mono text-xs text-slate-500">{{ root.partNumber ?? '—' }}</td>
-                <td class="px-3 py-2 text-xs">{{ root.status ?? '—' }}</td>
-                <td class="px-3 py-2">
-                  <span
-                    class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full"
-                    :class="root.inScope ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'"
-                  >
-                    {{ root.inScope ? 'In Scope' : root.exclusionReason ?? 'Excluded' }}
-                  </span>
-                </td>
-              </tr>
-
-              <!-- Root detail panel -->
-              <tr v-if="detailId === root.id" class="bg-indigo-50 border-b border-slate-100">
-                <td colspan="4" class="px-4 py-3">
-                  <CiDetailPanel :record="root" />
-                </td>
-              </tr>
-
-              <!-- Children -->
-              <template v-if="expandedIds.has(root.id)">
-                <template v-for="child in childrenOf.get(root.id)" :key="child.id">
-                  <tr
-                    class="border-b border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors"
-                    :class="detailId === child.id ? 'bg-indigo-50' : ''"
-                    @click="toggleDetail(child.id)"
-                  >
-                    <td class="pl-8 pr-3 py-2">
-                      <div class="flex items-center gap-2">
-                        <span class="text-slate-300 text-xs select-none">└</span>
-                        <div>
-                          <span class="font-mono text-xs">{{ child.serial ?? '—' }}</span>
-                          <span v-if="child.articleName" class="text-slate-500 text-xs ml-1.5">{{ child.articleName }}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="px-3 py-2 font-mono text-xs text-slate-500">{{ child.partNumber ?? '—' }}</td>
-                    <td class="px-3 py-2 text-xs">{{ child.status ?? '—' }}</td>
-                    <td class="px-3 py-2">
-                      <span
-                        class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full"
-                        :class="child.inScope ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'"
-                      >
-                        {{ child.inScope ? 'In Scope' : child.exclusionReason ?? 'Excluded' }}
-                      </span>
-                    </td>
-                  </tr>
-
-                  <!-- Child detail panel -->
-                  <tr v-if="detailId === child.id" class="bg-indigo-50 border-b border-slate-100">
-                    <td colspan="4" class="pl-12 pr-4 py-3">
-                      <CiDetailPanel :record="child" />
-                    </td>
-                  </tr>
-                </template>
-              </template>
-
-            </template>
-          </tbody>
-        </table>
-      </div>
-    </template>
+    <BomTree
+      v-else
+      :roots="roots"
+      :children-of="childrenOf"
+      :expanded-ids="expandedIds"
+      :detail-id="detailId"
+      @toggle-expand="toggleExpand"
+      @toggle-detail="toggleDetail"
+    />
   </div>
 </template>
