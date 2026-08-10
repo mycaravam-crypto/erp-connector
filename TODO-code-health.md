@@ -17,6 +17,47 @@ changed in a PR (frontend) and the existing analyzer/build gate
 
 ---
 
+## Ground rules for this work (apply to every item below)
+
+**YAGNI.** Fix the duplication/complexity that's actually documented
+below — don't generalize past the concrete call sites found. E.g. the
+settings-store helper only needs to cover the 7 keys and 2 shapes
+(read/write) actually in use; no plugin system, no support for storage
+backends nobody asked for, no config knobs for hypothetical future
+callers. Same for frontend extractions: a new sub-component's props are
+whatever the call sites at hand actually pass, not a speculative "flexible"
+API.
+
+**Minimal code.** Prefer deleting over adding. The smallest diff that
+removes the duplication/complexity wins over a more "complete" or
+"future-proof" version. If a refactor needs a new abstraction, it should
+be justified by the duplication it removes, not by tidiness alone — and
+it should net-negative the line count, not net-positive.
+
+**Consistent comments.** One convention per language, applied uniformly:
+- TS/Vue: `//` for inline notes; reserve `/** */` for exported
+  API surfaces where the shape isn't self-evident from types alone.
+- C#: `///` XML doc comments on public members (already the codebase's
+  convention — keep it); `//` for inline notes.
+- A comment earns its place only by explaining a non-obvious **why**
+  (a constraint, an invariant, a workaround, something that would
+  surprise a reader) — never a **what** the code already says through
+  naming, and never task/PR/rework narration ("added for the X cleanup",
+  "changed after refactor", "was Y before"). If removing a comment
+  wouldn't confuse a future reader, remove it.
+
+**Clean up leftover-rework comments as you touch each file.** A
+repo-wide grep during this pass found no commented-out dead code and no
+task-referencing comments in first-party code (only in `node_modules`,
+which isn't ours to touch) — so there's no separate backlog item for
+this. But it's a live check, not a one-time pass: when a refactor below
+moves or rewrites code, re-read every comment in the touched region and
+either fix it to describe the new shape or delete it if it no longer
+earns its place per the rule above. Don't let a comment describe code
+that used to be there.
+
+---
+
 ## Frontend (`src/connector-ui`) — template complexity
 
 `fallow`'s dead-code and duplication findings are already fixed (see git
