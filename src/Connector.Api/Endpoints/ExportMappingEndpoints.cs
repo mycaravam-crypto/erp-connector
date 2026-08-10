@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using Connector.Core.DynamicExport;
 using Connector.Infrastructure;
@@ -14,10 +13,10 @@ static class ExportMappingEndpoints
                 "/api/export-mapping",
                 async (ExportLogDbContext db) =>
                 {
-                    var setting = await db.AppSettings.FindAsync("export_mapping");
-                    if (setting is null)
+                    var raw = await db.GetSettingRawAsync(SettingsKeys.ExportMapping);
+                    if (raw is null)
                         return Results.NotFound();
-                    var config = ExportMappingJson.DeserializeConfig(setting.Value);
+                    var config = ExportMappingJson.DeserializeConfig(raw);
                     return config is null ? Results.NotFound() : Results.Ok(config);
                 }
             )
@@ -37,14 +36,7 @@ static class ExportMappingEndpoints
                     if (validationError is not null)
                         return Results.BadRequest(validationError);
 
-                    var serialized = JsonSerializer.Serialize(config);
-                    var setting = await db.AppSettings.FindAsync("export_mapping");
-                    if (setting is null)
-                        db.AppSettings.Add(new AppSettingEntity { Key = "export_mapping", Value = serialized });
-                    else
-                        setting.Value = serialized;
-
-                    await db.SaveChangesAsync();
+                    await db.SetSettingAsync(SettingsKeys.ExportMapping, config);
                     await audit.LogAsync(
                         httpContext.User.Identity!.Name!,
                         "export_mapping_saved",
@@ -60,10 +52,10 @@ static class ExportMappingEndpoints
                 "/api/export-mapping/presets",
                 async (ExportLogDbContext db) =>
                 {
-                    var setting = await db.AppSettings.FindAsync("export_presets");
-                    if (setting is null)
+                    var raw = await db.GetSettingRawAsync(SettingsKeys.ExportPresets);
+                    if (raw is null)
                         return Results.Ok(new Dictionary<string, ExportMappingConfig>());
-                    var presets = ExportMappingJson.DeserializePresets(setting.Value);
+                    var presets = ExportMappingJson.DeserializePresets(raw);
                     return Results.Ok(presets);
                 }
             )
@@ -87,20 +79,13 @@ static class ExportMappingEndpoints
                     if (validationError is not null)
                         return Results.BadRequest(validationError);
 
-                    var setting = await db.AppSettings.FindAsync("export_presets");
-                    var presets = setting is null
+                    var raw = await db.GetSettingRawAsync(SettingsKeys.ExportPresets);
+                    var presets = raw is null
                         ? new Dictionary<string, ExportMappingConfig>()
-                        : ExportMappingJson.DeserializePresets(setting.Value);
+                        : ExportMappingJson.DeserializePresets(raw);
 
                     presets[name] = config;
-                    var serialized = JsonSerializer.Serialize(presets);
-
-                    if (setting is null)
-                        db.AppSettings.Add(new AppSettingEntity { Key = "export_presets", Value = serialized });
-                    else
-                        setting.Value = serialized;
-
-                    await db.SaveChangesAsync();
+                    await db.SetSettingAsync(SettingsKeys.ExportPresets, presets);
                     await audit.LogAsync(httpContext.User.Identity!.Name!, "preset_saved", name);
                     return Results.Ok(config);
                 }
@@ -112,17 +97,16 @@ static class ExportMappingEndpoints
                 "/api/export-mapping/presets/{name}",
                 async (string name, ExportLogDbContext db, HttpContext httpContext, AuditService audit) =>
                 {
-                    var setting = await db.AppSettings.FindAsync("export_presets");
-                    if (setting is null)
+                    var raw = await db.GetSettingRawAsync(SettingsKeys.ExportPresets);
+                    if (raw is null)
                         return Results.NotFound();
 
-                    var presets = ExportMappingJson.DeserializePresets(setting.Value);
+                    var presets = ExportMappingJson.DeserializePresets(raw);
 
                     if (!presets.Remove(name))
                         return Results.NotFound();
 
-                    setting.Value = JsonSerializer.Serialize(presets);
-                    await db.SaveChangesAsync();
+                    await db.SetSettingAsync(SettingsKeys.ExportPresets, presets);
                     await audit.LogAsync(httpContext.User.Identity!.Name!, "preset_deleted", name);
                     return Results.NoContent();
                 }

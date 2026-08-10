@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Connector.Core.DynamicExport;
 using Connector.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -15,11 +14,7 @@ static class ConnectionEndpoints
                 "/api/connection",
                 async (ExportLogDbContext db) =>
                 {
-                    var setting = await db.AppSettings.FindAsync("erp_connection");
-                    if (setting is null)
-                        return Results.NotFound();
-
-                    var cfg = JsonSerializer.Deserialize<ErpConnectionConfig>(setting.Value);
+                    var cfg = await db.GetSettingAsync<ErpConnectionConfig>(SettingsKeys.ErpConnection);
                     if (cfg is null)
                         return Results.NotFound();
 
@@ -42,24 +37,9 @@ static class ConnectionEndpoints
 
                     try
                     {
-                        await using var conn = new NpgsqlConnection(
-                            DynamicExportService.BuildConnectionString(request)
-                        );
-                        await conn.OpenAsync(ct);
-
-                        var tables = await IntrospectSchemaAsync(conn, ct);
-
-                        var serialized = JsonSerializer.Serialize(request);
-                        var setting = await db.AppSettings.FindAsync("erp_connection");
-                        if (setting is null)
-                            db.AppSettings.Add(new AppSettingEntity { Key = "erp_connection", Value = serialized });
-                        else
-                            setting.Value = serialized;
-                        await db.SaveChangesAsync();
-
-                        return Results.Ok(
-                            new SourceSchemaDto($"{request.Host}:{request.Port}/{request.Database}", tables)
-                        );
+                        var schema = await ConnectAndIntrospectAsync(request, ct);
+                        await db.SetSettingAsync(SettingsKeys.ErpConnection, request);
+                        return Results.Ok(schema);
                     }
                     catch (Exception ex)
                     {
@@ -75,25 +55,16 @@ static class ConnectionEndpoints
                 "/api/source-schema",
                 async (ExportLogDbContext db, CancellationToken ct) =>
                 {
-                    var connSetting = await db.AppSettings.FindAsync("erp_connection");
-                    if (connSetting is not null)
+                    var cfg = await db.GetSettingAsync<ErpConnectionConfig>(SettingsKeys.ErpConnection);
+                    if (cfg is not null)
                     {
-                        var cfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connSetting.Value);
-                        if (cfg is not null)
+                        try
                         {
-                            try
-                            {
-                                await using var conn = new NpgsqlConnection(
-                                    DynamicExportService.BuildConnectionString(cfg)
-                                );
-                                await conn.OpenAsync(ct);
-                                var tables = await IntrospectSchemaAsync(conn, ct);
-                                return Results.Ok(new SourceSchemaDto($"{cfg.Host}:{cfg.Port}/{cfg.Database}", tables));
-                            }
-                            catch
-                            {
-                                // Fall through to demo schema if stored config is unreachable.
-                            }
+                            return Results.Ok(await ConnectAndIntrospectAsync(cfg, ct));
+                        }
+                        catch
+                        {
+                            // Fall through to demo schema if stored config is unreachable.
                         }
                     }
 
@@ -101,6 +72,17 @@ static class ConnectionEndpoints
                 }
             )
             .RequireAuthorization();
+    }
+
+    // Opens a connection, introspects the schema, and wraps it in a SourceSchemaDto. Shared by
+    // POST /api/connection (failures surface to the client as 400) and the GET /api/source-schema
+    // fallback (failures are swallowed by the caller, which falls through to the demo schema).
+    private static async Task<SourceSchemaDto> ConnectAndIntrospectAsync(ErpConnectionConfig cfg, CancellationToken ct)
+    {
+        await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(cfg));
+        await conn.OpenAsync(ct);
+        var tables = await IntrospectSchemaAsync(conn, ct);
+        return new SourceSchemaDto($"{cfg.Host}:{cfg.Port}/{cfg.Database}", tables);
     }
 
     // Introspects the public schema of an open Npgsql connection using information_schema views.

@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getExport, deliverExport, skipExport, type ExportDetail } from '@/api/exports'
+import { getExport, type ExportDetail } from '@/api/exports'
 import ReleaseDialog from '@/components/ReleaseDialog.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import RunDetailTable from '@/components/RunDetailTable.vue'
+import SkipRunForm from '@/components/SkipRunForm.vue'
+import DeliverRunForm from '@/components/DeliverRunForm.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -12,11 +15,6 @@ const seqNo = computed(() => Number(route.params.seqNo))
 const run = ref<ExportDetail | null>(null)
 const loading = ref(true)
 const notFound = ref(false)
-
-const deliveryImportCount = ref<number | null>(null)
-const deliveryNotes = ref('')
-const delivering = ref(false)
-const deliveryError = ref<string | null>(null)
 
 async function load() {
   loading.value = true
@@ -30,51 +28,11 @@ async function load() {
   loading.value = false
 }
 
-async function submitDelivery() {
-  if (!run.value) return
-  delivering.value = true
-  deliveryError.value = null
-  const result = await deliverExport(run.value.sequenceNo, {
-    importedRecordCount: deliveryImportCount.value,
-    notes: deliveryNotes.value.trim() || null,
-  })
-  delivering.value = false
-  if (result.ok) {
-    await load()
-  } else {
-    deliveryError.value = result.message || `Error ${result.status}`
-  }
-}
-
 onMounted(load)
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return '—'
   return new Date(iso.includes('Z') ? iso : iso + 'Z').toLocaleString()
-}
-
-const skipReason = ref('')
-const skipping = ref(false)
-const skipError = ref<string | null>(null)
-
-async function submitSkip() {
-  if (!run.value) return
-  skipping.value = true
-  skipError.value = null
-  const result = await skipExport(run.value.sequenceNo, { reason: skipReason.value.trim() || null })
-  skipping.value = false
-  if (result.ok) {
-    await load()
-  } else {
-    skipError.value = result.message || `Error ${result.status}`
-  }
-}
-
-const shacopied = ref(false)
-async function copySha(hash: string) {
-  await navigator.clipboard.writeText(hash)
-  shacopied.value = true
-  setTimeout(() => { shacopied.value = false }, 1500)
 }
 </script>
 
@@ -99,67 +57,7 @@ async function copySha(hash: string) {
         <strong>Sequence gap detected.</strong> {{ run.sequenceGapWarning }}
       </div>
 
-      <table class="border-collapse text-sm max-w-xl">
-        <tbody>
-          <tr>
-            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">Sequence No</th>
-            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ run.sequenceNo }}</td>
-          </tr>
-          <tr>
-            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">Extracted At</th>
-            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ formatDate(run.extractedAt) }}</td>
-          </tr>
-          <tr>
-            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">Record Count</th>
-            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ run.recordCount }}</td>
-          </tr>
-          <tr>
-            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">SHA-256</th>
-            <td class="px-3 py-2 border-b border-slate-200 align-top">
-              <button
-                class="group inline-flex items-center gap-1.5 bg-transparent border-0 p-0 cursor-pointer"
-                :title="shacopied ? 'Copied!' : 'Click to copy'"
-                @click="copySha(run.sha256)"
-              >
-                <code class="text-xs break-all text-slate-700 group-hover:text-slate-900">{{ run.sha256 }}</code>
-                <span class="text-xs text-slate-400 group-hover:text-slate-600 shrink-0">{{ shacopied ? '✓' : '⎘' }}</span>
-              </button>
-            </td>
-          </tr>
-          <tr>
-            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">File</th>
-            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ run.dataFileName }}</td>
-          </tr>
-          <tr v-if="run.releasedAt">
-            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">Released At</th>
-            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ formatDate(run.releasedAt) }}</td>
-          </tr>
-          <tr v-if="run.operatedBy">
-            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">Operated By</th>
-            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ run.operatedBy }}</td>
-          </tr>
-          <tr v-if="run.approvedBy">
-            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">Approved By</th>
-            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ run.approvedBy }}</td>
-          </tr>
-          <tr v-if="run.deliveredAt">
-            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">Delivered At</th>
-            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ formatDate(run.deliveredAt) }}</td>
-          </tr>
-          <tr v-if="run.deliveredBy">
-            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">Delivered By</th>
-            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ run.deliveredBy }}</td>
-          </tr>
-          <tr v-if="run.importedRecordCount !== null">
-            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">Imported Records</th>
-            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ run.importedRecordCount }}</td>
-          </tr>
-          <tr v-if="run.deliveryNotes">
-            <th class="px-3 py-2 text-left font-semibold text-slate-500 w-40 whitespace-nowrap border-b border-slate-200 align-top">Delivery Notes</th>
-            <td class="px-3 py-2 border-b border-slate-200 align-top">{{ run.deliveryNotes }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <RunDetailTable :run="run" />
 
       <!-- Four-eyes release form -->
       <ReleaseDialog
@@ -169,77 +67,18 @@ async function copySha(hash: string) {
       />
 
       <!-- Skip run form (Pending or Failed) -->
-      <div v-if="run.status === 'Pending' || run.status === 'Failed'" class="skip-card border border-slate-200 rounded-lg px-6 py-5 max-w-sm mt-6">
-        <h2 class="m-0 mb-1 text-base font-semibold text-slate-700">Skip This Run</h2>
-        <p class="text-slate-500 text-sm m-0 mb-4 leading-relaxed">
-          Permanently marks this run as Skipped so it no longer blocks sequence gap detection.
-          Use this when a run can never be released (e.g. no ERP data at that time, file lost).
-        </p>
-
-        <div class="flex flex-col gap-1 mb-3">
-          <label for="skip-reason" class="text-sm font-semibold">Reason (optional)</label>
-          <input
-            id="skip-reason"
-            v-model="skipReason"
-            type="text"
-            maxlength="200"
-            placeholder="e.g. ERP offline during scheduled run"
-            class="px-2.5 py-1.5 border border-slate-300 rounded-md text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-          />
-        </div>
-
-        <p v-if="skipError" class="text-red-600 text-sm mb-2">{{ skipError }}</p>
-
-        <button
-          class="px-5 py-2 border border-slate-400 rounded-md bg-white text-slate-700 text-sm font-semibold cursor-pointer hover:enabled:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          :disabled="skipping"
-          @click="submitSkip"
-        >{{ skipping ? 'Skipping…' : 'Skip Run' }}</button>
-      </div>
+      <SkipRunForm
+        v-if="run.status === 'Pending' || run.status === 'Failed'"
+        :seqNo="run.sequenceNo"
+        @skipped="load"
+      />
 
       <!-- Delivery acknowledgement form -->
-      <div v-if="run.status === 'Released' && !run.deliveredAt" class="delivery-card border border-slate-200 rounded-lg px-6 py-5 max-w-sm mt-6">
-        <h2 class="m-0 mb-1 text-base font-semibold">Record Physical Delivery</h2>
-        <p class="text-slate-500 text-sm m-0 mb-4 leading-relaxed">
-          After handing the export file to the vendor, record the delivery here to close the
-          custody chain. Import count is optional — enter it when the vendor confirms.
-        </p>
-
-        <div class="flex flex-col gap-1 mb-3">
-          <label for="import-count" class="text-sm font-semibold">Vendor import count (optional)</label>
-          <input
-            id="import-count"
-            type="number"
-            min="0"
-            v-model.number="deliveryImportCount"
-            placeholder="e.g. 5"
-            class="px-2.5 py-1.5 border border-slate-300 rounded-md text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-          />
-        </div>
-
-        <div class="flex flex-col gap-1 mb-3">
-          <div class="flex items-baseline justify-between">
-            <label for="delivery-notes" class="text-sm font-semibold">Notes (optional)</label>
-            <span class="text-xs text-slate-400">{{ deliveryNotes.length }}/2000</span>
-          </div>
-          <textarea
-            id="delivery-notes"
-            v-model="deliveryNotes"
-            maxlength="2000"
-            rows="3"
-            placeholder="e.g. USB-007, handed to J. Smith"
-            class="px-2.5 py-1.5 border border-slate-300 rounded-md text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 resize-y"
-          />
-        </div>
-
-        <p v-if="deliveryError" class="text-red-600 text-sm mb-2">{{ deliveryError }}</p>
-
-        <button
-          class="mt-1 px-5 py-2 bg-indigo-600 text-white border-0 rounded-md text-sm font-semibold cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed hover:enabled:bg-indigo-700"
-          :disabled="delivering"
-          @click="submitDelivery"
-        >{{ delivering ? 'Recording…' : 'Mark as Delivered' }}</button>
-      </div>
+      <DeliverRunForm
+        v-if="run.status === 'Released' && !run.deliveredAt"
+        :seqNo="run.sequenceNo"
+        @delivered="load"
+      />
 
       <!-- Delivery complete indicator -->
       <div v-if="run.deliveredAt" class="delivery-done flex items-center gap-2 mt-6 bg-green-50 border border-green-200 rounded-md px-4 py-2.5 text-sm text-green-800 max-w-lg">

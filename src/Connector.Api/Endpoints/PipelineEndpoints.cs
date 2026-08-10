@@ -43,8 +43,8 @@ static class PipelineEndpoints
                     db.ExportRuns.Add(run);
                     await db.SaveChangesAsync(ct);
 
-                    var mappingSetting = await db.AppSettings.FindAsync("export_mapping");
-                    if (mappingSetting is null)
+                    var mappingRaw = await db.GetSettingRawAsync(SettingsKeys.ExportMapping);
+                    if (mappingRaw is null)
                     {
                         run.Status = ExportRunStatus.Failed;
                         await db.SaveChangesAsync(ct);
@@ -53,10 +53,10 @@ static class PipelineEndpoints
                             statusCode: 400
                         );
                     }
-                    var config = ExportMappingJson.DeserializeConfig(mappingSetting.Value)!;
+                    var config = ExportMappingJson.DeserializeConfig(mappingRaw)!;
 
-                    var connSetting = await db.AppSettings.FindAsync("erp_connection");
-                    if (connSetting is null)
+                    var connRaw = await db.GetSettingRawAsync(SettingsKeys.ErpConnection);
+                    if (connRaw is null)
                     {
                         run.Status = ExportRunStatus.Failed;
                         await db.SaveChangesAsync(ct);
@@ -65,7 +65,7 @@ static class PipelineEndpoints
                             statusCode: 400
                         );
                     }
-                    var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connSetting.Value)!;
+                    var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connRaw)!;
 
                     var usesNestedJson =
                         fmt == "json" && (config.NestedGroups is { Length: > 0 } || config.JsonWrapper is not null);
@@ -206,8 +206,8 @@ static class PipelineEndpoints
                 "/api/pipeline/preview",
                 async (ExportLogDbContext db, CancellationToken ct) =>
                 {
-                    var mappingConfigSetting = await db.AppSettings.FindAsync("export_mapping");
-                    if (mappingConfigSetting is null)
+                    var mappingRaw = await db.GetSettingRawAsync(SettingsKeys.ExportMapping);
+                    if (mappingRaw is null)
                         return Results.Ok(
                             new PreviewResult(
                                 0,
@@ -220,16 +220,16 @@ static class PipelineEndpoints
                             )
                         );
 
-                    var config = JsonSerializer.Deserialize<ExportMappingConfig>(mappingConfigSetting.Value)!;
+                    var config = JsonSerializer.Deserialize<ExportMappingConfig>(mappingRaw)!;
 
                     PreviewResult EmptyResult(string msg) =>
                         new(0, ExportSchema.Version, [], [], "error", config.SourceTable, msg);
 
-                    var connSetting = await db.AppSettings.FindAsync("erp_connection");
-                    if (connSetting is null)
+                    var connRaw = await db.GetSettingRawAsync(SettingsKeys.ErpConnection);
+                    if (connRaw is null)
                         return Results.Ok(EmptyResult("No database connection configured. Set it up in Step 1."));
 
-                    var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connSetting.Value);
+                    var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connRaw);
                     if (connCfg is null)
                         return Results.Ok(EmptyResult("Stored connection config could not be read."));
 

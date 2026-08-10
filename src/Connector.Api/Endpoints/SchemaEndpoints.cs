@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Connector.Core.Schema;
 using Connector.Infrastructure;
 
@@ -13,15 +12,12 @@ static class SchemaEndpoints
                 "/api/schema",
                 async (ExportLogDbContext db) =>
                 {
-                    var activeSetting = await db.AppSettings.FindAsync("active_columns");
-                    var activeSet = activeSetting is null
-                        ? new HashSet<string>(ExportSchema.Columns)
-                        : new HashSet<string>(JsonSerializer.Deserialize<string[]>(activeSetting.Value) ?? []);
+                    var activeSet = new HashSet<string>(
+                        await db.GetSettingAsync<string[]>(SettingsKeys.ActiveColumns) ?? ExportSchema.Columns
+                    );
 
-                    var mappingSetting = await db.AppSettings.FindAsync("column_mappings");
-                    var mapping = mappingSetting is null
-                        ? new Dictionary<string, string>()
-                        : JsonSerializer.Deserialize<Dictionary<string, string>>(mappingSetting.Value) ?? new();
+                    var mapping =
+                        await db.GetSettingAsync<Dictionary<string, string>>(SettingsKeys.ColumnMappings) ?? new();
 
                     string? ExportName(string n) => mapping.GetValueOrDefault(n);
 
@@ -96,14 +92,7 @@ static class SchemaEndpoints
                 {
                     var valid = request.Columns.Where(c => ExportSchema.Columns.Contains(c)).Distinct().ToArray();
 
-                    var serialized = JsonSerializer.Serialize(valid);
-                    var setting = await db.AppSettings.FindAsync("active_columns");
-                    if (setting is null)
-                        db.AppSettings.Add(new AppSettingEntity { Key = "active_columns", Value = serialized });
-                    else
-                        setting.Value = serialized;
-
-                    await db.SaveChangesAsync();
+                    await db.SetSettingAsync(SettingsKeys.ActiveColumns, valid);
                     return Results.Ok(valid);
                 }
             )
@@ -120,14 +109,7 @@ static class SchemaEndpoints
                         )
                         .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Trim());
 
-                    var serialized = JsonSerializer.Serialize(valid);
-                    var setting = await db.AppSettings.FindAsync("column_mappings");
-                    if (setting is null)
-                        db.AppSettings.Add(new AppSettingEntity { Key = "column_mappings", Value = serialized });
-                    else
-                        setting.Value = serialized;
-
-                    await db.SaveChangesAsync();
+                    await db.SetSettingAsync(SettingsKeys.ColumnMappings, valid);
                     return Results.Ok(valid);
                 }
             )

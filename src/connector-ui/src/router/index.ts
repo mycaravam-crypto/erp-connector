@@ -39,13 +39,18 @@ const router = createRouter({
 // Routes that require a stored ERP connection before they're useful.
 const REQUIRES_CONNECTION = new Set(['source-schema', 'export-schema'])
 
-router.beforeEach(async (to) => {
-  if (to.name !== 'login' && !isLoggedIn()) return { name: 'login' }
+function needsLogin(routeName: unknown): boolean {
+  return routeName !== 'login' && !isLoggedIn()
+}
 
-  if (to.name && REQUIRES_CONNECTION.has(String(to.name))) {
-    const hasConn = await isConnectionConfigured()
-    if (!hasConn) return { name: 'connect', query: { notice: 'needs-connection' } }
-  }
+async function needsConnection(routeName: unknown): Promise<boolean> {
+  if (!routeName || !REQUIRES_CONNECTION.has(String(routeName))) return false
+  return !(await isConnectionConfigured())
+}
+
+router.beforeEach(async (to) => {
+  if (needsLogin(to.name)) return { name: 'login' }
+  if (await needsConnection(to.name)) return { name: 'connect', query: { notice: 'needs-connection' } }
 })
 
 export default router
