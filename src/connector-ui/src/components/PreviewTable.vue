@@ -36,25 +36,27 @@ function previewVal(rec: PreviewResult['records'][number], col: string): string 
       <p class="m-0 text-xs text-red-600">Check your connection (Step 1) and make sure at least one column is enabled in Step 3.</p>
     </div>
 
-    <div v-else-if="preview && preview.records.length > 0" class="overflow-x-auto max-h-80 overflow-y-auto border border-slate-200 rounded-md">
-      <table class="w-full border-collapse text-sm">
-        <thead class="sticky top-0">
-          <tr>
-            <th class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.7rem] uppercase tracking-wide border-b border-slate-200 whitespace-nowrap">#</th>
-            <th v-for="col in previewCols" :key="col" class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.7rem] uppercase tracking-wide border-b border-slate-200 whitespace-nowrap">{{ col }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(rec, idx) in previewRows" :key="idx" class="hover:bg-slate-50">
-            <td class="px-2.5 py-1.5 border-b border-slate-200 align-middle text-center text-slate-400 text-xs w-8">{{ idx + 1 }}</td>
-            <td v-for="col in previewCols" :key="col" class="px-2.5 py-1.5 border-b border-slate-200 align-middle whitespace-nowrap">{{ previewVal(rec, col) }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <p v-if="preview && preview.records.length > PREVIEW_MAX" class="text-xs text-slate-400 mt-1.5">
-      Showing first {{ PREVIEW_MAX }} rows — preview is capped at 50; the full export includes all in-scope records.
-    </p>
+    <template v-else-if="preview && preview.records.length > 0">
+      <div class="overflow-x-auto max-h-80 overflow-y-auto border border-slate-200 rounded-md">
+        <table class="w-full border-collapse text-sm">
+          <thead class="sticky top-0">
+            <tr>
+              <th class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.7rem] uppercase tracking-wide border-b border-slate-200 whitespace-nowrap">#</th>
+              <th v-for="col in previewCols" :key="col" class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.7rem] uppercase tracking-wide border-b border-slate-200 whitespace-nowrap">{{ col }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(rec, idx) in previewRows" :key="idx" class="hover:bg-slate-50">
+              <td class="px-2.5 py-1.5 border-b border-slate-200 align-middle text-center text-slate-400 text-xs w-8">{{ idx + 1 }}</td>
+              <td v-for="col in previewCols" :key="col" class="px-2.5 py-1.5 border-b border-slate-200 align-middle whitespace-nowrap">{{ previewVal(rec, col) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p v-if="preview.records.length > PREVIEW_MAX" class="text-xs text-slate-400 mt-1.5">
+        Showing first {{ PREVIEW_MAX }} rows — preview is capped at 50; the full export includes all in-scope records.
+      </p>
+    </template>
 
     <p v-else-if="preview" class="text-slate-500 text-sm">No in-scope records found.</p>
   </div>
