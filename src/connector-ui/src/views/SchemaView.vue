@@ -17,7 +17,7 @@ import RelationsSection from '@/components/RelationsSection.vue'
 import ExportFormatPicker from '@/components/ExportFormatPicker.vue'
 import ColumnMappingTable from '@/components/ColumnMappingTable.vue'
 import JsonEnvelopeEditor from '@/components/JsonEnvelopeEditor.vue'
-import SuggestedRelations from '@/components/SuggestedRelations.vue'
+import SuggestedRelations, { type SuggestedRelation } from '@/components/SuggestedRelations.vue'
 import NestedGroupsSection from '@/components/NestedGroupsSection.vue'
 
 const router = useRouter()
@@ -169,12 +169,6 @@ watch(selectedTable, (newTable, oldTable) => {
 })
 
 // ── Suggested relations (from FK metadata) ─────────────────────────────────────
-interface SuggestedRelation {
-  relatedTable: string
-  joinKey: string
-  sourceJoinKey: string
-}
-
 const suggestedRelations = computed<SuggestedRelation[]>(() => {
   if (!sourceSchema.value || !selectedTable.value) return []
 
