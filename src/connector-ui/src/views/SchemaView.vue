@@ -5,9 +5,6 @@ import { getSourceSchema, type SourceTable, type SourceColumn } from '@/api/conn
 import {
   getExportMapping,
   saveExportMapping,
-  getPresets,
-  savePreset,
-  deletePreset,
   type MappingField,
   type MappingRelation,
   type MappingRelationField,
@@ -15,7 +12,13 @@ import {
   type ExportJsonWrapperConfig,
   type ExportMappingConfig,
 } from '@/api/erp'
-import NestedGroupEditor from '@/components/NestedGroupEditor.vue'
+import PresetsToolbar from '@/components/PresetsToolbar.vue'
+import RelationsSection from '@/components/RelationsSection.vue'
+import ExportFormatPicker from '@/components/ExportFormatPicker.vue'
+import ColumnMappingTable from '@/components/ColumnMappingTable.vue'
+import JsonEnvelopeEditor from '@/components/JsonEnvelopeEditor.vue'
+import SuggestedRelations from '@/components/SuggestedRelations.vue'
+import NestedGroupsSection from '@/components/NestedGroupsSection.vue'
 
 const router = useRouter()
 
@@ -36,52 +39,6 @@ const saved = ref(false)
 const dirty = ref(false)
 
 // ── Presets ────────────────────────────────────────────────────────────────────
-const presets = ref<Record<string, ExportMappingConfig>>({})
-const selectedPreset = ref('')
-const presetSaving = ref(false)
-const presetError = ref<string | null>(null)
-
-// Inline save-as state
-const showSaveInput = ref(false)
-const saveInputName = ref('')
-
-// Inline delete-confirm state
-const confirmingDelete = ref(false)
-
-const presetNames = computed(() => Object.keys(presets.value).sort())
-
-async function loadPresets() {
-  try {
-    presets.value = await getPresets()
-  } catch {
-    presetError.value = 'Could not load presets. Is the backend service running?'
-  }
-}
-
-function applyPreset(name: string) {
-  const cfg = presets.value[name]
-  if (!cfg) return
-  fields.value = cfg.fields.map((f) => ({ ...f }))
-  relations.value = cfg.relations.map(cloneRelation)
-  nestedGroups.value = (cfg.nestedGroups ?? []).map(cloneNestedGroup)
-  jsonWrapper.value = cloneWrapper(cfg.jsonWrapper)
-  snapshotToCache(cfg.sourceTable)
-  selectedTable.value = cfg.sourceTable
-  saved.value = false
-  dirty.value = true
-  presetError.value = null
-}
-
-function openSaveInput() {
-  if (!selectedTable.value) {
-    presetError.value = 'Select a source table before saving a preset.'
-    return
-  }
-  saveInputName.value = selectedPreset.value || ''
-  showSaveInput.value = true
-  presetError.value = null
-}
-
 // Builds the config object from current mapping state; shared by preset-save and mapping-save,
 // which both persist the same shape to different endpoints.
 function buildMappingConfig(): ExportMappingConfig {
@@ -98,44 +55,15 @@ function buildMappingConfig(): ExportMappingConfig {
   }
 }
 
-async function confirmSavePreset() {
-  const name = saveInputName.value.trim()
-  if (!name) {
-    presetError.value = 'Preset name cannot be empty.'
-    return
-  }
-
-  const config = buildMappingConfig()
-
-  presetSaving.value = true
-  presetError.value = null
-  const result = await savePreset(name, config)
-  presetSaving.value = false
-
-  if (!result.ok) {
-    presetError.value = result.error ?? 'Failed to save preset.'
-    return
-  }
-  await loadPresets()
-  selectedPreset.value = name
-  showSaveInput.value = false
-}
-
-async function confirmDeletePreset() {
-  if (!selectedPreset.value) return
-
-  presetSaving.value = true
-  presetError.value = null
-  const result = await deletePreset(selectedPreset.value)
-  presetSaving.value = false
-
-  if (!result.ok) {
-    presetError.value = result.error ?? 'Failed to delete preset.'
-    return
-  }
-  selectedPreset.value = ''
-  confirmingDelete.value = false
-  await loadPresets()
+function onApplyPreset(cfg: ExportMappingConfig) {
+  fields.value = cfg.fields.map((f) => ({ ...f }))
+  relations.value = cfg.relations.map(cloneRelation)
+  nestedGroups.value = (cfg.nestedGroups ?? []).map(cloneNestedGroup)
+  jsonWrapper.value = cloneWrapper(cfg.jsonWrapper)
+  snapshotToCache(cfg.sourceTable)
+  selectedTable.value = cfg.sourceTable
+  saved.value = false
+  dirty.value = true
 }
 
 // ── Format ─────────────────────────────────────────────────────────────────────
@@ -163,7 +91,10 @@ const sourcePkColumn = computed(
   () => selectedTableColumns.value.find((c) => c.primaryKey)?.name ?? '',
 )
 
-const enabledFieldCount = computed(() => fields.value.filter((f) => f.enabled).length)
+// Tables a relation can join to — every table except the primary selected one.
+const relatableTables = computed<SourceTable[]>(() =>
+  (sourceSchema.value?.tables ?? []).filter((t) => t.name !== selectedTable.value),
+)
 
 function getTableColumns(tableName: string): SourceColumn[] {
   return sourceSchema.value?.tables.find((t) => t.name === tableName)?.columns ?? []
@@ -303,26 +234,6 @@ function removeRelation(idx: number) {
   dirty.value = true
 }
 
-// Related table changed on an existing relation card: the old field list refers to
-// columns of the previous table, so it must be rebuilt for the newly selected one.
-function onRelatedTableChanged(rel: MappingRelation) {
-  rel.fields = fieldsForTable(rel.relatedTable)
-  saved.value = false
-  dirty.value = true
-}
-
-function selectAllRelationFields(rel: MappingRelation) {
-  rel.fields.forEach((f) => { f.enabled = true })
-  saved.value = false
-  dirty.value = true
-}
-
-function deselectAllRelationFields(rel: MappingRelation) {
-  rel.fields.forEach((f) => { f.enabled = false })
-  saved.value = false
-  dirty.value = true
-}
-
 // ── Nested JSON structure (JSON export only) ────────────────────────────────────
 function addNestedGroup() {
   nestedGroups.value.push({
@@ -345,45 +256,7 @@ function removeNestedGroup(idx: number) {
   dirty.value = true
 }
 
-function markNestedGroupsDirty() {
-  saved.value = false
-  dirty.value = true
-}
-
-// ── JSON envelope wrapper ────────────────────────────────────────────────────────
-function enableWrapper() {
-  jsonWrapper.value = { rootKey: '', itemsKey: 'records', metadataKey: 'metadata', metadataFields: [] }
-  saved.value = false
-  dirty.value = true
-}
-
-function disableWrapper() {
-  jsonWrapper.value = null
-  saved.value = false
-  dirty.value = true
-}
-
-function addMetadataField() {
-  jsonWrapper.value?.metadataFields.push({ key: '', value: '', isDynamicTimestamp: false })
-  saved.value = false
-  dirty.value = true
-}
-
-function removeMetadataField(idx: number) {
-  jsonWrapper.value?.metadataFields.splice(idx, 1)
-  saved.value = false
-  dirty.value = true
-}
-
-// ── Bulk column selection ──────────────────────────────────────────────────────
-function selectAllFields() {
-  fields.value.forEach((f) => { f.enabled = true })
-  saved.value = false
-  dirty.value = true
-}
-
-function deselectAllFields() {
-  fields.value.forEach((f) => { f.enabled = false })
+function markDirty() {
   saved.value = false
   dirty.value = true
 }
@@ -459,7 +332,7 @@ async function load() {
   }
 }
 
-onMounted(() => { load(); loadPresets() })
+onMounted(load)
 </script>
 
 <template>
@@ -485,69 +358,7 @@ onMounted(() => { load(); loadPresets() })
 
     <template v-else-if="sourceSchema">
       <!-- Presets toolbar -->
-      <div class="mb-5">
-        <div class="flex items-center gap-2 flex-wrap">
-          <h2 class="text-base font-semibold text-slate-900 shrink-0">Presets</h2>
-          <select
-            class="preset-select flex-1 min-w-48 px-2.5 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white cursor-pointer"
-            v-model="selectedPreset"
-          >
-            <option value="" disabled>— select a preset —</option>
-            <option v-for="name in presetNames" :key="name" :value="name">{{ name }}</option>
-          </select>
-          <button
-            class="load-btn px-3 py-2 border border-slate-300 rounded-md bg-white text-sm text-slate-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-slate-50"
-            :disabled="!selectedPreset || presetSaving"
-            @click="applyPreset(selectedPreset)"
-          >Load</button>
-          <button
-            class="save-as-btn px-3 py-2 border border-slate-300 rounded-md bg-white text-sm text-slate-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-slate-50"
-            :disabled="presetSaving"
-            @click="openSaveInput"
-          >Save As…</button>
-          <button
-            class="delete-preset-btn px-3 py-2 border border-red-200 rounded-md bg-white text-sm text-red-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-red-50"
-            :disabled="!selectedPreset || presetSaving"
-            @click="confirmingDelete = true"
-          >Delete</button>
-        </div>
-
-        <!-- Inline save-as input -->
-        <div v-if="showSaveInput" class="flex items-center gap-2 mt-2 flex-wrap">
-          <input
-            class="px-2.5 py-1.5 border border-slate-300 rounded-md text-sm text-slate-900 bg-white outline-none focus:border-slate-900 min-w-48 flex-1"
-            type="text"
-            placeholder="Preset name…"
-            v-model="saveInputName"
-            @keyup.enter="confirmSavePreset"
-            @keyup.esc="showSaveInput = false"
-          />
-          <button
-            class="px-3 py-1.5 border-0 rounded-md bg-slate-900 text-slate-200 text-sm font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-slate-800"
-            :disabled="presetSaving || !saveInputName.trim()"
-            @click="confirmSavePreset"
-          >{{ presetSaving ? 'Saving…' : 'Save' }}</button>
-          <button
-            class="px-3 py-1.5 border border-slate-300 rounded-md bg-white text-sm text-slate-500 cursor-pointer hover:bg-slate-50"
-            @click="showSaveInput = false"
-          >Cancel</button>
-        </div>
-
-        <!-- Inline delete confirm -->
-        <div v-if="confirmingDelete" class="flex items-center gap-2 mt-2 text-sm">
-          <span class="text-red-700 font-semibold">Delete "{{ selectedPreset }}"?</span>
-          <button
-            class="px-3 py-1 border border-red-300 rounded-md bg-red-50 text-red-700 text-sm font-semibold cursor-pointer disabled:opacity-50 hover:bg-red-100"
-            :disabled="presetSaving"
-            @click="confirmDeletePreset"
-          >{{ presetSaving ? 'Deleting…' : 'Yes, delete' }}</button>
-          <button
-            class="px-3 py-1 border border-slate-300 rounded-md bg-white text-sm text-slate-500 cursor-pointer hover:bg-slate-50"
-            @click="confirmingDelete = false"
-          >Cancel</button>
-        </div>
-      </div>
-      <div v-if="presetError" class="preset-error px-3.5 py-2.5 bg-red-50 border border-red-200 rounded-md text-sm text-red-600 mb-5">{{ presetError }}</div>
+      <PresetsToolbar :can-save="!!selectedTable" :get-config="buildMappingConfig" @apply="onApplyPreset" />
 
       <!-- Primary table selector -->
       <div class="mb-7">
@@ -567,294 +378,55 @@ onMounted(() => { load(); loadPresets() })
       </div>
 
       <!-- Column mapping -->
-      <div v-if="selectedTable" class="mb-7">
-        <div class="flex items-center gap-2 mb-2.5 flex-wrap">
-          <h2 class="text-base font-semibold text-slate-900 m-0">Columns</h2>
-          <span class="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{{ enabledFieldCount }} / {{ fields.length }} selected</span>
-          <div class="ml-auto flex gap-1.5">
-            <button class="px-2.5 py-1 border border-slate-300 rounded text-xs text-slate-600 bg-white cursor-pointer hover:bg-slate-50" @click="selectAllFields">Select All</button>
-            <button class="px-2.5 py-1 border border-slate-300 rounded text-xs text-slate-600 bg-white cursor-pointer hover:bg-slate-50" @click="deselectAllFields">Deselect All</button>
-          </div>
-        </div>
-        <table class="col-table w-full border-collapse text-sm">
-          <thead>
-            <tr>
-              <th class="px-2.5 py-2 text-center bg-slate-50 font-semibold text-[0.72rem] uppercase tracking-wide text-slate-500 border-b border-slate-200 w-12">Export</th>
-              <th class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.72rem] uppercase tracking-wide text-slate-500 border-b border-slate-200 w-8">#</th>
-              <th class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.72rem] uppercase tracking-wide text-slate-500 border-b border-slate-200">Source Column</th>
-              <th class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.72rem] uppercase tracking-wide text-slate-500 border-b border-slate-200">Export As (target name)</th>
-              <th class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.72rem] uppercase tracking-wide text-slate-500 border-b border-slate-200">Type</th>
-              <th class="px-2.5 py-2 text-left bg-slate-50 font-semibold text-[0.72rem] uppercase tracking-wide text-slate-500 border-b border-slate-200">PK</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="(field, idx) in fields"
-              :key="field.sourceName"
-              :class="field.enabled ? 'bg-green-50' : 'bg-neutral-50 opacity-60'"
-            >
-              <td class="px-2.5 py-2 border-b border-slate-200 align-middle text-center">
-                <input type="checkbox" v-model="field.enabled" @change="saved = false; dirty = true" />
-              </td>
-              <td class="px-2.5 py-2 border-b border-slate-200 align-middle text-center text-slate-400 text-xs">{{ idx + 1 }}</td>
-              <td class="px-2.5 py-2 border-b border-slate-200 align-middle">
-                <code :class="['text-sm font-semibold', field.enabled ? 'text-slate-900' : 'text-slate-400']">{{ field.sourceName }}</code>
-              </td>
-              <td class="px-2.5 py-2 border-b border-slate-200 align-middle min-w-40">
-                <input
-                  class="export-as-input w-full px-1.5 py-1 border border-slate-300 rounded text-xs font-mono text-slate-900 bg-white box-border outline-none focus:border-slate-900 placeholder-slate-400 disabled:bg-slate-50"
-                  type="text"
-                  :placeholder="field.sourceName"
-                  v-model="field.targetName"
-                  :disabled="!field.enabled"
-                  @input="saved = false; dirty = true"
-                />
-              </td>
-              <td class="px-2.5 py-2 border-b border-slate-200 align-middle">
-                <span class="inline-block px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-xs text-slate-500 whitespace-nowrap">
-                  {{ selectedTableColumnMap[field.sourceName]?.type ?? '' }}
-                </span>
-              </td>
-              <td class="px-2.5 py-2 border-b border-slate-200 align-middle">
-                <span v-if="selectedTableColumnMap[field.sourceName]?.primaryKey" class="pk-badge text-[0.65rem] font-bold bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">PK</span>
-                <span v-else class="text-slate-200">—</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <ColumnMappingTable
+        v-if="selectedTable"
+        :fields="fields"
+        :column-map="selectedTableColumnMap"
+        @dirty="markDirty"
+      />
 
       <!-- Suggested relations (detected from foreign keys) -->
-      <div v-if="selectedTable && suggestedRelations.length > 0" class="mb-5">
-        <h2 class="text-base font-semibold text-slate-900 mb-1">Suggested Relations</h2>
-        <p class="text-sm text-slate-500 mb-3 leading-snug">
-          Detected from foreign keys in the source schema.
-        </p>
-        <div class="flex flex-col gap-2">
-          <div
-            v-for="s in suggestedRelations"
-            :key="`${s.relatedTable}.${s.joinKey}`"
-            class="suggested-relation-card flex items-center justify-between gap-3 px-4 py-2.5 border border-dashed border-blue-300 bg-blue-50 rounded-lg"
-          >
-            <code class="text-sm text-slate-700">{{ s.relatedTable }}.{{ s.joinKey }} → {{ selectedTable }}.{{ s.sourceJoinKey }}</code>
-            <button
-              class="suggested-add-btn px-3 py-1 border border-blue-300 rounded-md bg-white text-sm text-blue-700 cursor-pointer whitespace-nowrap shrink-0 hover:bg-blue-100"
-              @click="addSuggestedRelation(s)"
-            >+ Add</button>
-          </div>
-        </div>
-      </div>
+      <SuggestedRelations
+        v-if="selectedTable"
+        :suggestions="suggestedRelations"
+        :selected-table-name="selectedTable"
+        @add="addSuggestedRelation"
+      />
 
       <!-- Relations -->
-      <div v-if="selectedTable" class="mb-7">
-        <div class="flex items-center justify-between mb-2">
-          <h2 class="text-base font-semibold text-slate-900 m-0">Related Table Joins</h2>
-          <button
-            class="add-btn px-3 py-1.5 border border-slate-300 rounded-md bg-white text-sm text-slate-500 cursor-pointer whitespace-nowrap hover:bg-slate-50"
-            @click="addRelation"
-          >+ Add Relation</button>
-        </div>
-        <p class="text-sm text-slate-500 mb-3 leading-snug">
-          Add 1:N joins to pull one or more columns from a related table into the export row, each independently renamed.
-          Use <em>String Join</em> to concatenate values, or <em>Array</em> to comma-separate them.
-        </p>
-
-        <div v-if="relations.length === 0" class="text-sm text-slate-400 px-4 py-3 border border-dashed border-slate-300 rounded-md text-center">
-          No relations configured.
-        </div>
-
-        <div
-          v-for="(rel, idx) in relations"
-          :key="idx"
-          :class="['relation-card flex gap-3 items-start px-4 py-3 border rounded-lg mb-2 bg-white', rel.enabled ? 'border-blue-200 bg-sky-50' : 'border-slate-200 opacity-65']"
-        >
-          <div class="pt-1 shrink-0">
-            <input type="checkbox" v-model="rel.enabled" class="cursor-pointer w-4 h-4" @change="saved = false; dirty = true" />
-          </div>
-
-          <div class="flex-1 flex flex-col gap-2">
-            <div class="flex gap-2.5 flex-wrap">
-              <div class="flex flex-col gap-1 flex-1 min-w-36">
-                <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Related Table</label>
-                <select v-model="rel.relatedTable" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full" @change="onRelatedTableChanged(rel)">
-                  <option value="" disabled>— select —</option>
-                  <option v-for="t in sourceSchema.tables.filter((t) => t.name !== selectedTable)" :key="t.name" :value="t.name">{{ t.name }}</option>
-                </select>
-              </div>
-              <div class="flex flex-col gap-1 flex-1 min-w-36">
-                <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Source Column</label>
-                <select v-model="rel.sourceJoinKey" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full" @change="saved = false; dirty = true">
-                  <option value="" disabled>— select —</option>
-                  <option v-for="c in selectedTableColumns" :key="c.name" :value="c.name">{{ c.name }}{{ c.primaryKey ? ' (PK)' : '' }}</option>
-                </select>
-              </div>
-              <div class="flex flex-col gap-1 flex-1 min-w-36">
-                <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Join Column (in {{ rel.relatedTable || '…' }})</label>
-                <select v-model="rel.joinKey" :disabled="!rel.relatedTable" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full disabled:bg-slate-50 disabled:text-slate-400" @change="saved = false; dirty = true">
-                  <option value="" disabled>— select —</option>
-                  <option v-for="c in getTableColumns(rel.relatedTable)" :key="c.name" :value="c.name">{{ c.name }}</option>
-                </select>
-              </div>
-              <div class="flex flex-col gap-1 flex-1 min-w-36">
-                <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Flatten Strategy</label>
-                <select v-model="rel.flattenStrategy" class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full" @change="saved = false; dirty = true">
-                  <option value="string_join">String Join (concatenate with delimiter)</option>
-                  <option value="array">Array (comma-separated list)</option>
-                </select>
-              </div>
-              <div v-if="rel.flattenStrategy === 'string_join'" class="flex flex-col gap-1 w-24 shrink-0">
-                <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Delimiter</label>
-                <input class="px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900" type="text" v-model="rel.delimiter" placeholder=", " @input="saved = false; dirty = true" />
-              </div>
-            </div>
-
-            <!-- Per-relation field picker: which columns of the related table to pull, and what to rename them to. -->
-            <div v-if="rel.relatedTable" class="border border-slate-200 rounded-md overflow-hidden">
-              <div class="flex items-center gap-2 px-2.5 py-1.5 bg-slate-50 border-b border-slate-200">
-                <span class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Fields from {{ rel.relatedTable }}</span>
-                <span class="text-[0.7rem] text-slate-400">{{ rel.fields.filter((f) => f.enabled).length }} / {{ rel.fields.length }} selected</span>
-                <div class="ml-auto flex gap-1.5">
-                  <button type="button" class="rel-select-all-btn px-2 py-0.5 border border-slate-300 rounded text-[0.7rem] text-slate-600 bg-white cursor-pointer hover:bg-slate-100" @click="selectAllRelationFields(rel)">Select All</button>
-                  <button type="button" class="rel-deselect-all-btn px-2 py-0.5 border border-slate-300 rounded text-[0.7rem] text-slate-600 bg-white cursor-pointer hover:bg-slate-100" @click="deselectAllRelationFields(rel)">Deselect All</button>
-                </div>
-              </div>
-              <table class="rel-fields-table w-full border-collapse text-sm">
-                <tbody>
-                  <tr
-                    v-for="rf in rel.fields"
-                    :key="rf.sourceField"
-                    :class="rf.enabled ? 'bg-green-50' : 'bg-white opacity-60'"
-                  >
-                    <td class="px-2.5 py-1.5 border-b border-slate-100 align-middle text-center w-8">
-                      <input type="checkbox" v-model="rf.enabled" @change="saved = false; dirty = true" />
-                    </td>
-                    <td class="px-2.5 py-1.5 border-b border-slate-100 align-middle">
-                      <code :class="['text-xs font-semibold', rf.enabled ? 'text-slate-900' : 'text-slate-400']">{{ rf.sourceField }}</code>
-                    </td>
-                    <td class="px-2.5 py-1.5 border-b border-slate-100 align-middle min-w-32">
-                      <input
-                        class="rel-field-export-as-input w-full px-1.5 py-1 border border-slate-300 rounded text-xs font-mono text-slate-900 bg-white box-border outline-none focus:border-slate-900 placeholder-slate-400 disabled:bg-slate-50"
-                        type="text"
-                        :placeholder="rf.sourceField"
-                        v-model="rf.targetField"
-                        :disabled="!rf.enabled"
-                        @input="saved = false; dirty = true"
-                      />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <button
-            class="rel-remove-btn shrink-0 px-2 py-1 border border-red-200 rounded text-red-600 bg-white text-base leading-none cursor-pointer hover:bg-red-50"
-            @click="removeRelation(idx)"
-            title="Remove relation"
-          >×</button>
-        </div>
-      </div>
+      <RelationsSection
+        v-if="selectedTable"
+        :relations="relations"
+        :relatable-tables="relatableTables"
+        :selected-table-columns="selectedTableColumns"
+        @add="addRelation"
+        @remove="removeRelation"
+        @dirty="markDirty"
+      />
 
       <!-- Format selection -->
-      <div v-if="selectedTable" class="mb-7">
-        <h2 class="text-base font-semibold text-slate-900 mb-2.5">Export Format</h2>
-        <div class="flex gap-3">
-          <button
-            v-for="fmt in [
-              { id: 'xlsx', label: 'Excel (.xlsx)', desc: 'Full format with metadata row — required for ServiceNow Transform Map' },
-              { id: 'csv',  label: 'CSV (.csv)',   desc: 'Plain text, comma-separated — compatible with most tools' },
-              { id: 'json', label: 'JSON (.json)', desc: 'Machine-readable — useful for APIs and custom pipelines' },
-            ]"
-            :key="fmt.id"
-            :class="['format-btn flex-1 flex flex-col gap-1 px-4 py-3 border-2 rounded-lg bg-white cursor-pointer text-left transition-colors', selectedFormat === fmt.id ? 'border-slate-900 bg-slate-50' : 'border-slate-200 hover:border-slate-400']"
-            @click="setFormat(fmt.id as 'xlsx' | 'csv' | 'json')"
-          >
-            <span class="text-sm font-semibold text-slate-900">{{ fmt.label }}</span>
-            <span class="text-xs text-slate-500 leading-snug">{{ fmt.desc }}</span>
-          </button>
-        </div>
-      </div>
+      <ExportFormatPicker
+        v-if="selectedTable"
+        :model-value="selectedFormat"
+        @update:model-value="setFormat"
+      />
 
       <!-- Nested JSON Structure (JSON export only) -->
-      <div v-if="selectedTable && selectedFormat === 'json'" class="mb-7">
-        <div class="flex items-center justify-between mb-2">
-          <h2 class="text-base font-semibold text-slate-900 m-0">Nested JSON Structure</h2>
-          <button
-            class="add-nested-group-btn px-3 py-1.5 border border-slate-300 rounded-md bg-white text-sm text-slate-500 cursor-pointer whitespace-nowrap hover:bg-slate-50"
-            @click="addNestedGroup"
-          >+ Add Nested Group</button>
-        </div>
-        <p class="text-sm text-slate-500 mb-3 leading-snug">
-          Applies to JSON export only. Embed a related table as a single object (1:1 lookup, e.g. <em>manufacturer</em>)
-          or an array of objects (1:many, e.g. <em>addresses</em>) — nested groups can themselves contain further
-          nested groups, so an array can hold objects that have their own nested arrays.
-        </p>
-
-        <div v-if="nestedGroups.length === 0" class="text-sm text-slate-400 px-4 py-3 border border-dashed border-slate-300 rounded-md text-center">
-          No nested groups configured — JSON export will use the flat field/relation mapping above.
-        </div>
-
-        <NestedGroupEditor
-          v-for="(group, idx) in nestedGroups"
-          :key="idx"
-          :group="group"
-          :available-tables="sourceSchema.tables"
-          :depth="1"
-          @remove="removeNestedGroup(idx)"
-          @dirty="markNestedGroupsDirty"
-        />
-      </div>
+      <NestedGroupsSection
+        v-if="selectedTable && selectedFormat === 'json'"
+        :groups="nestedGroups"
+        :available-tables="sourceSchema.tables"
+        @add="addNestedGroup"
+        @remove="removeNestedGroup"
+        @dirty="markDirty"
+      />
 
       <!-- JSON envelope / root wrapper (JSON export only) -->
-      <div v-if="selectedTable && selectedFormat === 'json'" class="mb-7">
-        <h2 class="text-base font-semibold text-slate-900 mb-1">JSON Envelope</h2>
-        <p class="text-sm text-slate-500 mb-3 leading-snug">
-          Applies to JSON export only. By default the export uses <code>{ schema_version, extracted_at, records }</code>.
-          Customize it to match a target system's expected shape.
-        </p>
-
-        <div v-if="!jsonWrapper" class="flex items-center gap-3">
-          <span class="text-sm text-slate-500">Using the default envelope.</span>
-          <button class="customize-wrapper-btn px-3 py-1.5 border border-slate-300 rounded-md bg-white text-sm text-slate-700 cursor-pointer hover:bg-slate-50" @click="enableWrapper">Customize…</button>
-        </div>
-
-        <div v-else class="border border-slate-200 rounded-lg px-4 py-3 bg-white flex flex-col gap-3">
-          <div class="flex justify-end">
-            <button class="reset-wrapper-btn px-2.5 py-1 border border-slate-300 rounded text-xs text-slate-500 bg-white cursor-pointer hover:bg-slate-50" @click="disableWrapper">Reset to default</button>
-          </div>
-          <div class="flex gap-2.5 flex-wrap">
-            <div class="flex flex-col gap-1 flex-1 min-w-36">
-              <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Root Key</label>
-              <input class="root-key-input px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900" type="text" v-model="jsonWrapper.rootKey" placeholder="e.g. masterData — blank for none" @input="saved = false; dirty = true" />
-            </div>
-            <div class="flex flex-col gap-1 flex-1 min-w-36">
-              <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Items Key</label>
-              <input class="items-key-input px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900" type="text" v-model="jsonWrapper.itemsKey" placeholder="records" @input="saved = false; dirty = true" />
-            </div>
-            <div class="flex flex-col gap-1 flex-1 min-w-36">
-              <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Metadata Key</label>
-              <input class="metadata-key-input px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900" type="text" v-model="jsonWrapper.metadataKey" placeholder="metadata — blank flattens" @input="saved = false; dirty = true" />
-            </div>
-          </div>
-
-          <div>
-            <div class="flex items-center gap-2 mb-1.5">
-              <span class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Metadata Fields</span>
-              <button type="button" class="add-metadata-field-btn ml-auto px-2 py-0.5 border border-slate-300 rounded text-[0.7rem] text-slate-600 bg-white cursor-pointer hover:bg-slate-100" @click="addMetadataField">+ Add Field</button>
-            </div>
-            <p v-if="jsonWrapper.metadataFields.length === 0" class="text-[0.7rem] text-slate-400">None — falls back to schema_version/extracted_at.</p>
-            <div v-for="(m, mIdx) in jsonWrapper.metadataFields" :key="mIdx" class="flex items-center gap-2 mb-1.5">
-              <input class="metadata-field-key-input flex-1 px-2 py-1 border border-slate-300 rounded text-xs font-mono text-slate-900 bg-white outline-none focus:border-slate-900" type="text" v-model="m.key" placeholder="key, e.g. version" @input="saved = false; dirty = true" />
-              <input class="metadata-field-value-input flex-1 px-2 py-1 border border-slate-300 rounded text-xs font-mono text-slate-900 bg-white outline-none focus:border-slate-900 disabled:bg-slate-50" type="text" v-model="m.value" :disabled="m.isDynamicTimestamp" placeholder="value, e.g. 1.0" @input="saved = false; dirty = true" />
-              <label class="flex items-center gap-1 text-[0.7rem] text-slate-500 whitespace-nowrap">
-                <input type="checkbox" v-model="m.isDynamicTimestamp" @change="saved = false; dirty = true" />
-                Use export timestamp
-              </label>
-              <button type="button" class="remove-metadata-field-btn shrink-0 px-2 py-1 border border-red-200 rounded text-red-600 bg-white text-sm leading-none cursor-pointer hover:bg-red-50" @click="removeMetadataField(mIdx)" title="Remove field">×</button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <JsonEnvelopeEditor
+        v-if="selectedTable && selectedFormat === 'json'"
+        v-model="jsonWrapper"
+        @dirty="markDirty"
+      />
 
       <!-- Save status -->
       <div v-if="saveError" class="save-error px-3.5 py-2.5 bg-red-50 border border-red-200 rounded-md text-sm text-red-600 mb-4">{{ saveError }}</div>
