@@ -10,14 +10,12 @@ A self-contained .NET 9 + Vue 3 application that extracts warranty-relevant Conf
 
 ```
 ERP database (read-only, PostgreSQL)
-    ↓  IErpReader
-Filter  — drop CIs without a valid GUID correlation key
+    ↓  runtime-configurable mapping: source table, columns, joins — no hardcoded schema
+Query   — flat SQL, or nested json_build_object/json_agg for JSON export
     ↓
-Minimize — strip personal-data fields (TechnicianName etc.) at type level
+GDPR strip — denylisted fields (TechnicianName etc.) removed at query time
     ↓
-Map      — ISO-8601 dates, all IDs as strings, configurable column names
-    ↓
-Package  — Excel (ClosedXML) / CSV / JSON + SHA-256 manifest
+Package — Excel (ClosedXML) / CSV / JSON + SHA-256 manifest
     ↓
 Staging folder (operator-controlled transfer to vendor)
 ```
@@ -30,7 +28,7 @@ Every run is logged in SQLite. A pending run stays locked until **two different 
 
 | Area | What's built |
 |---|---|
-| **GDPR compliance** | Personal fields removed by the type system before any file write; runtime denylist configurable via UI; GDPR Art. 5(1)(c) enforced at mapping-save |
+| **GDPR compliance** | Personal fields removed at query time via a runtime denylist, configurable via UI; GDPR Art. 5(1)(c) enforced at mapping-save |
 | **Four-eyes release** | Operator ≠ Approver enforced server-side; JWT identity non-spoofable; audit trail entry on every action |
 | **Full audit log** | Every state-changing action (login, release, deliver, skip, mapping changes, scheduler changes) written to `AuditLog` table; browsable in UI |
 | **Dynamic ERP mapping** | Source table, columns, and 1:N joins configured at runtime via UI — no hardcoded schema; foreign keys auto-detected and suggested as candidate joins; each join can pull multiple independently renamed columns |
@@ -48,26 +46,24 @@ Every run is logged in SQLite. A pending run stays locked until **two different 
 Connector.sln
 │
 ├── src/
-│   ├── Connector.Core          ← Domain types + interface contracts (no dependencies)
-│   ├── Connector.Erp           ← IErpReader implementations; demo SQLite ERP database
-│   ├── Connector.Export        ← Pipeline step implementations (filter, minimize, map, package)
-│   ├── Connector.Infrastructure ← ExportWorker, FileSystemSink, AuditService, EF Core DbContext + migrations
-│   └── Connector.Api           ← ASP.NET Core host; 9 endpoint modules; JWT auth; Serilog
+│   ├── Connector.Core          ← Domain types (ExportManifest, ExportPackage) + dynamic-mapping config types
+│   ├── Connector.Infrastructure ← DynamicExportService, ExportWorker, FileSystemSink, AuditService, EF Core DbContext + migrations
+│   └── Connector.Api           ← ASP.NET Core host; endpoint modules; JWT auth; Serilog
 │
 └── tests/
-    ├── Connector.Core.Tests        ← Unit tests (24 tests, no I/O)
-    └── Connector.Integration.Tests ← Full pipeline tests against demo ERP DB
+    ├── Connector.Core.Tests        ← Unit tests, no I/O
+    └── Connector.Integration.Tests ← DynamicExportService tests; nested-JSON tests against the Postgres testdb fixture
 ```
 
 ### Dependency rules
 
 ```
-Connector.Api → Core, Erp, Export, Infrastructure
+Connector.Api → Core, Infrastructure
 Connector.Infrastructure → Core
-Connector.Export → Core
-Connector.Erp → Core
 Connector.Core → (none)
 ```
+
+See [`knowledge/pipeline/dynamic-export-service.md`](knowledge/pipeline/dynamic-export-service.md) for how the export pipeline works today — a 2.0 cleanup removed an earlier fixed-schema pipeline (`Connector.Erp`, `Connector.Export`) that was fully superseded by the runtime-configurable mapping during development and carried no live traffic.
 
 ---
 
@@ -85,17 +81,17 @@ Connector.Core → (none)
 ./dev.sh
 ```
 
-Starts the API on `:5189` and the Vite dev server on `:5173`. Ctrl-C stops both. On first start the demo ERP database is created and seeded automatically.
+Starts the API on `:5189` and the Vite dev server on `:5173`. Ctrl-C stops both.
 
 **Dev credentials:** `alice / alice123` and `bob / bob123` (hard-coded in Development mode only).
 
 ### Run tests
 
 ```bash
-# .NET (61 unit + integration tests)
+# .NET (unit + integration tests)
 dotnet test
 
-# Frontend (195 Vitest tests)
+# Frontend (186 Vitest tests)
 cd src/connector-ui && npm test
 
 # E2E (Playwright — requires both servers running)
@@ -188,10 +184,8 @@ All endpoints except `/api/health` and `/api/auth/login` require `Authorization:
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/api/schema` | Export schema version, column definitions, and persisted active flags |
-| `PATCH` | `/api/schema/columns` | Persist active column set |
-| `PATCH` | `/api/schema/mappings` | Persist per-column export name overrides |
-| `GET` | `/api/export-mapping` | Current dynamic mapping config (source table, fields, joins) |
+| `GET` | `/api/schema` | Read-only ICD reference contract (version + column list) — documentation, decoupled from the live export |
+| `GET` | `/api/export-mapping` | Current dynamic mapping config (source table, fields, joins) — this is what actually drives every export |
 | `PUT` | `/api/export-mapping` | Save full mapping config (GDPR-denylist-checked) |
 | `GET` | `/api/export-mapping/presets` | All saved mapping presets |
 | `PUT` | `/api/export-mapping/presets/{name}` | Save a named preset |
@@ -204,14 +198,13 @@ All endpoints except `/api/health` and `/api/auth/login` require `Authorization:
 | `GET` | `/api/connection` | Stored ERP connection info (no password returned) |
 | `POST` | `/api/connection` | Test and persist a Postgres ERP connection |
 | `GET` | `/api/source-schema` | Live source schema (falls back to demo schema if no connection) |
-| `GET` | `/api/erp/records` | All ERP CIs with scope flags, BOM links, and excluded fields |
 
 ### Settings
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/api/settings/scheduler` | Effective scheduler config (DB override or appsettings default) |
-| `PUT` | `/api/settings/scheduler` | Update scheduled time and retention period |
+| `GET` | `/api/settings/scheduler` | Effective scheduler config — time, retention, and export format (DB override or appsettings default) |
+| `PUT` | `/api/settings/scheduler` | Update scheduled time, retention period, and export format |
 | `GET` | `/api/gdpr-denied-fields` | Current GDPR denylist |
 | `PATCH` | `/api/gdpr-denied-fields` | Replace GDPR denylist |
 | `GET` | `/api/audit` | Audit log entries (newest first, default 100) |
@@ -229,8 +222,7 @@ The UI lives at `src/connector-ui/`. It implements a **four-step workflow** plus
 | `/export-schema` | `SchemaView` | Toggle export columns, set column name overrides |
 | `/exports` | `ExportView` | Trigger export, live preview, run history |
 | `/exports/:seqNo` | `ExportDetail` | Four-eyes release form, delivery form, skip form |
-| `/erp-database` | `ErpDatabaseView` | Browse the demo ERP with BOM tree and scope indicators |
-| `/icd-schema` | `IcdSchemaView` | ICD column contract reference (read-only) |
+| `/icd-schema` | `IcdSchemaView` | ICD column contract reference (read-only, decoupled from the live mapping) |
 | `/settings` | `SettingsView` | Scheduler time/retention, GDPR denylist tag editor |
 | `/audit` | `AuditView` | Full audit log with action labels and timestamps |
 
@@ -261,22 +253,6 @@ dotnet csharpier .           # apply formatting
 CI runs on every push via GitHub Actions: format check → Release build → test suite.
 
 ---
-
-## Demo ERP database
-
-`Connector.Erp` includes a self-contained SQLite ERP database seeded with a realistic scenario:
-
-```
-sc-rack-0001  SN-RACK-0001  Industrial Rack System    Active    → in scope (root)
-  sc-blade-0001  SN-BLD-0001  Compute Module MK2        Active    → in scope
-  sc-blade-0002  SN-BLD-0002  Compute Module MK2        InRepair  → in scope
-  sc-psu-0001    SN-PSU-0001  Power Supply 2400W        Active    → in scope
-  sc-psu-0002    SN-PSU-0002  Power Supply 2400W        Active    → EXCLUDED (no maintenance plan)
-  sc-sw-0001     SN-SW-0001   Managed Switch 24P        Active    → in scope
-sc-rack-0002  SN-RACK-0002  Industrial Rack System    Decommissioned → EXCLUDED (plan inactive)
-```
-
-Expected export record count: **5**. Each record carries `TechnicianName` (personal data) which is stripped by `DataMinimizer` before any file is written.
 
 ---
 

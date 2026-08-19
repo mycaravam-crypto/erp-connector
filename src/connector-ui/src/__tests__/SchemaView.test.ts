@@ -3,7 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import SchemaView from '@/views/SchemaView.vue'
 import * as connectionApi from '@/api/connection'
-import * as erpApi from '@/api/erp'
+import * as erpApi from '@/api/mapping'
 import type { SourceSchema } from '@/api/connection'
 
 function buildRouter() {

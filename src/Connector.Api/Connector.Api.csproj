@@ -2,8 +2,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Connector.Core\Connector.Core.csproj" />
     <ProjectReference Include="..\Connector.Infrastructure\Connector.Infrastructure.csproj" />
-    <ProjectReference Include="..\Connector.Erp\Connector.Erp.csproj" />
-    <ProjectReference Include="..\Connector.Export\Connector.Export.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -11,7 +11,7 @@ import {
   type MappingNestedGroup,
   type ExportJsonWrapperConfig,
   type ExportMappingConfig,
-} from '@/api/erp'
+} from '@/api/mapping'
 import PresetsToolbar from '@/components/PresetsToolbar.vue'
 import RelationsSection from '@/components/RelationsSection.vue'
 import ExportFormatPicker from '@/components/ExportFormatPicker.vue'
@@ -55,26 +55,33 @@ function buildMappingConfig(): ExportMappingConfig {
   }
 }
 
+// True when a config already carries JSON-only mapping options — used to default the
+// preview toggle so an existing nested-JSON mapping opens showing those options.
+function hasJsonOptions(cfg: { nestedGroups?: MappingNestedGroup[]; jsonWrapper: ExportJsonWrapperConfig | null }) {
+  return (cfg.nestedGroups ?? []).length > 0 || cfg.jsonWrapper !== null
+}
+
 function onApplyPreset(cfg: ExportMappingConfig) {
   fields.value = cfg.fields.map((f) => ({ ...f }))
   relations.value = cfg.relations.map(cloneRelation)
   nestedGroups.value = (cfg.nestedGroups ?? []).map(cloneNestedGroup)
   jsonWrapper.value = cloneWrapper(cfg.jsonWrapper)
+  if (hasJsonOptions(cfg)) previewFormat.value = 'json'
   snapshotToCache(cfg.sourceTable)
   selectedTable.value = cfg.sourceTable
   saved.value = false
   dirty.value = true
 }
 
-// ── Format ─────────────────────────────────────────────────────────────────────
-const FORMAT_KEY = 'connector_export_format'
-const selectedFormat = ref<'xlsx' | 'csv' | 'json'>(
-  (localStorage.getItem(FORMAT_KEY) as 'xlsx' | 'csv' | 'json') ?? 'xlsx',
-)
+// ── Format preview toggle ────────────────────────────────────────────────────
+// Purely local to this editor — picks which format-specific mapping options to show
+// (the JSON-only nested-group/envelope sections below). This does NOT set the actual
+// export format: that's chosen independently per run (Export view) or for the
+// schedule (Settings), each of which reads the saved mapping regardless of this toggle.
+const previewFormat = ref<'xlsx' | 'csv' | 'json'>('xlsx')
 
-function setFormat(fmt: 'xlsx' | 'csv' | 'json') {
-  selectedFormat.value = fmt
-  localStorage.setItem(FORMAT_KEY, fmt)
+function setPreviewFormat(fmt: 'xlsx' | 'csv' | 'json') {
+  previewFormat.value = fmt
 }
 
 // ── Computed helpers ───────────────────────────────────────────────────────────
@@ -315,6 +322,7 @@ async function load() {
       relations.value = existingMapping.relations.map(cloneRelation)
       nestedGroups.value = (existingMapping.nestedGroups ?? []).map(cloneNestedGroup)
       jsonWrapper.value = cloneWrapper(existingMapping.jsonWrapper)
+      if (hasJsonOptions(existingMapping)) previewFormat.value = 'json'
       // Seed the cache so switching away and back restores the saved state.
       snapshotToCache(existingMapping.sourceTable)
       selectedTable.value = existingMapping.sourceTable
@@ -398,16 +406,18 @@ onMounted(load)
         @dirty="markDirty"
       />
 
-      <!-- Format selection -->
+      <!-- Format preview toggle: which format-specific options to show below.
+           The actual export format is chosen per run (Export view) or for the
+           schedule (Settings) — not here. -->
       <ExportFormatPicker
         v-if="selectedTable"
-        :model-value="selectedFormat"
-        @update:model-value="setFormat"
+        :model-value="previewFormat"
+        @update:model-value="setPreviewFormat"
       />
 
       <!-- Nested JSON Structure (JSON export only) -->
       <NestedGroupsSection
-        v-if="selectedTable && selectedFormat === 'json'"
+        v-if="selectedTable && previewFormat === 'json'"
         :groups="nestedGroups"
         :available-tables="sourceSchema.tables"
         @add="addNestedGroup"
@@ -417,7 +427,7 @@ onMounted(load)
 
       <!-- JSON envelope / root wrapper (JSON export only) -->
       <JsonEnvelopeEditor
-        v-if="selectedTable && selectedFormat === 'json'"
+        v-if="selectedTable && previewFormat === 'json'"
         v-model="jsonWrapper"
         @dirty="markDirty"
       />

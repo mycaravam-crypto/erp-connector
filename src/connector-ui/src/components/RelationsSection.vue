@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { SourceColumn, SourceTable } from '@/api/connection'
-import type { MappingRelation } from '@/api/erp'
+import type { MappingRelation } from '@/api/mapping'
 import RelationCard from '@/components/RelationCard.vue'
 
 defineProps<{

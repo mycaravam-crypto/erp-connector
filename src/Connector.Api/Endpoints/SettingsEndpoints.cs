@@ -45,12 +45,14 @@ static class SettingsEndpoints
                         );
                     if (dto.RetentionDays < 1 || dto.RetentionDays > 3650)
                         return Results.BadRequest("RetentionDays must be between 1 and 3650.");
+                    if (dto.Format is not ("xlsx" or "csv" or "json"))
+                        return Results.BadRequest("Format must be one of: xlsx, csv, json.");
 
                     await db.SetSettingAsync(SettingsKeys.SchedulerConfig, dto);
                     await audit.LogAsync(
                         httpContext.User.Identity!.Name!,
                         "scheduler_updated",
-                        $"time={dto.ScheduledTimeUtc} retention={dto.RetentionDays}d"
+                        $"time={dto.ScheduledTimeUtc} retention={dto.RetentionDays}d format={dto.Format}"
                     );
                     return Results.Ok(dto);
                 }

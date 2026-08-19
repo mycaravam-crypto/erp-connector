@@ -7,6 +7,11 @@ tags: [domain, erp, raw-data, pii]
 timestamp: 2026-06-28T00:00:00Z
 ---
 
+> **⚠ Superseded (2.0).** This type was never wired into the live application and has been
+> removed from the codebase — the dynamic mapping reads rows as untyped SQL result sets,
+> not this fixed shape. See [DynamicExportService](/pipeline/dynamic-export-service.md).
+> This page is kept only as a record of the original design intent.
+
 A raw CI record produced by [IErpReader](/pipeline/erp-reader.md). Contains all fields
 from the ERP source including personal data. This type **never leaves the pipeline** — it
 is discarded in memory after [DataMinimizer](/pipeline/data-minimizer.md) processes it.

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { getPresets, savePreset, deletePreset, type ExportMappingConfig } from '@/api/erp'
+import { getPresets, savePreset, deletePreset, type ExportMappingConfig } from '@/api/mapping'
 
 const props = defineProps<{
   canSave: boolean

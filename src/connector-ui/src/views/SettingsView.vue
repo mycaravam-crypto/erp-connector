@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getSchedulerConfig, saveSchedulerConfig } from '@/api/scheduler'
-import { getGdprDeniedFields, saveGdprDeniedFields } from '@/api/audit'
+import {
+  getSchedulerConfig,
+  saveSchedulerConfig,
+  getGdprDeniedFields,
+  saveGdprDeniedFields,
+} from '@/api/scheduler'
 
 const loading = ref(true)
 const loadError = ref<string | null>(null)
 
 const scheduledTime = ref('06:00')
 const retentionDays = ref(30)
+const format = ref<'xlsx' | 'csv' | 'json'>('xlsx')
 
 const saving = ref(false)
 const saveStatus = ref<'idle' | 'ok' | 'error'>('idle')
@@ -25,6 +30,7 @@ onMounted(async () => {
     const [cfg, gdpr] = await Promise.all([getSchedulerConfig(), getGdprDeniedFields()])
     scheduledTime.value = cfg.scheduledTimeUtc
     retentionDays.value = cfg.retentionDays
+    format.value = cfg.format
     deniedFields.value = [...gdpr.fields]
   } catch {
     loadError.value = 'Could not load settings. Is the backend service running?'
@@ -41,6 +47,7 @@ async function save() {
     const result = await saveSchedulerConfig({
       scheduledTimeUtc: scheduledTime.value,
       retentionDays: retentionDays.value,
+      format: format.value,
     })
     if (result.ok) {
       saveStatus.value = 'ok'
@@ -138,6 +145,22 @@ async function saveGdpr() {
                 class="px-2.5 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white outline-none focus:outline-indigo-600 focus:outline-2 focus:border-transparent w-28"
               />
               <p class="text-xs text-slate-400 mt-0.5">1–3,650 days. Export runs and staging files older than this are deleted.</p>
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label for="scheduled-format" class="text-xs font-semibold text-slate-700">
+                Export format
+              </label>
+              <select
+                id="scheduled-format"
+                v-model="format"
+                class="px-2.5 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white outline-none focus:outline-indigo-600 focus:outline-2 focus:border-transparent w-28"
+              >
+                <option value="xlsx">Excel</option>
+                <option value="csv">CSV</option>
+                <option value="json">JSON</option>
+              </select>
+              <p class="text-xs text-slate-400 mt-0.5">Nested JSON groups in the mapping only apply when set to JSON.</p>
             </div>
           </div>
 

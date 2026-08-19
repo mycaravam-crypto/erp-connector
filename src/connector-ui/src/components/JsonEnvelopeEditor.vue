@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ExportJsonWrapperConfig } from '@/api/erp'
+import type { ExportJsonWrapperConfig } from '@/api/mapping'
 
 const wrapper = defineModel<ExportJsonWrapperConfig | null>({ required: true })
 const emit = defineEmits<{ dirty: [] }>()

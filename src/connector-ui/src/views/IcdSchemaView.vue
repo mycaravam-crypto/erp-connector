@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { getSchema, type SchemaColumnDef, type SchemaDefinition } from '@/api/erp'
+import { getSchema, type SchemaColumnDef, type SchemaDefinition } from '@/api/icdSchema'
 
 const schema = ref<SchemaDefinition | null>(null)
 const loading = ref(true)

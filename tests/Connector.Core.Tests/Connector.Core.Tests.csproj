@@ -20,6 +20,5 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Connector.Core\Connector.Core.csproj" />
-    <ProjectReference Include="..\..\src\Connector.Export\Connector.Export.csproj" />
   </ItemGroup>
 </Project>

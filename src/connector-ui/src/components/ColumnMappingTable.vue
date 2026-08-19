@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { SourceColumn } from '@/api/connection'
-import type { MappingField } from '@/api/erp'
+import type { MappingField } from '@/api/mapping'
 
 const props = defineProps<{
   fields: MappingField[]
