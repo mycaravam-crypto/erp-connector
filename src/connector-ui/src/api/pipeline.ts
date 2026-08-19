@@ -1,4 +1,4 @@
-import { getToken } from './auth'
+import { authHeaders } from './auth'
 
 export interface RunNowResult {
   sequenceNo: number
@@ -24,13 +24,6 @@ export interface PreviewResult {
   error?: string
   /** Populated instead of columns/records when source === "dynamic-nested" — arbitrary nested JSON shape. */
   nestedRecords?: unknown[]
-}
-
-function authHeaders(): Record<string, string> {
-  const token = getToken()
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (token) headers['Authorization'] = `Bearer ${token}`
-  return headers
 }
 
 export async function runNow(

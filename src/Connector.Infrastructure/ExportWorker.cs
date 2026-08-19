@@ -2,7 +2,6 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Connector.Core.Domain;
 using Connector.Core.DynamicExport;
-using Connector.Core.Interfaces;
 using Connector.Core.Schema;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +21,7 @@ namespace Connector.Infrastructure;
 /// </remarks>
 public sealed class ExportWorker(
     IServiceScopeFactory scopeFactory,
-    IExportSink sink,
+    FileSystemExportSink sink,
     IOptions<ExportWorkerOptions> options,
     IOptions<ExportSinkOptions> sinkOptions,
     ILogger<ExportWorker> logger

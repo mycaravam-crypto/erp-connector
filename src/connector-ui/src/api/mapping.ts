@@ -1,11 +1,4 @@
-import { getToken } from './auth'
-
-function authHeaders(): Record<string, string> {
-  const token = getToken()
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (token) headers['Authorization'] = `Bearer ${token}`
-  return headers
-}
+import { authHeaders } from './auth'
 
 // ── Dynamic export mapping ────────────────────────────────────────────────────
 
