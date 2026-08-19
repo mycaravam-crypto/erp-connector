@@ -1,7 +1,6 @@
 using System.Text;
 using Connector.Api;
 using Connector.Api.Endpoints;
-using Connector.Core.Interfaces;
 using Connector.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;

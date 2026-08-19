@@ -1,7 +1,7 @@
 const TOKEN_KEY = 'connector_token'
 const USER_KEY = 'connector_user'
 
-export function getToken(): string | null {
+function getToken(): string | null {
   return sessionStorage.getItem(TOKEN_KEY)
 }
 
