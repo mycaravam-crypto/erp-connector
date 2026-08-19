@@ -1,7 +1,7 @@
 const TOKEN_KEY = 'connector_token'
 const USER_KEY = 'connector_user'
 
-export function getToken(): string | null {
+function getToken(): string | null {
   return sessionStorage.getItem(TOKEN_KEY)
 }
 
@@ -11,6 +11,14 @@ export function getUsername(): string | null {
 
 export function isLoggedIn(): boolean {
   return !!sessionStorage.getItem(TOKEN_KEY)
+}
+
+/** Authorization header for the stored session token, or no headers if not logged in. */
+export function authHeaders(): Record<string, string> {
+  const token = getToken()
+  const headers: Record<string, string> = {}
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  return headers
 }
 
 function storeSession(token: string, username: string): void {

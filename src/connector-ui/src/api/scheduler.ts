@@ -1,16 +1,9 @@
-import { getToken } from './auth'
+import { authHeaders } from './auth'
 
 export interface SchedulerConfig {
   scheduledTimeUtc: string // HH:mm
   retentionDays: number
   format: 'xlsx' | 'csv' | 'json'
-}
-
-function authHeaders(): Record<string, string> {
-  const token = getToken()
-  const headers: Record<string, string> = {}
-  if (token) headers['Authorization'] = `Bearer ${token}`
-  return headers
 }
 
 export async function getSchedulerConfig(): Promise<SchedulerConfig> {

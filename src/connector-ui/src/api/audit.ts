@@ -1,4 +1,4 @@
-import { getToken } from './auth'
+import { authHeaders } from './auth'
 
 export interface AuditEntry {
   id: number
@@ -6,13 +6,6 @@ export interface AuditEntry {
   username: string
   action: string
   detail: string | null
-}
-
-function authHeaders(): Record<string, string> {
-  const token = getToken()
-  const headers: Record<string, string> = {}
-  if (token) headers['Authorization'] = `Bearer ${token}`
-  return headers
 }
 
 export async function getAuditLog(limit = 100): Promise<AuditEntry[]> {

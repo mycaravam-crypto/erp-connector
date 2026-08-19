@@ -1,7 +1,6 @@
 using System.Text;
 using Connector.Api;
 using Connector.Api.Endpoints;
-using Connector.Core.Interfaces;
 using Connector.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -72,7 +71,7 @@ if (allowedOrigins.Length > 0)
 
 builder.Services.Configure<ExportSinkOptions>(builder.Configuration.GetSection("ExportSink"));
 builder.Services.Configure<ExportWorkerOptions>(builder.Configuration.GetSection("ExportWorker"));
-builder.Services.AddSingleton<IExportSink, FileSystemExportSink>();
+builder.Services.AddSingleton<FileSystemExportSink>();
 
 builder.Services.AddDbContext<ExportLogDbContext>(opt =>
     opt.UseSqlite(builder.Configuration.GetConnectionString("ExportLog"))

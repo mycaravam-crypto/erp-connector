@@ -3,7 +3,6 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Connector.Core.Domain;
 using Connector.Core.DynamicExport;
-using Connector.Core.Interfaces;
 using Connector.Core.Schema;
 using Connector.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -20,7 +19,7 @@ static class PipelineEndpoints
                 async (
                     string? format,
                     ExportLogDbContext db,
-                    IExportSink sink,
+                    FileSystemExportSink sink,
                     ILogger<Program> logger,
                     AuditService audit,
                     HttpContext httpContext,
