@@ -9,16 +9,21 @@ export interface RunNowResult {
 export interface PreviewResult {
   recordCount: number
   schemaVersion: string
-  /** Ordered column names — same keys used in each record dictionary. */
+  /** Ordered column names — same keys used in each record dictionary. Empty for a nested mapping. */
   columns: string[]
-  /** Each record is a key→value map keyed by target column name. */
+  /** Each record is a key→value map keyed by target column name. Empty for a nested mapping. */
   records: Record<string, string>[]
-  /** "dynamic" = live Postgres via export_mapping; "error" = no mapping/connection configured or query failed. */
-  source: 'dynamic' | 'error'
-  /** Source table name when source is "dynamic" or "error". */
+  /**
+   * "dynamic" = flat mapping via live Postgres; "dynamic-nested" = mapping has nested JSON groups, see
+   * nestedRecords instead; "error" = no mapping/connection configured or query failed.
+   */
+  source: 'dynamic' | 'dynamic-nested' | 'error'
+  /** Source table name when source is "dynamic"/"dynamic-nested" or "error". */
   sourceTable?: string
   /** Set when source === "error" — describes what went wrong. */
   error?: string
+  /** Populated instead of columns/records when source === "dynamic-nested" — arbitrary nested JSON shape. */
+  nestedRecords?: unknown[]
 }
 
 function authHeaders(): Record<string, string> {

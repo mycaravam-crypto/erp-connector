@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
-  listErpRecords, getSchema, getExportMapping, saveExportMapping,
+  getExportMapping, saveExportMapping,
   getPresets, savePreset, deletePreset,
-} from '@/api/erp'
-import type { ExportMappingConfig } from '@/api/erp'
+} from '@/api/mapping'
+import type { ExportMappingConfig } from '@/api/mapping'
 
 function mockFetch(body: unknown, status = 200) {
   return vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
@@ -16,58 +16,6 @@ function mockFetch(body: unknown, status = 200) {
 
 beforeEach(() => vi.restoreAllMocks())
 
-describe('listErpRecords', () => {
-  it('fetches /api/erp/records and returns the result shape', async () => {
-    const record = {
-      id: 'sc-rack-0001', serial: 'SN-RACK-0001', status: 'Active',
-      commissionDate: '2023-03-01', articleName: 'Industrial Rack System',
-      partNumber: 'P-RACK-42U', manufacturer: 'TechCorp GmbH',
-      maintenancePlanStatus: 'Active', allocationChartRef: 'ALLOC-2023-V1',
-      parentId: null, parentSerial: null,
-      inScope: true, exclusionReason: null,
-      technicianName: 'Klaus Bauer', storageLocation: 'Halle A, Reihe 3',
-    }
-    const payload = { records: [record], total: 1 }
-    mockFetch(payload)
-    const result = await listErpRecords()
-    expect(result).toEqual(payload)
-    expect(fetch).toHaveBeenCalledWith('/api/erp/records', expect.any(Object))
-  })
-
-  it('appends ?limit=N when limit is provided', async () => {
-    mockFetch({ records: [], total: 0 })
-    await listErpRecords(100)
-    expect(fetch).toHaveBeenCalledWith('/api/erp/records?limit=100', expect.any(Object))
-  })
-
-  it('returns empty result on non-ok response', async () => {
-    mockFetch(null, 401)
-    const result = await listErpRecords()
-    expect(result).toEqual({ records: [], total: 0 })
-  })
-})
-
-describe('getSchema', () => {
-  it('fetches /api/schema and returns the definition', async () => {
-    const payload = {
-      version: '2.0',
-      columns: [
-        { name: 'guid', erpSource: 'systemconfiguration.id', type: 'UUID text', notes: 'Coalesce key', active: true },
-      ],
-    }
-    mockFetch(payload)
-    const result = await getSchema()
-    expect(result).toEqual(payload)
-    expect(fetch).toHaveBeenCalledWith('/api/schema', expect.any(Object))
-  })
-
-  it('returns null on non-ok response', async () => {
-    mockFetch(null, 401)
-    const result = await getSchema()
-    expect(result).toBeNull()
-  })
-})
-
 const PRESET_CONFIG: ExportMappingConfig = {
   sourceTable: 'parts',
   fields: [
@@ -75,6 +23,8 @@ const PRESET_CONFIG: ExportMappingConfig = {
     { sourceName: 'part_name', targetName: 'part_name', enabled: true },
   ],
   relations: [],
+  nestedGroups: [],
+  jsonWrapper: null,
 }
 
 describe('getExportMapping', () => {
@@ -82,6 +32,8 @@ describe('getExportMapping', () => {
     sourceTable: 'parts',
     fields: [{ sourceName: 'id', targetName: 'id', enabled: true }],
     relations: [],
+    nestedGroups: [],
+    jsonWrapper: null,
   }
 
   it('returns the mapping config on 200', async () => {
@@ -106,6 +58,8 @@ describe('saveExportMapping', () => {
       { sourceName: 'serial', targetName: 'serial', enabled: false },
     ],
     relations: [],
+    nestedGroups: [],
+    jsonWrapper: null,
   }
 
   it('returns { ok: true, data } on 200', async () => {

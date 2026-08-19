@@ -7,6 +7,13 @@ tags: [pipeline, stage-5, packaging, xlsx, sha256]
 timestamp: 2026-06-28T00:00:00Z
 ---
 
+> **⚠ Superseded (2.0).** `IPackager`/`ExcelPackager` were never wired into the live
+> application and have been removed from the codebase. Packaging is now
+> `DynamicExportService.BuildExcelBytes`/`BuildCsvBytes`/`BuildJsonBytes`/`BuildNestedJsonBytes`,
+> covering all three export formats plus the nested-JSON shape (not just Excel). See
+> [DynamicExportService](/pipeline/dynamic-export-service.md). This page is kept only as a
+> record of the original design intent.
+
 The fifth stage. Serializes [MappedExportRecord](/domain/mapped-export-record.md) records
 into an Excel `.xlsx` file and assembles an [ExportManifest](/domain/export-manifest.md)
 with SHA-256 checksum and sequence number.

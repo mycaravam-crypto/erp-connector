@@ -4,6 +4,20 @@
 > Supersedes the generic first draft of this document with a spec fitted to this repository's
 > actual architecture, so it can be estimated and built against directly rather than re-interpreted.
 
+> **Correction (Phase 13 / 2.0 simplification, same day):** §1 below describes the legacy fixed
+> CI pipeline (`Connector.Export`'s `Filter → Minimize → Map → Package` steps,
+> `ISchemaMapper`/`IDataMinimizer`/`IExportFilter`/`IPackager`/`IErpReader`) as correctness-critical
+> and untouched by 2.0. In fact, at the exact commit this document is grounded in, `Program.cs`
+> never registered any of those five interfaces in DI and no endpoint referenced them — the
+> pipeline had zero live traffic; only the dynamic-mapping path (`DynamicExportService`) was ever
+> reachable. A parallel simplification pass on this same day deleted that dead pipeline outright
+> (see `ROADMAP.md` Phase 13, `knowledge/pipeline/dynamic-export-service.md`) after verifying this
+> against the codebase directly. Nothing live was removed, and every requirement in this document
+> still applies unchanged to the dynamic-mapping path — but treat §1's framing of a protected
+> "System A→B legacy pipeline" as historical, not current. §2's table has been updated in place
+> where that pass also closed a listed gap or fixed a file-path error; other file paths in this
+> document reflect the codebase as of the original commit and may have moved since.
+
 ---
 
 ## 0. Engineering Directive (non-negotiable)
@@ -29,14 +43,18 @@ recursive service method — not by a plugin system, not by a rules DSL, not by 
 
 ## 1. Vision
 
-Today the connector does one job extremely well: a fixed CI (Configuration Item) schema, extracted
-daily from ERP, minimized for GDPR, and released to ServiceNow via a four-eyes, air-gapped staging
-folder. That pipeline (`Connector.Export`'s `Filter → Minimize → Map → Package` steps) is
-correctness-critical and **stays exactly as-is** — 2.0 does not touch it.
+Today the connector does one job extremely well: extract CIs (Configuration Items) from ERP,
+minimize for GDPR, and release to ServiceNow via a four-eyes, air-gapped staging folder — via a
+**dynamic, schema-introspecting export builder** (`DynamicExportService`, `SchemaView.vue`,
+Phase 8–12 of the roadmap). This is the part 2.0 grows. The four-eyes release, GDPR-denylist
+enforcement, audit log, and sequence-integrity checks around it are correctness-critical and
+**stay exactly as-is** — 2.0 does not touch them.
 
-Alongside it, a second, newer capability already exists: a **dynamic, schema-introspecting export
-builder** (`DynamicExportService`, `SchemaView.vue`, Phase 8–12 of the roadmap). This is the part
-2.0 grows. Today it supports *one* mapping (plus named presets) for *one* source table, with
+(An earlier, separately-designed fixed CI pipeline — `Connector.Export`'s
+`Filter → Minimize → Map → Package` steps — was never wired into the running application and has
+since been removed; see the Phase 13 correction above.)
+
+Today the dynamic mapping supports *one* mapping (plus named presets) for *one* source table, with
 relation-flattening for CSV/Excel and JSON-only nested groups. **2.0 turns this into what it was
 always heading toward**: any number of independently named, saved, scheduled export definitions,
 each rooted at any table, with unlimited nesting depth, available in every output format, each
@@ -44,8 +62,10 @@ with its own field-level transformation and its own schedule and run history.
 
 The two systems in the original brief map onto this codebase as:
 
-* **System A (master)** = the ERP Postgres database, read via the existing `IErpReader` /
-  schema-introspection path (`ConnectionEndpoints`, `IntrospectSchemaAsync`).
+* **System A (master)** = the ERP Postgres database, read via the existing schema-introspection
+  and direct-Npgsql query path (`ConnectionEndpoints`, `IntrospectSchemaAsync`,
+  `DynamicExportService`) — not via `IErpReader`, which belonged to the removed fixed pipeline
+  and was never used by the dynamic mapping.
 * **System B (slave)** = the existing staging-folder output contract (Excel / CSV / JSON +
   SHA-256 manifest). **2.0 does not add a live write-back connector to a second database** — see
   Non-Goals (§10). "Target field/path in System B" means the exported column name, JSON key path,
@@ -63,12 +83,12 @@ This section exists so 2.0 is scoped as a **delta**, not rewritten from a blank 
 | Field rename / exclude | `ExportMappingField(SourceName, TargetName, Enabled)` | `ExportMappingTypes.cs` |
 | Flat 1:N relation flattening (CSV/Excel) | `ExportMappingRelation` + `FlattenStrategy`/`Delimiter` | `ExportMappingTypes.cs`, `DynamicExportService` |
 | Arbitrary-depth nesting — **JSON only** | `ExportMappingNestedGroup` (self-referencing, `Kind: object\|array`) | `ExportMappingTypes.cs` |
-| Recursive tree-editor UI — **JSON only** | `NestedGroupEditor.vue` (self-referencing Vue component) | `src/Connector.Web` |
+| Recursive tree-editor UI — **JSON only** | `NestedGroupEditor.vue` (self-referencing Vue component) | `src/connector-ui/src/components/NestedGroupEditor.vue` |
 | Config persistence | One `ExportMappingConfig` blob + a `name → config` presets dictionary, stored as raw JSON in the `AppSettings` key/value table | `ExportMappingEndpoints.cs`, `ExportLogDbContext.cs` |
 | GDPR field denylist enforcement | Validated recursively at save time, at every nesting depth | `ExportMappingEndpoints.ValidateNestedGroups` |
-| Scheduling | **One** global daily time-of-day (`ExportWorker`, `SchedulerConfigData`) for the legacy fixed pipeline only | `ExportWorker.cs` |
-| Run history / traceability | `ExportRunEntity` — hardwired to the legacy CI pipeline's four-eyes/delivery fields (`ApprovedBy`, `DeliveredAt`, …) | `ExportRunEntity.cs` |
-| Preview | Exists for the flat/CSV path; **does not reflect nested-group mappings** (documented gap in `ROADMAP.md` Phase 12) | `PipelineEndpoints.cs` |
+| Scheduling | **One** global daily time-of-day + one global output format (`ExportWorker`, `SchedulerConfigData`) for the whole app — not per-export | `ExportWorker.cs` |
+| Run history / traceability | `ExportRunEntity` — hardwired to the four-eyes/delivery fields (`ApprovedBy`, `DeliveredAt`, …) required for CI/ServiceNow releases | `ExportRunEntity.cs` |
+| Preview | **Closed (Phase 13).** Preview, Run Now, and the scheduled worker now share one decision point (`DynamicExportService.BuildExportAsync`/`UsesNestedJson`) so preview reflects nested-group mappings too — was a documented gap in `ROADMAP.md` Phase 12, no longer current | `PipelineEndpoints.cs`, `DynamicExportService.cs` |
 | Value transformation, constants, null handling, type conversion | **Does not exist** | — |
 | Filters/conditions on rows | **Does not exist** | — |
 | Multiple independent, named, schedulable exports | **Does not exist** (presets are save-slots for one mapping shape, not first-class scheduled entities) | — |
@@ -81,7 +101,7 @@ This section exists so 2.0 is scoped as a **delta**, not rewritten from a blank 
 | 2.0 Requirement | Blocked by | Resolution direction |
 |---|---|---|
 | Arbitrary nesting in **every** output format | `NestedGroups` is JSON-only; CSV/Excel use the separate flat `Relations` shape | Unify `Fields` + `Relations` + `NestedGroups` into one recursive `ExportNode` tree (§4); each format's writer flattens or nests it as appropriate for that format |
-| Preview reflects the full nested structure | Preview endpoint uses the flat query path only | Preview and Run-Now both call the same recursive query builder — no second code path to drift out of sync |
+| ~~Preview reflects the full nested structure~~ | **Closed (Phase 13)** — was: Preview endpoint used the flat query path only | Preview, Run Now, and the scheduled worker now share one decision point (`BuildExportAsync`/`UsesNestedJson`); no remaining work here |
 | Field-level transformation (constants, null handling, type conversion) | Not modeled at all today | Add `FieldMapping.Transform` (§5) |
 | Row filters/conditions per node | Not modeled | Add `ExportNode.Filter` (§4) |
 | N independent, named, schedulable exports | Only one mapping + presets-as-save-slots exist | Promote export definitions to first-class DB rows (§4) instead of an `AppSettings` blob |
@@ -236,8 +256,11 @@ recursive component plus the existing schema-introspection panel.
   another accepts.
 * **ISP** — the tree-editor UI talks to a narrow `IExportNodeApi` (CRUD + validate + preview), not
   the full backend surface.
-* **DIP** — `DynamicExportService` depends on the existing `IErpReader`/connection abstraction, not
-  a concrete Postgres client, exactly as it does today.
+* **DIP** — *Correction: `DynamicExportService` today builds a concrete `NpgsqlConnection` directly
+  (`BuildConnectionString`), not behind an abstraction — `IErpReader` belonged to the removed fixed
+  pipeline and was never used here.* If per-export connection-source flexibility becomes a real
+  requirement, introduce a narrow connection-provider abstraction at that point; don't assume one
+  already exists.
 
 ---
 
@@ -246,9 +269,11 @@ recursive component plus the existing schema-introspection panel.
 * Every new type in `Connector.Core.DynamicExport` gets an XML-doc comment matching the existing
   style in `ExportMappingTypes.cs` — state *why*, not *what*.
 * A new `knowledge/dynamic-export/` bundle (mirroring the existing `knowledge/domain|schema|pipeline|processes/`
-  structure) documents: the `ExportNode` tree, the scheduler, and the run-history entity — so the
-  generic export engine is as documented as the legacy fixed pipeline already is.
-* `ROADMAP.md` gets a new "Phase 13 — Generic export definitions" entry on completion, continuing
+  structure) documents: the `ExportNode` tree, the scheduler, and the run-history entity — extending
+  `knowledge/pipeline/dynamic-export-service.md` (added in Phase 13), which is the current
+  documentation baseline to match, not the removed legacy pipeline.
+* `ROADMAP.md` gets a new "Phase 14 — Generic export definitions" entry on completion (Phase 13 is
+  already taken by the 2.0 simplification pass — see the correction above), continuing
   the existing changelog convention rather than starting a separate doc.
 
 ---

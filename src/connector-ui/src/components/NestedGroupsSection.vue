@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { SourceTable } from '@/api/connection'
-import type { MappingNestedGroup } from '@/api/erp'
+import type { MappingNestedGroup } from '@/api/mapping'
 import NestedGroupEditor from '@/components/NestedGroupEditor.vue'
 
 defineProps<{

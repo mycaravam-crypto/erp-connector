@@ -7,9 +7,18 @@ tags: [schema, icd, versioned, excel]
 timestamp: 2026-06-28T00:00:00Z
 ---
 
-Single source of truth for all column names, ordering, and filename patterns used in the
-Excel export. Implemented in `Connector.Core.Schema.ExportSchema`. Any column change
-without a corresponding version bump is caught by a unit test at build time.
+> **Status (2.0): read-only reference, decoupled from the live export.** This is the
+> originally negotiated ICD contract — surfaced verbatim at `GET /api/schema` and
+> `IcdSchemaView.vue` for operators to check against. It does **not** drive the actual
+> export query: that's the runtime-configurable dynamic mapping (`ExportMappingConfig`),
+> whose `TargetName`/`TargetKey` strings are admin-chosen and independent of the column
+> list below. See [DynamicExportService](/pipeline/dynamic-export-service.md). Keeping the
+> two in sync (or reconciling them into one model) is an operator/process concern, not a
+> code-enforced one — the mapping-save endpoint does not validate against this schema.
+
+Filename patterns used in the Excel export are still implemented in
+`Connector.Core.Schema.ExportSchema` and shared by every export format. The column list
+below is documentation only, not enforced against the live query at build time.
 
 # Version
 

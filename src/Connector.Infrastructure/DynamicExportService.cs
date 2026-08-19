@@ -63,6 +63,60 @@ public static class DynamicExportService
     public static string BuildConnectionString(ErpConnectionConfig cfg) =>
         $"Host={cfg.Host};Port={cfg.Port};Database={cfg.Database};Username={cfg.Username};Password={cfg.Password};SSL Mode=Prefer;Trust Server Certificate=true;Timeout=5;Command Timeout=10";
 
+    /// <summary>True when this format+config combination should use the nested-JSON query/build path
+    /// instead of the flat one — the single decision point shared by Run Now, Preview, and the scheduled
+    /// worker so the three callers can never disagree on which shape a mapping produces.</summary>
+    public static bool UsesNestedJson(ExportMappingConfig cfg, string format) =>
+        format == "json" && (cfg.NestedGroups is { Length: > 0 } || cfg.JsonWrapper is not null);
+
+    public readonly record struct ExportBuildResult(byte[] Bytes, int RecordCount, string Extension);
+
+    /// <summary>
+    /// Single execution+build path shared by Run Now and the scheduled ExportWorker: runs the
+    /// mapping-driven query (flat or nested-JSON, per <see cref="UsesNestedJson"/>) and serializes it to
+    /// the requested format. Previously each caller re-implemented this branch separately and only
+    /// Run Now's copy supported nested JSON — Preview and the nightly worker silently fell back to the
+    /// flat shape for a nested-group mapping.
+    /// </summary>
+    public static async Task<ExportBuildResult> BuildExportAsync(
+        NpgsqlConnection conn,
+        ExportMappingConfig cfg,
+        string format,
+        string schemaVersion,
+        DateTimeOffset extractedAt,
+        CancellationToken ct,
+        IReadOnlySet<string>? gdprDenylist = null
+    )
+    {
+        if (UsesNestedJson(cfg, format))
+        {
+            var nestedRecords = await ExecuteNestedJsonQueryAsync(conn, cfg, ct, gdprDenylist: gdprDenylist);
+            var nestedBytes = BuildNestedJsonBytes(nestedRecords, cfg.JsonWrapper, schemaVersion, extractedAt);
+            return new ExportBuildResult(nestedBytes, nestedRecords.Count, "json");
+        }
+
+        var cols = GetColumnNames(cfg);
+        var records = await ExecuteQueryAsync(conn, cfg, ct, gdprDenylist: gdprDenylist);
+        return format switch
+        {
+            "csv" => new ExportBuildResult(
+                BuildCsvBytes(records, cols, schemaVersion, extractedAt),
+                records.Count,
+                "csv"
+            ),
+            "json" => new ExportBuildResult(
+                BuildJsonBytes(records, schemaVersion, extractedAt),
+                records.Count,
+                "json"
+            ),
+            _ => new ExportBuildResult(
+                BuildExcelBytes(records, cols, schemaVersion, extractedAt),
+                records.Count,
+                "xlsx"
+            ),
+        };
+    }
+
     public static async Task<List<Dictionary<string, string>>> ExecuteQueryAsync(
         NpgsqlConnection conn,
         ExportMappingConfig cfg,

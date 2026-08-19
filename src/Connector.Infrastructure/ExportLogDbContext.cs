@@ -9,8 +9,6 @@ public static class SettingsKeys
     public const string ErpConnection = "erp_connection";
     public const string ExportMapping = "export_mapping";
     public const string ExportPresets = "export_presets";
-    public const string ActiveColumns = "active_columns";
-    public const string ColumnMappings = "column_mappings";
     public const string SchedulerConfig = "scheduler_config";
     public const string GdprDeniedFields = "gdpr_denied_fields";
 }

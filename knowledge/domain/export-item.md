@@ -7,6 +7,12 @@ tags: [domain, minimized, gdpr, boundary]
 timestamp: 2026-06-28T00:00:00Z
 ---
 
+> **⚠ Superseded (2.0).** This type was never wired into the live application and has been
+> removed from the codebase. GDPR minimization is enforced by a runtime-editable denylist,
+> not by field absence on a fixed type — see [GDPR Compliance](/processes/gdpr-compliance.md)
+> and [DynamicExportService](/pipeline/dynamic-export-service.md). This page is kept only
+> as a record of the original design intent.
+
 The result of [IDataMinimizer](/pipeline/data-minimizer.md) processing an
 [ErpConfigurationItem](/domain/erp-configuration-item.md). Contains exclusively fields
 that may be exported. The exclusion of personal data is enforced at the **type system level**:

@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { runNow, getPreview, type RunNowResult, type PreviewResult } from '@/api/pipeline'
-import { getExportMapping, type ExportMappingConfig } from '@/api/erp'
+import { getExportMapping, type ExportMappingConfig } from '@/api/mapping'
 import { listExports, type ExportSummary } from '@/api/exports'
 import ActiveMappingSummary from '@/components/ActiveMappingSummary.vue'
 import PreviewTable from '@/components/PreviewTable.vue'

@@ -7,6 +7,12 @@ tags: [pipeline, stage-1, erp, read-only, snapshot]
 timestamp: 2026-06-28T00:00:00Z
 ---
 
+> **⚠ Superseded (2.0).** `IErpReader`/`DemoErpReader` were never wired into the live
+> application and have been removed from the codebase. The connector now reads the ERP
+> source directly via Npgsql, driven by the runtime-configurable mapping — see
+> [DynamicExportService](/pipeline/dynamic-export-service.md). This page is kept only as a
+> record of the original design intent.
+
 The first stage of the export pipeline. Reads all maintainable CIs from the ERP source system.
 
 # Contract

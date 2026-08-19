@@ -1,60 +1,10 @@
 import { getToken } from './auth'
 
-export interface ErpCiRecord {
-  id: string
-  serial: string | null
-  status: string | null
-  commissionDate: string | null
-  articleName: string | null
-  partNumber: string | null
-  manufacturer: string | null
-  maintenancePlanStatus: string | null
-  allocationChartRef: string | null
-  parentId: string | null
-  parentSerial: string | null
-  inScope: boolean
-  exclusionReason: string | null
-  technicianName: string | null
-  storageLocation: string | null
-}
-
-export interface SchemaColumnDef {
-  name: string
-  erpSource: string
-  type: string
-  notes: string
-  active: boolean
-  exportName: string | null
-}
-
-export interface SchemaDefinition {
-  version: string
-  columns: SchemaColumnDef[]
-}
-
 function authHeaders(): Record<string, string> {
   const token = getToken()
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   return headers
-}
-
-export interface ErpRecordsResult {
-  records: ErpCiRecord[]
-  total: number
-}
-
-export async function listErpRecords(limit?: number): Promise<ErpRecordsResult> {
-  const url = limit !== undefined ? `/api/erp/records?limit=${limit}` : '/api/erp/records'
-  const res = await fetch(url, { headers: authHeaders() })
-  if (!res.ok) return { records: [], total: 0 }
-  return res.json() as Promise<ErpRecordsResult>
-}
-
-export async function getSchema(): Promise<SchemaDefinition | null> {
-  const res = await fetch('/api/schema', { headers: authHeaders() })
-  if (!res.ok) return null
-  return res.json() as Promise<SchemaDefinition>
 }
 
 // ── Dynamic export mapping ────────────────────────────────────────────────────

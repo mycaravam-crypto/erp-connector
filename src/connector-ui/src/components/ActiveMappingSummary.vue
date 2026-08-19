@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
-import type { ExportMappingConfig } from '@/api/erp'
+import type { ExportMappingConfig } from '@/api/mapping'
 
 const props = defineProps<{
   mapping: ExportMappingConfig | null

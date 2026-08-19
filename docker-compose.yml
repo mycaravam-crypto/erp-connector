@@ -16,7 +16,6 @@ services:
       Auth__Users__1__PasswordHash: "${AUTH_USER1_HASH}"
 
       ConnectionStrings__ExportLog: "Data Source=/data/db/export_log.db"
-      ConnectionStrings__DemoErp: "Data Source=/data/db/demo_erp.db"
       ExportSink__StagingPath: "/data/staging"
 
       AllowedHosts: "*"
