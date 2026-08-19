@@ -147,7 +147,7 @@ public sealed class ExportDefinitionMigratorTests : IAsyncDisposable
 
         await ExportDefinitionMigrator.MigrateLegacyMappingsAsync(_db);
 
-        var names = _db.ExportDefinitions.Select(d => d.Name).OrderBy(n => n).ToArray();
+        var names = await _db.ExportDefinitions.Select(d => d.Name).OrderBy(n => n).ToArrayAsync();
         Assert.Equal(["Preset A", "Preset B"], names);
     }
 
@@ -161,7 +161,7 @@ public sealed class ExportDefinitionMigratorTests : IAsyncDisposable
 
         await ExportDefinitionMigrator.MigrateLegacyMappingsAsync(_db);
 
-        var names = _db.ExportDefinitions.Select(d => d.Name).OrderBy(n => n).ToArray();
+        var names = await _db.ExportDefinitions.Select(d => d.Name).OrderBy(n => n).ToArrayAsync();
         Assert.Equal(["Legacy Export", "Preset A"], names);
     }
 
