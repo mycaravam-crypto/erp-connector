@@ -60,6 +60,13 @@ public sealed class ExportLogDbContext(DbContextOptions<ExportLogDbContext> opti
     /// <summary>Audit trail — one row per significant action performed by an authenticated user.</summary>
     public DbSet<AuditLogEntry> AuditLog => Set<AuditLogEntry>();
 
+    /// <summary>Phase 14 export definitions — the generic, tree-based replacement for the legacy
+    /// single mapping + presets.</summary>
+    public DbSet<ExportDefinitionEntity> ExportDefinitions => Set<ExportDefinitionEntity>();
+
+    /// <summary>Execution history for <see cref="ExportDefinitions"/> — one row per run.</summary>
+    public DbSet<ExportDefinitionRunEntity> ExportDefinitionRuns => Set<ExportDefinitionRunEntity>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ExportRunEntity>(e =>
@@ -81,6 +88,19 @@ public sealed class ExportLogDbContext(DbContextOptions<ExportLogDbContext> opti
             e.ToTable("AuditLog");
             e.HasKey(a => a.Id);
             e.HasIndex(a => a.Timestamp);
+        });
+
+        modelBuilder.Entity<ExportDefinitionEntity>(e =>
+        {
+            e.ToTable("ExportDefinition");
+            e.HasKey(d => d.Id);
+        });
+
+        modelBuilder.Entity<ExportDefinitionRunEntity>(e =>
+        {
+            e.ToTable("ExportDefinitionRun");
+            e.HasKey(r => r.Id);
+            e.HasIndex(r => r.ExportDefinitionId);
         });
     }
 }
