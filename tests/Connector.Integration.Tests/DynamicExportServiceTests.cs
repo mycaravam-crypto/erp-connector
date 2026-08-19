@@ -448,10 +448,7 @@ public sealed class DynamicExportServiceTests
     [Fact]
     public void UsesNestedJson_JsonFormatWithNestedGroups_IsTrue()
     {
-        var cfg = MakeConfig(fields: [], relations: []) with
-        {
-            NestedGroups = [MakeNestedGroup()],
-        };
+        var cfg = MakeConfig(fields: [], relations: []) with { NestedGroups = [MakeNestedGroup()] };
         Assert.True(DynamicExportService.UsesNestedJson(cfg, "json"));
     }
 
@@ -475,10 +472,7 @@ public sealed class DynamicExportServiceTests
     [Fact]
     public void UsesNestedJson_NonJsonFormat_IsFalseEvenWithNestedGroups()
     {
-        var cfg = MakeConfig(fields: [], relations: []) with
-        {
-            NestedGroups = [MakeNestedGroup()],
-        };
+        var cfg = MakeConfig(fields: [], relations: []) with { NestedGroups = [MakeNestedGroup()] };
         Assert.False(DynamicExportService.UsesNestedJson(cfg, "xlsx"));
         Assert.False(DynamicExportService.UsesNestedJson(cfg, "csv"));
     }
