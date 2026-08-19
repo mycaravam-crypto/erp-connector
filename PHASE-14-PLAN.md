@@ -265,15 +265,50 @@ Adopting the doc's own recommendations, since no stakeholder input contradicts t
 
 ## Handoff checklist for a new session
 
-- [ ] Slice 1 — data model + entities + migration + converter + tests
+- [x] Slice 1 — data model + entities + migration + converter + tests (written, **not yet verified —
+      this session had no `dotnet` SDK; see below**)
 - [ ] Slice 2 — query/format-writer engine + tests
 - [ ] Slice 3 — API endpoints + tests
 - [ ] Slice 4 — scheduler + tests
 - [ ] Slice 5 — frontend + tests + manual browser verification
 - [ ] Slice 6 — docs (`knowledge/dynamic-export/`, `ROADMAP.md` Phase 14 entry)
 
-None of the above are checked off yet. A new session should re-read this file, `REQUIREMENTS-2.0.md`,
-and `ROADMAP.md` before starting, then proceed slice by slice — each slice's own "Tests" bullet is
-the acceptance bar for marking it done. If a session has the `dotnet` SDK available, use it to
-actually run `dotnet ef migrations add`, `dotnet build`, and `dotnet test` rather than hand-writing
-and hoping, especially for Slice 1's migration file.
+A new session should re-read this file, `REQUIREMENTS-2.0.md`, and `ROADMAP.md` before starting,
+then proceed slice by slice — each slice's own "Tests" bullet is the acceptance bar for marking it
+done. If a session has the `dotnet` SDK available, use it to actually run `dotnet ef migrations add`,
+`dotnet build`, and `dotnet test` rather than hand-writing and hoping.
+
+### Slice 1 status (2026-08-19)
+
+Implemented, still SDK-unverified (per the environment constraint noted at the top of this file):
+- `src/Connector.Core/DynamicExport/ExportNode.cs` — `ExportNode`/`FieldMapping` records,
+  `ExportNodeKind`/`FieldTransform`/`FieldDataType` string-discriminator constants, `ExportNodeJson`
+  backfill normalizer (mirrors `ExportMappingJson`).
+- `src/Connector.Infrastructure/ExportDefinitionEntity.cs` — `ExportDefinitionEntity`,
+  `ExportDefinitionRunEntity`, `ExportDefinitionRunStatus`.
+- `ExportLogDbContext.cs` — two new `DbSet`s + `OnModelCreating` config (`ExportDefinitionRun` gets a
+  non-unique index on `ExportDefinitionId`, matching the plan; not unique like `IX_ExportRun_SequenceNo`
+  since a definition has many runs).
+- Hand-written migration `20260819120000_AddExportDefinitions` (+ `.Designer.cs`) and an updated
+  `ExportLogDbContextModelSnapshot.cs` — **needs a session with the SDK to run
+  `dotnet ef migrations add` and diff/replace these by hand-verifying the generated SQL matches.**
+- `ExportDefinitionMigrator.MigrateLegacyMappingsAsync`, wired into `Program.cs` right after the
+  existing `BootstrapMigrationsAsync`/`MigrateAsync`/AuditLog-bootstrap block. Idempotency guard is
+  "any `ExportDefinitionEntity` row already exists". Picks a default `OutputFormat` from the existing
+  `scheduler_config` AppSetting (`SchedulerConfigData.Format`, defaulting `"xlsx"` like `ExportWorker`
+  already does), except a config with an enabled `NestedGroups` entry migrates as `"json"` (nesting only
+  ever rendered via the legacy JSON path). Legacy relation `FlattenStrategy`/`Delimiter` is **not**
+  preserved — a relation converts to a plain `"array"` node with one scalar-field child per relation
+  field; per-relation flatten strategy has no equivalent in the tree model since Phase 14's format
+  writers are meant to flatten arbitrary-depth nesting generically (Slice 2). Migrated definitions are
+  written with `IsEnabled = false` so nothing starts running on a schedule automatically.
+- Tests: `tests/Connector.Core.Tests/ExportNodeTests.cs`,
+  `tests/Connector.Integration.Tests/ExportDefinitionMigratorTests.cs` (in-memory SQLite
+  `ExportLogDbContext`, no external fixture needed — covers empty state, single-mapping conversion incl.
+  the 3-level nested fixture, presets-as-separate-definitions, mapping+presets together, idempotency,
+  and the scheduler-config format default).
+
+**Before starting Slice 2**, a session with the `dotnet` SDK should run `dotnet build`, `dotnet test`,
+and `dotnet csharpier check .` against this branch and fix whatever the SDK-less write-up got wrong —
+treat Slice 1 as "needs a CI/local round-trip before trusting it," per the environment-constraint note
+at the top of this file.

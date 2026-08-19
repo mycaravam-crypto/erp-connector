@@ -145,6 +145,10 @@ using (var scope = app.Services.CreateScope())
     await exportLogDb.Database.ExecuteSqlRawAsync(
         """CREATE INDEX IF NOT EXISTS "IX_AuditLog_Timestamp" ON "AuditLog" ("Timestamp")"""
     );
+
+    // Phase 14: one-time conversion of the legacy single mapping + presets into ExportDefinition rows.
+    // No-ops once any ExportDefinition row exists.
+    await ExportDefinitionMigrator.MigrateLegacyMappingsAsync(exportLogDb);
 }
 
 // ── User store ────────────────────────────────────────────────────────────────
