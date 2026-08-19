@@ -2,6 +2,10 @@
 
 Last updated: 2026-08-19
 
+Planned next: [`REQUIREMENTS-2.0.md`](REQUIREMENTS-2.0.md) — generic, tree-based multi-export
+definitions (Phase 14, not yet started). It was drafted in parallel with Phase 13 below and has a
+correction note at its top reconciling the two.
+
 ---
 
 ## Phase 13 — 2.0: simplification after the exploration phase ✅

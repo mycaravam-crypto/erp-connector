@@ -4,6 +4,8 @@ A self-contained .NET 9 + Vue 3 application that extracts warranty-relevant Conf
 
 **Stack:** .NET 9 · ASP.NET Core Minimal API · EF Core 9 · SQLite · ClosedXML · Vue 3 · TypeScript · Tailwind CSS · Serilog
 
+See [`ROADMAP.md`](ROADMAP.md) for what's shipped and [`REQUIREMENTS-2.0.md`](REQUIREMENTS-2.0.md) for what's planned next (generic, multi-export definitions).
+
 ---
 
 ## What it does
