@@ -39,8 +39,10 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-# Claude Code local state (worktrees, settings, memory)
-.claude/
+# Claude Code local state (worktrees, settings, memory) — except the
+# team-wide project config, which is intentionally tracked.
+.claude/*
+!.claude/settings.json
 
 # Internal development log (session notes — not for public distribution)
 knowledge/log.md
