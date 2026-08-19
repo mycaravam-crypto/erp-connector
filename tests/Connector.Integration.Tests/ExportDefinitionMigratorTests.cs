@@ -154,7 +154,8 @@ public sealed class ExportDefinitionMigratorTests : IAsyncDisposable
     [Fact]
     public async Task MigrateLegacyMappingsAsync_MappingAndPresetsBothPresent_ProducesOneDefinitionEach()
     {
-        const string presetsJson = """{ "Preset A": { "SourceTable": "systemconfiguration", "Fields": [], "Relations": [] } }""";
+        const string presetsJson =
+            """{ "Preset A": { "SourceTable": "systemconfiguration", "Fields": [], "Relations": [] } }""";
         await SeedSettingAsync(SettingsKeys.ExportMapping, LegacyMappingJson);
         await SeedSettingAsync(SettingsKeys.ExportPresets, presetsJson);
 
