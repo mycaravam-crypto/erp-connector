@@ -265,9 +265,11 @@ Adopting the doc's own recommendations, since no stakeholder input contradicts t
 
 ## Handoff checklist for a new session
 
-- [x] Slice 1 — data model + entities + migration + converter + tests (written, **not yet verified —
-      this session had no `dotnet` SDK; see below**)
-- [ ] Slice 2 — query/format-writer engine + tests
+- [x] Slice 1 — data model + entities + migration + converter + tests (**SDK-verified**, see status
+      note below: build/test/csharpier clean, migration cross-checked against a freshly-generated
+      `dotnet ef migrations add`)
+- [x] Slice 2 — query/format-writer engine + tests (**SDK- and Postgres-verified**, see status note
+      below)
 - [ ] Slice 3 — API endpoints + tests
 - [ ] Slice 4 — scheduler + tests
 - [ ] Slice 5 — frontend + tests + manual browser verification
@@ -312,3 +314,92 @@ Implemented, still SDK-unverified (per the environment constraint noted at the t
 and `dotnet csharpier check .` against this branch and fix whatever the SDK-less write-up got wrong —
 treat Slice 1 as "needs a CI/local round-trip before trusting it," per the environment-constraint note
 at the top of this file.
+
+### Slice 1 SDK verification (2026-08-19, later session)
+
+This session had the `dotnet` SDK available (installed `dotnet-sdk-10.0` via apt; net9.0 apps run under
+it with `DOTNET_ROLL_FORWARD=LatestMajor` since no net9.0 runtime package exists in this environment).
+Verified:
+- `dotnet build Connector.sln -c Release` — clean, 0 warnings/errors.
+- `dotnet test` (all non-Postgres-integration tests — no Docker daemon available here) — 50/50 passed
+  (18 `Connector.Core.Tests`, 32 `Connector.Integration.Tests`).
+- `dotnet csharpier check .` — clean, 42 files.
+- Hand-written migration `20260819120000_AddExportDefinitions` verified against a freshly-generated
+  `dotnet ef migrations add` run in a scratch worktree reset to pre-Slice-1: identical table/column/
+  index shape (`ExportDefinition`, `ExportDefinitionRun`, `IX_ExportDefinitionRun_ExportDefinitionId`),
+  only cosmetic differences (file-scoped namespace/csharpier formatting from the hand-written version
+  vs. the tool's block-namespace default). `ExportLogDbContextModelSnapshot.cs` diffed the same way —
+  semantically identical. Slice 1 is now trusted; proceeding to Slice 2.
+
+### Slice 2 status (2026-08-19, same session)
+
+Implemented and fully verified against a real Postgres instance (installed the `postgresql` apt package
+directly and loaded `testdb/init.sql` by hand, since the Docker daemon isn't available in this sandbox
+either — every `ExportNodeQueryPostgresTests` fact ran for real, not the "no-op without a live DB" path):
+
+- **`src/Connector.Infrastructure/DynamicExportService.cs`** — extended in place (per the plan's "prefer
+  widening an existing type" guidance) with an "ExportNode tree engine" region:
+  - `BuildExportNodeExpr`/`ExecuteExportNodeQueryAsync`: the `ExportNode` counterpart of
+    `BuildNestedGroupExpr`/`ExecuteNestedJsonQueryAsync`, generalized to also emit
+    `ExportNodeKind.ScalarField` children as plain columns (not just further object/array nesting) and
+    to scope each node's own `Filter` fragment to its own subquery (root's `Filter` becomes the outer
+    query's `WHERE`). Reuses `QI`/`SqlLit`/`MaxNestedDepth`/`StripGdprFieldsRecursive` unchanged.
+  - **Design deviation from the plan's literal wording**: scalar columns are always read as SQL `::text`
+    (same as the legacy flat path), not cast per `FieldMapping.DataType` (`::numeric`/`::boolean`) as the
+    plan suggested. Reasoning: a DB-side numeric cast fails the *entire query* on one bad row; doing
+    `DataType` coercion in C# (`ApplyExportNodeMappingsRecursive`/`CoerceToDataType`, `TryParse`-based)
+    degrades that one field to a best-effort string instead. Documented inline at both call sites.
+  - `ApplyExportNodeMappingsRecursive`/`ApplyFieldMapping`/`FormatDateValue`/`CoerceToDataType`: applies
+    each scalar field's transform (`uppercase`/`lowercase`/`trim`/`dateFormat`/`constant`) and
+    `DefaultValue` null-fallback at read time, walking the parsed JSON tree in lockstep with the
+    `ExportNode` tree that produced it. Made **public** (deviating from `BuildNestedGroupExpr`'s
+    private-only precedent) specifically so transform behavior is unit-testable against a hand-built tree
+    without a live DB — matches this class's existing convention of public pure-C# post-processing
+    methods (`BuildCsvBytes` etc.).
+  - `GetExportNodeColumnNames`/`CollectColumnPaths`: dot-path column names for CSV/Excel headers, walking
+    the tree once (not the query results).
+  - `FlattenExportNodeRecord`/`CollectValuesAtPath`: flattens one query-result row to the
+    `Dictionary<string,string>` shape `BuildCsvBytes`/`BuildExcelBytes` already consume. Array-path values
+    join with `", "` — the one generic flattening rule for every tree, since (per the Slice 1 status note)
+    Phase 14 has no per-relation `FlattenStrategy`/`Delimiter` equivalent.
+  - `BuildExportNodeAsync`: the `ExportNode` counterpart of `BuildExportAsync` — one query
+    (`ExecuteExportNodeQueryAsync`) regardless of format, then dispatches to `IExportFormatWriter`. There
+    is deliberately no `ExportNode` equivalent of `UsesNestedJson`: every tree is queried identically;
+    only the *writer* varies by format, which is the actual OCP seam.
+- **`src/Connector.Infrastructure/ExportFormatWriters.cs`** (new) — `IExportFormatWriter` interface plus
+  `CsvExportFormatWriter`/`ExcelExportFormatWriter`/`JsonExportFormatWriter` (REQUIREMENTS-2.0.md §8 OCP/
+  LSP: every implementation accepts the same tree-shaped records) and `ExportFormatWriterFactory` (a
+  static lookup table, matching this codebase's existing static-dispatch style rather than introducing
+  DI registration for three stateless classes).
+- **Tests**:
+  - `tests/Connector.Integration.Tests/ExportNodeEngineTests.cs` (new, pure C#, no DB): column-path
+    derivation, arbitrary-depth flattening (object/array/empty-array/missing-path), all 5 transform kinds
+    plus `DefaultValue`/`Number`/`Boolean` coercion (including a malformed-number fallback case), transform
+    application at nested depth (inside an object and inside array elements), the format-writer factory,
+    and a depth-guard test that intentionally needs no live connection (the guard fires while building SQL
+    text, before the connection is ever touched).
+  - `tests/Connector.Integration.Tests/ExportNodeQueryPostgresTests.cs` (new, real-DB, no-ops without the
+    fixture per this repo's existing convention): scalar-at-root, object-kind nesting, array-kind nesting,
+    the 3-level `masterdata → manufacturer → addresses` walkthrough from the plan's end-to-end
+    verification, zero-matching-rows empty-array-not-null, disabled-node/field exclusion, GDPR stripping
+    at nested depth, `Filter` scoping (both a nested-node filter and a root filter), and CSV/Excel format
+    output for the 3-level tree.
+  - Found and fixed one real test bug during Postgres verification (not a product bug): a fabricated
+    "Dallas" address that isn't in `testdb/init.sql` (the actual seed data is San Jose + Austin) — caught
+    immediately because the CSV test failed against the real fixture instead of silently no-op'ing.
+- **Verification performed this session** (all via apt-installed `dotnet-sdk-10.0` +
+  `DOTNET_ROLL_FORWARD=LatestMajor`, and an apt-installed local `postgresql` server standing in for the
+  Docker-based `testdb` fixture since Docker itself isn't available in this sandbox):
+  `dotnet build Connector.sln -c Release` clean (0 warnings/errors), `dotnet test` **98/98 passed**
+  (18 `Connector.Core.Tests` + 80 `Connector.Integration.Tests`, all real-DB Postgres tests included and
+  actually exercised, not skipped), `dotnet csharpier check .` clean after one `csharpier format .` pass
+  to fix this session's own new-file formatting.
+
+**Before starting Slice 3**: no outstanding verification debt from Slice 2 — build/test/format are all
+green against a real database. Slice 3 (API endpoints) can build directly on `BuildExportNodeAsync`/
+`ExecuteExportNodeQueryAsync`/`GetExportNodeColumnNames` as its Preview/Run-Now/Test entry points, and on
+`ExportFormatWriterFactory` if it needs to resolve a format writer directly (e.g. for a `Content-Type`
+header). The validator slice still needs its own identifier-safety regex pass over `ExportNode.Filter`/
+`SourceField`/`RelatedTable`/`JoinKey`/`SourceJoinKey` before any of this reaches user-supplied trees in
+production — the query engine itself does not validate identifiers (same trust boundary as the legacy
+`DynamicExportService`, which relies on `ExportMappingEndpoints`' save-time validation).
