@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { SourceColumn, SourceTable } from '@/api/connection'
 import type { MappingNestedGroup, MappingNestedField } from '@/api/mapping'
 
@@ -22,6 +22,10 @@ const emit = defineEmits<{
 // Mirrors DynamicExportService.MaxNestedDepth on the backend — keeps the UI from ever building
 // something the save endpoint would reject.
 const MAX_NESTED_DEPTH = 16
+
+// Initial open/collapsed state only — a plain ref (not a computed tracking group.relatedTable)
+// so picking a related table doesn't yank the form shut out from under whoever's mid-edit.
+const detailsOpen = ref(!props.group.relatedTable)
 
 function columnsForTable(tableName: string): SourceColumn[] {
   return props.availableTables.find((t) => t.name === tableName)?.columns ?? []
@@ -89,7 +93,7 @@ const summary = computed(() => {
       <input type="checkbox" v-model="group.enabled" class="cursor-pointer w-4 h-4" @change="emit('dirty')" />
     </div>
 
-    <details class="flex-1" :open="!group.relatedTable">
+    <details class="flex-1" :open="detailsOpen">
       <summary class="cursor-pointer select-none text-sm text-slate-700">{{ summary }}</summary>
       <div class="flex flex-col gap-2 mt-2">
         <div class="flex gap-2.5 flex-wrap">

@@ -4,6 +4,7 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import SchemaView from '@/views/SchemaView.vue'
 import * as connectionApi from '@/api/connection'
 import * as erpApi from '@/api/mapping'
+import * as pipelineApi from '@/api/pipeline'
 import type { SourceSchema } from '@/api/connection'
 
 function buildRouter() {
@@ -59,6 +60,13 @@ beforeEach(() => {
   vi.spyOn(erpApi, 'getPresets').mockResolvedValue({})
   vi.spyOn(erpApi, 'savePreset').mockResolvedValue({ ok: true })
   vi.spyOn(erpApi, 'deletePreset').mockResolvedValue({ ok: true })
+  vi.spyOn(pipelineApi, 'getPreview').mockResolvedValue({
+    recordCount: 0,
+    schemaVersion: '1',
+    columns: [],
+    records: [],
+    source: 'dynamic',
+  })
 })
 
 describe('SchemaView', () => {
@@ -330,6 +338,50 @@ describe('SchemaView', () => {
     expect(w.find('.save-ok').exists()).toBe(true)
   })
 
+  it('refreshes the live preview after a successful save', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    vi.spyOn(erpApi, 'saveExportMapping').mockResolvedValue({ ok: true })
+    const previewSpy = vi.spyOn(pipelineApi, 'getPreview').mockResolvedValue({
+      recordCount: 0,
+      schemaVersion: '1',
+      columns: [],
+      records: [],
+      source: 'dynamic',
+    })
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+    previewSpy.mockClear()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+    await w.find('.btn-save').trigger('click')
+    await flushPromises()
+
+    expect(previewSpy).toHaveBeenCalledOnce()
+  })
+
+  it('warns that Related Table Joins are dropped once a nested group is configured for JSON', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+
+    // A relation alone (no nested groups/wrapper) is unaffected — no warning yet.
+    await w.find('.add-btn').trigger('click')
+    await w.find('.relation-card select').setValue('masterdata')
+    await w.vm.$nextTick()
+    expect(w.text()).not.toContain('Related Table Joins are ignored')
+
+    // Adding a nested group pushes this mapping onto the nested-JSON path, which silently
+    // drops Relations server-side — the warning should now appear.
+    await w.find('.add-nested-group-btn').trigger('click')
+    await w.vm.$nextTick()
+
+    expect(w.text()).toContain('Related Table Joins are ignored')
+  })
+
   it('shows save-error when backend rejects the mapping', async () => {
     vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
     vi.spyOn(erpApi, 'saveExportMapping').mockResolvedValue({ ok: false, error: 'Bad request' })
@@ -394,6 +446,21 @@ describe('SchemaView', () => {
     const inputs = w.findAll('input.export-as-input')
     const values = inputs.map((i) => (i.element as HTMLInputElement).value)
     expect(values).toContain('u_cmdb_guid')
+  })
+
+  it('does not mark the page dirty just from restoring an already-saved mapping on load', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    vi.spyOn(erpApi, 'getExportMapping').mockResolvedValueOnce({
+      sourceTable: 'systemconfiguration',
+      fields: [{ sourceName: 'id', targetName: 'id', enabled: true }],
+      relations: [],
+    })
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    // Restoring the saved mapping populates the form but isn't itself an edit — the stale-preview
+    // hint (only shown while dirty) must not appear on a page nobody has touched yet.
+    expect(w.text()).not.toContain('Showing the last saved mapping')
   })
 
   // ── Preset tests ───────────────────────────────────────────────────────────
