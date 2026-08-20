@@ -224,7 +224,7 @@ describe('SchemaView', () => {
     await card.find('select').setValue('masterdata')
     await w.vm.$nextTick()
 
-    const rows = card.findAll('.rel-fields-table tbody tr')
+    const rows = card.findAll('.field-picker-table tbody tr')
     expect(rows).toHaveLength(2) // masterdata: id, article_name
     rows.forEach((row) => {
       expect((row.find('input[type="checkbox"]').element as HTMLInputElement).checked).toBe(false)
@@ -244,12 +244,12 @@ describe('SchemaView', () => {
     await card.find('select').setValue('masterdata')
     await w.vm.$nextTick()
 
-    await card.find('.rel-select-all-btn').trigger('click')
-    let checkboxes = card.findAll('.rel-fields-table input[type="checkbox"]')
+    await card.find('.field-picker-select-all-btn').trigger('click')
+    let checkboxes = card.findAll('.field-picker-table input[type="checkbox"]')
     expect(checkboxes.every((cb) => (cb.element as HTMLInputElement).checked)).toBe(true)
 
-    await card.find('.rel-deselect-all-btn').trigger('click')
-    checkboxes = card.findAll('.rel-fields-table input[type="checkbox"]')
+    await card.find('.field-picker-deselect-all-btn').trigger('click')
+    checkboxes = card.findAll('.field-picker-table input[type="checkbox"]')
     expect(checkboxes.every((cb) => !(cb.element as HTMLInputElement).checked)).toBe(true)
   })
 
@@ -266,7 +266,7 @@ describe('SchemaView', () => {
     await card.find('select').setValue('masterdata')
     await w.vm.$nextTick()
 
-    const input = card.find('.rel-field-export-as-input')
+    const input = card.find('.field-picker-target-input')
     await input.setValue('article_display_name')
     expect((input.element as HTMLInputElement).value).toBe('article_display_name')
   })
@@ -283,11 +283,11 @@ describe('SchemaView', () => {
     const card = w.find('.relation-card')
     await card.find('select').setValue('masterdata')
     await w.vm.$nextTick()
-    expect(card.findAll('.rel-fields-table tbody tr')).toHaveLength(2) // masterdata columns
+    expect(card.findAll('.field-picker-table tbody tr')).toHaveLength(2) // masterdata columns
 
     await card.find('select').setValue('maintenance_plan')
     await w.vm.$nextTick()
-    expect(card.findAll('.rel-fields-table tbody tr')).toHaveLength(3) // maintenance_plan columns
+    expect(card.findAll('.field-picker-table tbody tr')).toHaveLength(3) // maintenance_plan columns
   })
 
   it('shows format buttons', async () => {

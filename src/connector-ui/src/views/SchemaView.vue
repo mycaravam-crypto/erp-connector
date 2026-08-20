@@ -14,12 +14,11 @@ import {
 } from '@/api/mapping'
 import { getPreview, type PreviewResult } from '@/api/pipeline'
 import PresetsToolbar from '@/components/PresetsToolbar.vue'
-import RelationsSection from '@/components/RelationsSection.vue'
 import ExportFormatPicker from '@/components/ExportFormatPicker.vue'
 import ColumnMappingTable from '@/components/ColumnMappingTable.vue'
-import JsonEnvelopeEditor from '@/components/JsonEnvelopeEditor.vue'
-import SuggestedRelations, { type SuggestedRelation } from '@/components/SuggestedRelations.vue'
-import NestedGroupsSection from '@/components/NestedGroupsSection.vue'
+import RelatedJoinsPanel from '@/components/RelatedJoinsPanel.vue'
+import JsonExportOptionsPanel from '@/components/JsonExportOptionsPanel.vue'
+import { type SuggestedRelation } from '@/components/SuggestedRelations.vue'
 import PreviewTable from '@/components/PreviewTable.vue'
 
 const router = useRouter()
@@ -448,82 +447,61 @@ onMounted(load)
         </p>
       </div>
 
-      <!-- Column mapping -->
-      <ColumnMappingTable
-        v-if="selectedTable"
-        :fields="fields"
-        :column-map="selectedTableColumnMap"
-        @dirty="markDirty"
-      />
+      <!-- Everything below depends on a primary table being selected first. -->
+      <template v-if="selectedTable">
+        <!-- Column mapping -->
+        <ColumnMappingTable
+          :fields="fields"
+          :column-map="selectedTableColumnMap"
+          @dirty="markDirty"
+        />
 
-      <!-- Relations (optional) — collapsed unless already configured or a join was detected -->
-      <details v-if="selectedTable" class="mb-7" :open="relations.length > 0 || suggestedRelations.length > 0">
-        <summary class="cursor-pointer select-none text-base font-semibold text-slate-900">
-          Related Table Joins <span class="text-xs font-normal text-slate-400">(optional)</span>
-        </summary>
-        <div class="mt-3">
-          <SuggestedRelations
-            :suggestions="suggestedRelations"
-            :selected-table-name="selectedTable"
-            @add="addSuggestedRelation"
-          />
-          <RelationsSection
-            :relations="relations"
-            :relatable-tables="relatableTables"
-            :selected-table-columns="selectedTableColumns"
-            @add="addRelation"
-            @remove="removeRelation"
-            @dirty="markDirty"
-          />
+        <!-- Relations (optional) -->
+        <RelatedJoinsPanel
+          :relations="relations"
+          :relatable-tables="relatableTables"
+          :selected-table-columns="selectedTableColumns"
+          :selected-table-name="selectedTable"
+          :suggestions="suggestedRelations"
+          @add-suggested="addSuggestedRelation"
+          @add="addRelation"
+          @remove="removeRelation"
+          @dirty="markDirty"
+        />
+
+        <!-- Format preview toggle: which format-specific options to show below.
+             The actual export format is chosen per run (Export view) or for the
+             schedule (Settings) — not here. -->
+        <ExportFormatPicker :model-value="previewFormat" @update:model-value="setPreviewFormat" />
+
+        <!-- Silent data-loss warning: relations don't carry over into nested JSON output. -->
+        <div
+          v-if="relationsDroppedForJson"
+          class="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 mb-7 leading-relaxed"
+        >
+          <strong>Heads up:</strong> for JSON export, Related Table Joins are ignored once Nested JSON Structure
+          or a custom envelope is used — that data won't appear in the file. Pull it in as a <strong>Nested Group</strong> instead.
         </div>
-      </details>
 
-      <!-- Format preview toggle: which format-specific options to show below.
-           The actual export format is chosen per run (Export view) or for the
-           schedule (Settings) — not here. -->
-      <ExportFormatPicker
-        v-if="selectedTable"
-        :model-value="previewFormat"
-        @update:model-value="setPreviewFormat"
-      />
+        <!-- JSON-only options (optional) -->
+        <JsonExportOptionsPanel
+          v-if="previewFormat === 'json'"
+          :nested-groups="nestedGroups"
+          :available-tables="sourceSchema.tables"
+          v-model:json-wrapper="jsonWrapper"
+          @add="addNestedGroup"
+          @remove="removeNestedGroup"
+          @dirty="markDirty"
+        />
 
-      <!-- Silent data-loss warning: relations don't carry over into nested JSON output. -->
-      <div
-        v-if="relationsDroppedForJson"
-        class="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 mb-7 leading-relaxed"
-      >
-        <strong>Heads up:</strong> for JSON export, Related Table Joins are ignored once Nested JSON Structure
-        or a custom envelope is used — that data won't appear in the file. Pull it in as a <strong>Nested Group</strong> instead.
-      </div>
-
-      <!-- JSON-only options (optional) — collapsed unless already configured -->
-      <details
-        v-if="selectedTable && previewFormat === 'json'"
-        class="mb-7"
-        :open="nestedGroups.length > 0 || jsonWrapper !== null"
-      >
-        <summary class="cursor-pointer select-none text-base font-semibold text-slate-900">
-          JSON Export Options <span class="text-xs font-normal text-slate-400">(optional)</span>
-        </summary>
-        <div class="mt-3">
-          <NestedGroupsSection
-            :groups="nestedGroups"
-            :available-tables="sourceSchema.tables"
-            @add="addNestedGroup"
-            @remove="removeNestedGroup"
-            @dirty="markDirty"
-          />
-          <JsonEnvelopeEditor v-model="jsonWrapper" @dirty="markDirty" />
+        <!-- Live preview of the last saved mapping — same query the real export runs. -->
+        <div class="mb-2">
+          <p v-if="dirty && preview" class="text-xs text-amber-700 mt-0 mb-2">
+            Showing the last saved mapping — Save Mapping to preview your latest edits.
+          </p>
+          <PreviewTable :preview="preview" :loading="previewLoading" :error="previewError" @refresh="loadPreview" />
         </div>
-      </details>
-
-      <!-- Live preview of the last saved mapping — same query the real export runs. -->
-      <div v-if="selectedTable" class="mb-2">
-        <p v-if="dirty && preview" class="text-xs text-amber-700 mt-0 mb-2">
-          Showing the last saved mapping — Save Mapping to preview your latest edits.
-        </p>
-        <PreviewTable :preview="preview" :loading="previewLoading" :error="previewError" @refresh="loadPreview" />
-      </div>
+      </template>
 
       <!-- Save status -->
       <div v-if="saveError" class="save-error px-3.5 py-2.5 bg-red-50 border border-red-200 rounded-md text-sm text-red-600 mb-4">{{ saveError }}</div>

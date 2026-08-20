@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import type { SourceColumn, SourceTable } from '@/api/connection'
 import type { MappingNestedGroup, MappingNestedField } from '@/api/mapping'
+import FieldPickerTable from '@/components/FieldPickerTable.vue'
 
 // Self-referencing recursive component. Vue 3 SFCs can implicitly reference themselves by
 // filename, but defineOptions makes the self-registration explicit and independent of the file
@@ -43,16 +44,6 @@ function fieldsForTable(tableName: string): MappingNestedField[] {
     targetKey: c.name,
     enabled: false,
   }))
-}
-
-function selectAllFields() {
-  props.group.fields.forEach((f) => { f.enabled = true })
-  emit('dirty')
-}
-
-function deselectAllFields() {
-  props.group.fields.forEach((f) => { f.enabled = false })
-  emit('dirty')
 }
 
 function addChild() {
@@ -154,42 +145,13 @@ const summary = computed(() => {
         </div>
 
         <!-- Per-group field picker: which columns of the related table become object keys. -->
-        <div v-if="group.relatedTable" class="border border-slate-200 rounded-md overflow-hidden">
-          <div class="flex items-center gap-2 px-2.5 py-1.5 bg-slate-50 border-b border-slate-200">
-            <span class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Fields from {{ group.relatedTable }}</span>
-            <span class="text-[0.7rem] text-slate-400">{{ group.fields.filter((f) => f.enabled).length }} / {{ group.fields.length }} selected</span>
-            <div class="ml-auto flex gap-1.5">
-              <button type="button" class="px-2 py-0.5 border border-slate-300 rounded text-[0.7rem] text-slate-600 bg-white cursor-pointer hover:bg-slate-100" @click="selectAllFields">Select All</button>
-              <button type="button" class="px-2 py-0.5 border border-slate-300 rounded text-[0.7rem] text-slate-600 bg-white cursor-pointer hover:bg-slate-100" @click="deselectAllFields">Deselect All</button>
-            </div>
-          </div>
-          <table class="nested-fields-table w-full border-collapse text-sm">
-            <tbody>
-              <tr
-                v-for="nf in group.fields"
-                :key="nf.sourceField"
-                :class="nf.enabled ? 'bg-green-50' : 'bg-white opacity-60'"
-              >
-                <td class="px-2.5 py-1.5 border-b border-slate-100 align-middle text-center w-8">
-                  <input type="checkbox" v-model="nf.enabled" @change="emit('dirty')" />
-                </td>
-                <td class="px-2.5 py-1.5 border-b border-slate-100 align-middle">
-                  <code :class="['text-xs font-semibold', nf.enabled ? 'text-slate-900' : 'text-slate-400']">{{ nf.sourceField }}</code>
-                </td>
-                <td class="px-2.5 py-1.5 border-b border-slate-100 align-middle min-w-32">
-                  <input
-                    class="nested-field-target-key-input w-full px-1.5 py-1 border border-slate-300 rounded text-xs font-mono text-slate-900 bg-white box-border outline-none focus:border-slate-900 placeholder-slate-400 disabled:bg-slate-50"
-                    type="text"
-                    :placeholder="nf.sourceField"
-                    v-model="nf.targetKey"
-                    :disabled="!nf.enabled"
-                    @input="emit('dirty')"
-                  />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <FieldPickerTable
+          v-if="group.relatedTable"
+          :fields="group.fields"
+          :related-table="group.relatedTable"
+          target-prop="targetKey"
+          @dirty="emit('dirty')"
+        />
 
         <!-- Children: further nested groups within this group's object/array shape. -->
         <div class="flex flex-col gap-1 mt-1 pl-4 border-l-2 border-slate-100">

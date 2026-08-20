@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import type { SourceColumn, SourceTable } from '@/api/connection'
 import type { MappingRelation, MappingRelationField } from '@/api/mapping'
+import FieldPickerTable from '@/components/FieldPickerTable.vue'
 
 const props = defineProps<{
   relation: MappingRelation
@@ -32,20 +33,6 @@ function fieldsForTable(tableName: string): MappingRelationField[] {
 
 function onRelatedTableChanged() {
   props.relation.fields = fieldsForTable(props.relation.relatedTable)
-  emit('dirty')
-}
-
-function selectAllFields() {
-  props.relation.fields.forEach((f) => {
-    f.enabled = true
-  })
-  emit('dirty')
-}
-
-function deselectAllFields() {
-  props.relation.fields.forEach((f) => {
-    f.enabled = false
-  })
   emit('dirty')
 }
 
@@ -106,42 +93,13 @@ const summary = computed(() => {
         </div>
 
         <!-- Per-relation field picker: which columns of the related table to pull, and what to rename them to. -->
-        <div v-if="relation.relatedTable" class="border border-slate-200 rounded-md overflow-hidden">
-          <div class="flex items-center gap-2 px-2.5 py-1.5 bg-slate-50 border-b border-slate-200">
-            <span class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Fields from {{ relation.relatedTable }}</span>
-            <span class="text-[0.7rem] text-slate-400">{{ relation.fields.filter((f) => f.enabled).length }} / {{ relation.fields.length }} selected</span>
-            <div class="ml-auto flex gap-1.5">
-              <button type="button" class="rel-select-all-btn px-2 py-0.5 border border-slate-300 rounded text-[0.7rem] text-slate-600 bg-white cursor-pointer hover:bg-slate-100" @click="selectAllFields">Select All</button>
-              <button type="button" class="rel-deselect-all-btn px-2 py-0.5 border border-slate-300 rounded text-[0.7rem] text-slate-600 bg-white cursor-pointer hover:bg-slate-100" @click="deselectAllFields">Deselect All</button>
-            </div>
-          </div>
-          <table class="rel-fields-table w-full border-collapse text-sm">
-            <tbody>
-              <tr
-                v-for="rf in relation.fields"
-                :key="rf.sourceField"
-                :class="rf.enabled ? 'bg-green-50' : 'bg-white opacity-60'"
-              >
-                <td class="px-2.5 py-1.5 border-b border-slate-100 align-middle text-center w-8">
-                  <input type="checkbox" v-model="rf.enabled" @change="emit('dirty')" />
-                </td>
-                <td class="px-2.5 py-1.5 border-b border-slate-100 align-middle">
-                  <code :class="['text-xs font-semibold', rf.enabled ? 'text-slate-900' : 'text-slate-400']">{{ rf.sourceField }}</code>
-                </td>
-                <td class="px-2.5 py-1.5 border-b border-slate-100 align-middle min-w-32">
-                  <input
-                    class="rel-field-export-as-input w-full px-1.5 py-1 border border-slate-300 rounded text-xs font-mono text-slate-900 bg-white box-border outline-none focus:border-slate-900 placeholder-slate-400 disabled:bg-slate-50"
-                    type="text"
-                    :placeholder="rf.sourceField"
-                    v-model="rf.targetField"
-                    :disabled="!rf.enabled"
-                    @input="emit('dirty')"
-                  />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <FieldPickerTable
+          v-if="relation.relatedTable"
+          :fields="relation.fields"
+          :related-table="relation.relatedTable"
+          target-prop="targetField"
+          @dirty="emit('dirty')"
+        />
       </div>
     </details>
 
