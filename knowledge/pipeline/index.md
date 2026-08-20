@@ -8,6 +8,10 @@ manifest ready for the four-eyes release authority.
 * [DynamicExportService](dynamic-export-service.md) - The actual, currently-executing query+build pipeline: runtime-configurable mapping → Postgres query (flat or nested-JSON) → CSV/JSON/Excel bytes
 * [ExportWorker](export-worker.md) - Daily background service that calls DynamicExportService at a scheduled UTC time and format
 
+# Planned (Phase 14, in progress)
+
+* [Export Definitions 2.0](export-definitions-2.0.md) - Generalizes the one mapping above into N independently scheduled, arbitrarily-nested export definitions (`ExportNode` tree). Spec + live per-slice implementation status
+
 # Superseded — original fixed six-stage design (kept for historical context only)
 
 None of the interfaces below are registered in dependency injection or reachable from any

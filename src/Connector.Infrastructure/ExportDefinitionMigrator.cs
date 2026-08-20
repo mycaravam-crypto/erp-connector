@@ -10,7 +10,7 @@ namespace Connector.Infrastructure;
 /// model starts populated from whatever a deployment already had configured. Idempotent — guarded by "any
 /// <see cref="ExportDefinitionEntity"/> row already exists" so a later app restart never re-runs it or
 /// duplicates rows. Leaves the AppSettings rows in place; nothing but the legacy, now read-only
-/// <c>/api/export-mapping</c> endpoints reads them after this runs (see REQUIREMENTS-2.0.md §11).
+/// <c>/api/export-mapping</c> endpoints reads them after this runs (see knowledge/pipeline/export-definitions-2.0.md §11).
 /// </summary>
 public static class ExportDefinitionMigrator
 {

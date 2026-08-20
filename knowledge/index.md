@@ -24,4 +24,6 @@ folder.
 * [Domain Types](domain/) - Core data types that flow through the export pipeline (ErpConfigurationItem → ExportItem → MappedExportRecord → ExportPackage; ExportManifest; ExportRun)
 * [Schema](schema/) - Export schema definition and ICD contract
 * [Pipeline](pipeline/) - Pipeline stages, services, and orchestration
-* [Processes](processes/) - Business processes: four-eyes release, GDPR compliance, authentication, data retention, on-demand run, open points
+* [Processes](processes/) - Business processes: four-eyes release, GDPR compliance, authentication, data retention, on-demand run, open points, code health backlog
+* [Changelog](changelog.md) - Phase-by-phase record of what shipped, plus current in-progress status
+* [Update Log](log.md) - Dated engineering session journal (root causes, bugs found, verification detail)

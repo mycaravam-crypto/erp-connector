@@ -4,7 +4,7 @@ using Connector.Core.DynamicExport;
 namespace Connector.Infrastructure;
 
 /// <summary>
-/// OCP seam for output formats (REQUIREMENTS-2.0.md §8): every implementation accepts the exact same
+/// OCP seam for output formats (knowledge/pipeline/export-definitions-2.0.md §8): every implementation accepts the exact same
 /// tree-shaped records <see cref="DynamicExportService.ExecuteExportNodeQueryAsync"/> produces for any
 /// <see cref="ExportNode"/> tree (LSP — none may reject a shape another accepts), so adding a new format
 /// is a new class here, never a change to the query engine, <c>ExportDefinitionEndpoints</c>, or the

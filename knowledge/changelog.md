@@ -1,10 +1,17 @@
-# Connector — Changelog
+---
+type: Changelog
+title: Connector — Changelog
+description: Phase-by-phase record of what shipped, newest first, plus current in-progress status.
+tags: [changelog, roadmap, history]
+timestamp: 2026-08-19T00:00:00Z
+---
 
 Last updated: 2026-08-19
 
-Planned next: [`REQUIREMENTS-2.0.md`](REQUIREMENTS-2.0.md) — generic, tree-based multi-export
-definitions (Phase 14, not yet started). It was drafted in parallel with Phase 13 below and has a
-correction note at its top reconciling the two.
+In progress: Phase 14 — generic, tree-based multi-export definitions, spec'd in
+[Export Definitions 2.0](/pipeline/export-definitions-2.0.md). Slices 1–2 (data model +
+query/format-writer engine) are done; slices 3–6 (API endpoints, scheduler, frontend, docs) are not
+started. See that page's "Implementation status" section for the live per-slice checklist.
 
 ---
 
@@ -20,14 +27,14 @@ from day one, not discovery artifacts.
 
 | Item | Notes |
 |---|---|
-| Removed the dead fixed pipeline | `Connector.Export` project, `ErpConfigurationItem`/`ExportItem`/`MappedExportRecord`, `ISchemaMapper`/`IDataMinimizer`/`IExportFilter`/`IPackager`/`IErpReader` and their implementations — never registered in DI, carried no live traffic since the dynamic mapping (Phase 9–10) fully replaced them. See [`knowledge/pipeline/dynamic-export-service.md`](knowledge/pipeline/dynamic-export-service.md) |
+| Removed the dead fixed pipeline | `Connector.Export` project, `ErpConfigurationItem`/`ExportItem`/`MappedExportRecord`, `ISchemaMapper`/`IDataMinimizer`/`IExportFilter`/`IPackager`/`IErpReader` and their implementations — never registered in DI, carried no live traffic since the dynamic mapping (Phase 9–10) fully replaced them. See [DynamicExportService](/pipeline/dynamic-export-service.md) |
 | Removed the demo-ERP browsing feature | `ErpDatabaseView`, `BomTree`/`BomTreeRow`/`CiDetailPanel`, `GET /api/erp/records`, the seeded SQLite `DemoErpDbContext` — an exploration/demo view over fake data with no requirement calling for it in production; superseded by `SourceSchemaView` + the Postgres `testdb` fixture |
 | Removed inert schema-mapping endpoints | `PATCH /api/schema/columns`/`/api/schema/mappings` persisted an "active columns"/rename state nothing in the frontend called or read; `GET /api/schema` is now a pure static read of the ICD reference contract |
 | ICD contract decoupled explicitly | `IcdSchemaView`/`GET /api/schema` documented as read-only reference, independent of the live dynamic mapping — resolves the earlier "two competing schema models" ambiguity in favor of the dynamic mapping as the real, evolving design |
 | Unified export execution path | New `DynamicExportService.BuildExportAsync` + `UsesNestedJson` are the single decision point shared by Run Now, the scheduled `ExportWorker`, and Preview — closes the Phase 12 gap where nested-JSON mappings only worked from Run Now. Scheduler settings gained a persisted `Format` field so the nightly export can also produce nested JSON |
 | SchemaView format-toggle bug fixed | The Step 3 "which JSON options to show" toggle silently shared a `localStorage` key with the Step 4 "which format to actually export" picker — selecting JSON to peek at nested-group config would silently change what Run Now exported. Decoupled; the Step 3 toggle now also auto-selects when a loaded mapping already has nested groups |
 | API module boundaries cleaned up | `api/erp.ts` split into `api/mapping.ts` (dynamic mapping) and `api/icdSchema.ts` (ICD reference) now that the ERP-browsing half is gone; GDPR denylist endpoints moved from `api/audit.ts` to `api/scheduler.ts` (both are Settings-page concerns) |
-| Docs reconciled with the running code | `knowledge/pipeline/*` and `knowledge/domain/*` pages describing the deleted fixed pipeline marked superseded, pointing to the new [`dynamic-export-service.md`](knowledge/pipeline/dynamic-export-service.md) |
+| Docs reconciled with the running code | `knowledge/pipeline/*` and `knowledge/domain/*` pages describing the deleted fixed pipeline marked superseded, pointing to the new [DynamicExportService](/pipeline/dynamic-export-service.md) |
 
 ---
 
@@ -179,11 +186,6 @@ from day one, not discovery artifacts.
 
 ## Open points (future iterations)
 
-| Open Point | When it unblocks | Code impact |
-|---|---|---|
-| Classification marking | Legal decision | Release API may need a marking field |
-| `storagelocation` entitlement | Data owner + legal | `DataMinimizer` and export schema update if confirmed in scope |
-| Snapshot volume | ERP data steward | Pagination in query if > ~500 k CIs |
-| Return-channel timing | Vendor + sponsor | Iteration 2 scope and schedule |
-| Retention periods | Legal + DPO | `RetentionDays` config value (default 30 — adjust when decided) |
-| Allocation chart import | ERP + vendor | Maintenance plan predicate enforcement in mapping validation |
+Tracked in [Open Points](/processes/open-points.md) — stakeholder ownership, code impact, and
+resolution workflow for each pending item (classification marking, `storagelocation` entitlement,
+snapshot volume, return-channel timing, retention periods, allocation chart import).

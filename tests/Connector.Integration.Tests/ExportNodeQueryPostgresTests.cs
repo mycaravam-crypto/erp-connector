@@ -128,7 +128,7 @@ public sealed class ExportNodeQueryPostgresTests
             return;
 
         // masterdata (root) -> manufacturer (object) -> addresses (array): the concrete 3-level walkthrough
-        // PHASE-14-PLAN.md's end-to-end verification calls for.
+        // knowledge/pipeline/export-definitions-2.0.md's end-to-end verification calls for.
         var root = MakeRoot(
             ScalarField("itemId", "id"),
             Node(
