@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { SourceColumn, SourceTable } from '@/api/connection'
 import type { MappingNestedGroup, MappingNestedField } from '@/api/mapping'
 
@@ -68,6 +69,16 @@ function removeChild(idx: number) {
   props.group.children.splice(idx, 1)
   emit('dirty')
 }
+
+// One-line summary shown in the collapsed card — lets a user with several nested groups
+// already configured see the structure without every field table expanded at once.
+const summary = computed(() => {
+  if (!props.group.relatedTable) return 'New nested group — configure below'
+  const enabled = props.group.fields.filter((f) => f.enabled).length
+  const shape = props.group.kind === 'array' ? 'array' : 'object'
+  const key = props.group.targetKey ? `"${props.group.targetKey}": ` : ''
+  return `${key}${props.group.relatedTable} (${shape}) · ${enabled}/${props.group.fields.length} fields`
+})
 </script>
 
 <template>
@@ -78,125 +89,128 @@ function removeChild(idx: number) {
       <input type="checkbox" v-model="group.enabled" class="cursor-pointer w-4 h-4" @change="emit('dirty')" />
     </div>
 
-    <div class="flex-1 flex flex-col gap-2">
-      <div class="flex gap-2.5 flex-wrap">
-        <div class="flex flex-col gap-1 flex-1 min-w-32">
-          <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Export Key</label>
-          <input
-            class="export-key-input px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900"
-            type="text"
-            v-model="group.targetKey"
-            placeholder="e.g. manufacturer"
-            @input="emit('dirty')"
-          />
-        </div>
-        <div class="flex flex-col gap-1 flex-1 min-w-36">
-          <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Related Table</label>
-          <select
-            v-model="group.relatedTable"
-            class="related-table-select px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full"
-            @change="onRelatedTableChanged"
-          >
-            <option value="" disabled>— select —</option>
-            <option v-for="t in availableTables" :key="t.name" :value="t.name">{{ t.name }}</option>
-          </select>
-        </div>
-        <div class="flex flex-col gap-1 flex-1 min-w-36">
-          <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Join Column (in {{ group.relatedTable || '…' }})</label>
-          <select
-            v-model="group.joinKey"
-            :disabled="!group.relatedTable"
-            class="join-key-select px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full disabled:bg-slate-50 disabled:text-slate-400"
-            @change="emit('dirty')"
-          >
-            <option value="" disabled>— select —</option>
-            <option v-for="c in columnsForTable(group.relatedTable)" :key="c.name" :value="c.name">{{ c.name }}</option>
-          </select>
-        </div>
-        <div class="flex flex-col gap-1 flex-1 min-w-36">
-          <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Matches Parent Column</label>
-          <input
-            class="source-join-key-input px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900"
-            type="text"
-            v-model="group.sourceJoinKey"
-            placeholder="e.g. id"
-            @input="emit('dirty')"
-          />
-        </div>
-        <div class="flex flex-col gap-1 w-52 shrink-0">
-          <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Shape</label>
-          <select
-            v-model="group.kind"
-            class="kind-select px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full"
-            @change="emit('dirty')"
-          >
-            <option value="object">Single object (1:1 lookup)</option>
-            <option value="array">List of objects (1:many)</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Per-group field picker: which columns of the related table become object keys. -->
-      <div v-if="group.relatedTable" class="border border-slate-200 rounded-md overflow-hidden">
-        <div class="flex items-center gap-2 px-2.5 py-1.5 bg-slate-50 border-b border-slate-200">
-          <span class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Fields from {{ group.relatedTable }}</span>
-          <span class="text-[0.7rem] text-slate-400">{{ group.fields.filter((f) => f.enabled).length }} / {{ group.fields.length }} selected</span>
-          <div class="ml-auto flex gap-1.5">
-            <button type="button" class="px-2 py-0.5 border border-slate-300 rounded text-[0.7rem] text-slate-600 bg-white cursor-pointer hover:bg-slate-100" @click="selectAllFields">Select All</button>
-            <button type="button" class="px-2 py-0.5 border border-slate-300 rounded text-[0.7rem] text-slate-600 bg-white cursor-pointer hover:bg-slate-100" @click="deselectAllFields">Deselect All</button>
+    <details class="flex-1" :open="!group.relatedTable">
+      <summary class="cursor-pointer select-none text-sm text-slate-700">{{ summary }}</summary>
+      <div class="flex flex-col gap-2 mt-2">
+        <div class="flex gap-2.5 flex-wrap">
+          <div class="flex flex-col gap-1 flex-1 min-w-32">
+            <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Export Key</label>
+            <input
+              class="export-key-input px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900"
+              type="text"
+              v-model="group.targetKey"
+              placeholder="e.g. manufacturer"
+              @input="emit('dirty')"
+            />
+          </div>
+          <div class="flex flex-col gap-1 flex-1 min-w-36">
+            <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Related Table</label>
+            <select
+              v-model="group.relatedTable"
+              class="related-table-select px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full"
+              @change="onRelatedTableChanged"
+            >
+              <option value="" disabled>— select —</option>
+              <option v-for="t in availableTables" :key="t.name" :value="t.name">{{ t.name }}</option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-1 flex-1 min-w-36">
+            <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Join Column (in {{ group.relatedTable || '…' }})</label>
+            <select
+              v-model="group.joinKey"
+              :disabled="!group.relatedTable"
+              class="join-key-select px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full disabled:bg-slate-50 disabled:text-slate-400"
+              @change="emit('dirty')"
+            >
+              <option value="" disabled>— select —</option>
+              <option v-for="c in columnsForTable(group.relatedTable)" :key="c.name" :value="c.name">{{ c.name }}</option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-1 flex-1 min-w-36">
+            <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Matches Parent Column</label>
+            <input
+              class="source-join-key-input px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900"
+              type="text"
+              v-model="group.sourceJoinKey"
+              placeholder="e.g. id"
+              @input="emit('dirty')"
+            />
+          </div>
+          <div class="flex flex-col gap-1 w-52 shrink-0">
+            <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Shape</label>
+            <select
+              v-model="group.kind"
+              class="kind-select px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full"
+              @change="emit('dirty')"
+            >
+              <option value="object">Single object (1:1 lookup)</option>
+              <option value="array">List of objects (1:many)</option>
+            </select>
           </div>
         </div>
-        <table class="nested-fields-table w-full border-collapse text-sm">
-          <tbody>
-            <tr
-              v-for="nf in group.fields"
-              :key="nf.sourceField"
-              :class="nf.enabled ? 'bg-green-50' : 'bg-white opacity-60'"
-            >
-              <td class="px-2.5 py-1.5 border-b border-slate-100 align-middle text-center w-8">
-                <input type="checkbox" v-model="nf.enabled" @change="emit('dirty')" />
-              </td>
-              <td class="px-2.5 py-1.5 border-b border-slate-100 align-middle">
-                <code :class="['text-xs font-semibold', nf.enabled ? 'text-slate-900' : 'text-slate-400']">{{ nf.sourceField }}</code>
-              </td>
-              <td class="px-2.5 py-1.5 border-b border-slate-100 align-middle min-w-32">
-                <input
-                  class="nested-field-target-key-input w-full px-1.5 py-1 border border-slate-300 rounded text-xs font-mono text-slate-900 bg-white box-border outline-none focus:border-slate-900 placeholder-slate-400 disabled:bg-slate-50"
-                  type="text"
-                  :placeholder="nf.sourceField"
-                  v-model="nf.targetKey"
-                  :disabled="!nf.enabled"
-                  @input="emit('dirty')"
-                />
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
 
-      <!-- Children: further nested groups within this group's object/array shape. -->
-      <div class="flex flex-col gap-1 mt-1 pl-4 border-l-2 border-slate-100">
-        <div class="flex items-center gap-2">
-          <span class="text-[0.7rem] font-semibold text-slate-400 uppercase tracking-wide">Nested within "{{ group.targetKey || '…' }}"</span>
-          <button
-            v-if="depth < MAX_NESTED_DEPTH"
-            type="button"
-            class="add-child-btn ml-auto px-2 py-0.5 border border-slate-300 rounded text-[0.7rem] text-slate-600 bg-white cursor-pointer hover:bg-slate-100"
-            @click="addChild"
-          >+ Add Nested Group</button>
+        <!-- Per-group field picker: which columns of the related table become object keys. -->
+        <div v-if="group.relatedTable" class="border border-slate-200 rounded-md overflow-hidden">
+          <div class="flex items-center gap-2 px-2.5 py-1.5 bg-slate-50 border-b border-slate-200">
+            <span class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Fields from {{ group.relatedTable }}</span>
+            <span class="text-[0.7rem] text-slate-400">{{ group.fields.filter((f) => f.enabled).length }} / {{ group.fields.length }} selected</span>
+            <div class="ml-auto flex gap-1.5">
+              <button type="button" class="px-2 py-0.5 border border-slate-300 rounded text-[0.7rem] text-slate-600 bg-white cursor-pointer hover:bg-slate-100" @click="selectAllFields">Select All</button>
+              <button type="button" class="px-2 py-0.5 border border-slate-300 rounded text-[0.7rem] text-slate-600 bg-white cursor-pointer hover:bg-slate-100" @click="deselectAllFields">Deselect All</button>
+            </div>
+          </div>
+          <table class="nested-fields-table w-full border-collapse text-sm">
+            <tbody>
+              <tr
+                v-for="nf in group.fields"
+                :key="nf.sourceField"
+                :class="nf.enabled ? 'bg-green-50' : 'bg-white opacity-60'"
+              >
+                <td class="px-2.5 py-1.5 border-b border-slate-100 align-middle text-center w-8">
+                  <input type="checkbox" v-model="nf.enabled" @change="emit('dirty')" />
+                </td>
+                <td class="px-2.5 py-1.5 border-b border-slate-100 align-middle">
+                  <code :class="['text-xs font-semibold', nf.enabled ? 'text-slate-900' : 'text-slate-400']">{{ nf.sourceField }}</code>
+                </td>
+                <td class="px-2.5 py-1.5 border-b border-slate-100 align-middle min-w-32">
+                  <input
+                    class="nested-field-target-key-input w-full px-1.5 py-1 border border-slate-300 rounded text-xs font-mono text-slate-900 bg-white box-border outline-none focus:border-slate-900 placeholder-slate-400 disabled:bg-slate-50"
+                    type="text"
+                    :placeholder="nf.sourceField"
+                    v-model="nf.targetKey"
+                    :disabled="!nf.enabled"
+                    @input="emit('dirty')"
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <p v-if="group.children.length === 0" class="text-[0.7rem] text-slate-400">None.</p>
-        <NestedGroupEditor
-          v-for="(child, idx) in group.children"
-          :key="idx"
-          :group="child"
-          :available-tables="availableTables"
-          :depth="depth + 1"
-          @remove="removeChild(idx)"
-          @dirty="emit('dirty')"
-        />
+
+        <!-- Children: further nested groups within this group's object/array shape. -->
+        <div class="flex flex-col gap-1 mt-1 pl-4 border-l-2 border-slate-100">
+          <div class="flex items-center gap-2">
+            <span class="text-[0.7rem] font-semibold text-slate-400 uppercase tracking-wide">Nested within "{{ group.targetKey || '…' }}"</span>
+            <button
+              v-if="depth < MAX_NESTED_DEPTH"
+              type="button"
+              class="add-child-btn ml-auto px-2 py-0.5 border border-slate-300 rounded text-[0.7rem] text-slate-600 bg-white cursor-pointer hover:bg-slate-100"
+              @click="addChild"
+            >+ Add Nested Group</button>
+          </div>
+          <p v-if="group.children.length === 0" class="text-[0.7rem] text-slate-400">None.</p>
+          <NestedGroupEditor
+            v-for="(child, idx) in group.children"
+            :key="idx"
+            :group="child"
+            :available-tables="availableTables"
+            :depth="depth + 1"
+            @remove="removeChild(idx)"
+            @dirty="emit('dirty')"
+          />
+        </div>
       </div>
-    </div>
+    </details>
 
     <button
       class="remove-group-btn shrink-0 px-2 py-1 border border-red-200 rounded text-red-600 bg-white text-base leading-none cursor-pointer hover:bg-red-50"
