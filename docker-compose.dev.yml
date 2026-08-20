@@ -1,0 +1,93 @@
+# Hot-reload development environment: API (dotnet watch) + UI (vite dev server) +
+# the local test Postgres ERP source, all from one command:
+#
+#   docker-compose -f docker-compose.dev.yml up
+#
+# This is separate from docker-compose.yml, which builds the production image
+# (compiled UI baked into the API's wwwroot, single container, no hot reload).
+# `testdb` is duplicated here deliberately rather than shared with the prod file's
+# --profile test service, to keep this file fully standalone.
+#
+# All service output is interleaved in one stream by `docker-compose up`,
+# prefixed per-service (api/ui/testdb) — that's the "single log" to watch.
+services:
+  api:
+    image: mcr.microsoft.com/dotnet/sdk:9.0-alpine
+    working_dir: /app
+    command: sh -c "cd src/Connector.Api && dotnet watch run --urls http://+:5189"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+      DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER: "true"
+    ports:
+      - "5189:5189"
+    volumes:
+      - .:/app
+      - nuget-cache:/root/.nuget/packages
+      # Anonymous per-project bin/obj volumes so the container's Alpine/musl build
+      # output never collides with build output from the host SDK.
+      - api-bin:/app/src/Connector.Api/bin
+      - api-obj:/app/src/Connector.Api/obj
+      - core-bin:/app/src/Connector.Core/bin
+      - core-obj:/app/src/Connector.Core/obj
+      - erp-bin:/app/src/Connector.Erp/bin
+      - erp-obj:/app/src/Connector.Erp/obj
+      - infra-bin:/app/src/Connector.Infrastructure/bin
+      - infra-obj:/app/src/Connector.Infrastructure/obj
+      - export-bin:/app/src/Connector.Export/bin
+      - export-obj:/app/src/Connector.Export/obj
+    depends_on:
+      testdb:
+        condition: service_healthy
+
+  ui:
+    image: node:24-alpine
+    working_dir: /app
+    # `npm ci` wipes node_modules on every run, which would defeat the volume
+    # cache below — only run it when node_modules is missing/incomplete.
+    command: sh -c "[ -d node_modules/.bin ] || npm ci --prefer-offline; npm run dev -- --host 0.0.0.0"
+    environment:
+      VITE_API_PROXY_TARGET: "http://api:5189"
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./src/connector-ui:/app
+      - ui-node-modules:/app/node_modules
+      - npm-cache:/root/.npm
+    depends_on:
+      - api
+
+  # Local test ERP source Postgres — same seed data as docker-compose.yml's testdb.
+  testdb:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: erp_test
+      POSTGRES_PASSWORD: erp_test_pw
+      POSTGRES_DB: erp_testdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./testdb/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - testdb-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_test -d erp_testdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  nuget-cache:
+  api-bin:
+  api-obj:
+  core-bin:
+  core-obj:
+  erp-bin:
+  erp-obj:
+  infra-bin:
+  infra-obj:
+  export-bin:
+  export-obj:
+  ui-node-modules:
+  npm-cache:
+  testdb-data:

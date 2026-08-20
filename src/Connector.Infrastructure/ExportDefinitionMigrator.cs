@@ -55,10 +55,10 @@ public static class ExportDefinitionMigrator
     {
         var raw = await db.GetSettingRawAsync(SettingsKeys.SchedulerConfig);
         if (raw is null)
-            return "xlsx";
+            return "json";
 
         var data = JsonSerializer.Deserialize<SchedulerConfigData>(raw);
-        return data?.Format ?? "xlsx";
+        return data?.Format ?? "json";
     }
 
     private static ExportDefinitionEntity ToDefinition(

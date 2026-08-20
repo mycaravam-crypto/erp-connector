@@ -19,8 +19,9 @@ export default defineConfig({
     },
   },
   server: {
+    host: true,
     proxy: {
-      '/api': 'http://localhost:5189',
+      '/api': process.env.VITE_API_PROXY_TARGET ?? 'http://localhost:5189',
     },
   },
   // @ts-expect-error vitest v3 + vite v8 (rolldown) type incompatibility

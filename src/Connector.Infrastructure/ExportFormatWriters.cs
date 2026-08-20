@@ -92,7 +92,7 @@ public static class ExportFormatWriterFactory
         ["xlsx"] = new ExcelExportFormatWriter(),
     };
 
-    /// <summary>Unknown formats fall back to xlsx, matching <see cref="DynamicExportService.BuildExportAsync"/>'s
+    /// <summary>Unknown formats fall back to json, matching <see cref="DynamicExportService.BuildExportAsync"/>'s
     /// existing default-case behavior.</summary>
-    public static IExportFormatWriter Get(string format) => Writers.GetValueOrDefault(format, Writers["xlsx"]);
+    public static IExportFormatWriter Get(string format) => Writers.GetValueOrDefault(format, Writers["json"]);
 }

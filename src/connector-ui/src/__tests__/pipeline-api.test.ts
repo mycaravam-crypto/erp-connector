@@ -13,14 +13,14 @@ function mockFetch(body: unknown, status = 200) {
 beforeEach(() => vi.restoreAllMocks())
 
 describe('runNow', () => {
-  it('returns ok:true with data on success (default xlsx)', async () => {
+  it('returns ok:true with data on success (default json)', async () => {
     mockFetch({ sequenceNo: 3, recordCount: 5, sha256Short: 'abc123def456' })
     const result = await runNow()
     expect(result.ok).toBe(true)
     expect(result.data?.sequenceNo).toBe(3)
     expect(result.data?.recordCount).toBe(5)
     expect(fetch).toHaveBeenCalledWith(
-      '/api/pipeline/run?format=xlsx',
+      '/api/pipeline/run?format=json',
       expect.objectContaining({ method: 'POST' }),
     )
   })

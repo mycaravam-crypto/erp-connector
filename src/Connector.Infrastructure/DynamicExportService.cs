@@ -104,12 +104,12 @@ public static class DynamicExportService
                 records.Count,
                 "csv"
             ),
-            "json" => new ExportBuildResult(BuildJsonBytes(records, schemaVersion, extractedAt), records.Count, "json"),
-            _ => new ExportBuildResult(
+            "xlsx" => new ExportBuildResult(
                 BuildExcelBytes(records, cols, schemaVersion, extractedAt),
                 records.Count,
                 "xlsx"
             ),
+            _ => new ExportBuildResult(BuildJsonBytes(records, schemaVersion, extractedAt), records.Count, "json"),
         };
     }
 
