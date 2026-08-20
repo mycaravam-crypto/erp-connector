@@ -4,7 +4,13 @@ A self-contained .NET 9 + Vue 3 application that extracts warranty-relevant Conf
 
 **Stack:** .NET 9 · ASP.NET Core Minimal API · EF Core 9 · SQLite · ClosedXML · Vue 3 · TypeScript · Tailwind CSS · Serilog
 
-See [`ROADMAP.md`](ROADMAP.md) for what's shipped and [`REQUIREMENTS-2.0.md`](REQUIREMENTS-2.0.md) for what's planned next (generic, multi-export definitions).
+**Docs:** this file covers setup, running, testing, and deployment. Everything else — architecture,
+domain concepts, the changelog, and the in-progress Phase 14 (generic multi-export) spec and status
+— lives in the **[knowledge base](knowledge/index.md)**.
+
+Status: Phase 13 (2.0 simplification) is shipped; Phase 14 (generic, tree-based multi-export
+definitions) is in progress — see [Export Definitions 2.0](knowledge/pipeline/export-definitions-2.0.md)
+for the live per-slice status.
 
 ---
 
@@ -276,8 +282,6 @@ dotnet csharpier .           # apply formatting
 ```
 
 CI runs on every push via GitHub Actions: format check → Release build → test suite.
-
----
 
 ---
 

@@ -303,7 +303,7 @@ public static class DynamicExportService
     // every output format instead of the legacy flat-vs-nested-JSON fork. There is deliberately no
     // ExportNode counterpart to UsesNestedJson: every ExportNode tree is queried the same way regardless
     // of format (see BuildExportNodeAsync) — only the format WRITER differs (IExportFormatWriter below),
-    // which is the actual OCP seam REQUIREMENTS-2.0.md §8 asks for.
+    // which is the actual OCP seam knowledge/pipeline/export-definitions-2.0.md §8 asks for.
 
     /// <summary>
     /// Recursively emits a <c>json_build_object(...)</c> expression for an <see cref="ExportNodeKind.Object"/>
@@ -519,7 +519,7 @@ public static class DynamicExportService
     /// the legacy relation-only flattening) without changing either builder. An object path contributes at
     /// most one value; an array path contributes one value per matching row, joined the same way the legacy
     /// <c>string_join</c> relation strategy already did — Phase 14 has no per-node flatten-strategy
-    /// equivalent (see PHASE-14-PLAN.md Slice 1 status note), so this is the one generic rule for every tree.
+    /// equivalent (see knowledge/log.md's Phase 14 Slice 1 entry), so this is the one generic rule for every tree.
     /// </summary>
     public static Dictionary<string, string> FlattenExportNodeRecord(JsonObject row, IReadOnlyList<string> columns)
     {
@@ -561,7 +561,7 @@ public static class DynamicExportService
     /// <see cref="BuildExportAsync"/>: one query (<see cref="ExecuteExportNodeQueryAsync"/>) regardless of
     /// format, then dispatches to the requested <see cref="IExportFormatWriter"/>. Unlike the legacy path
     /// there is no per-format query fork to keep in sync — every format writer receives the same tree-shaped
-    /// records, which is what makes adding a new format later an OCP-clean addition (REQUIREMENTS-2.0.md §8).
+    /// records, which is what makes adding a new format later an OCP-clean addition (knowledge/pipeline/export-definitions-2.0.md §8).
     /// </summary>
     public static async Task<ExportBuildResult> BuildExportNodeAsync(
         NpgsqlConnection conn,
