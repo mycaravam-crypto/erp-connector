@@ -78,7 +78,7 @@ function onApplyPreset(cfg: ExportMappingConfig) {
 // (the JSON-only nested-group/envelope sections below). This does NOT set the actual
 // export format: that's chosen independently per run (Export view) or for the
 // schedule (Settings), each of which reads the saved mapping regardless of this toggle.
-const previewFormat = ref<'xlsx' | 'csv' | 'json'>('xlsx')
+const previewFormat = ref<'xlsx' | 'csv' | 'json'>('json')
 
 function setPreviewFormat(fmt: 'xlsx' | 'csv' | 'json') {
   previewFormat.value = fmt
@@ -410,24 +410,27 @@ onMounted(load)
         @dirty="markDirty"
       />
 
-      <!-- Suggested relations (detected from foreign keys) -->
-      <SuggestedRelations
-        v-if="selectedTable"
-        :suggestions="suggestedRelations"
-        :selected-table-name="selectedTable"
-        @add="addSuggestedRelation"
-      />
-
-      <!-- Relations -->
-      <RelationsSection
-        v-if="selectedTable"
-        :relations="relations"
-        :relatable-tables="relatableTables"
-        :selected-table-columns="selectedTableColumns"
-        @add="addRelation"
-        @remove="removeRelation"
-        @dirty="markDirty"
-      />
+      <!-- Relations (optional) — collapsed unless already configured or a join was detected -->
+      <details v-if="selectedTable" class="mb-7" :open="relations.length > 0 || suggestedRelations.length > 0">
+        <summary class="cursor-pointer select-none text-base font-semibold text-slate-900">
+          Related Table Joins <span class="text-xs font-normal text-slate-400">(optional)</span>
+        </summary>
+        <div class="mt-3">
+          <SuggestedRelations
+            :suggestions="suggestedRelations"
+            :selected-table-name="selectedTable"
+            @add="addSuggestedRelation"
+          />
+          <RelationsSection
+            :relations="relations"
+            :relatable-tables="relatableTables"
+            :selected-table-columns="selectedTableColumns"
+            @add="addRelation"
+            @remove="removeRelation"
+            @dirty="markDirty"
+          />
+        </div>
+      </details>
 
       <!-- Format preview toggle: which format-specific options to show below.
            The actual export format is chosen per run (Export view) or for the
@@ -438,22 +441,26 @@ onMounted(load)
         @update:model-value="setPreviewFormat"
       />
 
-      <!-- Nested JSON Structure (JSON export only) -->
-      <NestedGroupsSection
+      <!-- JSON-only options (optional) — collapsed unless already configured -->
+      <details
         v-if="selectedTable && previewFormat === 'json'"
-        :groups="nestedGroups"
-        :available-tables="sourceSchema.tables"
-        @add="addNestedGroup"
-        @remove="removeNestedGroup"
-        @dirty="markDirty"
-      />
-
-      <!-- JSON envelope / root wrapper (JSON export only) -->
-      <JsonEnvelopeEditor
-        v-if="selectedTable && previewFormat === 'json'"
-        v-model="jsonWrapper"
-        @dirty="markDirty"
-      />
+        class="mb-7"
+        :open="nestedGroups.length > 0 || jsonWrapper !== null"
+      >
+        <summary class="cursor-pointer select-none text-base font-semibold text-slate-900">
+          JSON Export Options <span class="text-xs font-normal text-slate-400">(optional)</span>
+        </summary>
+        <div class="mt-3">
+          <NestedGroupsSection
+            :groups="nestedGroups"
+            :available-tables="sourceSchema.tables"
+            @add="addNestedGroup"
+            @remove="removeNestedGroup"
+            @dirty="markDirty"
+          />
+          <JsonEnvelopeEditor v-model="jsonWrapper" @dirty="markDirty" />
+        </div>
+      </details>
 
       <!-- Save status -->
       <div v-if="saveError" class="save-error px-3.5 py-2.5 bg-red-50 border border-red-200 rounded-md text-sm text-red-600 mb-4">{{ saveError }}</div>
