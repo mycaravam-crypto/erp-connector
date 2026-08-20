@@ -7,6 +7,12 @@ import FieldPickerTable from '@/components/FieldPickerTable.vue'
 // Self-referencing recursive component. Vue 3 SFCs can implicitly reference themselves by
 // filename, but defineOptions makes the self-registration explicit and independent of the file
 // staying named exactly "NestedGroupEditor.vue".
+//
+// Template complexity is intentionally left unsplit here: this component supports arbitrary
+// nesting depth, so its "children" block recurses into itself — pulling that block into a
+// separate file would just import this file right back, a circular dependency fallow itself
+// flags as worse than the complexity it'd save. The field-row and field-picker sections are
+// already extracted (see FieldPickerTable.vue); this is what's left after that.
 defineOptions({ name: 'NestedGroupEditor' })
 
 const props = defineProps<{
@@ -164,7 +170,6 @@ const summary = computed(() => {
               @click="addChild"
             >+ Add Nested Group</button>
           </div>
-          <p v-if="group.children.length === 0" class="text-[0.7rem] text-slate-400">None.</p>
           <NestedGroupEditor
             v-for="(child, idx) in group.children"
             :key="idx"
