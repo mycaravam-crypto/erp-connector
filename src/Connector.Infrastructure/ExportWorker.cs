@@ -81,15 +81,15 @@ public sealed class ExportWorker(
             logger.LogWarning(ex, "Failed to read scheduler config from database; using defaults.");
         }
 
-        return (options.Value.ScheduledTimeUtc, options.Value.RetentionDays, "xlsx");
+        return (options.Value.ScheduledTimeUtc, options.Value.RetentionDays, "json");
     }
 
     private static string NormalizeFormat(string? format) =>
         format?.ToLowerInvariant() switch
         {
             "csv" => "csv",
-            "json" => "json",
-            _ => "xlsx",
+            "xlsx" => "xlsx",
+            _ => "json",
         };
 
     private async Task RunExportAsync(string format, CancellationToken ct)
@@ -300,4 +300,4 @@ public sealed class ExportWorkerOptions
 }
 
 /// <summary>Scheduler configuration stored in AppSettings DB, overriding the appsettings.json defaults.</summary>
-public record SchedulerConfigData(string ScheduledTimeUtc, int RetentionDays, string Format = "xlsx");
+public record SchedulerConfigData(string ScheduledTimeUtc, int RetentionDays, string Format = "json");

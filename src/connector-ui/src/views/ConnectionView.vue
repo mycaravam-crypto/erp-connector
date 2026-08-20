@@ -103,13 +103,16 @@ function proceed() {
       <strong>No connection configured yet.</strong>
       Enter the PostgreSQL connection details for the source ERP database below
       and click <em>Test Connection</em> to verify and save.
+      <br />
+      Running the docker-compose dev stack? Use host <code>testdb</code> — the API runs in its
+      own container, so <code>localhost</code> only works when running via <code>./dev.sh</code>.
     </div>
 
     <form class="flex flex-col gap-4" @submit.prevent="testConnection">
       <div class="flex gap-3">
         <div class="flex flex-col gap-1 flex-1">
           <label for="host" class="text-xs font-semibold text-slate-700">Host</label>
-          <input id="host" v-model="host" type="text" placeholder="localhost"
+          <input id="host" v-model="host" type="text" placeholder="testdb (docker) / localhost"
             class="px-2.5 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white outline-none focus:outline-indigo-600 focus:outline-2 focus:border-transparent" />
         </div>
         <div class="flex flex-col gap-1 w-22.5 shrink-0">

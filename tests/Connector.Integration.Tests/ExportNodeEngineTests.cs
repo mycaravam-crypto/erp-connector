@@ -380,7 +380,7 @@ public sealed class ExportNodeEngineTests
     [InlineData("json", typeof(JsonExportFormatWriter))]
     [InlineData("xlsx", typeof(ExcelExportFormatWriter))]
     [InlineData("CSV", typeof(CsvExportFormatWriter))] // case-insensitive
-    [InlineData("unknown-format", typeof(ExcelExportFormatWriter))] // defaults to xlsx
+    [InlineData("unknown-format", typeof(JsonExportFormatWriter))] // defaults to json
     public void Get_ReturnsExpectedWriterType(string format, Type expected)
     {
         var writer = ExportFormatWriterFactory.Get(format);

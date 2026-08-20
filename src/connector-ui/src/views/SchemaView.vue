@@ -98,6 +98,24 @@ const sourcePkColumn = computed(
   () => selectedTableColumns.value.find((c) => c.primaryKey)?.name ?? '',
 )
 
+function primaryKeyColumns(t: SourceTable): string[] {
+  return t.columns.filter((c) => c.primaryKey).map((c) => c.name)
+}
+
+// Shown per-option in the primary-table picker, so PK status (including composite keys)
+// is visible before selecting — previously only visible by expanding a table's column list.
+function tablePkLabel(t: SourceTable): string {
+  const pk = primaryKeyColumns(t)
+  if (pk.length === 0) return 'no PK'
+  if (pk.length === 1) return `PK: ${pk[0]}`
+  return `composite PK: ${pk.join(', ')}`
+}
+
+const selectedTablePkColumns = computed<string[]>(() => {
+  const t = sourceSchema.value?.tables.find((t) => t.name === selectedTable.value)
+  return t ? primaryKeyColumns(t) : []
+})
+
 // Tables a relation can join to — every table except the primary selected one.
 const relatableTables = computed<SourceTable[]>(() =>
   (sourceSchema.value?.tables ?? []).filter((t) => t.name !== selectedTable.value),
@@ -372,11 +390,16 @@ onMounted(load)
           >
             <option value="" disabled>— select a table —</option>
             <option v-for="t in sourceSchema.tables" :key="t.name" :value="t.name">
-              {{ t.name }} ({{ t.columns.length }} cols)
+              {{ t.name }} ({{ t.columns.length }} cols — {{ tablePkLabel(t) }})
             </option>
           </select>
           <span class="conn-chip text-xs text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full">{{ sourceSchema.connectionLabel }}</span>
         </div>
+        <p v-if="selectedTable && selectedTablePkColumns.length === 0"
+          class="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 mt-2 leading-relaxed">
+          <strong>"{{ selectedTable }}" has no primary key.</strong>
+          Row identity, relation joins, and the suggested join key default may be unreliable — verify manually.
+        </p>
       </div>
 
       <!-- Column mapping -->

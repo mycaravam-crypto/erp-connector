@@ -12,7 +12,7 @@ const loadError = ref<string | null>(null)
 
 const scheduledTime = ref('06:00')
 const retentionDays = ref(30)
-const format = ref<'xlsx' | 'csv' | 'json'>('xlsx')
+const format = ref<'xlsx' | 'csv' | 'json'>('json')
 
 const saving = ref(false)
 const saveStatus = ref<'idle' | 'ok' | 'error'>('idle')

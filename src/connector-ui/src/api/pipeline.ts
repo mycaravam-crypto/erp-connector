@@ -27,7 +27,7 @@ export interface PreviewResult {
 }
 
 export async function runNow(
-  format: 'xlsx' | 'csv' | 'json' = 'xlsx',
+  format: 'xlsx' | 'csv' | 'json' = 'json',
 ): Promise<{ ok: boolean; data?: RunNowResult; error?: string }> {
   const res = await fetch(`/api/pipeline/run?format=${format}`, {
     method: 'POST',

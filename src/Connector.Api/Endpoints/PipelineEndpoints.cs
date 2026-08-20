@@ -29,8 +29,8 @@ static class PipelineEndpoints
                     var fmt = format?.ToLowerInvariant() switch
                     {
                         "csv" => "csv",
-                        "json" => "json",
-                        _ => "xlsx",
+                        "xlsx" => "xlsx",
+                        _ => "json",
                     };
 
                     var sequenceNo = (await db.ExportRuns.MaxAsync(r => (int?)r.SequenceNo, ct) ?? 0) + 1;

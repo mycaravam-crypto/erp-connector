@@ -103,6 +103,12 @@ docker-compose -f docker-compose.dev.yml up
   prefixed `api |` / `ui |` / `testdb |` — `Ctrl-C` stops everything.
 - This is a separate file from [`docker-compose.yml`](docker-compose.yml), which builds the
   production image instead (compiled UI baked into the API container, no hot reload).
+- **Step 1 ("Connect to Source Database") host:** the API runs *inside* the `api` container,
+  so `localhost:5432` from the host machine is **not** reachable from there. On the Step 1
+  screen, use host `testdb` (the docker-compose service name), not `localhost`. Full values:
+  `testdb` / `5432` / `erp_testdb` / `erp_test` / `erp_test_pw`.
+  (If you're running via `./dev.sh` instead, the API runs directly on the host and `localhost`
+  is correct there.)
 
 ### Run tests
 

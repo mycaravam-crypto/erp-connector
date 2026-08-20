@@ -10,7 +10,7 @@ import ExportRunsTable from '@/components/ExportRunsTable.vue'
 
 const FORMAT_KEY = 'connector_export_format'
 const selectedFormat = ref<'xlsx' | 'csv' | 'json'>(
-  (localStorage.getItem(FORMAT_KEY) as 'xlsx' | 'csv' | 'json') ?? 'xlsx',
+  (localStorage.getItem(FORMAT_KEY) as 'xlsx' | 'csv' | 'json') ?? 'json',
 )
 
 function saveFormat(fmt: 'xlsx' | 'csv' | 'json') {
