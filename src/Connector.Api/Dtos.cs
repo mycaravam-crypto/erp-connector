@@ -39,37 +39,11 @@ record ReleaseRequest(string Approver);
 /// <summary>Body for POST …/deliver. ImportedRecordCount and Notes are optional confirmation data.</summary>
 record DeliverRequest(int? ImportedRecordCount, string? Notes);
 
-/// <summary>Body for PATCH /api/schema/columns. Columns not in ExportSchema.Columns are silently ignored.</summary>
-record ColumnPatchRequest(string[] Columns);
-
-/// <summary>Body for PATCH /api/schema/mappings. Keys not in ExportSchema.Columns are silently ignored. Empty/whitespace values remove the override.</summary>
-record MappingPatchRequest(Dictionary<string, string> Mappings);
-
 record LoginRequest(string Username, string Password);
 
 record LoginResponse(string Token, string Username);
 
 record HashRequest(string Password);
-
-record ErpRecordsResult(IReadOnlyList<ErpCiRecord> Records, int Total);
-
-record ErpCiRecord(
-    string Id,
-    string? Serial,
-    string? Status,
-    string? CommissionDate,
-    string? ArticleName,
-    string? PartNumber,
-    string? Manufacturer,
-    string? MaintenancePlanStatus,
-    string? AllocationChartRef,
-    string? ParentId,
-    string? ParentSerial,
-    bool InScope,
-    string? ExclusionReason,
-    string? TechnicianName,
-    string? StorageLocation
-);
 
 record SchemaColumnDto(string Name, string ErpSource, string Type, string Notes, bool Active, string? ExportName);
 
@@ -90,6 +64,11 @@ record SourceSchemaDto(string ConnectionLabel, SourceTableDto[] Tables);
 
 record RunNowResult(int SequenceNo, int RecordCount, string Sha256Short);
 
+/// <summary>
+/// Source is "dynamic" for a flat mapping (Columns/Records populated), "dynamic-nested" for a mapping
+/// with nested JSON groups (NestedRecords populated instead — arbitrary object/array shape, not a flat
+/// table), or "error" when nothing could be previewed.
+/// </summary>
 record PreviewResult(
     int RecordCount,
     string SchemaVersion,
@@ -97,7 +76,8 @@ record PreviewResult(
     IList<Dictionary<string, string>> Records,
     string Source = "demo",
     string? SourceTable = null,
-    string? Error = null
+    string? Error = null,
+    System.Text.Json.Nodes.JsonArray? NestedRecords = null
 );
 
 /// <summary>Public view of the stored connection — no password field.</summary>

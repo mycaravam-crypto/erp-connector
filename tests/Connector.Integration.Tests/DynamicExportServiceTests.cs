@@ -440,10 +440,59 @@ public sealed class DynamicExportServiceTests
         Assert.Equal("SN-001", csv.Rows[0][1]);
     }
 
+    // ── UsesNestedJson ───────────────────────────────────────────────────────
+    // This is the single decision point Run Now, Preview, and the scheduled ExportWorker all share
+    // (via BuildExportAsync / PipelineEndpoints) so a nested-group mapping can't silently fall back to
+    // the flat shape in one of the three call sites without the others noticing.
+
+    [Fact]
+    public void UsesNestedJson_JsonFormatWithNestedGroups_IsTrue()
+    {
+        var cfg = MakeConfig(fields: [], relations: []) with { NestedGroups = [MakeNestedGroup()] };
+        Assert.True(DynamicExportService.UsesNestedJson(cfg, "json"));
+    }
+
+    [Fact]
+    public void UsesNestedJson_JsonFormatWithWrapperOnly_IsTrue()
+    {
+        var cfg = MakeConfig(fields: [], relations: []) with
+        {
+            JsonWrapper = new ExportJsonWrapperConfig("root", "items", "meta", []),
+        };
+        Assert.True(DynamicExportService.UsesNestedJson(cfg, "json"));
+    }
+
+    [Fact]
+    public void UsesNestedJson_FlatConfig_IsFalse()
+    {
+        var cfg = MakeConfig(fields: [], relations: []);
+        Assert.False(DynamicExportService.UsesNestedJson(cfg, "json"));
+    }
+
+    [Fact]
+    public void UsesNestedJson_NonJsonFormat_IsFalseEvenWithNestedGroups()
+    {
+        var cfg = MakeConfig(fields: [], relations: []) with { NestedGroups = [MakeNestedGroup()] };
+        Assert.False(DynamicExportService.UsesNestedJson(cfg, "xlsx"));
+        Assert.False(DynamicExportService.UsesNestedJson(cfg, "csv"));
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static ExportMappingConfig MakeConfig(ExportMappingField[] fields, ExportMappingRelation[] relations) =>
         new("test_table", fields, relations);
+
+    private static ExportMappingNestedGroup MakeNestedGroup() =>
+        new(
+            TargetKey: "child",
+            RelatedTable: "related",
+            JoinKey: "parent_id",
+            SourceJoinKey: "id",
+            Enabled: true,
+            Kind: "object",
+            Fields: [],
+            Children: []
+        );
 
     private static ExportMappingRelation MakeRelation(
         string table,

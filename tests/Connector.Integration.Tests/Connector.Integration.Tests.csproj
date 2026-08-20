@@ -23,8 +23,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Connector.Core\Connector.Core.csproj" />
-    <ProjectReference Include="..\..\src\Connector.Erp\Connector.Erp.csproj" />
-    <ProjectReference Include="..\..\src\Connector.Export\Connector.Export.csproj" />
     <ProjectReference Include="..\..\src\Connector.Infrastructure\Connector.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

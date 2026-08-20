@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { SourceColumn, SourceTable } from '@/api/connection'
-import type { MappingNestedGroup, MappingNestedField } from '@/api/erp'
+import type { MappingNestedGroup, MappingNestedField } from '@/api/mapping'
 
 // Self-referencing recursive component. Vue 3 SFCs can implicitly reference themselves by
 // filename, but defineOptions makes the self-registration explicit and independent of the file

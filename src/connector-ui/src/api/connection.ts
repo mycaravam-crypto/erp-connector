@@ -1,4 +1,4 @@
-import { getToken } from './auth'
+import { authHeaders } from './auth'
 
 export interface SourceColumn {
   name: string
@@ -31,13 +31,6 @@ export interface ErpConnectionInfo {
 /** Full config sent to POST /api/connection (password included, stays server-side). */
 export interface ConnectionConfig extends ErpConnectionInfo {
   password: string
-}
-
-function authHeaders(): Record<string, string> {
-  const token = getToken()
-  const headers: Record<string, string> = {}
-  if (token) headers['Authorization'] = `Bearer ${token}`
-  return headers
 }
 
 /** Returns the currently stored ERP connection (no password), or null if none is configured. */

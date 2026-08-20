@@ -3,9 +3,9 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import ExportView from '@/views/ExportView.vue'
 import * as pipelineApi from '@/api/pipeline'
-import * as erpApi from '@/api/erp'
+import * as erpApi from '@/api/mapping'
 import * as exportsApi from '@/api/exports'
-import type { ExportMappingConfig } from '@/api/erp'
+import type { ExportMappingConfig } from '@/api/mapping'
 import type { PreviewResult } from '@/api/pipeline'
 import type { ExportSummary } from '@/api/exports'
 
@@ -92,6 +92,24 @@ describe('ExportView', () => {
     const w = mount(ExportView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
     expect(w.text()).not.toContain('Showing')
+  })
+
+  it('does not show "No in-scope records found" when the preview table has rows', async () => {
+    const w = mount(ExportView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+    expect(w.text()).toContain('SN-001')
+    expect(w.text()).not.toContain('No in-scope records found')
+  })
+
+  it('does not show "No in-scope records found" alongside the preview-failed error box', async () => {
+    vi.spyOn(pipelineApi, 'getPreview').mockResolvedValueOnce({
+      recordCount: 0, schemaVersion: '2.0', columns: [], records: [], source: 'error',
+      error: 'No export mapping configured.',
+    })
+    const w = mount(ExportView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+    expect(w.text()).toContain('No export mapping configured.')
+    expect(w.text()).not.toContain('No in-scope records found')
   })
 
   it('shows active mapping summary with source table and field count', async () => {

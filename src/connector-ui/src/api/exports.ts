@@ -1,4 +1,4 @@
-import { getToken } from './auth'
+import { authHeaders } from './auth'
 
 export interface ExportSummary {
   sequenceNo: number
@@ -44,17 +44,23 @@ export interface SkipRequest {
   reason?: string | null
 }
 
-function authHeaders(): Record<string, string> {
-  const token = getToken()
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (token) headers['Authorization'] = `Bearer ${token}`
-  return headers
-}
-
 async function request<T>(url: string, init?: RequestInit): Promise<{ data: T; status: number }> {
   const res = await fetch(url, { headers: authHeaders(), ...init })
   const data = res.ok ? ((await res.json()) as T) : ({} as T)
   return { data, status: res.status }
+}
+
+async function postAction(
+  url: string,
+  body: unknown,
+): Promise<{ ok: boolean; status: number; message: string }> {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(body),
+  })
+  const message = res.ok ? '' : await res.text()
+  return { ok: res.ok, status: res.status, message }
 }
 
 export async function listExports(): Promise<ExportSummary[]> {
@@ -71,37 +77,19 @@ export async function releaseExport(
   seqNo: number,
   body: ReleaseRequest,
 ): Promise<{ ok: boolean; status: number; message: string }> {
-  const res = await fetch(`/api/exports/${seqNo}/release`, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: JSON.stringify(body),
-  })
-  const message = res.ok ? '' : await res.text()
-  return { ok: res.ok, status: res.status, message }
+  return postAction(`/api/exports/${seqNo}/release`, body)
 }
 
 export async function skipExport(
   seqNo: number,
   body: SkipRequest,
 ): Promise<{ ok: boolean; status: number; message: string }> {
-  const res = await fetch(`/api/exports/${seqNo}/skip`, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: JSON.stringify(body),
-  })
-  const message = res.ok ? '' : await res.text()
-  return { ok: res.ok, status: res.status, message }
+  return postAction(`/api/exports/${seqNo}/skip`, body)
 }
 
 export async function deliverExport(
   seqNo: number,
   body: DeliverRequest,
 ): Promise<{ ok: boolean; status: number; message: string }> {
-  const res = await fetch(`/api/exports/${seqNo}/deliver`, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: JSON.stringify(body),
-  })
-  const message = res.ok ? '' : await res.text()
-  return { ok: res.ok, status: res.status, message }
+  return postAction(`/api/exports/${seqNo}/deliver`, body)
 }

@@ -7,6 +7,12 @@ tags: [domain, icd, export-ready, excel]
 timestamp: 2026-06-28T00:00:00Z
 ---
 
+> **⚠ Superseded (2.0).** This type was never wired into the live application and has been
+> removed from the codebase — exported rows are `Dictionary<string,string>`/`JsonObject`
+> built directly by `DynamicExportService`, not this fixed record. See
+> [DynamicExportService](/pipeline/dynamic-export-service.md). This page is kept only as a
+> record of the original design intent.
+
 The result of [ISchemaMapper](/pipeline/schema-mapper.md) transforming an
 [ExportItem](/domain/export-item.md). All fields are export-ready according to the
 [Export Schema](/schema/export-schema.md) ICD contract.

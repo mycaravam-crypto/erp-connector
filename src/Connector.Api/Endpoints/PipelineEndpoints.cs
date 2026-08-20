@@ -1,8 +1,8 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Connector.Core.Domain;
 using Connector.Core.DynamicExport;
-using Connector.Core.Interfaces;
 using Connector.Core.Schema;
 using Connector.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +19,7 @@ static class PipelineEndpoints
                 async (
                     string? format,
                     ExportLogDbContext db,
-                    IExportSink sink,
+                    FileSystemExportSink sink,
                     ILogger<Program> logger,
                     AuditService audit,
                     HttpContext httpContext,
@@ -43,8 +43,8 @@ static class PipelineEndpoints
                     db.ExportRuns.Add(run);
                     await db.SaveChangesAsync(ct);
 
-                    var mappingSetting = await db.AppSettings.FindAsync("export_mapping");
-                    if (mappingSetting is null)
+                    var mappingRaw = await db.GetSettingRawAsync(SettingsKeys.ExportMapping);
+                    if (mappingRaw is null)
                     {
                         run.Status = ExportRunStatus.Failed;
                         await db.SaveChangesAsync(ct);
@@ -53,10 +53,10 @@ static class PipelineEndpoints
                             statusCode: 400
                         );
                     }
-                    var config = ExportMappingJson.DeserializeConfig(mappingSetting.Value)!;
+                    var config = ExportMappingJson.DeserializeConfig(mappingRaw)!;
 
-                    var connSetting = await db.AppSettings.FindAsync("erp_connection");
-                    if (connSetting is null)
+                    var connRaw = await db.GetSettingRawAsync(SettingsKeys.ErpConnection);
+                    if (connRaw is null)
                     {
                         run.Status = ExportRunStatus.Failed;
                         await db.SaveChangesAsync(ct);
@@ -65,10 +65,7 @@ static class PipelineEndpoints
                             statusCode: 400
                         );
                     }
-                    var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connSetting.Value)!;
-
-                    var usesNestedJson =
-                        fmt == "json" && (config.NestedGroups is { Length: > 0 } || config.JsonWrapper is not null);
+                    var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connRaw)!;
 
                     try
                     {
@@ -80,85 +77,29 @@ static class PipelineEndpoints
                         );
                         await pgConn.OpenAsync(ct);
 
-                        byte[] bytes;
-                        string fileName;
-                        int recordCount;
+                        var built = await DynamicExportService.BuildExportAsync(
+                            pgConn,
+                            config,
+                            fmt,
+                            ExportSchema.Version,
+                            extractedAt,
+                            ct,
+                            gdprDenylist: gdprDenylist
+                        );
 
-                        if (usesNestedJson)
+                        if (built.RecordCount == 0)
                         {
-                            var nestedRecords = await DynamicExportService.ExecuteNestedJsonQueryAsync(
-                                pgConn,
-                                config,
-                                ct,
-                                gdprDenylist: gdprDenylist
+                            run.Status = ExportRunStatus.Failed;
+                            await db.SaveChangesAsync(ct);
+                            return Results.Problem(
+                                detail: "Export aborted: query returned 0 records. Check that your mapping includes the maintenance_plan scope predicate.",
+                                statusCode: 400
                             );
-
-                            if (nestedRecords.Count == 0)
-                            {
-                                run.Status = ExportRunStatus.Failed;
-                                await db.SaveChangesAsync(ct);
-                                return Results.Problem(
-                                    detail: "Export aborted: query returned 0 records. Check that your mapping includes the maintenance_plan scope predicate.",
-                                    statusCode: 400
-                                );
-                            }
-
-                            recordCount = nestedRecords.Count;
-                            bytes = DynamicExportService.BuildNestedJsonBytes(
-                                nestedRecords,
-                                config.JsonWrapper,
-                                ExportSchema.Version,
-                                extractedAt
-                            );
-                            fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "json");
                         }
-                        else
-                        {
-                            var cols = DynamicExportService.GetColumnNames(config);
-                            var records = await DynamicExportService.ExecuteQueryAsync(
-                                pgConn,
-                                config,
-                                ct,
-                                gdprDenylist: gdprDenylist
-                            );
 
-                            if (records.Count == 0)
-                            {
-                                run.Status = ExportRunStatus.Failed;
-                                await db.SaveChangesAsync(ct);
-                                return Results.Problem(
-                                    detail: "Export aborted: query returned 0 records. Check that your mapping includes the maintenance_plan scope predicate.",
-                                    statusCode: 400
-                                );
-                            }
-
-                            recordCount = records.Count;
-                            if (fmt == "csv")
-                            {
-                                bytes = DynamicExportService.BuildCsvBytes(
-                                    records,
-                                    cols,
-                                    ExportSchema.Version,
-                                    extractedAt
-                                );
-                                fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "csv");
-                            }
-                            else if (fmt == "json")
-                            {
-                                bytes = DynamicExportService.BuildJsonBytes(records, ExportSchema.Version, extractedAt);
-                                fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, "json");
-                            }
-                            else
-                            {
-                                bytes = DynamicExportService.BuildExcelBytes(
-                                    records,
-                                    cols,
-                                    ExportSchema.Version,
-                                    extractedAt
-                                );
-                                fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt);
-                            }
-                        }
+                        var bytes = built.Bytes;
+                        var fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, built.Extension);
+                        var recordCount = built.RecordCount;
 
                         var checksum = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
                         var package = new ExportPackage(
@@ -206,8 +147,8 @@ static class PipelineEndpoints
                 "/api/pipeline/preview",
                 async (ExportLogDbContext db, CancellationToken ct) =>
                 {
-                    var mappingConfigSetting = await db.AppSettings.FindAsync("export_mapping");
-                    if (mappingConfigSetting is null)
+                    var mappingRaw = await db.GetSettingRawAsync(SettingsKeys.ExportMapping);
+                    if (mappingRaw is null)
                         return Results.Ok(
                             new PreviewResult(
                                 0,
@@ -220,18 +161,22 @@ static class PipelineEndpoints
                             )
                         );
 
-                    var config = JsonSerializer.Deserialize<ExportMappingConfig>(mappingConfigSetting.Value)!;
+                    var config = ExportMappingJson.DeserializeConfig(mappingRaw)!;
 
                     PreviewResult EmptyResult(string msg) =>
                         new(0, ExportSchema.Version, [], [], "error", config.SourceTable, msg);
 
-                    var connSetting = await db.AppSettings.FindAsync("erp_connection");
-                    if (connSetting is null)
+                    var connRaw = await db.GetSettingRawAsync(SettingsKeys.ErpConnection);
+                    if (connRaw is null)
                         return Results.Ok(EmptyResult("No database connection configured. Set it up in Step 1."));
 
-                    var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connSetting.Value);
+                    var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connRaw);
                     if (connCfg is null)
                         return Results.Ok(EmptyResult("Stored connection config could not be read."));
+
+                    // Preview reflects exactly what a JSON-format export would produce: same nested-vs-flat
+                    // decision DynamicExportService.BuildExportAsync uses for Run Now and the scheduled worker.
+                    var previewFormat = DynamicExportService.UsesNestedJson(config, "json") ? "json" : "flat";
 
                     try
                     {
@@ -240,6 +185,31 @@ static class PipelineEndpoints
                             DynamicExportService.BuildConnectionString(connCfg)
                         );
                         await conn.OpenAsync(ct);
+
+                        if (previewFormat == "json")
+                        {
+                            var nestedRecords = await DynamicExportService.ExecuteNestedJsonQueryAsync(
+                                conn,
+                                config,
+                                ct,
+                                limit: 50,
+                                gdprDenylist: gdprDenylist
+                            );
+                            return Results.Ok(
+                                new PreviewResult(
+                                    nestedRecords.Count,
+                                    ExportSchema.Version,
+                                    [],
+                                    [],
+                                    "dynamic-nested",
+                                    config.SourceTable,
+                                    NestedRecords: new JsonArray(
+                                        nestedRecords.Select(r => (JsonNode?)r.DeepClone()).ToArray()
+                                    )
+                                )
+                            );
+                        }
+
                         var cols = DynamicExportService.GetColumnNames(config);
                         if (cols.Count == 0)
                             return Results.Ok(

@@ -7,6 +7,14 @@ tags: [pipeline, stage-3, gdpr, minimization, privacy]
 timestamp: 2026-06-28T00:00:00Z
 ---
 
+> **⚠ Superseded (2.0).** `IDataMinimizer`/`DataMinimizer` were never wired into the live
+> application and have been removed from the codebase. GDPR minimization is still
+> enforced, but as a runtime-editable denylist checked at mapping-save time and stripped
+> at query time — not a fixed type from which the fields are simply absent. See
+> [GDPR Compliance](/processes/gdpr-compliance.md) and
+> [DynamicExportService](/pipeline/dynamic-export-service.md). This page is kept only as a
+> record of the original design intent.
+
 The third stage and the GDPR compliance boundary. Transforms each
 [ErpConfigurationItem](/domain/erp-configuration-item.md) into an
 [ExportItem](/domain/export-item.md) by omitting personal and non-entitled fields.

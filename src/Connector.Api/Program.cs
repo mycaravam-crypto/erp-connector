@@ -1,8 +1,6 @@
 using System.Text;
 using Connector.Api;
 using Connector.Api.Endpoints;
-using Connector.Core.Interfaces;
-using Connector.Erp.DemoErp;
 using Connector.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -73,7 +71,7 @@ if (allowedOrigins.Length > 0)
 
 builder.Services.Configure<ExportSinkOptions>(builder.Configuration.GetSection("ExportSink"));
 builder.Services.Configure<ExportWorkerOptions>(builder.Configuration.GetSection("ExportWorker"));
-builder.Services.AddSingleton<IExportSink, FileSystemExportSink>();
+builder.Services.AddSingleton<FileSystemExportSink>();
 
 builder.Services.AddDbContext<ExportLogDbContext>(opt =>
     opt.UseSqlite(builder.Configuration.GetConnectionString("ExportLog"))
@@ -81,11 +79,6 @@ builder.Services.AddDbContext<ExportLogDbContext>(opt =>
 
 builder.Services.AddScoped<AuditService>();
 builder.Services.AddHostedService<ExportWorker>();
-
-// Demo ERP (SQLite) — used by the ERP database browser (/api/erp/records).
-builder.Services.AddDbContext<DemoErpDbContext>(opt =>
-    opt.UseSqlite(builder.Configuration.GetConnectionString("DemoErp"))
-);
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -129,11 +122,6 @@ app.UseAuthorization();
 
 using (var scope = app.Services.CreateScope())
 {
-    // Demo ERP: simple EnsureCreated is fine (read-only seed data, no migrations needed).
-    var erpDb = scope.ServiceProvider.GetRequiredService<DemoErpDbContext>();
-    await erpDb.Database.EnsureCreatedAsync();
-    DemoErpSeed.Seed(erpDb);
-
     // Export log: EF Core migrations manage schema from this point forward.
     // BootstrapMigrationsAsync handles databases that were created before migrations were introduced.
     var exportLogDb = scope.ServiceProvider.GetRequiredService<ExportLogDbContext>();
@@ -156,6 +144,10 @@ using (var scope = app.Services.CreateScope())
     await exportLogDb.Database.ExecuteSqlRawAsync(
         """CREATE INDEX IF NOT EXISTS "IX_AuditLog_Timestamp" ON "AuditLog" ("Timestamp")"""
     );
+
+    // Phase 14: one-time conversion of the legacy single mapping + presets into ExportDefinition rows.
+    // No-ops once any ExportDefinition row exists.
+    await ExportDefinitionMigrator.MigrateLegacyMappingsAsync(exportLogDb);
 }
 
 // ── User store ────────────────────────────────────────────────────────────────
@@ -184,7 +176,6 @@ app.MapSchemaEndpoints();
 app.MapConnectionEndpoints();
 app.MapSettingsEndpoints();
 app.MapExportMappingEndpoints();
-app.MapErpEndpoints();
 
 // SPA fallback: any path not matched by an API route serves index.html
 // so Vue Router can handle client-side navigation.

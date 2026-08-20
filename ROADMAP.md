@@ -1,6 +1,33 @@
 # Connector — Changelog
 
-Last updated: 2026-08-06
+Last updated: 2026-08-19
+
+Planned next: [`REQUIREMENTS-2.0.md`](REQUIREMENTS-2.0.md) — generic, tree-based multi-export
+definitions (Phase 14, not yet started). It was drafted in parallel with Phase 13 below and has a
+correction note at its top reconciling the two.
+
+---
+
+## Phase 13 — 2.0: simplification after the exploration phase ✅
+
+Phases 1–12 were partly a discovery process: figuring out what the connector actually
+needed to do (fixed schema vs. runtime-configurable mapping, single-table vs. joins,
+flat vs. nested export) while a working system was already in production. That produced
+real accidental complexity alongside the real requirements. This phase cuts it back down
+now that the shape of the requirement is known — without touching the compliance-critical
+paths (four-eyes release, GDPR, audit log, sequence integrity), which were requirements
+from day one, not discovery artifacts.
+
+| Item | Notes |
+|---|---|
+| Removed the dead fixed pipeline | `Connector.Export` project, `ErpConfigurationItem`/`ExportItem`/`MappedExportRecord`, `ISchemaMapper`/`IDataMinimizer`/`IExportFilter`/`IPackager`/`IErpReader` and their implementations — never registered in DI, carried no live traffic since the dynamic mapping (Phase 9–10) fully replaced them. See [`knowledge/pipeline/dynamic-export-service.md`](knowledge/pipeline/dynamic-export-service.md) |
+| Removed the demo-ERP browsing feature | `ErpDatabaseView`, `BomTree`/`BomTreeRow`/`CiDetailPanel`, `GET /api/erp/records`, the seeded SQLite `DemoErpDbContext` — an exploration/demo view over fake data with no requirement calling for it in production; superseded by `SourceSchemaView` + the Postgres `testdb` fixture |
+| Removed inert schema-mapping endpoints | `PATCH /api/schema/columns`/`/api/schema/mappings` persisted an "active columns"/rename state nothing in the frontend called or read; `GET /api/schema` is now a pure static read of the ICD reference contract |
+| ICD contract decoupled explicitly | `IcdSchemaView`/`GET /api/schema` documented as read-only reference, independent of the live dynamic mapping — resolves the earlier "two competing schema models" ambiguity in favor of the dynamic mapping as the real, evolving design |
+| Unified export execution path | New `DynamicExportService.BuildExportAsync` + `UsesNestedJson` are the single decision point shared by Run Now, the scheduled `ExportWorker`, and Preview — closes the Phase 12 gap where nested-JSON mappings only worked from Run Now. Scheduler settings gained a persisted `Format` field so the nightly export can also produce nested JSON |
+| SchemaView format-toggle bug fixed | The Step 3 "which JSON options to show" toggle silently shared a `localStorage` key with the Step 4 "which format to actually export" picker — selecting JSON to peek at nested-group config would silently change what Run Now exported. Decoupled; the Step 3 toggle now also auto-selects when a loaded mapping already has nested groups |
+| API module boundaries cleaned up | `api/erp.ts` split into `api/mapping.ts` (dynamic mapping) and `api/icdSchema.ts` (ICD reference) now that the ERP-browsing half is gone; GDPR denylist endpoints moved from `api/audit.ts` to `api/scheduler.ts` (both are Settings-page concerns) |
+| Docs reconciled with the running code | `knowledge/pipeline/*` and `knowledge/domain/*` pages describing the deleted fixed pipeline marked superseded, pointing to the new [`dynamic-export-service.md`](knowledge/pipeline/dynamic-export-service.md) |
 
 ---
 

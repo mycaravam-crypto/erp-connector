@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Connector.Core.DynamicExport;
 using Connector.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -15,18 +14,13 @@ static class SettingsEndpoints
                 "/api/settings/scheduler",
                 async (ExportLogDbContext db, IOptions<ExportWorkerOptions> defaults) =>
                 {
-                    var setting = await db.AppSettings.FindAsync("scheduler_config");
-                    if (setting is not null)
-                    {
-                        var stored = JsonSerializer.Deserialize<SchedulerConfigData>(setting.Value);
-                        if (stored is not null)
-                            return Results.Ok(stored);
-                    }
+                    var stored = await db.GetSettingAsync<SchedulerConfigData>(SettingsKeys.SchedulerConfig);
                     return Results.Ok(
-                        new SchedulerConfigData(
-                            defaults.Value.ScheduledTimeUtc.ToString(@"hh\:mm"),
-                            defaults.Value.RetentionDays
-                        )
+                        stored
+                            ?? new SchedulerConfigData(
+                                defaults.Value.ScheduledTimeUtc.ToString(@"hh\:mm"),
+                                defaults.Value.RetentionDays
+                            )
                     );
                 }
             )
@@ -51,18 +45,14 @@ static class SettingsEndpoints
                         );
                     if (dto.RetentionDays < 1 || dto.RetentionDays > 3650)
                         return Results.BadRequest("RetentionDays must be between 1 and 3650.");
+                    if (dto.Format is not ("xlsx" or "csv" or "json"))
+                        return Results.BadRequest("Format must be one of: xlsx, csv, json.");
 
-                    var serialized = JsonSerializer.Serialize(dto);
-                    var setting = await db.AppSettings.FindAsync("scheduler_config");
-                    if (setting is null)
-                        db.AppSettings.Add(new AppSettingEntity { Key = "scheduler_config", Value = serialized });
-                    else
-                        setting.Value = serialized;
-                    await db.SaveChangesAsync();
+                    await db.SetSettingAsync(SettingsKeys.SchedulerConfig, dto);
                     await audit.LogAsync(
                         httpContext.User.Identity!.Name!,
                         "scheduler_updated",
-                        $"time={dto.ScheduledTimeUtc} retention={dto.RetentionDays}d"
+                        $"time={dto.ScheduledTimeUtc} retention={dto.RetentionDays}d format={dto.Format}"
                     );
                     return Results.Ok(dto);
                 }
@@ -98,14 +88,7 @@ static class SettingsEndpoints
                     if (request.Fields.Count > 50)
                         return Results.BadRequest("Maximum 50 fields allowed in the GDPR denylist.");
 
-                    var serialized = JsonSerializer.Serialize(request.Fields);
-                    var setting = await db.AppSettings.FindAsync("gdpr_denied_fields");
-                    if (setting is null)
-                        db.AppSettings.Add(new AppSettingEntity { Key = "gdpr_denied_fields", Value = serialized });
-                    else
-                        setting.Value = serialized;
-
-                    await db.SaveChangesAsync();
+                    await db.SetSettingAsync(SettingsKeys.GdprDeniedFields, request.Fields);
                     await audit.LogAsync(
                         httpContext.User.Identity!.Name!,
                         "gdpr_denylist_updated",

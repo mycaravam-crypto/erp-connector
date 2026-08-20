@@ -2,7 +2,6 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Connector.Core.Domain;
 using Connector.Core.DynamicExport;
-using Connector.Core.Interfaces;
 using Connector.Core.Schema;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +21,7 @@ namespace Connector.Infrastructure;
 /// </remarks>
 public sealed class ExportWorker(
     IServiceScopeFactory scopeFactory,
-    IExportSink sink,
+    FileSystemExportSink sink,
     IOptions<ExportWorkerOptions> options,
     IOptions<ExportSinkOptions> sinkOptions,
     ILogger<ExportWorker> logger
@@ -36,7 +35,7 @@ public sealed class ExportWorker(
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            var (scheduledTime, retentionDays) = await GetEffectiveOptionsAsync(stoppingToken);
+            var (scheduledTime, retentionDays, format) = await GetEffectiveOptionsAsync(stoppingToken);
             var delay = ComputeDelayUntilNextRun(scheduledTime);
             logger.LogInformation("Next export in {Delay:hh\\:mm\\:ss}", delay);
 
@@ -44,15 +43,17 @@ public sealed class ExportWorker(
 
             if (!stoppingToken.IsCancellationRequested)
             {
-                (_, retentionDays) = await GetEffectiveOptionsAsync(stoppingToken);
-                await RunExportAsync(stoppingToken);
+                (_, retentionDays, format) = await GetEffectiveOptionsAsync(stoppingToken);
+                await RunExportAsync(format, stoppingToken);
                 await RunRetentionCleanupAsync(retentionDays, stoppingToken);
             }
         }
     }
 
     // Reads scheduler config from the AppSettings DB table; falls back to IOptions values if not set.
-    private async Task<(TimeSpan ScheduledTime, int RetentionDays)> GetEffectiveOptionsAsync(CancellationToken ct)
+    private async Task<(TimeSpan ScheduledTime, int RetentionDays, string Format)> GetEffectiveOptionsAsync(
+        CancellationToken ct
+    )
     {
         try
         {
@@ -72,7 +73,7 @@ public sealed class ExportWorker(
                     && ts >= TimeSpan.Zero
                     && ts < TimeSpan.FromDays(1)
                 )
-                    return (ts, Math.Max(1, data.RetentionDays));
+                    return (ts, Math.Max(1, data.RetentionDays), NormalizeFormat(data.Format));
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -80,10 +81,18 @@ public sealed class ExportWorker(
             logger.LogWarning(ex, "Failed to read scheduler config from database; using defaults.");
         }
 
-        return (options.Value.ScheduledTimeUtc, options.Value.RetentionDays);
+        return (options.Value.ScheduledTimeUtc, options.Value.RetentionDays, "xlsx");
     }
 
-    private async Task RunExportAsync(CancellationToken ct)
+    private static string NormalizeFormat(string? format) =>
+        format?.ToLowerInvariant() switch
+        {
+            "csv" => "csv",
+            "json" => "json",
+            _ => "xlsx",
+        };
+
+    private async Task RunExportAsync(string format, CancellationToken ct)
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<ExportLogDbContext>();
@@ -126,15 +135,22 @@ public sealed class ExportWorker(
             }
             var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connSetting.Value)!;
 
-            var cols = DynamicExportService.GetColumnNames(config);
             var extractedAt = DateTimeOffset.UtcNow;
             var gdprDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
 
             await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(connCfg));
             await conn.OpenAsync(ct);
-            var records = await DynamicExportService.ExecuteQueryAsync(conn, config, ct, gdprDenylist: gdprDenylist);
+            var built = await DynamicExportService.BuildExportAsync(
+                conn,
+                config,
+                format,
+                ExportSchema.Version,
+                extractedAt,
+                ct,
+                gdprDenylist: gdprDenylist
+            );
 
-            if (records.Count == 0)
+            if (built.RecordCount == 0)
             {
                 logger.LogError(
                     "Export #{Seq}: aborted — query returned 0 records. "
@@ -147,12 +163,12 @@ public sealed class ExportWorker(
                 return;
             }
 
-            var bytes = DynamicExportService.BuildExcelBytes(records, cols, ExportSchema.Version, extractedAt);
-            var fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt);
+            var bytes = built.Bytes;
+            var fileName = ExportSchema.BuildFileName(sequenceNo, extractedAt, built.Extension);
             var checksum = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
 
             var package = new ExportPackage(
-                new ExportManifest(sequenceNo, ExportSchema.Version, extractedAt, records.Count, checksum),
+                new ExportManifest(sequenceNo, ExportSchema.Version, extractedAt, built.RecordCount, checksum),
                 bytes,
                 fileName
             );
@@ -284,4 +300,4 @@ public sealed class ExportWorkerOptions
 }
 
 /// <summary>Scheduler configuration stored in AppSettings DB, overriding the appsettings.json defaults.</summary>
-public record SchedulerConfigData(string ScheduledTimeUtc, int RetentionDays);
+public record SchedulerConfigData(string ScheduledTimeUtc, int RetentionDays, string Format = "xlsx");

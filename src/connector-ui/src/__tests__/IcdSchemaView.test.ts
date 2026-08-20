@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import IcdSchemaView from '@/views/IcdSchemaView.vue'
-import * as erpApi from '@/api/erp'
+import * as erpApi from '@/api/icdSchema'
 
 function buildRouter() {
   const r = createRouter({

@@ -53,6 +53,74 @@ partial class ExportLogDbContextModelSnapshot : ModelSnapshot
         );
 
         modelBuilder.Entity(
+            "Connector.Infrastructure.ExportDefinitionEntity",
+            b =>
+            {
+                b.Property<int>("Id").ValueGeneratedOnAdd().HasColumnType("INTEGER");
+
+                b.Property<int>("ConfigVersion").HasColumnType("INTEGER");
+
+                b.Property<string>("CreatedAt").IsRequired().HasColumnType("TEXT");
+
+                b.Property<string>("CreatedBy").IsRequired().HasColumnType("TEXT");
+
+                b.Property<string>("Description").HasColumnType("TEXT");
+
+                b.Property<bool>("IsEnabled").HasColumnType("INTEGER");
+
+                b.Property<string>("Name").IsRequired().HasColumnType("TEXT");
+
+                b.Property<string>("OutputFormat").IsRequired().HasColumnType("TEXT");
+
+                b.Property<string>("RootNode").IsRequired().HasColumnType("TEXT");
+
+                b.Property<string>("RootTable").IsRequired().HasColumnType("TEXT");
+
+                b.Property<string>("Schedule").HasColumnType("TEXT");
+
+                b.Property<string>("UpdatedAt").HasColumnType("TEXT");
+
+                b.Property<string>("UpdatedBy").HasColumnType("TEXT");
+
+                b.HasKey("Id");
+
+                b.ToTable("ExportDefinition", (string)null);
+            }
+        );
+
+        modelBuilder.Entity(
+            "Connector.Infrastructure.ExportDefinitionRunEntity",
+            b =>
+            {
+                b.Property<int>("Id").ValueGeneratedOnAdd().HasColumnType("INTEGER");
+
+                b.Property<int>("ConfigVersion").HasColumnType("INTEGER");
+
+                b.Property<string>("ErrorMessage").HasColumnType("TEXT");
+
+                b.Property<int>("ExportDefinitionId").HasColumnType("INTEGER");
+
+                b.Property<string>("FinishedAt").HasColumnType("TEXT");
+
+                b.Property<bool>("IsTestRun").HasColumnType("INTEGER");
+
+                b.Property<int>("RecordCount").HasColumnType("INTEGER");
+
+                b.Property<string>("StartedAt").IsRequired().HasColumnType("TEXT");
+
+                b.Property<string>("Status").IsRequired().HasColumnType("TEXT");
+
+                b.Property<string>("TriggeredBy").IsRequired().HasColumnType("TEXT");
+
+                b.HasKey("Id");
+
+                b.HasIndex("ExportDefinitionId");
+
+                b.ToTable("ExportDefinitionRun", (string)null);
+            }
+        );
+
+        modelBuilder.Entity(
             "Connector.Infrastructure.ExportRunEntity",
             b =>
             {

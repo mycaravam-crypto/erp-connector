@@ -8,7 +8,6 @@ import ExportView from '../views/ExportView.vue'
 import ExportDetail from '../views/ExportDetail.vue'
 import LoginView from '../views/LoginView.vue'
 import SettingsView from '../views/SettingsView.vue'
-import ErpDatabaseView from '../views/ErpDatabaseView.vue'
 import IcdSchemaView from '../views/IcdSchemaView.vue'
 import AuditView from '../views/AuditView.vue'
 import NotFoundView from '../views/NotFoundView.vue'
@@ -24,12 +23,12 @@ const router = createRouter({
     { path: '/exports', name: 'exports', component: ExportView },
     { path: '/exports/:seqNo', name: 'export-detail', component: ExportDetail },
     { path: '/settings', name: 'settings', component: SettingsView },
-    { path: '/erp-database', name: 'erp-database', component: ErpDatabaseView },
     { path: '/icd-schema', name: 'icd-schema', component: IcdSchemaView },
     { path: '/audit', name: 'audit', component: AuditView },
     // legacy redirects
     { path: '/schema', redirect: '/export-schema' },
-    { path: '/erp', redirect: '/erp-database' },
+    { path: '/erp-database', redirect: '/icd-schema' },
+    { path: '/erp', redirect: '/icd-schema' },
     { path: '/pipeline', redirect: '/exports' },
     // catch-all — must be last
     { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView },
@@ -39,13 +38,18 @@ const router = createRouter({
 // Routes that require a stored ERP connection before they're useful.
 const REQUIRES_CONNECTION = new Set(['source-schema', 'export-schema'])
 
-router.beforeEach(async (to) => {
-  if (to.name !== 'login' && !isLoggedIn()) return { name: 'login' }
+function needsLogin(routeName: unknown): boolean {
+  return routeName !== 'login' && !isLoggedIn()
+}
 
-  if (to.name && REQUIRES_CONNECTION.has(String(to.name))) {
-    const hasConn = await isConnectionConfigured()
-    if (!hasConn) return { name: 'connect', query: { notice: 'needs-connection' } }
-  }
+async function needsConnection(routeName: unknown): Promise<boolean> {
+  if (!routeName || !REQUIRES_CONNECTION.has(String(routeName))) return false
+  return !(await isConnectionConfigured())
+}
+
+router.beforeEach(async (to) => {
+  if (needsLogin(to.name)) return { name: 'login' }
+  if (await needsConnection(to.name)) return { name: 'connect', query: { notice: 'needs-connection' } }
 })
 
 export default router

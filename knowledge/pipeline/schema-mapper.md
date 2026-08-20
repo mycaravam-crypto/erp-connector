@@ -7,6 +7,12 @@ tags: [pipeline, stage-4, icd, schema-mapping, formatting]
 timestamp: 2026-06-28T00:00:00Z
 ---
 
+> **⚠ Superseded (2.0).** `ISchemaMapper`/`SchemaMapper` were never wired into the live
+> application and have been removed from the codebase. Identifier-as-string and ISO-8601
+> date formatting are now applied inline in `DynamicExportService.ExecuteQueryAsync`. See
+> [DynamicExportService](/pipeline/dynamic-export-service.md). This page is kept only as a
+> record of the original design intent.
+
 The fourth stage. Transforms [ExportItem](/domain/export-item.md) fields into a
 [MappedExportRecord](/domain/mapped-export-record.md) that conforms to the
 [Export Schema](/schema/export-schema.md) ICD contract.

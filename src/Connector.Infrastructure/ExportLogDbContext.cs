@@ -1,6 +1,48 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 
 namespace Connector.Infrastructure;
+
+/// <summary>Canonical <see cref="AppSettingEntity"/> keys — one constant per stored setting, so a typo is a compile error instead of a silent runtime bug.</summary>
+public static class SettingsKeys
+{
+    public const string ErpConnection = "erp_connection";
+    public const string ExportMapping = "export_mapping";
+    public const string ExportPresets = "export_presets";
+    public const string SchedulerConfig = "scheduler_config";
+    public const string GdprDeniedFields = "gdpr_denied_fields";
+}
+
+/// <summary>
+/// Typed find/deserialize/upsert helpers over <see cref="ExportLogDbContext.AppSettings"/>, replacing the
+/// repeated find-null-check-deserialize (read) and find-null-check-add-or-mutate-save (write) pattern that
+/// used to be hand-rolled at every call site.
+/// </summary>
+public static class AppSettingsStore
+{
+    /// <summary>Returns the raw stored JSON for <paramref name="key"/>, or null if unset.</summary>
+    public static async Task<string?> GetSettingRawAsync(this ExportLogDbContext db, string key) =>
+        (await db.AppSettings.FindAsync(key))?.Value;
+
+    /// <summary>Returns the setting deserialized as <typeparamref name="T"/>, or default if unset.</summary>
+    public static async Task<T?> GetSettingAsync<T>(this ExportLogDbContext db, string key)
+    {
+        var raw = await db.GetSettingRawAsync(key);
+        return raw is null ? default : JsonSerializer.Deserialize<T>(raw);
+    }
+
+    /// <summary>Serializes <paramref name="value"/> and upserts it under <paramref name="key"/>, saving immediately.</summary>
+    public static async Task SetSettingAsync<T>(this ExportLogDbContext db, string key, T value)
+    {
+        var serialized = JsonSerializer.Serialize(value);
+        var setting = await db.AppSettings.FindAsync(key);
+        if (setting is null)
+            db.AppSettings.Add(new AppSettingEntity { Key = key, Value = serialized });
+        else
+            setting.Value = serialized;
+        await db.SaveChangesAsync();
+    }
+}
 
 /// <summary>
 /// EF Core DbContext for the export log (SQLite).
@@ -17,6 +59,13 @@ public sealed class ExportLogDbContext(DbContextOptions<ExportLogDbContext> opti
 
     /// <summary>Audit trail — one row per significant action performed by an authenticated user.</summary>
     public DbSet<AuditLogEntry> AuditLog => Set<AuditLogEntry>();
+
+    /// <summary>Phase 14 export definitions — the generic, tree-based replacement for the legacy
+    /// single mapping + presets.</summary>
+    public DbSet<ExportDefinitionEntity> ExportDefinitions => Set<ExportDefinitionEntity>();
+
+    /// <summary>Execution history for <see cref="ExportDefinitions"/> — one row per run.</summary>
+    public DbSet<ExportDefinitionRunEntity> ExportDefinitionRuns => Set<ExportDefinitionRunEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,6 +88,19 @@ public sealed class ExportLogDbContext(DbContextOptions<ExportLogDbContext> opti
             e.ToTable("AuditLog");
             e.HasKey(a => a.Id);
             e.HasIndex(a => a.Timestamp);
+        });
+
+        modelBuilder.Entity<ExportDefinitionEntity>(e =>
+        {
+            e.ToTable("ExportDefinition");
+            e.HasKey(d => d.Id);
+        });
+
+        modelBuilder.Entity<ExportDefinitionRunEntity>(e =>
+        {
+            e.ToTable("ExportDefinitionRun");
+            e.HasKey(r => r.Id);
+            e.HasIndex(r => r.ExportDefinitionId);
         });
     }
 }

@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Connector.Core.Domain;
-using Connector.Core.Interfaces;
 using Connector.Core.Schema;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -16,7 +15,6 @@ namespace Connector.Infrastructure;
 /// Das Manifest wird erst geschrieben, nachdem die Datendatei vollständig ist.
 /// </remarks>
 public sealed class FileSystemExportSink(IOptions<ExportSinkOptions> options, ILogger<FileSystemExportSink> logger)
-    : IExportSink
 {
     private readonly string _stagingPath = options.Value.StagingPath;
 

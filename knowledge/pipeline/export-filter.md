@@ -7,6 +7,13 @@ tags: [pipeline, stage-2, filter, scope, coalesce]
 timestamp: 2026-06-28T00:00:00Z
 ---
 
+> **⚠ Superseded (2.0).** `IExportFilter`/`ExportFilter` were never wired into the live
+> application and have been removed from the codebase. The scope predicate now lives in
+> the operator-authored SQL of the dynamic mapping (e.g. a `WHERE` clause or join
+> selecting only in-scope rows) — see [DynamicExportService](/pipeline/dynamic-export-service.md).
+> This page is kept only as a record of the original design intent (why a correlation-key
+> filter is required at all).
+
 The second stage. Applies the scope entitlement filter: only CIs that can be correlated
 to a ServiceNow asset may proceed. Excluded CIs are audit-logged with reason.
 
