@@ -310,11 +310,7 @@ static class ExportDefinitionEndpoints
 
                     if (built is null)
                     {
-                        await audit.LogAsync(
-                            user,
-                            "export_definition_run_failed",
-                            $"id={id} name={def.Name}: {error}"
-                        );
+                        await audit.LogAsync(user, "export_definition_run_failed", $"id={id} name={def.Name}: {error}");
                         return Results.Problem(detail: error, statusCode: 500);
                     }
 
