@@ -95,19 +95,16 @@ describe('saveExportMapping', () => {
   it('extracts the "detail" field from a problem+json error instead of dumping the raw envelope', async () => {
     mockFetch(
       {
-        type: 'https://tools.ietf.org/html/rfc9110#section-15.5.6',
-        title: 'Method Not Allowed',
-        status: 405,
-        detail:
-          'The legacy export-mapping config is read-only. Configure and trigger exports via /api/export-definitions instead.',
+        type: 'https://tools.ietf.org/html/rfc9110#section-15.5.5',
+        title: 'Internal Server Error',
+        status: 500,
+        detail: 'Stored database connection config could not be read.',
       },
-      405,
+      500,
     )
     const result = await saveExportMapping(CONFIG)
     expect(result.ok).toBe(false)
-    expect(result.error).toBe(
-      'The legacy export-mapping config is read-only. Configure and trigger exports via /api/export-definitions instead.',
-    )
+    expect(result.error).toBe('Stored database connection config could not be read.')
   })
 })
 
@@ -145,9 +142,9 @@ describe('savePreset', () => {
   })
 
   it('extracts the "detail" field from a problem+json error', async () => {
-    mockFetch({ title: 'Method Not Allowed', status: 405, detail: 'read-only' }, 405)
+    mockFetch({ title: 'Internal Server Error', status: 500, detail: 'unexpected failure' }, 500)
     const result = await savePreset('My Preset', PRESET_CONFIG)
-    expect(result).toEqual({ ok: false, error: 'read-only' })
+    expect(result).toEqual({ ok: false, error: 'unexpected failure' })
   })
 })
 

@@ -1,27 +1,16 @@
 using System.Text.RegularExpressions;
 using Connector.Core.DynamicExport;
 using Connector.Infrastructure;
-using Microsoft.EntityFrameworkCore;
 
 namespace Connector.Api.Endpoints;
 
+// The single active mapping this API exposes stays fully read/write regardless of whatever the
+// ExportDefinitions system (Phase 14, api/export-definitions) has migrated or holds — Step 3's Save,
+// Save As, and Delete Preset always work. /api/pipeline/run triggers whatever is currently saved here,
+// which is the supported way to call a UI-configured export from an external app; ExportDefinitions is
+// a separate, optional feature for named/independently-scheduled exports and does not gate this one.
 static class ExportMappingEndpoints
 {
-    // export-definitions-2.0.md §11 decision #2: once the one-time migrator has populated
-    // ExportDefinition rows, the legacy single-mapping config is frozen read-only — new/edited exports go
-    // through /api/export-definitions instead. GET stays a pass-through so existing UI/API consumers can
-    // still read the migrated-from config; PUT is disabled here rather than removed outright.
-    private static async Task<IResult?> RejectIfMigratedAsync(ExportLogDbContext db)
-    {
-        if (!await db.ExportDefinitions.AnyAsync())
-            return null;
-        return Results.Problem(
-            detail: "The legacy export-mapping config is read-only. Configure and trigger exports via "
-                + "/api/export-definitions instead.",
-            statusCode: StatusCodes.Status405MethodNotAllowed
-        );
-    }
-
     internal static void MapExportMappingEndpoints(this WebApplication app)
     {
         // Returns the stored export mapping config, or 404 if none saved.
@@ -48,9 +37,6 @@ static class ExportMappingEndpoints
                     AuditService audit
                 ) =>
                 {
-                    if (await RejectIfMigratedAsync(db) is { } rejected)
-                        return rejected;
-
                     var validationError = await ValidateConfigAsync(config, db);
                     if (validationError is not null)
                         return Results.BadRequest(validationError);
@@ -91,9 +77,6 @@ static class ExportMappingEndpoints
                     AuditService audit
                 ) =>
                 {
-                    if (await RejectIfMigratedAsync(db) is { } rejected)
-                        return rejected;
-
                     if (string.IsNullOrWhiteSpace(name))
                         return Results.BadRequest("Preset name is required.");
 

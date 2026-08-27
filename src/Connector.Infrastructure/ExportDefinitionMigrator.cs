@@ -9,8 +9,9 @@ namespace Connector.Infrastructure;
 /// blobs and writes one <see cref="ExportDefinitionEntity"/> per legacy config, so Phase 14's N-definitions
 /// model starts populated from whatever a deployment already had configured. Idempotent — guarded by "any
 /// <see cref="ExportDefinitionEntity"/> row already exists" so a later app restart never re-runs it or
-/// duplicates rows. Leaves the AppSettings rows in place; nothing but the legacy, now read-only
-/// <c>/api/export-mapping</c> endpoints reads them after this runs (see knowledge/pipeline/export-definitions-2.0.md §11).
+/// duplicates rows. Leaves the AppSettings rows in place and does not touch them again — the legacy
+/// <c>/api/export-mapping</c> endpoints remain fully read/write independently of this snapshot (§11's
+/// original read-only-after-migration lock was removed; see knowledge/pipeline/export-definitions-2.0.md §11).
 /// </summary>
 public static class ExportDefinitionMigrator
 {
