@@ -379,13 +379,26 @@ verified, and any bugs found along the way) is logged in the [Update Log](/log.m
       A DB-side numeric cast fails the *entire query* on one bad row; `DataType` coercion happens in
       C# instead (`ApplyExportNodeMappingsRecursive`/`CoerceToDataType`), degrading only the one bad
       field to a best-effort string.
-- [ ] **Slice 3 — API endpoints (CRUD + run + history)**. New `ExportDefinitionEndpoints.cs`:
+- [x] **Slice 3 — API endpoints (CRUD + run + history)**. New `ExportDefinitionEndpoints.cs`:
       `GET/POST /api/export-definitions`, `GET/PUT/DELETE /api/export-definitions/{id}`,
       `POST .../duplicate`, `PATCH .../enable`, `POST .../preview`, `POST .../run`,
       `POST .../test`, `GET .../runs`. A generalized recursive validator (depth guard,
       identifier-safety regex on every identifier field, GDPR denylist at every depth,
-      duplicate-`TargetKey` check). Legacy `ExportMappingEndpoints` `PUT` handlers switch to
-      410/405 once the migrator has run (§11 decision #2).
+      duplicate-`TargetKey` check). Legacy `ExportMappingEndpoints` `PUT` handlers now return
+      405 once the migrator has run (§11 decision #2); `GET` stays a pass-through.
+      **Design note (not previously spelled out in this doc):** `POST .../run` and `.../test`
+      deliberately do **not** go through `ExportRunEntity`/`FileSystemExportSink`/four-eyes —
+      those model the legacy CI-to-ServiceNow staging contract, out of scope per §10. Instead
+      `run` executes synchronously and returns the built artifact bytes directly in the HTTP
+      response (`Content-Disposition: attachment`, plus `X-Export-Run-Id`/`X-Record-Count`/
+      `X-Config-Version` headers), which is what makes it usable as a one-shot trigger from an
+      external program. `test` shares the exact same execution path (capped at the §11
+      decision #3 fixed 50 rows, flagged `IsTestRun`) but returns the tracked
+      `ExportDefinitionRunEntity` row as JSON instead of bytes, since its purpose is
+      config validation, not artifact retrieval. `preview` remains the lighter, untracked,
+      capped JSON-records call the UI's preview panel needs (§7.3) — it writes no history row.
+      Every run/test/preview/CRUD endpoint requires authentication only (no special role),
+      matching this codebase's existing authorization model for `/api/pipeline/run`.
 - [ ] **Slice 4 — Scheduler**. New `ExportDefinitionWorker : BackgroundService` sibling to
       `ExportWorker`, polling enabled `ExportDefinition` rows whose cron `Schedule` is due (hourly
       minimum granularity, §11 decision #1). Every run writes exactly one

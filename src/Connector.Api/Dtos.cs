@@ -91,3 +91,84 @@ record GdprDenylistRequest(List<string> Fields);
 
 /// <summary>Single row returned by GET /api/audit.</summary>
 record AuditEntryDto(int Id, string Timestamp, string Username, string Action, string? Detail);
+
+/// <summary>Body for POST/PUT /api/export-definitions — everything an operator configures for one saved,
+/// independently triggerable export. RootNode must be a "root"-kind <see cref="Connector.Core.DynamicExport.ExportNode"/>.</summary>
+record ExportDefinitionRequest(
+    string Name,
+    string? Description,
+    string RootTable,
+    Connector.Core.DynamicExport.ExportNode RootNode,
+    string OutputFormat,
+    bool IsEnabled,
+    string? Schedule
+);
+
+/// <summary>Full view of a saved export definition, returned by GET/POST/PUT .../{id}.</summary>
+record ExportDefinitionDto(
+    int Id,
+    string Name,
+    string? Description,
+    string RootTable,
+    Connector.Core.DynamicExport.ExportNode RootNode,
+    string OutputFormat,
+    bool IsEnabled,
+    string? Schedule,
+    int ConfigVersion,
+    string CreatedBy,
+    string CreatedAt,
+    string? UpdatedBy,
+    string? UpdatedAt
+);
+
+/// <summary>Lightweight list-view row for GET /api/export-definitions — omits RootNode, which can be
+/// arbitrarily deep and isn't needed to identify/trigger a definition.</summary>
+record ExportDefinitionSummaryDto(
+    int Id,
+    string Name,
+    string? Description,
+    string RootTable,
+    string OutputFormat,
+    bool IsEnabled,
+    string? Schedule,
+    int ConfigVersion,
+    string CreatedBy,
+    string CreatedAt,
+    string? UpdatedBy,
+    string? UpdatedAt
+);
+
+/// <summary>Body for POST .../duplicate. Name is optional — defaults to "{original} (Copy)".</summary>
+record DuplicateExportDefinitionRequest(string? Name);
+
+/// <summary>Body for PATCH .../enable.</summary>
+record EnableRequest(bool Enabled);
+
+/// <summary>Result of a run/test — the tracked <c>ExportDefinitionRunEntity</c> row as an API-facing shape.</summary>
+record ExportDefinitionRunResultDto(
+    int RunId,
+    string Status,
+    int RecordCount,
+    int ConfigVersion,
+    string StartedAt,
+    string? FinishedAt,
+    string? ErrorMessage,
+    bool IsTestRun
+);
+
+/// <summary>One row returned by GET .../{id}/runs.</summary>
+record ExportDefinitionRunDto(
+    int Id,
+    int ConfigVersion,
+    string StartedAt,
+    string? FinishedAt,
+    string Status,
+    int RecordCount,
+    string? ErrorMessage,
+    string TriggeredBy,
+    bool IsTestRun
+);
+
+/// <summary>Response for POST .../preview: capped, tree-shaped rows for on-screen inspection — never
+/// written to run history (see <see cref="Connector.Api.Endpoints.ExportDefinitionEndpoints"/>).</summary>
+record ExportDefinitionPreviewDto(int RecordCount, System.Text.Json.Nodes.JsonArray Records);

@@ -9,9 +9,11 @@ timestamp: 2026-08-19T00:00:00Z
 Last updated: 2026-08-19
 
 In progress: Phase 14 — generic, tree-based multi-export definitions, spec'd in
-[Export Definitions 2.0](/pipeline/export-definitions-2.0.md). Slices 1–2 (data model +
-query/format-writer engine) are done; slices 3–6 (API endpoints, scheduler, frontend, docs) are not
-started. See that page's "Implementation status" section for the live per-slice checklist.
+[Export Definitions 2.0](/pipeline/export-definitions-2.0.md). Slices 1–3 (data model,
+query/format-writer engine, API endpoints — CRUD + manual trigger via `POST
+/api/export-definitions/{id}/run` + test/preview/run-history) are done; slices 4–6 (scheduler,
+frontend, docs) are not started. See that page's "Implementation status" section for the live
+per-slice checklist.
 
 ---
 

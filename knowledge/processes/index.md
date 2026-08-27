@@ -9,6 +9,7 @@ Operational and compliance processes governing the connector.
 * [Authentication](authentication.md) - JWT Bearer auth protecting all API routes; BCrypt user store with dev seed and production config
 * [Data Retention](data-retention.md) - Daily purge of staging files and completed ExportRun records past the retention window
 * [On-Demand Run](on-demand-run.md) - API-triggered full pipeline run and read-only preview
+* [Export Definition API](export-definition-api.md) - Configure a saved, named export and trigger it from an external program via a single authenticated call
 * [Open Points](open-points.md) - Tracked outstanding decisions from the Technical Concept that will drive future code changes
 * [Operational Monitoring](operational-monitoring.md) - Health check, stale-pending indicator, and sequence gap detection
 * [Code Health Backlog](code-health-backlog.md) - Open frontend template-complexity items and ground rules for tackling them — not CI-gated
