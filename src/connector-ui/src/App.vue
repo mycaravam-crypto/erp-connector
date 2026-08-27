@@ -48,6 +48,13 @@ const steps = [
         ICD Schema
       </RouterLink>
       <RouterLink
+        :to="{ name: 'export-definitions' }"
+        class="text-[0.82rem] text-slate-400 no-underline hover:text-slate-200 transition-colors"
+        active-class="!text-slate-100"
+      >
+        Export Definitions
+      </RouterLink>
+      <RouterLink
         :to="{ name: 'settings' }"
         class="text-[0.82rem] text-slate-400 no-underline hover:text-slate-200 transition-colors"
         active-class="!text-slate-100"

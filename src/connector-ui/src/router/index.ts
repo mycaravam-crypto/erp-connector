@@ -10,6 +10,8 @@ import LoginView from '../views/LoginView.vue'
 import SettingsView from '../views/SettingsView.vue'
 import IcdSchemaView from '../views/IcdSchemaView.vue'
 import AuditView from '../views/AuditView.vue'
+import ExportDefinitionsView from '../views/ExportDefinitionsView.vue'
+import ExportDefinitionEditView from '../views/ExportDefinitionEditView.vue'
 import NotFoundView from '../views/NotFoundView.vue'
 
 const router = createRouter({
@@ -25,6 +27,8 @@ const router = createRouter({
     { path: '/settings', name: 'settings', component: SettingsView },
     { path: '/icd-schema', name: 'icd-schema', component: IcdSchemaView },
     { path: '/audit', name: 'audit', component: AuditView },
+    { path: '/export-definitions', name: 'export-definitions', component: ExportDefinitionsView },
+    { path: '/export-definitions/:id', name: 'export-definition-edit', component: ExportDefinitionEditView },
     // legacy redirects
     { path: '/schema', redirect: '/export-schema' },
     { path: '/erp-database', redirect: '/icd-schema' },
