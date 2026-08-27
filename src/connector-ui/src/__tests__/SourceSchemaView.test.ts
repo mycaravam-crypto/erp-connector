@@ -48,18 +48,27 @@ describe('SourceSchemaView', () => {
     expect(w.text()).toContain('Reading schema')
   })
 
-  it('shows error on API rejection', async () => {
+  it('shows the rejection message on API rejection', async () => {
     vi.spyOn(connectionApi, 'getSourceSchema').mockRejectedValueOnce(new Error('network'))
+    const w = mount(SourceSchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+    expect(w.text()).toContain('network')
+  })
+
+  it('falls back to a generic message for a non-Error rejection', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockRejectedValueOnce('boom')
     const w = mount(SourceSchemaView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
     expect(w.text()).toContain('Could not reach')
   })
 
-  it('shows error when getSourceSchema returns null', async () => {
-    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(null)
+  it('shows the server error detail when introspection fails', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockRejectedValueOnce(
+      new Error('Could not read the schema from prod-db:5432/erp: relation "masterdata" does not exist'),
+    )
     const w = mount(SourceSchemaView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
-    expect(w.text()).toContain('no data')
+    expect(w.text()).toContain('relation "masterdata" does not exist')
   })
 
   it('shows all table names after load', async () => {

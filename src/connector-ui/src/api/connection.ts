@@ -79,9 +79,22 @@ export async function saveConnection(
   return { error: text || `Server error (HTTP ${res.status})`, status: res.status }
 }
 
-/** Fetches the source schema using whatever connection is currently configured on the server. */
-export async function getSourceSchema(): Promise<SourceSchema | null> {
+/**
+ * Fetches the source schema using whatever connection is currently configured on the server.
+ * Throws (with the server's error detail, when available) if the configured connection can't
+ * be reached or introspected — the caller should surface this rather than silently falling back.
+ */
+export async function getSourceSchema(): Promise<SourceSchema> {
   const res = await fetch('/api/source-schema', { headers: authHeaders() })
-  if (!res.ok) return null
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    let detail = text
+    try {
+      detail = JSON.parse(text)?.detail || text
+    } catch {
+      // not JSON — use the raw text
+    }
+    throw new Error(detail || `Server error (HTTP ${res.status})`)
+  }
   return res.json() as Promise<SourceSchema>
 }

@@ -76,18 +76,20 @@ describe('SchemaView', () => {
     expect(w.text()).toContain('Loading')
   })
 
-  it('shows error when source schema fetch throws', async () => {
+  it('shows the rejection message when source schema fetch throws', async () => {
     vi.spyOn(connectionApi, 'getSourceSchema').mockRejectedValueOnce(new Error('network'))
     const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
-    expect(w.text()).toContain('Could not reach')
+    expect(w.text()).toContain('network')
   })
 
-  it('shows error when getSourceSchema returns null', async () => {
-    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(null)
+  it('shows the server error detail when introspection fails', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockRejectedValueOnce(
+      new Error('Could not read the schema from prod-db:5432/erp: relation "masterdata" does not exist'),
+    )
     const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
-    expect(w.text()).toContain('Configure a database connection')
+    expect(w.text()).toContain('relation "masterdata" does not exist')
   })
 
   it('shows table selector with available tables', async () => {

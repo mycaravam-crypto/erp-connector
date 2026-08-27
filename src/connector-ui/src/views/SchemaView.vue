@@ -369,11 +369,6 @@ async function load() {
   try {
     const [schema, existingMapping] = await Promise.all([getSourceSchema(), getExportMapping()])
 
-    if (!schema) {
-      error.value = 'Could not load source schema. Configure a database connection first.'
-      return
-    }
-
     sourceSchema.value = schema
 
     if (existingMapping) {
@@ -390,8 +385,8 @@ async function load() {
       restoringSavedTable = false
       loadPreview()
     }
-  } catch {
-    error.value = 'Could not reach the API. Is the backend service running?'
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Could not reach the API. Is the backend service running?'
   } finally {
     loading.value = false
   }

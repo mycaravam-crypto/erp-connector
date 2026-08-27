@@ -28,11 +28,8 @@ async function load() {
   error.value = null
   try {
     schema.value = await getSourceSchema()
-    if (!schema.value) {
-      error.value = 'Source schema endpoint returned no data.'
-    }
-  } catch {
-    error.value = 'Could not reach the API. Is the backend service running?'
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Could not reach the API. Is the backend service running?'
   } finally {
     loading.value = false
   }

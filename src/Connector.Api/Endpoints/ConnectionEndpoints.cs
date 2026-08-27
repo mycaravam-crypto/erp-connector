@@ -49,26 +49,31 @@ static class ConnectionEndpoints
             )
             .RequireAuthorization();
 
-        // Returns schema from the persisted Postgres connection when one is configured,
-        // falling back to the hardcoded demo schema when none is stored or the connection fails.
+        // Returns schema from the persisted Postgres connection when one is configured, falling back to
+        // the hardcoded demo schema only when no connection has been stored yet. A stored connection that
+        // fails to introspect is reported as an error rather than silently substituting the demo schema —
+        // swallowing that failure previously let a mapping get built against demo-only tables (e.g.
+        // "masterdata") that don't exist in the real database, surfacing much later as a confusing
+        // "relation ... does not exist" error at preview/export time instead of here.
         app.MapGet(
                 "/api/source-schema",
                 async (ExportLogDbContext db, CancellationToken ct) =>
                 {
                     var cfg = await db.GetSettingAsync<ErpConnectionConfig>(SettingsKeys.ErpConnection);
-                    if (cfg is not null)
-                    {
-                        try
-                        {
-                            return Results.Ok(await ConnectAndIntrospectAsync(cfg, ct));
-                        }
-                        catch
-                        {
-                            // Fall through to demo schema if stored config is unreachable.
-                        }
-                    }
+                    if (cfg is null)
+                        return Results.Ok(DemoSourceSchema());
 
-                    return Results.Ok(DemoSourceSchema());
+                    try
+                    {
+                        return Results.Ok(await ConnectAndIntrospectAsync(cfg, ct));
+                    }
+                    catch (Exception ex)
+                    {
+                        return Results.Problem(
+                            detail: $"Could not read the schema from {cfg.Host}:{cfg.Port}/{cfg.Database}: {ex.Message}",
+                            statusCode: StatusCodes.Status502BadGateway
+                        );
+                    }
                 }
             )
             .RequireAuthorization();

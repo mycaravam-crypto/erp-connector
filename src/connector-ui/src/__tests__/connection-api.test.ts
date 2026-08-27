@@ -127,9 +127,13 @@ describe('getSourceSchema', () => {
     expect(fetch).toHaveBeenCalledWith('/api/source-schema', expect.any(Object))
   })
 
-  it('returns null on non-ok response', async () => {
-    mockFetch(null, 401)
-    const result = await getSourceSchema()
-    expect(result).toBeNull()
+  it('throws with the server detail on non-ok response', async () => {
+    mockFetch({ detail: 'relation "masterdata" does not exist' }, 502)
+    await expect(getSourceSchema()).rejects.toThrow('relation "masterdata" does not exist')
+  })
+
+  it('throws a generic error when the non-ok response has no detail', async () => {
+    mockFetch('', 401)
+    await expect(getSourceSchema()).rejects.toThrow('Server error (HTTP 401)')
   })
 })
