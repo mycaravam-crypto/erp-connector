@@ -91,6 +91,24 @@ describe('saveExportMapping', () => {
     expect(result.ok).toBe(false)
     expect(result.error).toContain('SourceTable')
   })
+
+  it('extracts the "detail" field from a problem+json error instead of dumping the raw envelope', async () => {
+    mockFetch(
+      {
+        type: 'https://tools.ietf.org/html/rfc9110#section-15.5.6',
+        title: 'Method Not Allowed',
+        status: 405,
+        detail:
+          'The legacy export-mapping config is read-only. Configure and trigger exports via /api/export-definitions instead.',
+      },
+      405,
+    )
+    const result = await saveExportMapping(CONFIG)
+    expect(result.ok).toBe(false)
+    expect(result.error).toBe(
+      'The legacy export-mapping config is read-only. Configure and trigger exports via /api/export-definitions instead.',
+    )
+  })
 })
 
 describe('getPresets', () => {
@@ -124,6 +142,12 @@ describe('savePreset', () => {
     const result = await savePreset('Bad', { ...PRESET_CONFIG, sourceTable: '' })
     expect(result.ok).toBe(false)
     expect(result.error).toContain('SourceTable')
+  })
+
+  it('extracts the "detail" field from a problem+json error', async () => {
+    mockFetch({ title: 'Method Not Allowed', status: 405, detail: 'read-only' }, 405)
+    const result = await savePreset('My Preset', PRESET_CONFIG)
+    expect(result).toEqual({ ok: false, error: 'read-only' })
   })
 })
 
