@@ -630,10 +630,7 @@ static class ExportDefinitionEndpoints
                     return $"Node '{path}': RelatedTable is required and must be a valid identifier.";
                 if (string.IsNullOrWhiteSpace(node.JoinKey) || !SqlIdentifierRegex.IsMatch(node.JoinKey))
                     return $"Node '{path}': JoinKey is required and must be a valid identifier.";
-                if (
-                    string.IsNullOrWhiteSpace(node.SourceJoinKey)
-                    || !SqlIdentifierRegex.IsMatch(node.SourceJoinKey)
-                )
+                if (string.IsNullOrWhiteSpace(node.SourceJoinKey) || !SqlIdentifierRegex.IsMatch(node.SourceJoinKey))
                     return $"Node '{path}': SourceJoinKey is required and must be a valid identifier.";
 
                 var enabledChildren = node.Children.Where(c => c.Enabled).ToList();
