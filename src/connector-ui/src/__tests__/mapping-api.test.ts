@@ -91,6 +91,21 @@ describe('saveExportMapping', () => {
     expect(result.ok).toBe(false)
     expect(result.error).toContain('SourceTable')
   })
+
+  it('extracts the "detail" field from a problem+json error instead of dumping the raw envelope', async () => {
+    mockFetch(
+      {
+        type: 'https://tools.ietf.org/html/rfc9110#section-15.5.5',
+        title: 'Internal Server Error',
+        status: 500,
+        detail: 'Stored database connection config could not be read.',
+      },
+      500,
+    )
+    const result = await saveExportMapping(CONFIG)
+    expect(result.ok).toBe(false)
+    expect(result.error).toBe('Stored database connection config could not be read.')
+  })
 })
 
 describe('getPresets', () => {
@@ -124,6 +139,12 @@ describe('savePreset', () => {
     const result = await savePreset('Bad', { ...PRESET_CONFIG, sourceTable: '' })
     expect(result.ok).toBe(false)
     expect(result.error).toContain('SourceTable')
+  })
+
+  it('extracts the "detail" field from a problem+json error', async () => {
+    mockFetch({ title: 'Internal Server Error', status: 500, detail: 'unexpected failure' }, 500)
+    const result = await savePreset('My Preset', PRESET_CONFIG)
+    expect(result).toEqual({ ok: false, error: 'unexpected failure' })
   })
 })
 

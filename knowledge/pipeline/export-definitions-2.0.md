@@ -307,9 +307,15 @@ Adopting the doc's own recommendations at design time, since no stakeholder inpu
 
 1. **Cron minimum granularity** — **Resolved: hourly**, matching this project's existing "hourly
    minimum" scheduling convention, for consistency and to bound worker load.
-2. **Legacy mapping cutover** — **Resolved: keep read-only.** After the one-time converter (§4)
-   runs, the old `/api/export-mapping` single-config endpoints stay read-only (`GET` pass-through;
-   `PUT` returns 410/405) for one release, removed in a following one.
+2. **Legacy mapping cutover** — ~~**Resolved: keep read-only.**~~ **Reversed post-launch.** The
+   read-only lock (`PUT` → 405 once the migrator has run) shipped as originally decided, but broke
+   the simpler, still-supported workflow of "configure via the Step 3 UI, save, trigger via
+   `POST /api/pipeline/run` from an external app" — that workflow never needed ExportDefinitions at
+   all, and the auto-migrator silently locked it out from under existing deployments the moment it
+   first saw a legacy config. `ExportMappingEndpoints` `PUT` (mapping and presets) is fully
+   read/write again, unconditionally, regardless of what the migrator has populated.
+   ExportDefinitions remains available as a separate, opt-in feature for named/independently-
+   scheduled exports; it no longer gates or supersedes the legacy single-mapping flow.
 3. **Test-run cap** — **Resolved: 50 rows, fixed** (not user-configurable) for this phase — smallest
    thing that satisfies the requirement; can become configurable later if asked for.
 
@@ -384,8 +390,9 @@ verified, and any bugs found along the way) is logged in the [Update Log](/log.m
       `POST .../duplicate`, `PATCH .../enable`, `POST .../preview`, `POST .../run`,
       `POST .../test`, `GET .../runs`. A generalized recursive validator (depth guard,
       identifier-safety regex on every identifier field, GDPR denylist at every depth,
-      duplicate-`TargetKey` check). Legacy `ExportMappingEndpoints` `PUT` handlers now return
-      405 once the migrator has run (§11 decision #2); `GET` stays a pass-through.
+      duplicate-`TargetKey` check). Legacy `ExportMappingEndpoints` `PUT` handlers originally
+      returned 405 once the migrator had run (§11 decision #2); reversed post-launch — see §11 —
+      so they stay read/write unconditionally.
       **Design note (not previously spelled out in this doc):** `POST .../run` and `.../test`
       deliberately do **not** go through `ExportRunEntity`/`FileSystemExportSink`/four-eyes —
       those model the legacy CI-to-ServiceNow staging contract, out of scope per §10. Instead
@@ -411,8 +418,9 @@ verified, and any bugs found along the way) is logged in the [Update Log](/log.m
       3-level nested export using only the tree UI as the acceptance check (§8 Usability).
 - [ ] **Slice 6 — Docs**. New `knowledge/dynamic-export/` bundle for the `ExportNode` tree, the new
       scheduler, and the run-history entity — extends [DynamicExportService](/pipeline/dynamic-export-service.md)
-      (the Phase 13 baseline), does not replace it (legacy single-mapping docs stay until the
-      read-only-then-removed cutover completes). New "Phase 14 — Generic export definitions ✅"
+      (the Phase 13 baseline), does not replace it (legacy single-mapping docs stay indefinitely —
+      the planned read-only-then-removed cutover was reversed post-launch, see §11). New
+      "Phase 14 — Generic export definitions ✅"
       entry in the [changelog](/changelog.md).
 
 **Before starting Slice 3**: no outstanding verification debt from Slice 2 — build/test/format are
@@ -437,9 +445,9 @@ legacy `DynamicExportService`, which relies on `ExportMappingEndpoints`' save-ti
    save it, set an hourly schedule, run it manually, confirm the run appears in execution history
    with the right `ConfigVersion`, confirm CSV/Excel output now contains the nested data flattened
    (the concrete new capability over the pre-Phase-14 JSON-only nesting).
-4. Confirm the legacy single-mapping flow (`/export-schema` page) still round-trips read-only after
-   the one-time migration converter runs, and that the converter does not duplicate rows on a
-   second app restart.
+4. Confirm the legacy single-mapping flow (`/export-schema` page) still round-trips read/write after
+   the one-time migration converter runs (§11 decision #2 reversal), and that the converter does not
+   duplicate rows on a second app restart.
 
 ## Related
 

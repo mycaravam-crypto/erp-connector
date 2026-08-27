@@ -1,5 +1,17 @@
 import { authHeaders } from './auth'
 
+// The legacy endpoints return plain text for validation errors but application/problem+json
+// (RFC 9110 §15.5.6) for framework-level rejections like the migrated-config 405 — extract the
+// human-readable "detail" field in that case rather than dumping the raw JSON envelope on screen.
+async function extractErrorDetail(res: Response): Promise<string> {
+  const text = await res.text().catch(() => '')
+  try {
+    return JSON.parse(text)?.detail || text
+  } catch {
+    return text
+  }
+}
+
 // ── Dynamic export mapping ────────────────────────────────────────────────────
 
 export interface MappingField {
@@ -84,8 +96,8 @@ export async function saveExportMapping(
     const data = (await res.json()) as ExportMappingConfig
     return { ok: true, data }
   }
-  const text = await res.text()
-  return { ok: false, error: text || `Error ${res.status}` }
+  const detail = await extractErrorDetail(res)
+  return { ok: false, error: detail || `Error ${res.status}` }
 }
 
 // ── Export mapping presets ────────────────────────────────────────────────────
@@ -108,8 +120,8 @@ export async function savePreset(
     body: JSON.stringify(config),
   })
   if (res.ok) return { ok: true }
-  const text = await res.text()
-  return { ok: false, error: text || `Error ${res.status}` }
+  const detail = await extractErrorDetail(res)
+  return { ok: false, error: detail || `Error ${res.status}` }
 }
 
 /** Deletes a named preset. */
