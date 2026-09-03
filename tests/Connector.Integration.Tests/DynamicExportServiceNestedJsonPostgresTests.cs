@@ -295,8 +295,8 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
             ]
         );
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => DynamicExportService.ExecuteNestedJsonQueryAsync(conn, cfg, CancellationToken.None)
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            DynamicExportService.ExecuteNestedJsonQueryAsync(conn, cfg, CancellationToken.None)
         );
         Assert.Contains("\"object\"", ex.Message);
         Assert.Contains("\"array\"", ex.Message);

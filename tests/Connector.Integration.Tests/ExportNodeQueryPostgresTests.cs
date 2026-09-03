@@ -142,8 +142,8 @@ public sealed class ExportNodeQueryPostgresTests
             )
         );
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => DynamicExportService.ExecuteExportNodeQueryAsync(conn, "masterdata", root, CancellationToken.None)
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            DynamicExportService.ExecuteExportNodeQueryAsync(conn, "masterdata", root, CancellationToken.None)
         );
         Assert.Contains("\"object\"", ex.Message);
         Assert.Contains("\"array\"", ex.Message);
