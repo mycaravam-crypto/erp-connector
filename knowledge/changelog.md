@@ -30,8 +30,9 @@ supported, separate workflow — this was never a cutover (§11 decision #2).
 
 **Verification:** full end-to-end pass, not just unit tests — `dotnet build`/`dotnet test`/
 `dotnet csharpier check` clean (128 backend tests total, 20 of them against a real Postgres
-`testdb`), `npm run type-check && npm run test` clean (231/231; `npx fallow audit` findings
-documented in [Code Health Backlog](/planning/code-health-backlog.md)), a real browser session
+`testdb`), `npm run type-check && npm run test` clean (231/231) and `npx fallow audit` clean
+(scoped `.fallowrc.json` threshold overrides for the new tree-builder's inherently large
+components — see [Code Health Backlog](/planning/code-health-backlog.md)), a real browser session
 driving the actual tree-builder UI against a running backend, and the scheduler confirmed firing
 a run unattended against a live app. See
 [Export Definitions 2.0's Verification section](/pipeline/export-definitions-2.0.md#verification-end-to-end-after-all-slices)

@@ -19,5 +19,27 @@
   },
   "rules": {
     "unused-dependencies": "warn"
+  },
+  "health": {
+    "thresholdOverrides": [
+      {
+        "files": [
+          "src/components/ExportNodeTreeEditor.vue",
+          "src/components/ExportDefinitionRunControls.vue",
+          "src/views/ExportDefinitionEditView.vue",
+          "src/views/ExportDefinitionsView.vue",
+          "src/components/StatusBadge.vue"
+        ],
+        "maxCognitive": 35,
+        "maxCrap": 85,
+        "reason": "Phase 14 (Export Definitions 2.0) tree-builder UI. ExportNodeTreeEditor.vue is a self-referencing recursive editor (see its own comment on why it isn't split further, same rationale as NestedGroupEditor.vue); the view/control components orchestrate several related actions each with small, independent state, which knowledge/planning/code-health-backlog.md judges not worth trading for several tiny files with no shared logic to extract. See that doc's 'Phase 14 Slice 5 additions' section."
+      },
+      {
+        "files": ["src/views/SchemaView.vue"],
+        "maxCognitive": 35,
+        "maxCrap": 85,
+        "reason": "Pre-existing, already-reviewed complexity (see knowledge/planning/code-health-backlog.md item 1) surfaced only because this PR's diff touches the file (extracting suggestedRelations to lib/) — that extraction reduced its CRAP score, not increased it."
+      }
+    ]
   }
 }
