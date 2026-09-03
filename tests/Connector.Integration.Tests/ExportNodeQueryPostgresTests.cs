@@ -121,6 +121,35 @@ public sealed class ExportNodeQueryPostgresTests
     }
 
     [Fact]
+    public async Task ExecuteExportNodeQueryAsync_ObjectKindNodeWithMultipleMatches_ThrowsActionableError()
+    {
+        await using var conn = await TryOpenAsync();
+        if (conn is null)
+            return;
+
+        // Misconfigured as Object (1:1 assumed) but manufacturer_address.manufacturer_id is not unique —
+        // Acme has 2 seeded addresses — so the correlated subquery matches more than one row for Acme's
+        // masterdata row, raising Postgres SQLSTATE 21000.
+        var root = MakeRoot(
+            ScalarField("itemId", "id"),
+            Node(
+                "address",
+                ExportNodeKind.Object,
+                "manufacturer_address",
+                "manufacturer_id",
+                "manufacturer_id",
+                children: [ScalarField("city", "city")]
+            )
+        );
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            DynamicExportService.ExecuteExportNodeQueryAsync(conn, "masterdata", root, CancellationToken.None)
+        );
+        Assert.Contains("\"object\"", ex.Message);
+        Assert.Contains("\"array\"", ex.Message);
+    }
+
+    [Fact]
     public async Task ExecuteExportNodeQueryAsync_ThreeLevelNesting_ArrayNestsUnderObjectKey()
     {
         await using var conn = await TryOpenAsync();
