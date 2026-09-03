@@ -35,7 +35,7 @@ Excluded rows/fields are audit-logged using only non-personal identifiers (`Part
 
 *(The original design enforced this at the type level — `ExportItem` simply had no
 `TechnicianName`/`StorageLocation` field. That fixed pipeline is gone; see
-[IDataMinimizer](/pipeline/data-minimizer.md) for why the rule exists.)*
+[IDataMinimizer](/legacy/data-minimizer.md) for why the rule exists.)*
 
 # Open Points Affecting This Policy
 
@@ -47,5 +47,5 @@ Excluded rows/fields are audit-logged using only non-personal identifiers (`Part
 # Related
 
 - [DynamicExportService](/pipeline/dynamic-export-service.md) — runtime denylist enforcement
-- [IDataMinimizer](/pipeline/data-minimizer.md) — original type-level design intent
+- [IDataMinimizer](/legacy/data-minimizer.md) — original type-level design intent
 - [Export Schema](/schema/export-schema.md)

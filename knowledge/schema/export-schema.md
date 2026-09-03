@@ -59,7 +59,7 @@ Manifest companion: `export_0042_20260628T060000Z.manifest.json`
 
 # Related
 
-- [MappedExportRecord](/domain/mapped-export-record.md) — record type that maps onto these columns
+- [MappedExportRecord](/legacy/mapped-export-record.md) — record type that maps onto these columns
 - [ExportManifest](/domain/export-manifest.md) — carries the schema version in every export run
-- [SchemaMapper](/pipeline/schema-mapper.md) — transforms ExportItem fields to match this schema
-- [IPackager](/pipeline/packager.md) — serializes MappedExportRecord into the Excel file
+- [SchemaMapper](/legacy/schema-mapper.md) — transforms ExportItem fields to match this schema
+- [IPackager](/legacy/packager.md) — serializes MappedExportRecord into the Excel file

@@ -9,7 +9,7 @@ timestamp: 2026-08-27T00:00:00Z
 
 An [ExportDefinition](/pipeline/export-definitions-2.0.md) is a saved, named export configuration
 (root table, field/relation tree, output format), triggerable independently of the legacy
-single-mapping [On-Demand Run](/processes/on-demand-run.md). Configure it once via this API, then
+single-mapping [On-Demand Run](/api/on-demand-run.md). Configure it once via this API, then
 have any authenticated external program trigger it later with a single call — no UI required.
 
 # Configuring an export
@@ -77,9 +77,9 @@ Authenticate, `POST .../run`, and the response body *is* the artifact in the con
 [run-history](#run-history) row, success or failure, so a failed run is never silent even though
 the caller only sees an HTTP error.
 
-Unlike [On-Demand Run](/processes/on-demand-run.md)'s `POST /api/pipeline/run`, this creates no
+Unlike [On-Demand Run](/api/on-demand-run.md)'s `POST /api/pipeline/run`, this creates no
 `ExportRun`, writes nothing to the staging folder, and isn't subject to
-[Four-Eyes Release](/processes/four-eyes-release.md) — those model the CI-to-ServiceNow delivery
+[Four-Eyes Release](/operations/four-eyes-release.md) — those model the CI-to-ServiceNow delivery
 contract specifically, out of scope for generic definitions (see
 [Export Definitions 2.0 §10](/pipeline/export-definitions-2.0.md)). A run is synchronous
 request/response only.
@@ -130,7 +130,7 @@ a `Failed` row with a specific `errorMessage` (same "no silent partial success" 
   `sourceJoinKey` on each node — must match `^[A-Za-z_][A-Za-z0-9_]*$`.
 * Nesting depth is capped (`DynamicExportService.MaxNestedDepth`, shared with the legacy nested-JSON path).
 * No two enabled sibling nodes share a `targetKey` at the same level.
-* Every scalar-field `sourceField` is checked against the [GDPR denylist](/processes/gdpr-compliance.md), at every depth.
+* Every scalar-field `sourceField` is checked against the [GDPR denylist](/operations/gdpr-compliance.md), at every depth.
 * `outputFormat` is `csv`/`xlsx`/`json`; `schedule`, if set, is a 5-field cron string (not yet
   interpreted — see [Export Definitions 2.0](/pipeline/export-definitions-2.0.md) Slice 4).
 
@@ -141,11 +141,11 @@ users can save a definition, the same trust boundary as the legacy mapping-save 
 # Authorization
 
 Every endpoint requires a valid JWT. Any authenticated user may configure or trigger a
-definition — no special role, matching [On-Demand Run](/processes/on-demand-run.md).
+definition — no special role, matching [On-Demand Run](/api/on-demand-run.md).
 
 # Related
 
 - [Export Definitions 2.0](/pipeline/export-definitions-2.0.md) — full data model and spec (Slice 3)
 - [DynamicExportService](/pipeline/dynamic-export-service.md) — query/format-writer engine
-- [On-Demand Run](/processes/on-demand-run.md) — the legacy single-mapping equivalent
-- [GDPR Compliance](/processes/gdpr-compliance.md) — denylist enforcement referenced above
+- [On-Demand Run](/api/on-demand-run.md) — the legacy single-mapping equivalent
+- [GDPR Compliance](/operations/gdpr-compliance.md) — denylist enforcement referenced above

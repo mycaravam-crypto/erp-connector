@@ -25,7 +25,7 @@ staging path — the export isn't ready until both files are fully present on di
 [FileSystemExportSink](/pipeline/export-sink.md) writes the data bytes to a `.tmp` file first,
 then `File.Move`s it to the final name; the manifest JSON is written only after that move
 completes. A partially-written package is never visible to
-[Four-Eyes Release](/processes/four-eyes-release.md).
+[Four-Eyes Release](/operations/four-eyes-release.md).
 
 # Data Flow
 

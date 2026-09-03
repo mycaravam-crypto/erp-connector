@@ -182,6 +182,6 @@ both servers running).
 
 ## Open points (future iterations)
 
-Tracked in [Open Points](/processes/open-points.md) — stakeholder ownership, code impact, and
+Tracked in [Open Points](/planning/open-points.md) — stakeholder ownership, code impact, and
 resolution workflow for each pending item (classification marking, `storagelocation` entitlement,
 snapshot volume, return-channel timing, retention periods, allocation chart import).

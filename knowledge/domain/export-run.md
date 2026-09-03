@@ -8,7 +8,7 @@ timestamp: 2026-06-28T00:00:00Z
 ---
 
 Every pipeline execution — daily [ExportWorker](/pipeline/export-worker.md) or on-demand
-[Run Now](/processes/on-demand-run.md) — is recorded as an `ExportRun` row in the export-log
+[Run Now](/api/on-demand-run.md) — is recorded as an `ExportRun` row in the export-log
 SQLite database.
 
 # Schema
@@ -50,12 +50,12 @@ SQLite via `ConnectionStrings:ExportLog` in `appsettings.json`; schema managed b
 # Data Retention
 
 `Released` and `Failed` runs are purged after the configured `RetentionDays` window. `Pending`
-runs are never auto-deleted. See [Data Retention](/processes/data-retention.md).
+runs are never auto-deleted. See [Data Retention](/operations/data-retention.md).
 
 # Related
 
 - [ExportWorker](/pipeline/export-worker.md) — creates and updates ExportRun records
 - [ExportManifest](/domain/export-manifest.md) — carries SequenceNo and SHA-256 in the manifest file
-- [Four-Eyes Release](/processes/four-eyes-release.md) — advances status from Pending to Released
-- [On-Demand Run](/processes/on-demand-run.md) — alternative trigger that also creates an ExportRun
-- [Data Retention](/processes/data-retention.md) — purge policy for completed runs
+- [Four-Eyes Release](/operations/four-eyes-release.md) — advances status from Pending to Released
+- [On-Demand Run](/api/on-demand-run.md) — alternative trigger that also creates an ExportRun
+- [Data Retention](/operations/data-retention.md) — purge policy for completed runs

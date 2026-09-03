@@ -350,7 +350,7 @@ identifier-safety regex pass over `ExportNode.Filter`/`SourceField`/`RelatedTabl
 1. `dotnet build Connector.sln -c Release` clean, `dotnet csharpier check .` clean, full
    `dotnet test` green including Postgres-integration tests against the `testdb` fixture.
 2. `npm run type-check && npm run test` in `src/connector-ui`, `npx fallow audit --base
-   origin/main` clean (or document new findings — see [Code Health Backlog](/processes/code-health-backlog.md)).
+   origin/main` clean (or document new findings — see [Code Health Backlog](/planning/code-health-backlog.md)).
 3. Manual browser walkthrough: create a definition rooted at a table with a 3-level nested
    relation (`manufacturer` → `manufacturer_address`, `testdb` fixture), add a field transform and
    a `DefaultValue`, preview, save, set an hourly schedule, run manually, confirm the run appears
@@ -364,4 +364,4 @@ identifier-safety regex pass over `ExportNode.Filter`/`SourceField`/`RelatedTabl
 
 - [DynamicExportService](/pipeline/dynamic-export-service.md) — the live pipeline this design extends
 - [Export Worker](/pipeline/export-worker.md) — the sibling the new scheduler (Slice 4) is modeled on
-- [Code Health Backlog](/processes/code-health-backlog.md) — orthogonal frontend-complexity backlog, not part of this plan
+- [Code Health Backlog](/planning/code-health-backlog.md) — orthogonal frontend-complexity backlog, not part of this plan

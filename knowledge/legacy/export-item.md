@@ -9,14 +9,14 @@ timestamp: 2026-06-28T00:00:00Z
 
 > **⚠ Superseded (2.0).** This type was never wired into the live application and has been
 > removed from the codebase. GDPR minimization is enforced by a runtime-editable denylist,
-> not by field absence on a fixed type — see [GDPR Compliance](/processes/gdpr-compliance.md)
+> not by field absence on a fixed type — see [GDPR Compliance](/operations/gdpr-compliance.md)
 > and [DynamicExportService](/pipeline/dynamic-export-service.md). This page is kept only
 > as a record of the original design intent.
 
-The result of [IDataMinimizer](/pipeline/data-minimizer.md) processing an
-[ErpConfigurationItem](/domain/erp-configuration-item.md): the GDPR compliance boundary within
+The result of [IDataMinimizer](/legacy/data-minimizer.md) processing an
+[ErpConfigurationItem](/legacy/erp-configuration-item.md): the GDPR compliance boundary within
 the old pipeline. Everything downstream of this type was safe to persist and transmit — see
-[GDPR Compliance](/processes/gdpr-compliance.md). Personal-data exclusion was enforced at the
+[GDPR Compliance](/operations/gdpr-compliance.md). Personal-data exclusion was enforced at the
 type-system level: `ExportItem` simply had no `TechnicianName` or `StorageLocation` field, so
 changing what's included required touching both `DataMinimizer` and this record, forcing review.
 

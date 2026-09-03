@@ -35,5 +35,5 @@ See [Export Schema](/schema/export-schema.md) for the filename template.
 # Sequence Gap Detection
 
 A jump from #41 to #43 signals a missing export #42, detectable without contacting the sender.
-[Four-Eyes Release](/processes/four-eyes-release.md) should verify sequence continuity before
+[Four-Eyes Release](/operations/four-eyes-release.md) should verify sequence continuity before
 clearing a run for physical transfer.

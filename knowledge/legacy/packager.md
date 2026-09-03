@@ -15,7 +15,7 @@ timestamp: 2026-06-28T00:00:00Z
 > record of the original design intent.
 
 The fifth stage of the original fixed pipeline. Serialized
-[MappedExportRecord](/domain/mapped-export-record.md) records into an Excel `.xlsx` file (via
+[MappedExportRecord](/legacy/mapped-export-record.md) records into an Excel `.xlsx` file (via
 ClosedXML, all columns forced to text format `@` to stop Excel auto-converting serial numbers or
 dates) and assembled the [ExportManifest](/domain/export-manifest.md) with SHA-256 checksum and
 sequence number, producing an [ExportPackage](/domain/export-package.md).

@@ -24,7 +24,7 @@ Authorization: Bearer <token>
 Runs [DynamicExportService.BuildExportAsync](/pipeline/dynamic-export-service.md) immediately
 against the active mapping, creates an [ExportRun](/domain/export-run.md) (`Status = Pending`),
 and writes staging files exactly as the scheduled worker does. Must go through
-[Four-Eyes Release](/processes/four-eyes-release.md) before physical transfer.
+[Four-Eyes Release](/operations/four-eyes-release.md) before physical transfer.
 
 **Use cases:** force a re-export after an ERP data correction without waiting for 06:00 UTC;
 validate the pipeline after a config change; smoke-test a fresh installation.
@@ -55,12 +55,12 @@ Authenticate, `POST .../run/{name}`, and the response body *is* the artifact —
 staging folder, no Four-Eyes Release. Unlike `POST /api/pipeline/run`, this creates no `ExportRun`
 and isn't subject to four-eyes: it models an external system pulling data on demand, not the
 regulated CI-to-ServiceNow pipeline (same reasoning as
-[Export Definition API](/processes/export-definition-api.md)'s `/run`, reusing Step 3's mapping
+[Export Definition API](/api/export-definition-api.md)'s `/run`, reusing Step 3's mapping
 directly instead of a named-definition tree). Every call writes one audit log entry
 (`export_preset_run`/`export_preset_run_failed`), so a failed run is never silent.
 
 **Authorization**: a normal JWT, or an `X-Api-Key` header for a machine caller — see
-[Authentication](/processes/authentication.md#api-keys-machine-to-machine). The only endpoint in
+[Authentication](/api/authentication.md#api-keys-machine-to-machine). The only endpoint in
 the app that currently accepts the API-key scheme.
 
 # Export Preview
@@ -93,6 +93,6 @@ Preset-run additionally accepts an API key (above).
 
 - [ExportWorker](/pipeline/export-worker.md) — scheduled daily trigger, same pipeline
 - [ExportRun](/domain/export-run.md) — Run Now creates one; Preview and preset-run don't
-- [Four-Eyes Release](/processes/four-eyes-release.md) — required before Run Now output transfers
-- [Authentication](/processes/authentication.md) — JWT required; API keys for preset-run
-- [Export Definition API](/processes/export-definition-api.md) — the named/scheduled sibling to preset-run, for a mapping that needs its own schedule or deeper nesting
+- [Four-Eyes Release](/operations/four-eyes-release.md) — required before Run Now output transfers
+- [Authentication](/api/authentication.md) — JWT required; API keys for preset-run
+- [Export Definition API](/api/export-definition-api.md) — the named/scheduled sibling to preset-run, for a mapping that needs its own schedule or deeper nesting

@@ -13,7 +13,7 @@ timestamp: 2026-06-28T00:00:00Z
 > [DynamicExportService](/pipeline/dynamic-export-service.md). This page is kept only as a
 > record of the original design intent.
 
-The fourth stage of the original fixed pipeline. Mapped [ExportItem](/domain/export-item.md)
+The fourth stage of the original fixed pipeline. Mapped [ExportItem](/legacy/export-item.md)
 fields onto the [Export Schema](/schema/export-schema.md) ICD contract — coercing dates to
 ISO 8601 and, critically, every identifier to `string`, never a numeric type. That rule is the
 design intent worth keeping: Excel silently auto-converts numeric-looking values, corrupting

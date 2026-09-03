@@ -12,14 +12,14 @@ timestamp: 2026-06-28T00:00:00Z
 > not this fixed shape. See [DynamicExportService](/pipeline/dynamic-export-service.md).
 > This page is kept only as a record of the original design intent.
 
-The raw CI record produced by [IErpReader](/pipeline/erp-reader.md): every field from the ERP
+The raw CI record produced by [IErpReader](/legacy/erp-reader.md): every field from the ERP
 source, including personal data. It never left the pipeline in memory, and was never written to
-disk, logs, or any persistent storage — [IDataMinimizer](/pipeline/data-minimizer.md) consumed it
-and produced an [ExportItem](/domain/export-item.md) in its place.
+disk, logs, or any persistent storage — [IDataMinimizer](/legacy/data-minimizer.md) consumed it
+and produced an [ExportItem](/legacy/export-item.md) in its place.
 
 Of its fields, two carried compliance weight and are worth remembering even though the type is
 gone: `TechnicianName` (personal data, always stripped — GDPR Art. 5(1)(c)) and
-`StorageLocation` (potential PII, scope pending — see [Open Points](/processes/open-points.md) #4).
+`StorageLocation` (potential PII, scope pending — see [Open Points](/planning/open-points.md) #4).
 The rest (`Guid`, `SerialNumber`, `PartNumber`, `ParentSerialNumber`, `ModelReference`,
 `CommissioningDate`, `MaintenanceState`) reappear, minimized, on
-[ExportItem](/domain/export-item.md) and are documented there.
+[ExportItem](/legacy/export-item.md) and are documented there.

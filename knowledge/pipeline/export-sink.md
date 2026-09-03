@@ -8,7 +8,7 @@ timestamp: 2026-06-28T00:00:00Z
 ---
 
 The final stage of the pipeline. Persists the [ExportPackage](/domain/export-package.md) to the
-staging directory where [Four-Eyes Release](/processes/four-eyes-release.md) can inspect and
+staging directory where [Four-Eyes Release](/operations/four-eyes-release.md) can inspect and
 approve it.
 
 # Contract
@@ -27,7 +27,7 @@ Throws `ExportSinkException` if the staging path is not writable. Implementation
 2. `File.Move` renames `.tmp` to the final name (extension follows format: `.xlsx`/`.csv`/`.json`).
 3. Manifest JSON is written to `<filename>.manifest.json`.
 
-A half-written file is never visible as a complete export — [Four-Eyes Release](/processes/four-eyes-release.md)
+A half-written file is never visible as a complete export — [Four-Eyes Release](/operations/four-eyes-release.md)
 only sees a run once both files are fully present.
 
 # Output Artifacts
@@ -39,6 +39,6 @@ staging/export_0042_20260628T060000Z.manifest.json
 
 # Related
 
-- [Four-Eyes Release](/processes/four-eyes-release.md)
+- [Four-Eyes Release](/operations/four-eyes-release.md)
 - [ExportManifest](/domain/export-manifest.md)
 - [ExportPackage](/domain/export-package.md)

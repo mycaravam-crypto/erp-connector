@@ -11,15 +11,15 @@ timestamp: 2026-06-28T00:00:00Z
 > application and have been removed from the codebase. GDPR minimization is still
 > enforced, but as a runtime-editable denylist checked at mapping-save time and stripped
 > at query time — not a fixed type from which the fields are simply absent. See
-> [GDPR Compliance](/processes/gdpr-compliance.md) and
+> [GDPR Compliance](/operations/gdpr-compliance.md) and
 > [DynamicExportService](/pipeline/dynamic-export-service.md). This page is kept only as a
 > record of the original design intent.
 
 The third stage of the original fixed pipeline, and the GDPR compliance boundary. Transformed
-each [ErpConfigurationItem](/domain/erp-configuration-item.md) into an
-[ExportItem](/domain/export-item.md) in memory, before any disk write, by omitting personal and
+each [ErpConfigurationItem](/legacy/erp-configuration-item.md) into an
+[ExportItem](/legacy/export-item.md) in memory, before any disk write, by omitting personal and
 non-entitled fields (`TechnicianName`, `StorageLocation` — see
-[GDPR Compliance](/processes/gdpr-compliance.md) for the current field table and rationale).
+[GDPR Compliance](/operations/gdpr-compliance.md) for the current field table and rationale).
 Exclusion was enforced at the type-system level: `ExportItem` simply had no field to bypass.
 
 **What replaced it:** GDPR minimization is still enforced with the same two fields excluded, but
@@ -32,6 +32,6 @@ review, ICD coordination with the vendor, and a MAJOR version bump of the
 
 # Related
 
-- [GDPR Compliance](/processes/gdpr-compliance.md)
-- [ErpConfigurationItem](/domain/erp-configuration-item.md)
-- [ExportItem](/domain/export-item.md)
+- [GDPR Compliance](/operations/gdpr-compliance.md)
+- [ErpConfigurationItem](/legacy/erp-configuration-item.md)
+- [ExportItem](/legacy/export-item.md)

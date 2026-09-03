@@ -15,7 +15,7 @@ timestamp: 2026-06-28T00:00:00Z
 
 The first stage of the original fixed pipeline. Read all maintainable CIs from the ERP source
 system as a full, read-only snapshot (no delta parameter — full-snapshot volume is tracked as
-[Open Point #5](/processes/open-points.md)) and passed them to [IExportFilter](/pipeline/export-filter.md).
+[Open Point #5](/planning/open-points.md)) and passed them to [IExportFilter](/legacy/export-filter.md).
 
 The read-only/idempotent-snapshot constraint was the actual design intent worth keeping: the
 connector must never write to the ERP, and repeated reads in the same window must agree. That

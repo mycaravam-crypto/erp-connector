@@ -48,4 +48,4 @@ implemented — the next daily full-snapshot run heals the gap idempotently.
 
 - [DynamicExportService](/pipeline/dynamic-export-service.md) — the query+build pipeline this worker calls
 - [IExportSink](/pipeline/export-sink.md)
-- [Four-Eyes Release](/processes/four-eyes-release.md)
+- [Four-Eyes Release](/operations/four-eyes-release.md)

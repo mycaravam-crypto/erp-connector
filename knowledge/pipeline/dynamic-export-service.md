@@ -50,7 +50,7 @@ each re-implement this branch separately:
   from the result as defence-in-depth. The mechanism changed (runtime-editable denylist
   in `AppSetting`, not a fixed type with the fields simply absent), which is an accepted,
   intentional deviation from the original "removed at the type level" design — see
-  [GDPR Compliance](/processes/gdpr-compliance.md).
+  [GDPR Compliance](/operations/gdpr-compliance.md).
 - **Correlation key / four-eyes / audit / retention**: unaffected — those live in
   `ExportRunEntity`, `AuditService`, and `ExportWorker`'s retention cleanup, none of which
   depended on the fixed-pipeline types.
@@ -64,4 +64,4 @@ each re-implement this branch separately:
 
 - [Export Schema](/schema/export-schema.md) — reference contract, decoupled from this pipeline
 - [Export Worker](/pipeline/export-worker.md) — scheduled caller of `BuildExportAsync`
-- [GDPR Compliance](/processes/gdpr-compliance.md) — how the runtime denylist is enforced
+- [GDPR Compliance](/operations/gdpr-compliance.md) — how the runtime denylist is enforced

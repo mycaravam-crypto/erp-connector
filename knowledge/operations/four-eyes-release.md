@@ -59,7 +59,7 @@ Pending → Failed    (pipeline error during the export run)
 
 - Operator and Approver must be different people, enforced server-side by comparing the
   JWT-authenticated Operator username against the submitted Approver username
-  (case-insensitive) — see [Authentication](/processes/authentication.md).
+  (case-insensitive) — see [Authentication](/api/authentication.md).
 - A `Failed` run cannot be released — a new export run must be triggered.
 
 # Related
@@ -67,4 +67,4 @@ Pending → Failed    (pipeline error during the export run)
 - [ExportWorker](/pipeline/export-worker.md)
 - [ExportManifest](/domain/export-manifest.md)
 - [IExportSink](/pipeline/export-sink.md)
-- [Authentication](/processes/authentication.md) — JWT-based Operator/Approver identity
+- [Authentication](/api/authentication.md) — JWT-based Operator/Approver identity

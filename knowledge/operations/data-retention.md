@@ -17,7 +17,7 @@ cleanup step that purges artefacts older than the configured `RetentionDays` win
 | Staging files (`staging/`)     | `File.LastWriteTimeUtc` older than the retention cutoff.         |
 | `ExportRun` DB rows            | `ExtractedAt` older than the cutoff AND `Status != Pending`.     |
 
-**`Pending` runs are never auto-deleted.** They await [four-eyes release](/processes/four-eyes-release.md)
+**`Pending` runs are never auto-deleted.** They await [four-eyes release](/operations/four-eyes-release.md)
 and must remain visible in the UI until released or superseded.
 
 # Configuration
@@ -35,7 +35,7 @@ and must remain visible in the UI until released or superseded.
 | `> 0` | Delete artefacts older than this many days.        |
 | `0`   | Retention cleanup is disabled entirely.            |
 
-Default: **30 days**, pending legal/DPO review ([Open Point #7](/processes/open-points.md)).
+Default: **30 days**, pending legal/DPO review ([Open Point #7](/planning/open-points.md)).
 
 # Execution
 
@@ -52,7 +52,7 @@ does not block the next tick. This isolates retention failures from export relia
 
 # Compliance Note
 
-Staging files are downstream of the [GDPR](/processes/gdpr-compliance.md) minimization boundary
+Staging files are downstream of the [GDPR](/operations/gdpr-compliance.md) minimization boundary
 and contain no personal data, but the retention period still needs DPO agreement: long enough to
 cover the four-eyes release window, short enough to not exceed operational or contractual need.
 
@@ -61,5 +61,5 @@ cover the four-eyes release window, short enough to not exceed operational or co
 - [ExportWorker](/pipeline/export-worker.md) — orchestrates the cleanup step
 - [ExportRun](/domain/export-run.md) — database records subject to retention
 - [IExportSink](/pipeline/export-sink.md) — writes staging files that this process later purges
-- [GDPR Compliance](/processes/gdpr-compliance.md)
-- [Open Points](/processes/open-points.md) — Open Point #7
+- [GDPR Compliance](/operations/gdpr-compliance.md)
+- [Open Points](/planning/open-points.md) — Open Point #7

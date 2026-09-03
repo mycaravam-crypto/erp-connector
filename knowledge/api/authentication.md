@@ -9,7 +9,7 @@ timestamp: 2026-09-03T00:00:00Z
 
 All API routes except `POST /api/auth/login` require a valid JWT Bearer token, issued at login,
 signed with a shared secret, carrying the username as the `Name` claim. One endpoint
-(`POST /api/pipeline/run/{name}` — see [On-Demand Run](/processes/on-demand-run.md)) additionally
+(`POST /api/pipeline/run/{name}` — see [On-Demand Run](/api/on-demand-run.md)) additionally
 accepts an `X-Api-Key` header for a "dedicated API user" that shouldn't need to log in
 interactively; every other endpoint is unaffected by the `ApiKey` scheme's existence.
 
@@ -126,5 +126,5 @@ enforced by identity (JWT username), not organisational role; any two registered
 
 # Related
 
-- [Four-Eyes Release](/processes/four-eyes-release.md) — uses the authenticated username as Operator
-- [Open Points](/processes/open-points.md) — role-based auth is deferred to Iteration 2
+- [Four-Eyes Release](/operations/four-eyes-release.md) — uses the authenticated username as Operator
+- [Open Points](/planning/open-points.md) — role-based auth is deferred to Iteration 2
