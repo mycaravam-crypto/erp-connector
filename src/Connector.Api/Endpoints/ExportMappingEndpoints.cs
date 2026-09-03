@@ -6,9 +6,12 @@ namespace Connector.Api.Endpoints;
 
 // The single active mapping this API exposes stays fully read/write regardless of whatever the
 // ExportDefinitions system (Phase 14, api/export-definitions) has migrated or holds — Step 3's Save,
-// Save As, and Delete Preset always work. /api/pipeline/run triggers whatever is currently saved here,
-// which is the supported way to call a UI-configured export from an external app; ExportDefinitions is
-// a separate, optional feature for named/independently-scheduled exports and does not gate this one.
+// Save As, and Delete Preset always work. POST /api/pipeline/run triggers whatever is currently saved as
+// the active mapping; POST /api/pipeline/run/{name} (PipelineEndpoints) triggers a named preset from
+// here directly and returns the file bytes — the supported way to call a UI-configured export from an
+// external app, reusing this same simple field/relation mapper. ExportDefinitions is a separate, optional
+// feature (its own tree-based config, independent scheduling) for exports that outgrow what this mapper
+// models, and does not gate anything here.
 static class ExportMappingEndpoints
 {
     internal static void MapExportMappingEndpoints(this WebApplication app)

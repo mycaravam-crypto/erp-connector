@@ -1,10 +1,12 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Connector.Api;
 using Connector.Core.Domain;
 using Connector.Core.DynamicExport;
 using Connector.Core.Schema;
 using Connector.Infrastructure;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -142,6 +144,101 @@ static class PipelineEndpoints
                 }
             )
             .RequireAuthorization();
+
+        // Runs a named Step-3 preset (Save As…) and returns the built file directly in the response —
+        // the synchronous, external-system-friendly counterpart to /api/pipeline/run above. Unlike that
+        // endpoint this does NOT create an ExportRun, does not write to the staging folder, and is not
+        // subject to Four-Eyes Release: those model the legacy CI-to-ServiceNow delivery contract
+        // specifically (see knowledge/processes/four-eyes-release.md), which a generic API-triggered pull
+        // is out of scope for — same reasoning ExportDefinitionEndpoints' /run already applies. Every call
+        // still writes one audit log entry (success or failure), so triggering is never silent.
+        // Accepts either a normal user JWT or an X-Api-Key header (ApiKeyAuthenticationHandler) — a
+        // dedicated "API user" configured in Auth:ApiKeys does not need to go through interactive login.
+        app.MapPost(
+                "/api/pipeline/run/{name}",
+                async (
+                    string name,
+                    string? format,
+                    ExportLogDbContext db,
+                    AuditService audit,
+                    HttpContext httpContext,
+                    CancellationToken ct
+                ) =>
+                {
+                    var fmt = format?.ToLowerInvariant() switch
+                    {
+                        "csv" => "csv",
+                        "xlsx" => "xlsx",
+                        _ => "json",
+                    };
+
+                    var presetsRaw = await db.GetSettingRawAsync(SettingsKeys.ExportPresets);
+                    var presets = presetsRaw is null
+                        ? new Dictionary<string, ExportMappingConfig>()
+                        : ExportMappingJson.DeserializePresets(presetsRaw);
+                    if (!presets.TryGetValue(name, out var config))
+                        return Results.NotFound(
+                            $"No saved export preset named '{name}'. Save one from Step 3 (\"Save As…\") first."
+                        );
+
+                    var connRaw = await db.GetSettingRawAsync(SettingsKeys.ErpConnection);
+                    if (connRaw is null)
+                        return Results.Problem(
+                            detail: "No database connection configured. Go to Step 1 and save a connection first.",
+                            statusCode: 400
+                        );
+                    var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connRaw)!;
+
+                    var user = httpContext.User.Identity!.Name!;
+                    try
+                    {
+                        var extractedAt = DateTimeOffset.UtcNow;
+                        var gdprDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
+
+                        await using var pgConn = new NpgsqlConnection(
+                            DynamicExportService.BuildConnectionString(connCfg)
+                        );
+                        await pgConn.OpenAsync(ct);
+
+                        var built = await DynamicExportService.BuildExportAsync(
+                            pgConn,
+                            config,
+                            fmt,
+                            ExportSchema.Version,
+                            extractedAt,
+                            ct,
+                            gdprDenylist: gdprDenylist
+                        );
+
+                        await audit.LogAsync(
+                            user,
+                            "export_preset_run",
+                            $"preset={name} fmt={fmt} records={built.RecordCount}"
+                        );
+
+                        httpContext.Response.Headers["X-Record-Count"] = built.RecordCount.ToString();
+                        var fileName = DynamicExportService.BuildNamedFileName(name, extractedAt, built.Extension);
+                        return Results.File(
+                            built.Bytes,
+                            DynamicExportService.ContentTypeFor(built.Extension),
+                            fileName
+                        );
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        await audit.LogAsync(user, "export_preset_run_failed", $"preset={name}: {ex.Message}");
+                        return Results.Problem(ex.Message, statusCode: 500);
+                    }
+                }
+            )
+            .RequireAuthorization(policy =>
+                policy
+                    .AddAuthenticationSchemes(
+                        JwtBearerDefaults.AuthenticationScheme,
+                        ApiKeyAuthenticationHandler.SchemeName
+                    )
+                    .RequireAuthenticatedUser()
+            );
 
         app.MapGet(
                 "/api/pipeline/preview",

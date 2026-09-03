@@ -771,6 +771,28 @@ public static class DynamicExportService
     // Safe SQL identifier quoting — wraps in double quotes and escapes embedded double quotes.
     public static string QI(string identifier) => "\"" + identifier.Replace("\"", "\"\"") + "\"";
 
+    /// <summary>MIME type for a <see cref="ExportBuildResult.Extension"/> value, for endpoints that hand
+    /// the built bytes straight back in an HTTP response (as opposed to writing them to the staging
+    /// folder). Shared by every "run and return the file" endpoint so they can't drift on content type.</summary>
+    public static string ContentTypeFor(string extension) =>
+        extension switch
+        {
+            "csv" => "text/csv",
+            "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            _ => "application/json",
+        };
+
+    /// <summary>Filesystem-safe <c>{slug}_{timestamp}.{extension}</c> download file name for a
+    /// free-text name (a preset name, an export definition name — never itself validated as a SQL
+    /// identifier, unlike <see cref="QI"/>'s inputs) paired with a build's output extension.</summary>
+    public static string BuildNamedFileName(string name, DateTimeOffset extractedAt, string extension)
+    {
+        var slug = new string(name.Select(c => char.IsLetterOrDigit(c) ? c : '_').ToArray()).Trim('_');
+        if (slug.Length == 0)
+            slug = "export";
+        return $"{slug}_{extractedAt:yyyyMMdd'T'HHmmss'Z'}.{extension}";
+    }
+
     private static string CsvEscape(string? value)
     {
         if (string.IsNullOrEmpty(value))

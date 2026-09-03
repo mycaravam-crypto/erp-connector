@@ -324,8 +324,16 @@ static class ExportDefinitionEndpoints
                     httpContext.Response.Headers["X-Record-Count"] = built.Value.RecordCount.ToString();
                     httpContext.Response.Headers["X-Config-Version"] = run.ConfigVersion.ToString();
 
-                    var fileName = BuildRunFileName(def.Name, DateTimeOffset.UtcNow, built.Value.Extension);
-                    return Results.File(built.Value.Bytes, ContentTypeFor(built.Value.Extension), fileName);
+                    var fileName = DynamicExportService.BuildNamedFileName(
+                        def.Name,
+                        DateTimeOffset.UtcNow,
+                        built.Value.Extension
+                    );
+                    return Results.File(
+                        built.Value.Bytes,
+                        DynamicExportService.ContentTypeFor(built.Value.Extension),
+                        fileName
+                    );
                 }
             )
             .RequireAuthorization();
@@ -491,24 +499,6 @@ static class ExportDefinitionEndpoints
         {
             return await Fail(ex.Message);
         }
-    }
-
-    private static string ContentTypeFor(string extension) =>
-        extension switch
-        {
-            "csv" => "text/csv",
-            "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            _ => "application/json",
-        };
-
-    // Definition names are free text (unlike RootTable/JoinKey/etc., never spliced into SQL), so they need
-    // their own filesystem-safe slug rather than the SqlIdentifierRegex used for query-facing inputs below.
-    private static string BuildRunFileName(string definitionName, DateTimeOffset extractedAt, string extension)
-    {
-        var slug = new string(definitionName.Select(c => char.IsLetterOrDigit(c) ? c : '_').ToArray()).Trim('_');
-        if (slug.Length == 0)
-            slug = "export";
-        return $"{slug}_{extractedAt:yyyyMMdd'T'HHmmss'Z'}.{extension}";
     }
 
     private static ExportDefinitionDto ToDto(ExportDefinitionEntity e) =>
