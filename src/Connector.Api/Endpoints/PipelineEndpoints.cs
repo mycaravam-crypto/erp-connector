@@ -218,7 +218,11 @@ static class PipelineEndpoints
 
                         httpContext.Response.Headers["X-Record-Count"] = built.RecordCount.ToString();
                         var fileName = DynamicExportService.BuildNamedFileName(name, extractedAt, built.Extension);
-                        return Results.File(built.Bytes, DynamicExportService.ContentTypeFor(built.Extension), fileName);
+                        return Results.File(
+                            built.Bytes,
+                            DynamicExportService.ContentTypeFor(built.Extension),
+                            fileName
+                        );
                     }
                     catch (Exception ex) when (ex is not OperationCanceledException)
                     {

@@ -70,9 +70,7 @@ var apiKeyEntries = builder.Environment.IsDevelopment()
     ? DevAuthSeed.CreateApiKeys()
     : builder.Configuration.GetSection("Auth:ApiKeys").Get<List<ApiKeyOptions>>() ?? [];
 builder.Services.AddSingleton(
-    new ApiKeyStore(
-        apiKeyEntries.ToDictionary(k => k.KeyHash.ToLowerInvariant(), k => k.Name, StringComparer.Ordinal)
-    )
+    new ApiKeyStore(apiKeyEntries.ToDictionary(k => k.KeyHash.ToLowerInvariant(), k => k.Name, StringComparer.Ordinal))
 );
 
 // ── CORS ──────────────────────────────────────────────────────────────────────

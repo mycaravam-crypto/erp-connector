@@ -7,9 +7,7 @@ public sealed class ApiKeyStoreTests
     [Fact]
     public void TryAuthenticate_MatchingKey_ReturnsTrueWithConfiguredName()
     {
-        var store = new ApiKeyStore(
-            new Dictionary<string, string> { [ApiKeyStore.Hash("secret-key-1")] = "erp-bot" }
-        );
+        var store = new ApiKeyStore(new Dictionary<string, string> { [ApiKeyStore.Hash("secret-key-1")] = "erp-bot" });
 
         var authenticated = store.TryAuthenticate("secret-key-1", out var name);
 
@@ -20,9 +18,7 @@ public sealed class ApiKeyStoreTests
     [Fact]
     public void TryAuthenticate_WrongKey_ReturnsFalse()
     {
-        var store = new ApiKeyStore(
-            new Dictionary<string, string> { [ApiKeyStore.Hash("secret-key-1")] = "erp-bot" }
-        );
+        var store = new ApiKeyStore(new Dictionary<string, string> { [ApiKeyStore.Hash("secret-key-1")] = "erp-bot" });
 
         var authenticated = store.TryAuthenticate("wrong-key", out var name);
 
