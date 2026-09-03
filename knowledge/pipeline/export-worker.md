@@ -7,9 +7,9 @@ tags: [pipeline, orchestration, scheduling, background-service]
 timestamp: 2026-06-28T00:00:00Z
 ---
 
-`ExportWorker` is an ASP.NET Core `BackgroundService` that runs the full export pipeline
-once per day at a configured UTC time. It assigns sequence numbers, persists run state to
-the export-log SQLite database, and coordinates all six pipeline stages.
+`ExportWorker` is an ASP.NET Core `BackgroundService` that runs the export pipeline once per
+day at a configured UTC time. It assigns sequence numbers, persists run state to the
+export-log SQLite database, and calls the live query+build pipeline.
 
 # Schedule
 
@@ -18,16 +18,18 @@ Default run time: **06:00 UTC** (configurable via `ExportWorker.ScheduledTimeUtc
 For development, set to `00:00:01` (one second after midnight) or a near-future time
 to trigger an immediate run without waiting.
 
-# Pipeline Execution Order
+# Pipeline Execution
 
 ```
-IErpReader.ReadMaintainableCIsAsync()   →  ErpConfigurationItem[]
-IExportFilter.Filter()                  →  ErpConfigurationItem[] (scoped)
-IDataMinimizer.Minimize() × N           →  ExportItem[]
-ISchemaMapper.Map() × N                 →  MappedExportRecord[]
-IPackager.PackageAsync()                →  ExportPackage
-IExportSink.WriteAsync()                →  staging/*.xlsx + staging/*.manifest.json
+DynamicExportService.BuildExportAsync(config, format)  →  ExportPackage
+IExportSink.WriteAsync()                               →  staging/*.{xlsx|csv|json} + staging/*.manifest.json
 ```
+
+`RunExportAsync` calls the same `BuildExportAsync` decision point as `POST /api/pipeline/run`
+and Preview — see [DynamicExportService](/pipeline/dynamic-export-service.md). The originally
+documented fixed six-stage pipeline (`IErpReader → IExportFilter → IDataMinimizer →
+ISchemaMapper → IPackager → IExportSink`) was never wired into this worker's live code path
+and has since been removed; see that page for why the design changed.
 
 # Run Lifecycle
 
@@ -44,10 +46,6 @@ implemented — the next daily full-snapshot run heals the gap idempotently.
 
 # Related
 
-- [IErpReader](/pipeline/erp-reader.md)
-- [IExportFilter](/pipeline/export-filter.md)
-- [IDataMinimizer](/pipeline/data-minimizer.md)
-- [ISchemaMapper](/pipeline/schema-mapper.md)
-- [IPackager](/pipeline/packager.md)
+- [DynamicExportService](/pipeline/dynamic-export-service.md) — the query+build pipeline this worker calls
 - [IExportSink](/pipeline/export-sink.md)
-- [Four-Eyes Release](/processes/four-eyes-release.md)
+- [Four-Eyes Release](/operations/four-eyes-release.md)

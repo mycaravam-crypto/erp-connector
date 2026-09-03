@@ -16,9 +16,9 @@ timestamp: 2026-06-28T00:00:00Z
 > two in sync (or reconciling them into one model) is an operator/process concern, not a
 > code-enforced one — the mapping-save endpoint does not validate against this schema.
 
-Filename patterns used in the Excel export are still implemented in
-`Connector.Core.Schema.ExportSchema` and shared by every export format. The column list
-below is documentation only, not enforced against the live query at build time.
+The filename pattern is still implemented in `Connector.Core.Schema.ExportSchema` and shared by
+every export format; the column list below is documentation only, not enforced against the live
+query.
 
 # Version
 
@@ -59,7 +59,7 @@ Manifest companion: `export_0042_20260628T060000Z.manifest.json`
 
 # Related
 
-- [MappedExportRecord](/domain/mapped-export-record.md) — record type that maps onto these columns
+- [MappedExportRecord](/legacy/mapped-export-record.md) — record type that maps onto these columns
 - [ExportManifest](/domain/export-manifest.md) — carries the schema version in every export run
-- [SchemaMapper](/pipeline/schema-mapper.md) — transforms ExportItem fields to match this schema
-- [IPackager](/pipeline/packager.md) — serializes MappedExportRecord into the Excel file
+- [SchemaMapper](/legacy/schema-mapper.md) — transforms ExportItem fields to match this schema
+- [IPackager](/legacy/packager.md) — serializes MappedExportRecord into the Excel file

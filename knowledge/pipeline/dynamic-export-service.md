@@ -9,21 +9,15 @@ timestamp: 2026-08-19T00:00:00Z
 
 # What changed
 
-The original Technical Concept described a fixed six-stage pipeline — `IErpReader` →
-`IExportFilter` → `IDataMinimizer` → `ISchemaMapper` → `IPackager` → `IExportSink` — built
-against a hardcoded, single-table ERP shape. During development (Phases 6–12) the real
-requirement turned out to be different: the source schema is not fixed, joins across
-related tables are required, and the operator needs to configure column mapping at
-runtime rather than at compile time. `DynamicExportService` was built to answer that need,
-and by Phase 9 it had fully replaced the fixed pipeline for every live code path — the
-fixed-pipeline types (`ErpConfigurationItem`, `ExportItem`, `MappedExportRecord`,
-`ISchemaMapper`/`SchemaMapper`, `IDataMinimizer`/`DataMinimizer`,
-`IExportFilter`/`ExportFilter`, `IPackager`/`ExcelPackager`, `IErpReader`/`DemoErpReader`)
-were never wired into dependency injection and carried no production traffic. As of the
-2.0 cleanup they have been deleted from the codebase; `erp-reader.md`, `export-filter.md`,
-`data-minimizer.md`, `schema-mapper.md`, and `packager.md` remain only as a historical
-record of the original design intent (in particular, *why* the GDPR-minimization and
-correlation-key rules exist) — they no longer describe running code.
+The original Technical Concept specified a fixed six-stage pipeline (`IErpReader` →
+`IExportFilter` → `IDataMinimizer` → `ISchemaMapper` → `IPackager` → `IExportSink`) against a
+hardcoded, single-table ERP shape. Development (Phases 6–12) showed the real requirement was
+different — non-fixed source schema, cross-table joins, runtime-configurable mapping — so
+`DynamicExportService` was built, and by Phase 9 had fully replaced the fixed pipeline on every
+live path; those six types/interfaces were never wired into DI and carried no production traffic.
+The 2.0 cleanup deleted them from the codebase. `erp-reader.md`, `export-filter.md`,
+`data-minimizer.md`, `schema-mapper.md`, and `packager.md` remain only as a historical record of
+why the GDPR-minimization and correlation-key rules exist — they no longer describe running code.
 
 # The live pipeline
 
@@ -56,7 +50,7 @@ each re-implement this branch separately:
   from the result as defence-in-depth. The mechanism changed (runtime-editable denylist
   in `AppSetting`, not a fixed type with the fields simply absent), which is an accepted,
   intentional deviation from the original "removed at the type level" design — see
-  [GDPR Compliance](/processes/gdpr-compliance.md).
+  [GDPR Compliance](/operations/gdpr-compliance.md).
 - **Correlation key / four-eyes / audit / retention**: unaffected — those live in
   `ExportRunEntity`, `AuditService`, and `ExportWorker`'s retention cleanup, none of which
   depended on the fixed-pipeline types.
@@ -70,4 +64,4 @@ each re-implement this branch separately:
 
 - [Export Schema](/schema/export-schema.md) — reference contract, decoupled from this pipeline
 - [Export Worker](/pipeline/export-worker.md) — scheduled caller of `BuildExportAsync`
-- [GDPR Compliance](/processes/gdpr-compliance.md) — how the runtime denylist is enforced
+- [GDPR Compliance](/operations/gdpr-compliance.md) — how the runtime denylist is enforced

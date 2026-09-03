@@ -7,9 +7,9 @@ tags: [domain, infrastructure, lifecycle, audit, sqlite]
 timestamp: 2026-06-28T00:00:00Z
 ---
 
-Every execution of the export pipeline — whether triggered by the daily [ExportWorker](/pipeline/export-worker.md)
-or by an on-demand [Run Now](/processes/on-demand-run.md) call — is recorded as an `ExportRun` row in the
-export-log SQLite database.
+Every pipeline execution — daily [ExportWorker](/pipeline/export-worker.md) or on-demand
+[Run Now](/api/on-demand-run.md) — is recorded as an `ExportRun` row in the export-log
+SQLite database.
 
 # Schema
 
@@ -20,7 +20,7 @@ export-log SQLite database.
 | `ExtractedAt`  | string  | ISO 8601 UTC timestamp of the ERP read (`DateTimeOffset.UtcNow` at run start).|
 | `RecordCount`  | int     | Number of exported CI records. 0 for Failed runs.                             |
 | `Sha256`       | string  | SHA-256 of the data file (hex, lowercase). Empty for Failed runs.             |
-| `Status`       | string  | Lifecycle state: `Pending` | `Released` | `Failed`.                         |
+| `Status`       | string  | Lifecycle state: `Pending` \| `Released` \| `Failed`.                         |
 | `ReleasedAt`   | string? | ISO 8601 UTC timestamp of the four-eyes release. Null until released.         |
 | `OperatedBy`   | string? | Username of the JWT-authenticated user who triggered the release.             |
 | `ApprovedBy`   | string? | Username of the approver (must differ from `OperatedBy`).                     |
@@ -34,30 +34,28 @@ Pending           →  Released   (successful four-eyes approval via POST /api/e
 Pending           →  Failed     (pipeline error during execution)
 ```
 
-`Released` and `Failed` are terminal states. A Failed run cannot be re-released; a new run must be triggered.
+`Released` and `Failed` are terminal — a Failed run can't be re-released; a new run must be triggered.
 
 # Sequence Number
 
-`SequenceNo` is assigned as `MAX(SequenceNo) + 1` from the database at run start.
-The number is monotonically increasing and never reused.
-The receiving gateway uses sequence gaps to detect lost exports without a back-channel.
-See [ExportManifest](/domain/export-manifest.md) which carries the same sequence number into the manifest JSON.
+Assigned as `MAX(SequenceNo) + 1` at run start; monotonically increasing, never reused. The
+receiving gateway uses sequence gaps to detect lost exports without a back-channel. See
+[ExportManifest](/domain/export-manifest.md), which carries the same number into the manifest JSON.
 
 # Persistence
 
-Stored in the SQLite database configured via `ConnectionStrings:ExportLog` in `appsettings.json`.
-Schema is managed by EF Core (`ExportLogDbContext.EnsureCreatedAsync` on startup).
+SQLite via `ConnectionStrings:ExportLog` in `appsettings.json`; schema managed by EF Core
+(`ExportLogDbContext.EnsureCreatedAsync` on startup).
 
 # Data Retention
 
-Completed runs (`Released` and `Failed`) are purged after the configured `RetentionDays` window.
-`Pending` runs are never deleted automatically.
-See [Data Retention](/processes/data-retention.md).
+`Released` and `Failed` runs are purged after the configured `RetentionDays` window. `Pending`
+runs are never auto-deleted. See [Data Retention](/operations/data-retention.md).
 
 # Related
 
 - [ExportWorker](/pipeline/export-worker.md) — creates and updates ExportRun records
 - [ExportManifest](/domain/export-manifest.md) — carries SequenceNo and SHA-256 in the manifest file
-- [Four-Eyes Release](/processes/four-eyes-release.md) — advances status from Pending to Released
-- [On-Demand Run](/processes/on-demand-run.md) — alternative trigger that also creates an ExportRun
-- [Data Retention](/processes/data-retention.md) — purge policy for completed runs
+- [Four-Eyes Release](/operations/four-eyes-release.md) — advances status from Pending to Released
+- [On-Demand Run](/api/on-demand-run.md) — alternative trigger that also creates an ExportRun
+- [Data Retention](/operations/data-retention.md) — purge policy for completed runs
