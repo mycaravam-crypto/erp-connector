@@ -477,6 +477,40 @@ public sealed class DynamicExportServiceTests
         Assert.False(DynamicExportService.UsesNestedJson(cfg, "csv"));
     }
 
+    // ── ContentTypeFor / BuildNamedFileName ─────────────────────────────────────
+    // Shared by every "run and return the file directly" endpoint (ExportDefinitionEndpoints' /run,
+    // PipelineEndpoints' preset-run) so they can't drift on content type or file naming.
+
+    [Theory]
+    [InlineData("csv", "text/csv")]
+    [InlineData("xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")]
+    [InlineData("json", "application/json")]
+    [InlineData("anything-else", "application/json")]
+    public void ContentTypeFor_ReturnsExpectedMimeType(string extension, string expected)
+    {
+        Assert.Equal(expected, DynamicExportService.ContentTypeFor(extension));
+    }
+
+    [Fact]
+    public void BuildNamedFileName_SlugifiesNonAlphanumericsAndAppendsTimestamp()
+    {
+        var extractedAt = new DateTimeOffset(2026, 3, 15, 6, 0, 0, TimeSpan.Zero);
+
+        var fileName = DynamicExportService.BuildNamedFileName("Weekly Manufacturer Extract!", extractedAt, "csv");
+
+        Assert.Equal("Weekly_Manufacturer_Extract_20260315T060000Z.csv", fileName);
+    }
+
+    [Fact]
+    public void BuildNamedFileName_NameWithOnlyPunctuation_FallsBackToExportSlug()
+    {
+        var extractedAt = new DateTimeOffset(2026, 3, 15, 6, 0, 0, TimeSpan.Zero);
+
+        var fileName = DynamicExportService.BuildNamedFileName("!!!", extractedAt, "json");
+
+        Assert.Equal("export_20260315T060000Z.json", fileName);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static ExportMappingConfig MakeConfig(ExportMappingField[] fields, ExportMappingRelation[] relations) =>

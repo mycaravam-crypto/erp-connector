@@ -2,6 +2,7 @@ using System.Text;
 using Connector.Api;
 using Connector.Api.Endpoints;
 using Connector.Infrastructure;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -53,9 +54,26 @@ builder
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
         }
-    );
+    )
+    // Second, opt-in scheme for machine-to-machine callers (X-Api-Key header) — only endpoints that
+    // explicitly list "ApiKey" alongside the default JWT scheme via RequireAuthorization(policy => ...)
+    // accept it; every other endpoint is unaffected and still requires a JWT.
+    .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.SchemeName, null);
 
 builder.Services.AddAuthorization();
+
+// Dev vs Production API key source, resolved now (before Build()) so it can go into the container as a
+// singleton for ApiKeyAuthenticationHandler — mirrors the Users list's Dev/Production split below, which
+// is resolved after Build() instead only because it's passed as a plain constructor/closure argument to
+// endpoint-mapping methods rather than needing DI.
+var apiKeyEntries = builder.Environment.IsDevelopment()
+    ? DevAuthSeed.CreateApiKeys()
+    : builder.Configuration.GetSection("Auth:ApiKeys").Get<List<ApiKeyOptions>>() ?? [];
+builder.Services.AddSingleton(
+    new ApiKeyStore(
+        apiKeyEntries.ToDictionary(k => k.KeyHash.ToLowerInvariant(), k => k.Name, StringComparer.Ordinal)
+    )
+);
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 
@@ -159,6 +177,10 @@ if (app.Environment.IsDevelopment())
 {
     userStore = DevAuthSeed.CreateUsers();
     app.Logger.LogInformation("Dev auth: users alice/alice123 and bob/bob123 are active.");
+    app.Logger.LogInformation(
+        "Dev auth: API key '{Key}' is active (send as the X-Api-Key header).",
+        DevAuthSeed.DevApiKey
+    );
 }
 else
 {
