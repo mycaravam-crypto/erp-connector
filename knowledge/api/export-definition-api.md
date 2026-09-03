@@ -50,8 +50,9 @@ Content-Type: application/json
 `ConfigVersion`. `GET /api/export-definitions` lists definitions (summary, no tree);
 `GET .../{id}` returns one in full including its `rootNode` tree. `DELETE .../{id}` removes it
 (run history stays for traceability). `.../duplicate` copies a definition, starting disabled and
-manual-only. `PATCH .../enable` flips `isEnabled` — governs future scheduling once
-[Slice 4](/pipeline/export-definitions-2.0.md) ships; doesn't gate manual triggering.
+manual-only. `PATCH .../enable` flips `isEnabled` — governs [scheduled
+runs](/dynamic-export/scheduler.md); doesn't gate manual triggering, which works regardless of
+`isEnabled`.
 
 # Triggering an export from an external program
 
@@ -131,8 +132,9 @@ a `Failed` row with a specific `errorMessage` (same "no silent partial success" 
 * Nesting depth is capped (`DynamicExportService.MaxNestedDepth`, shared with the legacy nested-JSON path).
 * No two enabled sibling nodes share a `targetKey` at the same level.
 * Every scalar-field `sourceField` is checked against the [GDPR denylist](/operations/gdpr-compliance.md), at every depth.
-* `outputFormat` is `csv`/`xlsx`/`json`; `schedule`, if set, is a 5-field cron string (not yet
-  interpreted — see [Export Definitions 2.0](/pipeline/export-definitions-2.0.md) Slice 4).
+* `outputFormat` is `csv`/`xlsx`/`json`; `schedule`, if set, must be a 5-field cron string — read
+  and interpreted every minute by [the scheduler](/dynamic-export/scheduler.md) once `isEnabled`
+  is also true.
 
 A node's `filter` (an optional WHERE-clause fragment, scoped to that node's subquery) is
 deliberately **not** identifier-validated — it's free-form SQL by design. Only authenticated
@@ -145,7 +147,8 @@ definition — no special role, matching [On-Demand Run](/api/on-demand-run.md).
 
 # Related
 
-- [Export Definitions 2.0](/pipeline/export-definitions-2.0.md) — full data model and spec (Slice 3)
+- [Export Definitions 2.0](/pipeline/export-definitions-2.0.md) — full data model and spec
+- [Dynamic Export](/dynamic-export/index.md) — the `ExportNode` tree, scheduler, and run-history entity this API is a surface over
 - [DynamicExportService](/pipeline/dynamic-export-service.md) — query/format-writer engine
 - [On-Demand Run](/api/on-demand-run.md) — the legacy single-mapping equivalent
 - [GDPR Compliance](/operations/gdpr-compliance.md) — denylist enforcement referenced above

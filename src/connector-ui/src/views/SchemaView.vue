@@ -19,6 +19,7 @@ import ColumnMappingTable from '@/components/ColumnMappingTable.vue'
 import RelatedJoinsPanel from '@/components/RelatedJoinsPanel.vue'
 import JsonExportOptionsPanel from '@/components/JsonExportOptionsPanel.vue'
 import { type SuggestedRelation } from '@/components/SuggestedRelations.vue'
+import { findSuggestedRelations } from '@/lib/suggestedRelations'
 import PreviewTable from '@/components/PreviewTable.vue'
 
 const router = useRouter()
@@ -201,29 +202,9 @@ watch(selectedTable, (newTable, oldTable) => {
 })
 
 // ── Suggested relations (from FK metadata) ─────────────────────────────────────
-const suggestedRelations = computed<SuggestedRelation[]>(() => {
-  if (!sourceSchema.value || !selectedTable.value) return []
-
-  const suggestions: SuggestedRelation[] = []
-  for (const t of sourceSchema.value.tables) {
-    if (t.name === selectedTable.value) continue
-    for (const c of t.columns) {
-      if (c.foreignKeyTable === selectedTable.value && c.foreignKeyColumn) {
-        suggestions.push({ relatedTable: t.name, joinKey: c.name, sourceJoinKey: c.foreignKeyColumn })
-      }
-    }
-  }
-
-  return suggestions.filter(
-    (s) =>
-      !relations.value.some(
-        (r) =>
-          r.relatedTable === s.relatedTable &&
-          r.joinKey === s.joinKey &&
-          r.sourceJoinKey === s.sourceJoinKey,
-      ),
-  )
-})
+const suggestedRelations = computed<SuggestedRelation[]>(() =>
+  findSuggestedRelations(sourceSchema.value, selectedTable.value, relations.value),
+)
 
 function addSuggestedRelation(s: SuggestedRelation) {
   relations.value.push({

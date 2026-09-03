@@ -80,6 +80,42 @@ Re-run `npx fallow health --hotspots --targets` (from `src/connector-ui/`) any t
 
 Items 6–9 and 11 are untouched — same priority as before this session.
 
+## Phase 14 Slice 5 additions (new files) — not done
+
+`fallow audit --base origin/main` run for export-definitions-2.0.md Slice 5 (the Export
+Definitions tree builder) flags 6 template-complexity findings, all in new files that new UI's
+inherent size, not accumulated debt in an old one:
+
+- `ExportNodeTreeEditor.vue` — 17 cyclomatic, 29 cognitive, 255 lines, CRAP 79.4 (HIGH). The
+  recursive tree-node editor (scalar-field/object/array in one component, per node kind) —
+  same "self-referencing, deliberately unsplit" shape as `NestedGroupEditor.vue` (item 6 above),
+  which this generalizes the idea of; splitting the per-kind branches out would just recreate the
+  circular-import problem that component's own comment documents.
+- `ExportDefinitionRunControls.vue` — 14 cyclomatic, 17 cognitive, 208 lines, CRAP 56.3 (HIGH).
+  Grew from Save+Test (Phase 14 Slice 3 recovery UI) to Save+Test+Run Now+Duplicate+Delete; a
+  plausible split is one component per action, but each action's state (loading/error/result) is
+  small and independent, so splitting would trade one readable file for five tiny ones with no
+  shared logic to justify the extraction (see this doc's "minimal code" ground rule).
+- `ExportDefinitionsView.vue` — 12 cyclomatic, 25 cognitive, 218 lines, CRAP 43.1 (HIGH). Grew
+  from a read-only list to the full list view (enable toggle, schedule/last-run columns,
+  test/duplicate/delete actions) export-definitions-2.0.md §7 calls for.
+- `ExportDefinitionEditView.vue` — 13 cyclomatic, 22 cognitive, 245 lines, CRAP 49.5. Orchestrates
+  create vs. edit mode, the tree editor, preview, and execution history.
+- `StatusBadge.vue` — 8 cyclomatic, 17 cognitive, 15 lines (pre-existing component; two status
+  values — `success`/`running` — added for `ExportDefinitionRunEntity`, pushing it over the
+  cyclomatic threshold on an already-dense one-expression template).
+
+Also: `ExportDefinitionRunsTable.vue:40` flags `text-[0.7rem]` as Tailwind-arbitrary-value token
+drift — intentional parity with `ExportRunsTable.vue`'s existing table-header convention (same
+`text-[0.7rem] uppercase tracking-wide` classes), not a new one-off value.
+
+Not addressed in the same session per this doc's own precedent above ("CI-gate note"): these are
+new files, so their complexity counts as "new" even where, like `ExportNodeTreeEditor.vue`, the
+alternative (three separate per-Kind components, circularly importing each other and this one) is
+worse. Verifying any split needs a running browser per this doc's own note above — same reason
+items 6–9 and 11 are still open. Same human call applies: raise `.fallowrc.json`'s thresholds, add
+`// fallow-ignore-next-line complexity`, or accept the red check for these specific files.
+
 ## Suggested approach per item
 
 Extract repeated/large template branches into small sub-components under `src/components/`

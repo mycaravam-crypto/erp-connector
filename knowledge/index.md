@@ -12,7 +12,9 @@ never crosses the air gap — its output ends at the staging folder.
 Folders are organized by the question you're asking, not just by topic:
 
 * [pipeline/](pipeline/) — **How does the export actually run?** The live query/build engine,
-  the scheduler, the staging writer, and the in-progress successor design (Phase 14).
+  the scheduler, the staging writer, and the Phase 14 spec it grew into.
+* [dynamic-export/](dynamic-export/) — **How does a saved Export Definition run?** The
+  `ExportNode` tree, its own scheduler, and its run-history entity (Phase 14).
 * [domain/](domain/) — **What are the data shapes?** Live domain types only.
 * [schema/](schema/) — **What's the ICD column contract with the vendor?**
 * [api/](api/) — **How do I call the API?** Authentication, on-demand triggers, and the
