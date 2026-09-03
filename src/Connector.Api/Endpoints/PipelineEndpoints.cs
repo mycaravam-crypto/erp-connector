@@ -233,7 +233,10 @@ static class PipelineEndpoints
             )
             .RequireAuthorization(policy =>
                 policy
-                    .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, ApiKeyAuthenticationHandler.SchemeName)
+                    .AddAuthenticationSchemes(
+                        JwtBearerDefaults.AuthenticationScheme,
+                        ApiKeyAuthenticationHandler.SchemeName
+                    )
                     .RequireAuthenticatedUser()
             );
 
