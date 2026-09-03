@@ -6,8 +6,8 @@ tags: [process, monitoring, health, observability]
 timestamp: 2026-06-29T00:00:00Z
 ---
 
-Three lightweight mechanisms were added in Phase 6 to make the daily export cycle safer and
-more observable without requiring an external monitoring stack.
+Three lightweight mechanisms, added in Phase 6, make the daily export cycle safer and observable
+without an external monitoring stack.
 
 # Health Check
 
@@ -25,25 +25,17 @@ Returns HTTP 200 `{"status":"healthy",…}` when all checks pass, 503 `{"status"
 
 # Stale Pending Indicator
 
-The `GET /api/exports` list includes `isStale: true` on any run whose status is `Pending`
-and whose `ExtractedAt` timestamp is more than 24 hours old.
-
-The ExportView renders:
-- An amber callout banner at the top of the run list when any stale run exists.
-- An inline "overdue" tag next to the status badge on the stale row.
-
-This surfaces missed releases without requiring a separate alerting system.
+`GET /api/exports` includes `isStale: true` on any `Pending` run whose `ExtractedAt` is more than
+24 hours old. ExportView shows an amber callout banner when any stale run exists, plus an inline
+"overdue" tag on the stale row — surfacing missed releases without a separate alerting system.
 
 # Sequence Gap Detection
 
-`GET /api/exports/{seqNo}` includes a `sequenceGapWarning` string (null when no gap).
-
-A gap is detected when a Pending run's sequence number is not the immediate successor of
-the last Released run. Example: if the last released run is #41 and run #43 is Pending,
-the warning reads: "Sequence gap detected: last released run is #41 … Investigate run #42 before releasing."
-
-The ExportDetail view renders this as a left-bordered orange banner above the release form,
-so operators see the warning before they submit the four-eyes approval.
+`GET /api/exports/{seqNo}` includes a `sequenceGapWarning` string (null when no gap), set when a
+Pending run's sequence number isn't the immediate successor of the last Released run — e.g. last
+released #41, Pending #43 → "Sequence gap detected: last released run is #41 … Investigate run
+#42 before releasing." ExportDetail renders it as an orange banner above the release form, so
+operators see it before submitting four-eyes approval.
 
 # Related
 

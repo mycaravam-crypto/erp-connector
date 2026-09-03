@@ -7,12 +7,11 @@ tags: [process, auth, jwt, security, bcrypt, api-key]
 timestamp: 2026-09-03T00:00:00Z
 ---
 
-All API routes except `POST /api/auth/login` require a valid JWT Bearer token.
-The token is issued at login, signed with a shared secret, and carries the username as the `Name` claim.
-A small number of endpoints (currently just `POST /api/pipeline/run/{name}` — see
-[On-Demand Run](/processes/on-demand-run.md)) additionally accept an `X-Api-Key` header instead, for a
-"dedicated API user" that shouldn't need to log in interactively. Every other endpoint is unaffected —
-adding the `ApiKey` scheme did not change the default JWT requirement anywhere else.
+All API routes except `POST /api/auth/login` require a valid JWT Bearer token, issued at login,
+signed with a shared secret, carrying the username as the `Name` claim. One endpoint
+(`POST /api/pipeline/run/{name}` — see [On-Demand Run](/processes/on-demand-run.md)) additionally
+accepts an `X-Api-Key` header for a "dedicated API user" that shouldn't need to log in
+interactively; every other endpoint is unaffected by the `ApiKey` scheme's existence.
 
 # Login
 
@@ -24,8 +23,8 @@ Body: { "username": "alice", "password": "alice123" }
 401 Unauthorized — unknown user or wrong password
 ```
 
-The server verifies the plaintext password against a BCrypt hash. On success it returns a signed JWT.
-Token lifetime defaults to **8 hours** (configurable: `Auth:JwtExpiryHours` in `appsettings.json`).
+The server verifies the password against a BCrypt hash and returns a signed JWT. Token lifetime
+defaults to **8 hours** (`Auth:JwtExpiryHours` in `appsettings.json`).
 
 # Securing a Request
 
@@ -33,15 +32,14 @@ Token lifetime defaults to **8 hours** (configurable: `Auth:JwtExpiryHours` in `
 Authorization: Bearer <token>
 ```
 
-All export, ERP, schema, and pipeline endpoints require this header.
-A missing or expired token returns `401 Unauthorized`.
+All export, ERP, schema, and pipeline endpoints require this header. Missing or expired → `401`.
 
 # User Store
 
 | Environment | Source |
 |-------------|--------|
 | Development | Hard-coded seed: `alice/alice123`, `bob/bob123` (BCrypt-hashed at startup by `DevAuthSeed`). |
-| Production  | `Auth:Users` list in `appsettings.json` — each entry has `Username` and `PasswordHash` (BCrypt). |
+| Production  | `Auth:Users` list in `appsettings.json` — `Username` + `PasswordHash` (BCrypt). |
 
 ## Generating a BCrypt Hash (Development Only)
 
@@ -52,8 +50,7 @@ Body: { "password": "mysecretpassword" }
 200 OK — { "hash": "$2a$11$..." }
 ```
 
-This endpoint is only active in the Development environment. Use the returned hash as the
-`PasswordHash` value when configuring production users in `appsettings.json`.
+Development-only. Use the returned hash as `PasswordHash` when configuring production users.
 
 # Configuration
 
@@ -73,8 +70,8 @@ This endpoint is only active in the Development environment. Use the returned ha
 }
 ```
 
-`Auth:JwtSecret` must be set in all environments. In production, use an environment variable or
-secrets manager — never commit the secret to source control.
+`Auth:JwtSecret` must be set everywhere. In production use an environment variable or secrets
+manager — never commit it.
 
 # API Keys (Machine-to-Machine)
 
@@ -82,37 +79,35 @@ secrets manager — never commit the secret to source control.
 X-Api-Key: <raw key>
 ```
 
-Checked by `ApiKeyAuthenticationHandler` (scheme name `"ApiKey"`) against `ApiKeyStore`, which holds
-only the SHA-256 hash of each configured key — never the raw value, at rest or in memory. Unlike the
-BCrypt check on login, this runs on every request rather than once, so it deliberately uses a fast,
-constant-time hash comparison instead of BCrypt's intentionally slow one; that trade-off only holds
-because a generated API key is already high-entropy, unlike a human-chosen password.
+Checked by `ApiKeyAuthenticationHandler` (scheme `"ApiKey"`) against `ApiKeyStore`, which holds
+only the SHA-256 hash of each key, never the raw value. Unlike BCrypt on login, this runs on
+every request, so it uses a fast constant-time hash comparison rather than BCrypt's deliberately
+slow one — safe only because a generated API key is already high-entropy, unlike a password.
 
-On a match, the configured `Name` becomes the request's identity — same as a JWT's username, so it
-flows straight into the audit log and any `httpContext.User.Identity!.Name!` read.
+On a match, the configured `Name` becomes the request identity, flowing into the audit log and
+`httpContext.User.Identity!.Name!` exactly like a JWT username.
 
 | Environment | Source |
 |-------------|--------|
 | Development | Hard-coded seed: key `dev-local-api-key` → identity `dev-api-key` (`DevAuthSeed`, logged at startup). |
-| Production  | `Auth:ApiKeys` list in `appsettings.json` — each entry has `Name` and `KeyHash`. |
+| Production  | `Auth:ApiKeys` list — `Name` + `KeyHash`. |
 
 ## Generating a Key Hash
 
-There's no dev endpoint for this (unlike BCrypt password hashes) — a raw SHA-256 needs no special
-tooling to reproduce correctly:
+No dev endpoint for this — a raw SHA-256 needs no special tooling:
 
 ```
 openssl rand -hex 32                    # generate a random raw key
 printf '%s' '<raw key>' | sha256sum     # hash it — this is what goes in KeyHash
 ```
 
-Give the raw key to the calling system; store only the hash in `Auth:ApiKeys`.
+Give the raw key to the calling system; store only the hash.
 
 ## Opting an endpoint in
 
-By default `RequireAuthorization()` only accepts the JWT Bearer scheme — adding the `ApiKey` scheme in
-`Program.cs` does not change that for any existing endpoint. An endpoint accepts `X-Api-Key` only if it
-explicitly says so:
+Adding the `ApiKey` scheme in `Program.cs` doesn't change `RequireAuthorization()`'s default
+(JWT-only) for any existing endpoint. An endpoint accepts `X-Api-Key` only if it opts in
+explicitly:
 
 ```csharp
 .RequireAuthorization(policy =>
@@ -124,17 +119,10 @@ explicitly says so:
 
 # Authorisation Model (Iteration 1)
 
-Any authenticated user can:
-- List and view export runs.
-- Trigger an on-demand run or preview.
-- Act as Operator in the four-eyes release.
-- Act as Approver — provided they are a different registered user than the Operator.
-
-There is no role-based access control in Iteration 1.
-Role separation (Operator vs Approver roles) is planned for Iteration 2.
-
-The four-eyes constraint is enforced by identity (username from JWT must differ from the approver name),
-not by organisational roles. In Iteration 1 any two registered users fulfil the constraint.
+Any authenticated user can list/view export runs, trigger an on-demand run or preview, and act as
+Operator or Approver in the four-eyes release (provided Operator ≠ Approver). No role-based
+access control yet — role separation is planned for Iteration 2. The four-eyes constraint is
+enforced by identity (JWT username), not organisational role; any two registered users satisfy it.
 
 # Related
 

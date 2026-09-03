@@ -6,9 +6,9 @@ tags: [process, gdpr, compliance, privacy, data-minimization]
 timestamp: 2026-06-28T00:00:00Z
 ---
 
-The connector processes ERP records that contain personal data. GDPR Article 5(1)(c)
-(data minimization principle) requires that only data necessary for the stated purpose
-is processed and transferred.
+The connector processes ERP records containing personal data. GDPR Art. 5(1)(c) (data
+minimization) requires that only data necessary for the stated purpose is processed and
+transferred.
 
 # Purpose of Transfer
 
@@ -18,36 +18,34 @@ Only fields directly necessary for CI identification and maintenance tracking ar
 # Personal Data Fields
 
 | Field             | Classification  | Handling                                           |
-|-------------------|-----------------|----------------------------------------------------|
+|-------------------|-----------------|-----------------------------------------------------|
 | `TechnicianName`  | Personal data   | **Always excluded** — GDPR Art. 5(1)(c)            |
 | `StorageLocation` | Potentially PII | Currently excluded — scope pending (Open Point #4) |
 
-# Pipeline Enforcement
+# Enforcement
 
-Personal data is stripped at [IDataMinimizer](/pipeline/data-minimizer.md) (Stage 3):
+Personal data is stripped in memory before any disk write, and never appears in intermediate
+results, log files, or the exported file. The mechanism: a **runtime-editable denylist**, checked
+at mapping-save time (a save is rejected if it maps a denylisted field) and re-stripped from
+every query result as defence-in-depth — see
+[DynamicExportService](/pipeline/dynamic-export-service.md).
 
-1. Minimization occurs **in memory**, before any file write.
-2. [ErpConfigurationItem](/domain/erp-configuration-item.md) (which contains personal data) is
-   discarded after minimization — it is never written to disk, intermediate files, or logs.
-3. [ExportItem](/domain/export-item.md) (the minimizer's output) has no personal data fields
-   at the type-system level. The exclusion cannot be accidentally bypassed without modifying the type.
+Excluded rows/fields are audit-logged using only non-personal identifiers (`PartNumber`,
+`SerialNumber`), never `TechnicianName` — traceable without writing personal data to log files.
 
-# Audit Logging
-
-[IExportFilter](/pipeline/export-filter.md) logs excluded CIs at `Warning` level using
-only non-personal fields (`PartNumber`, `SerialNumber`). This supports audit traces without
-writing personal data to log files.
+*(The original design enforced this at the type level — `ExportItem` simply had no
+`TechnicianName`/`StorageLocation` field. That fixed pipeline is gone; see
+[IDataMinimizer](/pipeline/data-minimizer.md) for why the rule exists.)*
 
 # Open Points Affecting This Policy
 
 | # | Topic               | Impact                                                            |
-|---|---------------------|-------------------------------------------------------------------|
-| 4 | `StorageLocation`   | If confirmed in scope: `DataMinimizer` and `ExportSchema` must be updated; legal review required. |
+|---|---------------------|--------------------------------------------------------------------|
+| 4 | `StorageLocation`   | If confirmed in scope: the denylist and [Export Schema](/schema/export-schema.md) must be updated; legal review required. |
 | 3 | Classification marking | Release API may need a data-classification field on the run record. |
 
 # Related
 
-- [IDataMinimizer](/pipeline/data-minimizer.md)
-- [ErpConfigurationItem](/domain/erp-configuration-item.md)
-- [ExportItem](/domain/export-item.md)
+- [DynamicExportService](/pipeline/dynamic-export-service.md) — runtime denylist enforcement
+- [IDataMinimizer](/pipeline/data-minimizer.md) — original type-level design intent
 - [Export Schema](/schema/export-schema.md)

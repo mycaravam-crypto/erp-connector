@@ -35,7 +35,7 @@ and must remain visible in the UI until released or superseded.
 | `> 0` | Delete artefacts older than this many days.        |
 | `0`   | Retention cleanup is disabled entirely.            |
 
-Default: **30 days**. The final value is subject to legal/DPO review (Open Point #7).
+Default: **30 days**, pending legal/DPO review ([Open Point #7](/processes/open-points.md)).
 
 # Execution
 
@@ -52,15 +52,9 @@ does not block the next tick. This isolates retention failures from export relia
 
 # Compliance Note
 
-Retaining export files longer than necessary conflicts with GDPR data minimization
-(see [GDPR Compliance](/processes/gdpr-compliance.md)). The staging files are downstream of
-the minimization boundary and do not contain personal data. However, the retention period
-should still be agreed with the DPO:
-
-- Minimum retention must cover the four-eyes release window (so the Operator can verify before approving).
-- Maximum retention should not exceed the operational need (contract stipulation or legal requirement).
-
-See [Open Point #7](/processes/open-points.md) for the pending legal decision.
+Staging files are downstream of the [GDPR](/processes/gdpr-compliance.md) minimization boundary
+and contain no personal data, but the retention period still needs DPO agreement: long enough to
+cover the four-eyes release window, short enough to not exceed operational or contractual need.
 
 # Related
 

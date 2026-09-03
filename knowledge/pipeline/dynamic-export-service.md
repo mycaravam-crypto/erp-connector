@@ -9,21 +9,15 @@ timestamp: 2026-08-19T00:00:00Z
 
 # What changed
 
-The original Technical Concept described a fixed six-stage pipeline — `IErpReader` →
-`IExportFilter` → `IDataMinimizer` → `ISchemaMapper` → `IPackager` → `IExportSink` — built
-against a hardcoded, single-table ERP shape. During development (Phases 6–12) the real
-requirement turned out to be different: the source schema is not fixed, joins across
-related tables are required, and the operator needs to configure column mapping at
-runtime rather than at compile time. `DynamicExportService` was built to answer that need,
-and by Phase 9 it had fully replaced the fixed pipeline for every live code path — the
-fixed-pipeline types (`ErpConfigurationItem`, `ExportItem`, `MappedExportRecord`,
-`ISchemaMapper`/`SchemaMapper`, `IDataMinimizer`/`DataMinimizer`,
-`IExportFilter`/`ExportFilter`, `IPackager`/`ExcelPackager`, `IErpReader`/`DemoErpReader`)
-were never wired into dependency injection and carried no production traffic. As of the
-2.0 cleanup they have been deleted from the codebase; `erp-reader.md`, `export-filter.md`,
-`data-minimizer.md`, `schema-mapper.md`, and `packager.md` remain only as a historical
-record of the original design intent (in particular, *why* the GDPR-minimization and
-correlation-key rules exist) — they no longer describe running code.
+The original Technical Concept specified a fixed six-stage pipeline (`IErpReader` →
+`IExportFilter` → `IDataMinimizer` → `ISchemaMapper` → `IPackager` → `IExportSink`) against a
+hardcoded, single-table ERP shape. Development (Phases 6–12) showed the real requirement was
+different — non-fixed source schema, cross-table joins, runtime-configurable mapping — so
+`DynamicExportService` was built, and by Phase 9 had fully replaced the fixed pipeline on every
+live path; those six types/interfaces were never wired into DI and carried no production traffic.
+The 2.0 cleanup deleted them from the codebase. `erp-reader.md`, `export-filter.md`,
+`data-minimizer.md`, `schema-mapper.md`, and `packager.md` remain only as a historical record of
+why the GDPR-minimization and correlation-key rules exist — they no longer describe running code.
 
 # The live pipeline
 

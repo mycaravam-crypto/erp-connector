@@ -16,9 +16,9 @@ timestamp: 2026-06-28T00:00:00Z
 > two in sync (or reconciling them into one model) is an operator/process concern, not a
 > code-enforced one — the mapping-save endpoint does not validate against this schema.
 
-Filename patterns used in the Excel export are still implemented in
-`Connector.Core.Schema.ExportSchema` and shared by every export format. The column list
-below is documentation only, not enforced against the live query at build time.
+The filename pattern is still implemented in `Connector.Core.Schema.ExportSchema` and shared by
+every export format; the column list below is documentation only, not enforced against the live
+query.
 
 # Version
 

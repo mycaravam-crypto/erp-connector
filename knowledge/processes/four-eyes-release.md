@@ -55,12 +55,6 @@ Pending → Failed    (pipeline error during the export run)
 
 `Released` and `Failed` are terminal. The release form is hidden for these runs in the UI.
 
-# Sequence Integrity Check
-
-Before releasing, verify the [ExportManifest](/domain/export-manifest.md) `SequenceNumber`
-is contiguous with the previous released run. A gap (e.g. #41 → #43) signals that run #42
-was lost and must be investigated before proceeding.
-
 # Constraints
 
 - Operator and Approver must be different people, enforced server-side by comparing the
