@@ -262,21 +262,41 @@ public static class DynamicExportService
         var effectiveDenylist = gdprDenylist ?? GdprDeniedFields;
 
         await using var cmd = new NpgsqlCommand(sql, conn) { CommandTimeout = 30 };
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-        while (await reader.ReadAsync(ct))
+        try
         {
-            // Npgsql's default json/jsonb -> string mapping (no custom type mapping in this repo)
-            // returns the raw JSON text; parsing it into a mutable JsonObject (rather than treating it
-            // as an opaque string) is what lets it be spliced into the final output tree as real nested
-            // JSON instead of a JSON-encoded string-within-a-string.
-            var text = await reader.IsDBNullAsync(0, ct) ? "{}" : reader.GetString(0);
-            var node = JsonNode.Parse(text) as JsonObject ?? [];
-            StripGdprFieldsRecursive(node, effectiveDenylist);
-            results.Add(node);
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                // Npgsql's default json/jsonb -> string mapping (no custom type mapping in this repo)
+                // returns the raw JSON text; parsing it into a mutable JsonObject (rather than treating it
+                // as an opaque string) is what lets it be spliced into the final output tree as real nested
+                // JSON instead of a JSON-encoded string-within-a-string.
+                var text = await reader.IsDBNullAsync(0, ct) ? "{}" : reader.GetString(0);
+                var node = JsonNode.Parse(text) as JsonObject ?? [];
+                StripGdprFieldsRecursive(node, effectiveDenylist);
+                results.Add(node);
+            }
+        }
+        catch (PostgresException pex) when (pex.SqlState == "21000")
+        {
+            throw new InvalidOperationException(ObjectGroupCardinalityErrorMessage, pex);
         }
 
         return results;
     }
+
+    /// <summary>
+    /// Surfaced when an "object" (1:N-assumed) nested group's correlated subquery matches more than one
+    /// related row for some source row — Postgres raises SQLSTATE 21000 ("more than one row returned by a
+    /// subquery used as an expression") because a bare <c>json_build_object(...)</c> subquery, unlike an
+    /// "array" group's <c>json_agg(...)</c> one, has no way to hold multiple rows. This turns that opaque
+    /// SQL error into an actionable message pointing at the actual fix.
+    /// </summary>
+    private const string ObjectGroupCardinalityErrorMessage =
+        "Nested JSON export failed: an \"object\" nested group matched more than one related row for at "
+        + "least one source row. \"object\" groups assume a 1:1 relationship (via JoinKey/SourceJoinKey) between "
+        + "the source row and the related table — if a source row can legitimately match multiple related "
+        + "rows, change that group's Kind from \"object\" to \"array\" instead.";
 
     // Walks the parsed JSON tree removing any property whose key matches the GDPR denylist, at every
     // depth. Same "match by output key name" defence-in-depth heuristic the flat ExecuteQueryAsync path
@@ -383,18 +403,33 @@ public static class DynamicExportService
         var effectiveDenylist = gdprDenylist ?? GdprDeniedFields;
 
         await using var cmd = new NpgsqlCommand(sql, conn) { CommandTimeout = 30 };
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-        while (await reader.ReadAsync(ct))
+        try
         {
-            var text = await reader.IsDBNullAsync(0, ct) ? "{}" : reader.GetString(0);
-            var node = JsonNode.Parse(text) as JsonObject ?? [];
-            StripGdprFieldsRecursive(node, effectiveDenylist);
-            ApplyExportNodeMappingsRecursive(node, root);
-            results.Add(node);
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                var text = await reader.IsDBNullAsync(0, ct) ? "{}" : reader.GetString(0);
+                var node = JsonNode.Parse(text) as JsonObject ?? [];
+                StripGdprFieldsRecursive(node, effectiveDenylist);
+                ApplyExportNodeMappingsRecursive(node, root);
+                results.Add(node);
+            }
+        }
+        catch (PostgresException pex) when (pex.SqlState == "21000")
+        {
+            throw new InvalidOperationException(ObjectNodeCardinalityErrorMessage, pex);
         }
 
         return results;
     }
+
+    /// <summary>See <see cref="ObjectGroupCardinalityErrorMessage"/> — same cardinality-violation guard,
+    /// for the <see cref="ExportNode"/> tree engine's own <see cref="ExportNodeKind.Object"/> nodes.</summary>
+    private const string ObjectNodeCardinalityErrorMessage =
+        "Export failed: an \"object\" export node matched more than one related row for at least one source "
+        + "row. \"object\" nodes assume a 1:1 relationship (via JoinKey/SourceJoinKey) between the source row "
+        + "and the related table — if a source row can legitimately match multiple related rows, change that "
+        + "node's Kind from \"object\" to \"array\" instead.";
 
     /// <summary>
     /// Walks a parsed row tree in lockstep with the <see cref="ExportNode"/> tree that produced it, applying

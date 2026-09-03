@@ -268,6 +268,41 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
     }
 
     [Fact]
+    public async Task ExecuteNestedJsonQueryAsync_ObjectKindGroupWithMultipleMatches_ThrowsActionableError()
+    {
+        await using var conn = await TryOpenAsync();
+        if (conn is null)
+            return;
+
+        // Misconfigured as "object" (1:1 assumed) but manufacturer_address.manufacturer_id is not unique —
+        // Acme has 2 seeded addresses — so the correlated subquery matches more than one row for Acme's
+        // masterdata row. Postgres raises SQLSTATE 21000, which should surface as a clear, actionable error
+        // instead of the raw "subquery used as an expression returned more than one row".
+        var cfg = MakeConfig(
+            fields: [new("id", "itemId", true)],
+            nestedGroups:
+            [
+                new(
+                    "address",
+                    "manufacturer_address",
+                    "manufacturer_id",
+                    "manufacturer_id",
+                    true,
+                    "object",
+                    [new("city", "city", true)],
+                    []
+                ),
+            ]
+        );
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => DynamicExportService.ExecuteNestedJsonQueryAsync(conn, cfg, CancellationToken.None)
+        );
+        Assert.Contains("\"object\"", ex.Message);
+        Assert.Contains("\"array\"", ex.Message);
+    }
+
+    [Fact]
     public async Task ExecuteNestedJsonQueryAsync_TargetKeyWithApostrophe_EscapedSafely()
     {
         await using var conn = await TryOpenAsync();
