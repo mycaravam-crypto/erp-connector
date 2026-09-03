@@ -3,16 +3,40 @@ type: Changelog
 title: Connector — Changelog
 description: Phase-by-phase record of what shipped, newest first, plus current in-progress status.
 tags: [changelog, roadmap, history]
-timestamp: 2026-08-19T00:00:00Z
+timestamp: 2026-09-03T00:00:00Z
 ---
 
-Last updated: 2026-08-19
+Last updated: 2026-09-03
 
-In progress: Phase 14 — generic, tree-based multi-export definitions, spec'd in
-[Export Definitions 2.0](/pipeline/export-definitions-2.0.md). Slices 1–3 (data model,
-query/format-writer engine, API endpoints — CRUD + manual trigger via `POST
-/api/export-definitions/{id}/run` + test/preview/run-history) are done; slices 4–6 (scheduler,
-frontend, docs) are not started. See that page's "Implementation status" for the live checklist.
+---
+
+## Phase 14 — Generic export definitions ✅
+
+Generalizes [DynamicExportService](/pipeline/dynamic-export-service.md)'s one configurable
+mapping into any number of independently named, scheduled, tree-based export definitions — see
+[Export Definitions 2.0](/pipeline/export-definitions-2.0.md) for the full spec and
+[Dynamic Export](/dynamic-export/index.md) for how the shipped result actually runs. The legacy
+single-mapping flow (`/export-schema`, `POST /api/pipeline/run`) is untouched and stays a fully
+supported, separate workflow — this was never a cutover (§11 decision #2).
+
+| Slice | Item | Notes |
+|---|---|---|
+| 1 | Data model + migration converter | `ExportNode`/`FieldMapping`, `ExportDefinitionEntity`/`ExportDefinitionRunEntity`, EF migration, idempotent one-time converter from legacy config blobs |
+| 2 | Query/format-writer engine | `DynamicExportService`'s `ExportNode` tree walker; `IExportFormatWriter`/CSV/Excel/JSON writers |
+| 3 | API endpoints | `ExportDefinitionEndpoints.cs` — CRUD, duplicate, enable, preview, run, test, run history |
+| 4 | Scheduler | New `ExportDefinitionWorker` (sibling of `ExportWorker`, not a replacement) polls enabled definitions every minute against a new purpose-built `CronSchedule` matcher; every trigger (manual, test, or scheduled) now shares one `ExportDefinitionRunner` and treats a zero-record result as `Failed`, closing a Slice 3 gap |
+| 5 | Frontend | `api/exportDefinitions.ts` client; new `ExportNodeTreeEditor.vue` tree builder (add/remove fields and related entities, inline `FieldMapping` transform editing, per-node `Filter`) alongside — not replacing — the legacy `NestedGroupEditor.vue`; expanded list view (enable toggle, schedule, last-run status, duplicate/test/delete) and edit view (create-or-edit, root-table picker, preview panel, execution history) |
+| 6 | Docs | This entry; new [`knowledge/dynamic-export/`](/dynamic-export/index.md) bundle; [Export Definitions 2.0](/pipeline/export-definitions-2.0.md) implementation-status checklist closed out |
+
+**Verification:** full end-to-end pass, not just unit tests — `dotnet build`/`dotnet test`/
+`dotnet csharpier check` clean (128 backend tests total, 20 of them against a real Postgres
+`testdb`), `npm run type-check && npm run test` clean (231/231) and `npx fallow audit` clean
+(scoped `.fallowrc.json` threshold overrides for the new tree-builder's inherently large
+components — see [Code Health Backlog](/planning/code-health-backlog.md)), a real browser session
+driving the actual tree-builder UI against a running backend, and the scheduler confirmed firing
+a run unattended against a live app. See
+[Export Definitions 2.0's Verification section](/pipeline/export-definitions-2.0.md#verification-end-to-end-after-all-slices)
+for the full account.
 
 ---
 

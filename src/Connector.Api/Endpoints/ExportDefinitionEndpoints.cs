@@ -299,7 +299,7 @@ static class ExportDefinitionEndpoints
                         return Results.NotFound();
 
                     var user = httpContext.User.Identity!.Name!;
-                    var (run, built, error) = await ExecuteDefinitionAsync(
+                    var (run, built, error) = await ExportDefinitionRunner.ExecuteAsync(
                         def,
                         db,
                         triggeredBy: user,
@@ -353,7 +353,7 @@ static class ExportDefinitionEndpoints
                         return Results.NotFound();
 
                     var user = httpContext.User.Identity!.Name!;
-                    var (run, built, error) = await ExecuteDefinitionAsync(
+                    var (run, built, error) = await ExportDefinitionRunner.ExecuteAsync(
                         def,
                         db,
                         triggeredBy: user,
@@ -413,92 +413,6 @@ static class ExportDefinitionEndpoints
                 }
             )
             .RequireAuthorization();
-    }
-
-    // Shared by /run and /test: creates the ExportDefinitionRunEntity row up front (so a crash mid-query
-    // still leaves a Failed row, never a silent gap), runs the query+format-writer engine, and updates the
-    // row with the outcome. Callers differ only in the limit passed and how they render the result — the
-    // execution path itself is identical, matching export-definitions-2.0.md §6's "never a separate
-    // untracked code path" requirement for Test.
-    private static async Task<(
-        ExportDefinitionRunEntity Run,
-        DynamicExportService.ExportBuildResult? Built,
-        string? Error
-    )> ExecuteDefinitionAsync(
-        ExportDefinitionEntity def,
-        ExportLogDbContext db,
-        string triggeredBy,
-        bool isTestRun,
-        int? limit,
-        CancellationToken ct
-    )
-    {
-        var run = new ExportDefinitionRunEntity
-        {
-            ExportDefinitionId = def.Id,
-            ConfigVersion = def.ConfigVersion,
-            StartedAt = DateTimeOffset.UtcNow.ToString("O"),
-            Status = ExportDefinitionRunStatus.Running,
-            TriggeredBy = triggeredBy,
-            IsTestRun = isTestRun,
-        };
-        db.ExportDefinitionRuns.Add(run);
-        await db.SaveChangesAsync(ct);
-
-        async Task<(ExportDefinitionRunEntity, DynamicExportService.ExportBuildResult?, string?)> Fail(string message)
-        {
-            run.Status = ExportDefinitionRunStatus.Failed;
-            run.FinishedAt = DateTimeOffset.UtcNow.ToString("O");
-            run.ErrorMessage = message;
-            await db.SaveChangesAsync(CancellationToken.None);
-            return (run, null, message);
-        }
-
-        // Everything from here on — including the two deserialize calls, which throw rather than return
-        // null on malformed stored JSON — stays inside this try so a corrupt RootNode/connection config
-        // still finalizes the run row as Failed instead of leaving it stuck at Running forever.
-        try
-        {
-            var root = ExportNodeJson.Deserialize(def.RootNode);
-            if (root is null)
-                return await Fail("Stored export tree could not be read.");
-
-            var connRaw = await db.GetSettingRawAsync(SettingsKeys.ErpConnection);
-            if (connRaw is null)
-                return await Fail("No database connection configured.");
-            var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connRaw);
-            if (connCfg is null)
-                return await Fail("Stored database connection config could not be read.");
-
-            var extractedAt = DateTimeOffset.UtcNow;
-            var gdprDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
-
-            await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(connCfg));
-            await conn.OpenAsync(ct);
-
-            var built = await DynamicExportService.BuildExportNodeAsync(
-                conn,
-                def.RootTable,
-                root,
-                def.OutputFormat,
-                ExportSchema.Version,
-                extractedAt,
-                ct,
-                limit,
-                gdprDenylist
-            );
-
-            run.Status = ExportDefinitionRunStatus.Success;
-            run.RecordCount = built.RecordCount;
-            run.FinishedAt = DateTimeOffset.UtcNow.ToString("O");
-            await db.SaveChangesAsync(ct);
-
-            return (run, built, null);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            return await Fail(ex.Message);
-        }
     }
 
     private static ExportDefinitionDto ToDto(ExportDefinitionEntity e) =>

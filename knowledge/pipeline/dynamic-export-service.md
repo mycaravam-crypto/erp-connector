@@ -65,3 +65,5 @@ each re-implement this branch separately:
 - [Export Schema](/schema/export-schema.md) — reference contract, decoupled from this pipeline
 - [Export Worker](/pipeline/export-worker.md) — scheduled caller of `BuildExportAsync`
 - [GDPR Compliance](/operations/gdpr-compliance.md) — how the runtime denylist is enforced
+- [Dynamic Export (Phase 14)](/dynamic-export/index.md) — the `ExportNode` tree, its own
+  scheduler, and its run-history entity, extending this page rather than replacing it

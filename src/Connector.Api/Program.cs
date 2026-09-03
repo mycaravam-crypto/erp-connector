@@ -95,6 +95,7 @@ builder.Services.AddDbContext<ExportLogDbContext>(opt =>
 
 builder.Services.AddScoped<AuditService>();
 builder.Services.AddHostedService<ExportWorker>();
+builder.Services.AddHostedService<ExportDefinitionWorker>();
 
 // ─────────────────────────────────────────────────────────────────────────────
 

@@ -1,17 +1,37 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { listExportDefinitions, type ExportDefinitionSummary } from '@/api/exportDefinitions'
+import {
+  listExportDefinitions,
+  setExportDefinitionEnabled,
+  duplicateExportDefinition,
+  deleteExportDefinition,
+  testExportDefinition,
+  listExportDefinitionRuns,
+  type ExportDefinitionSummary,
+} from '@/api/exportDefinitions'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const definitions = ref<ExportDefinitionSummary[]>([])
 const loading = ref(true)
 const loadError = ref<string | null>(null)
+
+// Latest run's status per definition id, fetched alongside the list — the "last run status" column
+// export-definitions-2.0.md §7 calls for. Absent (undefined) means "not fetched/no runs yet",
+// distinct from an empty array's "definitely no runs".
+const lastRunStatus = ref<Record<number, string | null>>({})
 
 async function load() {
   loading.value = true
   loadError.value = null
   try {
     definitions.value = await listExportDefinitions()
+    await Promise.all(
+      definitions.value.map(async (d) => {
+        const runs = await listExportDefinitionRuns(d.id)
+        lastRunStatus.value[d.id] = runs[0]?.status ?? null
+      }),
+    )
   } catch {
     loadError.value = 'Could not load export definitions. Is the backend service running?'
   } finally {
@@ -20,20 +40,80 @@ async function load() {
 }
 
 onMounted(load)
+
+const togglingId = ref<number | null>(null)
+async function toggleEnabled(def: ExportDefinitionSummary) {
+  togglingId.value = def.id
+  try {
+    const result = await setExportDefinitionEnabled(def.id, !def.isEnabled)
+    if (result.ok) def.isEnabled = result.data.isEnabled
+  } finally {
+    togglingId.value = null
+  }
+}
+
+const scheduleLabel = (schedule: string | null) => schedule ?? 'Manual'
+
+const testingId = ref<number | null>(null)
+const testMessage = ref<Record<number, string>>({})
+async function runTest(def: ExportDefinitionSummary) {
+  testingId.value = def.id
+  testMessage.value = { ...testMessage.value, [def.id]: '' }
+  try {
+    const result = await testExportDefinition(def.id)
+    testMessage.value = {
+      ...testMessage.value,
+      [def.id]: result.ok
+        ? `Test succeeded — ${result.data.recordCount} record(s).`
+        : `Test failed: ${result.error}`,
+    }
+  } finally {
+    testingId.value = null
+  }
+}
+
+const duplicatingId = ref<number | null>(null)
+async function duplicate(def: ExportDefinitionSummary) {
+  duplicatingId.value = def.id
+  try {
+    const result = await duplicateExportDefinition(def.id)
+    if (result.ok) await load()
+  } finally {
+    duplicatingId.value = null
+  }
+}
+
+const confirmingDeleteId = ref<number | null>(null)
+const deletingId = ref<number | null>(null)
+async function confirmDelete(def: ExportDefinitionSummary) {
+  deletingId.value = def.id
+  try {
+    if (await deleteExportDefinition(def.id)) await load()
+  } finally {
+    deletingId.value = null
+    confirmingDeleteId.value = null
+  }
+}
 </script>
 
 <template>
-  <div class="max-w-4xl">
+  <div class="max-w-5xl">
     <div class="flex items-center justify-between gap-3 mb-2">
       <h1 class="m-0 text-xl font-semibold">Export Definitions</h1>
-      <button
-        type="button"
-        class="px-4 py-1.5 border border-slate-400 rounded-md bg-white text-slate-900 text-sm font-semibold cursor-pointer hover:bg-slate-50 disabled:opacity-50"
-        :disabled="loading"
-        @click="load"
-      >
-        {{ loading ? 'Loading…' : 'Refresh' }}
-      </button>
+      <div class="flex items-center gap-2">
+        <RouterLink
+          :to="{ name: 'export-definition-edit', params: { id: 'new' } }"
+          class="px-4 py-1.5 border-0 rounded-md bg-slate-900 text-slate-200 text-sm font-semibold no-underline hover:bg-slate-800"
+        >+ New</RouterLink>
+        <button
+          type="button"
+          class="px-4 py-1.5 border border-slate-400 rounded-md bg-white text-slate-900 text-sm font-semibold cursor-pointer hover:bg-slate-50 disabled:opacity-50"
+          :disabled="loading"
+          @click="load"
+        >
+          {{ loading ? 'Loading…' : 'Refresh' }}
+        </button>
+      </div>
     </div>
 
     <p class="text-slate-500 text-sm mt-2 mb-5 leading-relaxed">
@@ -62,24 +142,76 @@ onMounted(load)
           <th class="px-3 py-2 font-semibold">Root table</th>
           <th class="px-3 py-2 font-semibold">Format</th>
           <th class="px-3 py-2 font-semibold">Enabled</th>
-          <th class="px-3 py-2 font-semibold">Updated</th>
+          <th class="px-3 py-2 font-semibold">Schedule</th>
+          <th class="px-3 py-2 font-semibold">Last run</th>
           <th class="px-3 py-2 font-semibold"></th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="def in definitions" :key="def.id" class="border-b border-slate-100 hover:bg-slate-50">
-          <td class="px-3 py-2 font-medium text-slate-800">{{ def.name }}</td>
-          <td class="px-3 py-2 font-mono text-slate-700">{{ def.rootTable }}</td>
-          <td class="px-3 py-2 text-slate-500">{{ def.outputFormat }}</td>
-          <td class="px-3 py-2 text-slate-500">{{ def.isEnabled ? 'Yes' : 'No' }}</td>
-          <td class="px-3 py-2 whitespace-nowrap text-slate-500">{{ def.updatedAt ?? def.createdAt }}</td>
-          <td class="px-3 py-2 text-right">
-            <RouterLink
-              :to="{ name: 'export-definition-edit', params: { id: def.id } }"
-              class="text-indigo-600 text-sm hover:underline"
-            >Edit</RouterLink>
-          </td>
-        </tr>
+        <template v-for="def in definitions" :key="def.id">
+          <tr class="border-b border-slate-100 hover:bg-slate-50">
+            <td class="px-3 py-2 font-medium text-slate-800">{{ def.name }}</td>
+            <td class="px-3 py-2 font-mono text-slate-700">{{ def.rootTable }}</td>
+            <td class="px-3 py-2 text-slate-500">{{ def.outputFormat }}</td>
+            <td class="px-3 py-2">
+              <input
+                type="checkbox"
+                :checked="def.isEnabled"
+                :disabled="togglingId === def.id"
+                class="cursor-pointer"
+                :aria-label="`Enable ${def.name}`"
+                @change="toggleEnabled(def)"
+              />
+            </td>
+            <td class="px-3 py-2 font-mono text-xs text-slate-500 whitespace-nowrap">{{ scheduleLabel(def.schedule) }}</td>
+            <td class="px-3 py-2">
+              <StatusBadge v-if="lastRunStatus[def.id]" :status="lastRunStatus[def.id]!" />
+              <span v-else class="text-slate-400 text-xs">—</span>
+            </td>
+            <td class="px-3 py-2 text-right whitespace-nowrap">
+              <div class="flex items-center gap-2.5 justify-end">
+                <RouterLink
+                  :to="{ name: 'export-definition-edit', params: { id: def.id } }"
+                  class="text-indigo-600 text-sm hover:underline"
+                >Edit</RouterLink>
+                <button
+                  type="button"
+                  class="text-slate-600 text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline disabled:opacity-50"
+                  :disabled="testingId === def.id"
+                  @click="runTest(def)"
+                >{{ testingId === def.id ? 'Testing…' : 'Test' }}</button>
+                <button
+                  type="button"
+                  class="text-slate-600 text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline disabled:opacity-50"
+                  :disabled="duplicatingId === def.id"
+                  @click="duplicate(def)"
+                >{{ duplicatingId === def.id ? 'Duplicating…' : 'Duplicate' }}</button>
+                <template v-if="confirmingDeleteId === def.id">
+                  <button
+                    type="button"
+                    class="text-red-700 text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline disabled:opacity-50"
+                    :disabled="deletingId === def.id"
+                    @click="confirmDelete(def)"
+                  >Confirm</button>
+                  <button
+                    type="button"
+                    class="text-slate-500 text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline"
+                    @click="confirmingDeleteId = null"
+                  >Cancel</button>
+                </template>
+                <button
+                  v-else
+                  type="button"
+                  class="text-red-600 text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline"
+                  @click="confirmingDeleteId = def.id"
+                >Delete</button>
+              </div>
+            </td>
+          </tr>
+          <tr v-if="testMessage[def.id]">
+            <td colspan="7" class="px-3 pb-2 text-xs text-slate-500">{{ testMessage[def.id] }}</td>
+          </tr>
+        </template>
       </tbody>
     </table>
   </div>

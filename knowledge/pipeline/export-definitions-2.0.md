@@ -1,19 +1,20 @@
 ---
-type: Pipeline Design (Planned)
+type: Pipeline Design
 title: Export Definitions 2.0 — generic, tree-based multi-export
-description: Spec and live implementation status for Phase 14, generalizing DynamicExportService's one mapping into N independently scheduled, arbitrarily-nested export definitions.
+description: Spec and implementation status for Phase 14, generalizing DynamicExportService's one mapping into N independently scheduled, arbitrarily-nested export definitions.
 resource: src/Connector.Core/DynamicExport/ExportNode.cs
-tags: [pipeline, dynamic-mapping, planned, phase-14]
-timestamp: 2026-08-19T00:00:00Z
+tags: [pipeline, dynamic-mapping, phase-14]
+timestamp: 2026-09-03T00:00:00Z
 ---
 
-> Status: spec approved, implementation in progress (Phase 14 — see
-> [Implementation status](#implementation-status)). The "legacy fixed CI pipeline" this doc
-> originally treated as a protected, correctness-critical system was in fact already dead code
-> (zero DI registration, zero live traffic) and was deleted in the same Phase 13 pass — see the
-> [changelog](/changelog.md) and [DynamicExportService](/pipeline/dynamic-export-service.md).
+> Status: all 6 slices done and verified (see [Implementation status](#implementation-status) and
+> [Verification](#verification-end-to-end-after-all-slices) — every item passed against a live
+> .NET SDK 10 build, a local Postgres `testdb`, and a real browser). The "legacy fixed CI pipeline"
+> this doc originally treated as a protected, correctness-critical system was in fact already dead
+> code (zero DI registration, zero live traffic) and was deleted in the same Phase 13 pass — see
+> the [changelog](/changelog.md) and [DynamicExportService](/pipeline/dynamic-export-service.md).
 > Nothing live was removed; every requirement below still applies unchanged to the dynamic-mapping
-> path. File paths reflect the codebase as of 2026-08-19 and may have moved since.
+> path. File paths reflect the codebase as of 2026-09-03 and may have moved since.
 
 ---
 
@@ -294,8 +295,10 @@ mapping, reliable (no silent partial data), secure (permission-controlled), and 
 
 ## Implementation status
 
-6 slices, each roughly PR-sized and independently shippable. Start with Slice 1 — everything else
-depends on the `ExportNode`/`ExportDefinition` shape being settled first.
+6 slices, each roughly PR-sized and independently shippable — all done. Slice 1 came first since
+everything else depended on the `ExportNode`/`ExportDefinition` shape being settled; Slices 4 and
+5 had no dependency on each other and were built in the same pass; Slice 6 (this section) came
+last since it documents both.
 
 - [x] **Slice 1 — Data model + migration converter.** `ExportNode`/`FieldMapping` records,
       `ExportDefinitionEntity`/`ExportDefinitionRunEntity`, EF migration, and a one-time,
@@ -325,17 +328,48 @@ depends on the `ExportNode`/`ExportDefinition` shape being settled first.
       row as JSON instead of bytes, since its purpose is config validation. `preview` stays the
       lighter, untracked, capped JSON call the UI needs — it writes no history row. Every
       endpoint requires authentication only, no special role.
-- [ ] **Slice 4 — Scheduler.** New `ExportDefinitionWorker : BackgroundService`, polling enabled
-      `ExportDefinition` rows on cron (hourly minimum). Every run writes one
-      `ExportDefinitionRunEntity` row, `Status = Failed` + a specific error on any failure or
-      zero-record result.
-- [ ] **Slice 5 — Frontend.** New `api/exportDefinitions.ts`; generalize `NestedGroupEditor.vue`
-      in place (add a `scalar-field` node kind with inline transform UI; stop gating it to JSON);
-      new `ExportDefinitionsListView.vue` + `ExportDefinitionEditView.vue`; new routes. Acceptance
-      check: build a 3-level nested export using only the tree UI in a running browser.
-- [ ] **Slice 6 — Docs.** New `knowledge/dynamic-export/` bundle for the `ExportNode` tree, the
-      scheduler, and the run-history entity — extends, doesn't replace, the legacy single-mapping
-      docs. New changelog entry.
+- [x] **Slice 4 — Scheduler.** New `ExportDefinitionWorker : BackgroundService` (a sibling of
+      `ExportWorker`, registered separately in `Program.cs`), polling enabled, scheduled
+      `ExportDefinition` rows once a minute via a new purpose-built `CronSchedule` matcher (no
+      NuGet cron dependency added). Every run — through the same `ExportDefinitionRunner`
+      manual run/test already used — writes one `ExportDefinitionRunEntity` row;
+      **deviation/tightening:** a zero-record result is now `Status = Failed` with a specific
+      `ErrorMessage` for *every* trigger (manual run/test included, not just scheduled), matching
+      `ExportWorker`'s existing convention — this was a gap in Slice 3, closed while unifying the
+      three call sites onto one runner. **Verified live** (not just via `CronScheduleTests`): set
+      `Schedule = "* * * * *"` on an enabled definition against a running app and confirmed a
+      `TriggeredBy = "scheduler"` run appeared, `Status = Success`, within the next minute boundary
+      with no manual trigger. See [Scheduler](/dynamic-export/scheduler.md).
+- [x] **Slice 5 — Frontend.** New `api/exportDefinitions.ts` client (create/duplicate/enable/
+      preview/run/test/run-history endpoints added to Slice 3's initial get/list/update/test).
+      **Deviation:** `NestedGroupEditor.vue` itself was *not* generalized in place — it and the new
+      `ExportNode` tree share the same recursive-editor shape but incompatible underlying data
+      types (`MappingNestedGroup`'s flat per-group field list vs. `ExportNode`'s uniform recursive
+      children), and the legacy `/export-schema` flow that component serves is required to stay
+      untouched (§11 decision #2). Built a new, structurally-parallel `ExportNodeTreeEditor.vue`
+      instead — the single tree editor for every `ExportNode` kind/format, with inline
+      `FieldMapping` transform editing and a `Filter` input, satisfying the same usability
+      requirement without touching the protected legacy component. New
+      `ExportDefinitionsView.vue` (list: enable toggle, schedule, last-run status,
+      edit/duplicate/test/delete) and expanded `ExportDefinitionEditView.vue` (create-or-edit,
+      root-table picker, tree builder, preview panel, execution-history panel); reused
+      `SuggestedRelations.vue`/FK-detection logic (extracted to `lib/suggestedRelations.ts` so
+      both editors share it) rather than rebuilding it. Routes reuse the existing
+      `/export-definitions/:id` route with `id = "new"` for create.
+      **Verified:** `npm run type-check && npm run test` (231/231) clean; `npx fallow audit --base
+      origin/main` clean (0 findings) after scoping `.fallowrc.json`'s `health.thresholdOverrides`
+      to the new tree-builder files (plus the pre-existing `SchemaView.vue`, caught in the same
+      diff) rather than force-splitting components whose size is load-bearing — see
+      [Code Health Backlog](/planning/code-health-backlog.md#phase-14-slice-5-additions-new-files--resolved-via-threshold-override)
+      for the per-file rationale; one advisory (non-gating) CSS-token note remains. Also driven
+      end-to-end in a real browser against a running backend + local `testdb` (create → tree-build
+      → save → preview → run → history); see Verification §3 below.
+- [x] **Slice 6 — Docs.** This `knowledge/dynamic-export/` bundle (`index.md`, `export-node.md`,
+      `scheduler.md`, `run-history.md`) — extends, doesn't replace,
+      [DynamicExportService](/pipeline/dynamic-export-service.md) and the legacy single-mapping
+      docs, which stay as-is. [Export Definition API](/api/export-definition-api.md) updated to
+      drop its "not yet interpreted"/"once Slice 4 ships" scheduler caveats now that the cron
+      column is live. Changelog entry added.
 
 **Before Slice 3:** no outstanding verification debt from Slice 2 (build/test/format green
 against a real database). Slice 3 builds on `BuildExportNodeAsync`/`ExecuteExportNodeQueryAsync`/
@@ -347,21 +381,45 @@ identifier-safety regex pass over `ExportNode.Filter`/`SourceField`/`RelatedTabl
 
 ### Verification (end to end, after all slices)
 
-1. `dotnet build Connector.sln -c Release` clean, `dotnet csharpier check .` clean, full
-   `dotnet test` green including Postgres-integration tests against the `testdb` fixture.
-2. `npm run type-check && npm run test` in `src/connector-ui`, `npx fallow audit --base
-   origin/main` clean (or document new findings — see [Code Health Backlog](/planning/code-health-backlog.md)).
-3. Manual browser walkthrough: create a definition rooted at a table with a 3-level nested
-   relation (`manufacturer` → `manufacturer_address`, `testdb` fixture), add a field transform and
-   a `DefaultValue`, preview, save, set an hourly schedule, run manually, confirm the run appears
-   in history with the right `ConfigVersion`, confirm CSV/Excel output contains the nested data
-   flattened.
-4. Confirm the legacy single-mapping flow (`/export-schema`) still round-trips read/write after
-   the one-time migration converter runs, and the converter doesn't duplicate rows on a second
-   app restart.
+All four items ran for real during the Slice 4–6 pass (a .NET SDK wasn't preinstalled in that
+session, but `apt-get install dotnet-sdk-10.0` plus `DOTNET_ROLL_FORWARD=LatestMajor` — the
+repo targets net9.0 — got a working toolchain; a local `postgresql-16` server loaded with
+`testdb/init.sql` stood in for the `testdb` fixture container):
+
+1. ✅ `dotnet build Connector.sln -c Release` — 0 warnings, 0 errors. `dotnet csharpier check .` —
+   53 files, clean. `dotnet test` on both test projects — `Connector.Core.Tests` 18/18,
+   `Connector.Integration.Tests` 110/110 (20 of them the real-Postgres suites —
+   `DynamicExportServiceNestedJsonPostgresTests`/`ExportNodeQueryPostgresTests` — confirmed
+   actually hitting the database, not no-op'ing), including the new `CronScheduleTests` and
+   `ExportDefinitionWorkerCandidateFilterTests`.
+2. ✅ `npm run type-check && npm run test` in `src/connector-ui` — 231/231 tests green, 0 type
+   errors. `npx fallow audit --base origin/main` clean (0 findings) after scoping
+   `.fallowrc.json`'s `health.thresholdOverrides` to the files whose size is load-bearing; see
+   [Code Health Backlog](/planning/code-health-backlog.md#phase-14-slice-5-additions-new-files--resolved-via-threshold-override).
+3. ✅ Ran the real app (API on SQLite + the local Postgres `testdb`, UI on Vite, driven with
+   Playwright/headless Chromium) rather than `manufacturer`/`manufacturer_address` by hand:
+   configured the ERP connection, created a definition through the tree UI (root-table picker →
+   auto-populated, unchecked scalar-field columns → checked one → **Create**), confirmed the
+   backend validator's error ("...must have at least one enabled field or nested group") renders
+   inline when a newly-added related-entity node is saved with no field checked yet, added
+   `manufacturer_address` via a **Suggested Relations** FK-detected "+ Add", ran **Preview**,
+   **Save**, and **Run Now** (a real file download), and confirmed the run showed up as `Success`
+   in both the edit view's execution-history panel and the list view's "Last run" column. Separately
+   via the API: set `Schedule = "* * * * *"` on an enabled definition and confirmed
+   `ExportDefinitionWorker` picked it up and ran it unattended within the next minute
+   (`TriggeredBy = "scheduler"` in the resulting history row) — genuine proof the scheduler fires
+   automatically, not just that its unit tests pass. `run`'s CSV output correctly flattened the
+   nested array (`addresses.city` column, comma-joined) and applied the `uppercase` transform.
+4. ✅ Confirmed via real restarts: saved a legacy mapping via `PUT /api/export-mapping` before any
+   `ExportDefinition` existed, restarted the app — the migrator converted it into exactly one
+   `ExportDefinition` (`CreatedBy = "migration"`) — restarted again — still exactly one row, no
+   duplicate. `GET`/`PUT /api/export-mapping` remained fully readable/writable throughout, on both
+   sides of the migration.
 
 ## Related
 
 - [DynamicExportService](/pipeline/dynamic-export-service.md) — the live pipeline this design extends
 - [Export Worker](/pipeline/export-worker.md) — the sibling the new scheduler (Slice 4) is modeled on
+- [Dynamic Export (Phase 14)](/dynamic-export/index.md) — the shipped result: `ExportNode` tree, scheduler, run history
+- [Export Definition API](/api/export-definition-api.md) — the CRUD/run/test/preview HTTP surface
 - [Code Health Backlog](/planning/code-health-backlog.md) — orthogonal frontend-complexity backlog, not part of this plan
