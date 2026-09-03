@@ -364,9 +364,7 @@ mapping, reliable (no silent partial data), secure (permission-controlled), and 
 
 Recommended execution order is the 6 slices below, each roughly PR-sized and independently
 testable/shippable. Start with Slice 1 — everything else depends on the `ExportNode`/
-`ExportDefinition` shape being settled first. Slice-by-slice engineering detail (what was built,
-verified, and any bugs found along the way) is logged in the [Update Log](/log.md) under its
-2026-08-19 entries, not repeated here.
+`ExportDefinition` shape being settled first.
 
 - [x] **Slice 1 — Data model + migration converter** (backend foundation). `ExportNode`/
       `FieldMapping` records, `ExportDefinitionEntity`/`ExportDefinitionRunEntity`, EF migration,

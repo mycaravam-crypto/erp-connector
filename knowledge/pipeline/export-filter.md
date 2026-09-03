@@ -14,35 +14,11 @@ timestamp: 2026-06-28T00:00:00Z
 > This page is kept only as a record of the original design intent (why a correlation-key
 > filter is required at all).
 
-The second stage. Applies the scope entitlement filter: only CIs that can be correlated
-to a ServiceNow asset may proceed. Excluded CIs are audit-logged with reason.
+The second stage of the original fixed pipeline. Applied the scope entitlement filter: only
+CIs with a non-null, non-empty `Guid` proceeded, since that's the required ServiceNow Coalesce
+key — a missing `SerialNumber` never blocked export. Excluded CIs were audit-logged (counts and
+non-personal identifiers only) without exposing personal data in log files.
 
-# Contract
-
-```csharp
-IReadOnlyList<ErpConfigurationItem> Filter(IReadOnlyList<ErpConfigurationItem> items);
-```
-
-Synchronous — no I/O dependency; filter rules are in-memory.
-
-# Filter Rule (Iteration 1)
-
-| Condition                    | Decision    |
-|------------------------------|-------------|
-| `Guid` is non-null, non-empty | **In scope** |
-| `Guid` is null or whitespace  | **Excluded** — Coalesce key cannot be fulfilled on ServiceNow side |
-
-A missing `SerialNumber` does **not** block the export.
-
-# Audit Logging
-
-Excluded CIs are logged at `Warning` level using only `PartNumber` and `SerialNumber` —
-never personal data fields (`TechnicianName`). This supports audit traces without
-exposing personal data in log files.
-
-A summary is logged at `Information` level: total, included, excluded counts.
-
-# Output
-
-Returns a subset of [ErpConfigurationItem](/domain/erp-configuration-item.md) records,
-passed to [IDataMinimizer](/pipeline/data-minimizer.md).
+The rule itself — a row without a correlation key must not be exported — is the durable design
+intent. It now lives as an operator-authored `WHERE`/join predicate in the dynamic mapping's SQL
+instead of a fixed filter stage; see [DynamicExportService](/pipeline/dynamic-export-service.md).

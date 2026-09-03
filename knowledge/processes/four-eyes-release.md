@@ -63,10 +63,9 @@ was lost and must be investigated before proceeding.
 
 # Constraints
 
-- Operator and Approver must be different people — enforced server-side (authoritative) and
-  client-side (as a usability guard).
-- No authentication in Iteration 1 — operator/approver are free-text strings.
-  Authentication is planned for Iteration 2+.
+- Operator and Approver must be different people, enforced server-side by comparing the
+  JWT-authenticated Operator username against the submitted Approver username
+  (case-insensitive) — see [Authentication](/processes/authentication.md).
 - A `Failed` run cannot be released — a new export run must be triggered.
 
 # Related
@@ -74,3 +73,4 @@ was lost and must be investigated before proceeding.
 - [ExportWorker](/pipeline/export-worker.md)
 - [ExportManifest](/domain/export-manifest.md)
 - [IExportSink](/pipeline/export-sink.md)
+- [Authentication](/processes/authentication.md) — JWT-based Operator/Approver identity

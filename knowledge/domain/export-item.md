@@ -14,14 +14,16 @@ timestamp: 2026-06-28T00:00:00Z
 > as a record of the original design intent.
 
 The result of [IDataMinimizer](/pipeline/data-minimizer.md) processing an
-[ErpConfigurationItem](/domain/erp-configuration-item.md). Contains exclusively fields
-that may be exported. The exclusion of personal data is enforced at the **type system level**:
-`ExportItem` has no `TechnicianName` or `StorageLocation` fields.
+[ErpConfigurationItem](/domain/erp-configuration-item.md): the GDPR compliance boundary within
+the old pipeline. Everything downstream of this type was safe to persist and transmit — see
+[GDPR Compliance](/processes/gdpr-compliance.md). Personal-data exclusion was enforced at the
+type-system level: `ExportItem` simply had no `TechnicianName` or `StorageLocation` field, so
+changing what's included required touching both `DataMinimizer` and this record, forcing review.
 
 # Schema
 
 | Field                | Type      | Description                                              |
-|----------------------|-----------|----------------------------------------------------------|
+|----------------------|-----------|-----------------------------------------------------------|
 | `Guid`               | string    | Non-null (filter guarantees this). Coalesce key on ServiceNow. |
 | `SerialNumber`       | string?   | May be absent — does not block the export.               |
 | `PartNumber`         | string    | Article/part number.                                     |
@@ -30,16 +32,6 @@ that may be exported. The exclusion of personal data is enforced at the **type s
 | `CommissioningDate`  | DateOnly? | May be null if not recorded.                             |
 | `MaintenanceState`   | string?   | Maintenance state, e.g. "Active", "InRepair".            |
 
-# Data Flow
-
-```
-ErpConfigurationItem → DataMinimizer → ExportItem → ISchemaMapper → MappedExportRecord
-```
-
-# Compliance Note
-
-`ExportItem` is the GDPR compliance boundary within the pipeline. Everything downstream
-of this type is safe to persist and transmit. See [GDPR Compliance](/processes/gdpr-compliance.md).
-
-The type system enforces the boundary: changing which fields are included requires
-modifying both the `DataMinimizer` class and this record type, triggering a mandatory code review.
+This shape (minus GDPR-excluded fields) still describes what an export row looks like today; it's
+just produced as an untyped SQL result set by `DynamicExportService`, not this record — see
+[DynamicExportService](/pipeline/dynamic-export-service.md).

@@ -21,11 +21,8 @@ Authorization: Bearer <token>
 500    — pipeline error (run is marked Failed)
 ```
 
-Executes the full 6-stage pipeline immediately:
-
-```
-IErpReader → IExportFilter → IDataMinimizer → ISchemaMapper → IPackager → IExportSink
-```
+Executes [DynamicExportService.BuildExportAsync](/pipeline/dynamic-export-service.md) immediately
+against the active mapping — the same query+build path the scheduled worker and Preview use.
 
 Creates an [ExportRun](/domain/export-run.md) record (`Status = Pending`) and writes the
 staging files exactly as the scheduled worker does. The run must subsequently go through the
