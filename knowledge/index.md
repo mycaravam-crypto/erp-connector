@@ -2,7 +2,7 @@
 okf_version: "0.1"
 ---
 
-# ERP-to-ServiceNow Connector — Knowledge Bundle
+# X5 Connector — Knowledge Bundle
 
 The connector reads maintenance-relevant CIs from the ERP (read-only) via a runtime-configurable
 mapping (source table, columns, joins — no hardcoded schema) and produces a daily export

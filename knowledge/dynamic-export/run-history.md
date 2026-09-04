@@ -9,7 +9,7 @@ timestamp: 2026-09-03T00:00:00Z
 
 `ExportDefinitionRunEntity` is the per-definition execution-history analogue of
 [ExportRun](/domain/export-run.md) — deliberately a **separate** entity, not a reuse of it:
-`ExportRun` models the legacy CI-to-ServiceNow pipeline's sequence-number/four-eyes/staging-file
+`ExportRun` models the legacy CI-to-vendor pipeline's sequence-number/four-eyes/staging-file
 contract, none of which applies to a generic, independently-triggered export (see
 [Export Definitions 2.0 §10](/pipeline/export-definitions-2.0.md#10-non-goals)).
 

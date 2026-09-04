@@ -17,7 +17,7 @@ namespace Connector.Api.Endpoints;
 /// POST — <c>POST /api/export-definitions/{id}/run</c> returns the built artifact bytes directly.
 ///
 /// Deliberately does not reuse <see cref="ExportRunEntity"/>/<see cref="FileSystemExportSink"/>/four-eyes
-/// release: those model the legacy CI-to-ServiceNow staging contract (sequence numbers, physical staging
+/// release: those model the legacy CI-to-vendor staging contract (sequence numbers, physical staging
 /// folder, approval workflow), which export-definitions-2.0.md §10 explicitly keeps out of scope for
 /// generic exports. A run here is synchronous request/response plus one <see cref="ExportDefinitionRunEntity"/>
 /// history row — no separate storage or delivery mechanism is introduced.

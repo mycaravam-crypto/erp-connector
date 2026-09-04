@@ -10,7 +10,7 @@ timestamp: 2026-09-03T00:00:00Z
 `ExportDefinitionWorker` is Phase 14 Slice 4: the automatic-execution half of
 [ExportDefinition](/api/export-definition-api.md), which until this shipped could only be
 triggered manually via `POST /api/export-definitions/{id}/run`. It is a **sibling** of
-[ExportWorker](/pipeline/export-worker.md), not a replacement — the legacy CI-to-ServiceNow
+[ExportWorker](/pipeline/export-worker.md), not a replacement — the legacy CI-to-vendor
 scheduled pipeline (four-eyes/staging) keeps running exactly as before, on its own
 `ExportWorker.ScheduledTimeUtc` config, completely untouched by this worker.
 
