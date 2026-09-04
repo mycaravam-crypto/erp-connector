@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { RouterView, RouterLink, useRouter, useRoute } from 'vue-router'
 import { getUsername, clearSession, isLoggedIn } from '@/api/auth'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import UserMenu from '@/components/UserMenu.vue'
 import Icon from '@/components/ui/Icon.vue'
 import { ChevronRight, Check } from 'lucide-vue-next'
 import logo from '@/assets/logo.svg'
@@ -34,10 +35,6 @@ const currentStepIndex = computed(() =>
 
 const navLinkClass =
   'flex items-center gap-1.5 px-3 py-1.5 rounded-md no-underline transition-colors duration-fast ' +
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-nav'
-
-const secondaryLinkClass =
-  'text-[0.82rem] text-nav-text no-underline hover:text-nav-text-strong transition-colors rounded-sm ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-nav'
 
 function isStepCompleted(idx: number): boolean {
@@ -80,28 +77,7 @@ function stepLinkClass(idx: number): string {
       <ThemeToggle />
       <template v-if="loggedIn">
         <span class="w-px self-stretch bg-nav-border" aria-hidden="true" />
-        <nav aria-label="Secondary" class="flex items-center gap-3">
-          <RouterLink :to="{ name: 'icd-schema' }" :class="secondaryLinkClass" active-class="!text-nav-text-strong">
-            ICD Schema
-          </RouterLink>
-          <RouterLink :to="{ name: 'export-definitions' }" :class="secondaryLinkClass" active-class="!text-nav-text-strong">
-            Export Definitions
-          </RouterLink>
-          <RouterLink :to="{ name: 'settings' }" :class="secondaryLinkClass" active-class="!text-nav-text-strong">
-            Settings
-          </RouterLink>
-          <RouterLink :to="{ name: 'audit' }" :class="secondaryLinkClass" active-class="!text-nav-text-strong">
-            Audit Log
-          </RouterLink>
-        </nav>
-        <span class="w-px self-stretch bg-nav-border" aria-hidden="true" />
-        <span class="text-[0.82rem] text-nav-text">{{ username }}</span>
-        <button
-          class="border border-nav-border text-nav-text rounded-md px-2.5 py-1 text-[0.78rem] bg-transparent cursor-pointer hover:bg-nav-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-nav"
-          @click="logout"
-        >
-          Sign out
-        </button>
+        <UserMenu :username="username" @sign-out="logout" />
       </template>
     </div>
   </header>

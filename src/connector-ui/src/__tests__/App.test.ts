@@ -73,9 +73,13 @@ describe('App shell', () => {
     }
   })
 
-  it('renders the secondary nav as its own landmark', async () => {
+  it('tucks the secondary nav inside the collapsed user menu until opened', async () => {
     const w = mount(App, { global: { plugins: [await buildRouter('/connect')] } })
     await flushPromises()
+
+    expect(w.find('nav[aria-label="Secondary"]').exists()).toBe(false)
+
+    await w.find('button[aria-haspopup="menu"]').trigger('click')
 
     const secondary = w.find('nav[aria-label="Secondary"]')
     expect(secondary.exists()).toBe(true)
