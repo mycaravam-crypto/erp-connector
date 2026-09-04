@@ -40,31 +40,34 @@ function onTargetInput(f: T, e: Event) {
         <button type="button" class="field-picker-deselect-all-btn px-2 py-0.5 border border-border-strong rounded text-[0.7rem] text-text-secondary bg-surface cursor-pointer hover:bg-surface-elevated" @click="deselectAll">Deselect All</button>
       </div>
     </div>
-    <table class="field-picker-table w-full border-collapse text-sm">
-      <tbody>
-        <tr
-          v-for="f in fields"
-          :key="f.sourceField"
-          :class="f.enabled ? 'bg-success-bg' : 'bg-surface opacity-60'"
-        >
-          <td class="px-2.5 py-1.5 border-b border-border align-middle text-center w-8">
-            <input type="checkbox" v-model="f.enabled" @change="emit('dirty')" />
-          </td>
-          <td class="px-2.5 py-1.5 border-b border-border align-middle">
-            <code :class="['text-xs font-semibold', f.enabled ? 'text-text-primary' : 'text-text-muted']">{{ f.sourceField }}</code>
-          </td>
-          <td class="px-2.5 py-1.5 border-b border-border align-middle min-w-32">
-            <input
-              class="field-picker-target-input w-full px-1.5 py-1 border border-border-strong rounded text-xs font-mono text-text-primary bg-surface box-border outline-none focus:border-brand placeholder-text-muted disabled:bg-surface-elevated"
-              type="text"
-              :placeholder="f.sourceField"
-              :value="f[targetProp]"
-              :disabled="!f.enabled"
-              @input="onTargetInput(f, $event)"
-            />
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="overflow-x-auto">
+      <table class="field-picker-table w-full border-collapse text-sm">
+        <tbody>
+          <tr
+            v-for="f in fields"
+            :key="f.sourceField"
+            class="border-b border-border last:border-0 transition-colors"
+            :class="f.enabled ? 'bg-success-bg hover:bg-success-bg' : 'opacity-60 hover:bg-surface-elevated'"
+          >
+            <td class="px-3 py-1.5 align-middle text-center w-8">
+              <input type="checkbox" v-model="f.enabled" @change="emit('dirty')" />
+            </td>
+            <td class="px-3 py-1.5 align-middle">
+              <code :class="['text-xs font-semibold', f.enabled ? 'text-text-primary' : 'text-text-muted']">{{ f.sourceField }}</code>
+            </td>
+            <td class="px-3 py-1.5 align-middle min-w-32">
+              <input
+                class="field-picker-target-input w-full px-1.5 py-1 border border-border-strong rounded text-xs font-mono text-text-primary bg-surface box-border outline-none focus:border-brand placeholder-text-muted disabled:bg-surface-elevated"
+                type="text"
+                :placeholder="f.sourceField"
+                :value="f[targetProp]"
+                :disabled="!f.enabled"
+                @input="onTargetInput(f, $event)"
+              />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
