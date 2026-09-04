@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick, onBeforeUnmount, useId } from 'vue'
+import { X } from 'lucide-vue-next'
+import Icon from './Icon.vue'
 
 withDefaults(defineProps<{ title?: string; closeOnBackdrop?: boolean }>(), { closeOnBackdrop: true })
 
@@ -75,7 +77,7 @@ onBeforeUnmount(() => {
           aria-label="Close"
           @click="close"
         >
-          ✕
+          <Icon :icon="X" :size="16" />
         </button>
       </div>
       <div class="px-5 py-4">

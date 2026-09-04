@@ -6,6 +6,8 @@ import SuggestedRelations, { type SuggestedRelation } from '@/components/Suggest
 import { findSuggestedRelations } from '@/lib/suggestedRelations'
 import { blankFieldMapping, columnsAsDisabledScalarFields } from '@/lib/exportNodeBuilders'
 import ExportNodeMappingEditor from '@/components/ExportNodeMappingEditor.vue'
+import { X } from 'lucide-vue-next'
+import Icon from '@/components/ui/Icon.vue'
 
 // The Slice 5 tree builder (export-definitions-2.0.md §7): the single recursive editor for every
 // ExportNode kind ("scalar-field" | "object" | "array"), in every output format — no more
@@ -212,10 +214,10 @@ const showAddMenu = ref(false)
 
       <button
         type="button"
-        class="shrink-0 px-2 py-1 border border-red-200 rounded text-red-600 bg-white text-base leading-none cursor-pointer hover:bg-red-50"
+        class="shrink-0 p-1 border border-red-200 rounded text-red-600 bg-white leading-none cursor-pointer hover:bg-red-50"
         title="Remove"
         @click="removeNode(idx)"
-      >×</button>
+      ><Icon :icon="X" :size="16" /></button>
     </div>
 
     <SuggestedRelations

@@ -6,6 +6,8 @@ import {
   getGdprDeniedFields,
   saveGdprDeniedFields,
 } from '@/api/scheduler'
+import { Check, X } from 'lucide-vue-next'
+import Icon from '@/components/ui/Icon.vue'
 
 const loading = ref(true)
 const loadError = ref<string | null>(null)
@@ -179,14 +181,14 @@ async function saveGdpr() {
           v-if="saveStatus === 'ok'"
           class="flex items-center gap-2 mt-4 px-4 py-3 rounded-md bg-green-50 border border-green-200 text-green-800 text-sm"
         >
-          <span class="font-bold">✓</span>
+          <Icon :icon="Check" :size="16" />
           {{ saveMessage }}
         </div>
         <div
           v-else-if="saveStatus === 'error'"
           class="flex items-center gap-2 mt-4 px-4 py-3 rounded-md bg-red-50 border border-red-200 text-red-800 text-sm"
         >
-          <span class="font-bold">✕</span>
+          <Icon :icon="X" :size="16" />
           {{ saveMessage }}
         </div>
       </section>

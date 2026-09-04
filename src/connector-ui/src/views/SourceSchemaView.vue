@@ -3,6 +3,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getSourceSchema, type SourceTable } from '@/api/connection'
 import SourceColumnsTable from '@/components/SourceColumnsTable.vue'
+import { Plug, ChevronRight, ChevronDown } from 'lucide-vue-next'
+import Icon from '@/components/ui/Icon.vue'
 
 const router = useRouter()
 
@@ -67,7 +69,7 @@ function toggleTable(name: string) {
 
     <template v-else-if="schema">
       <div class="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-md text-sm text-slate-500 mb-5">
-        <span class="text-indigo-600 font-bold">⟳</span>
+        <span class="text-indigo-600"><Icon :icon="Plug" :size="16" /></span>
         <span>{{ schema.connectionLabel }}</span>
         <span class="ml-auto text-xs bg-indigo-100 text-indigo-800 font-semibold px-2 py-0.5 rounded-full">{{ schema.tables.length }} tables</span>
         <button
@@ -82,7 +84,9 @@ function toggleTable(name: string) {
             class="w-full flex items-center gap-3 px-3.5 py-2.5 bg-slate-50 border-0 cursor-pointer text-left text-sm hover:bg-slate-100"
             @click="toggleTable(table.name)"
           >
-            <span class="text-[0.6rem] text-slate-500 shrink-0">{{ expandedTables.has(table.name) ? '▼' : '▶' }}</span>
+            <span class="text-slate-500 shrink-0">
+              <Icon :icon="expandedTables.has(table.name) ? ChevronDown : ChevronRight" :size="16" />
+            </span>
             <code class="text-sm font-bold text-slate-900 shrink-0">{{ table.name }}</code>
             <span class="text-slate-500 text-[0.82rem] flex-1">{{ table.description }}</span>
             <span class="text-xs text-slate-400 shrink-0">{{ table.columns.length }} columns</span>

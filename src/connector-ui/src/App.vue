@@ -3,6 +3,8 @@ import { computed } from 'vue'
 import { RouterView, RouterLink, useRouter, useRoute } from 'vue-router'
 import { getUsername, clearSession, isLoggedIn } from '@/api/auth'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import Icon from '@/components/ui/Icon.vue'
+import { ChevronRight } from 'lucide-vue-next'
 import logo from '@/assets/logo.svg'
 
 const router = useRouter()
@@ -40,7 +42,9 @@ const steps = [
           <span class="flex items-center justify-center w-5 h-5 rounded-full border border-current text-[0.65rem] font-bold shrink-0">{{ step.num }}</span>
           <span class="text-[0.82rem]">{{ step.label }}</span>
         </RouterLink>
-        <span v-if="idx < steps.length - 1" class="text-slate-600 text-xs px-0.5 shrink-0" aria-hidden="true">→</span>
+        <span v-if="idx < steps.length - 1" class="text-slate-600 px-0.5 shrink-0" aria-hidden="true">
+          <Icon :icon="ChevronRight" :size="16" />
+        </span>
       </template>
     </nav>
 

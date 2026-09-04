@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { ExportDetail } from '@/api/exports'
+import { Check, Copy } from 'lucide-vue-next'
+import Icon from '@/components/ui/Icon.vue'
 
 defineProps<{ run: ExportDetail }>()
 
@@ -43,7 +45,9 @@ async function copySha(hash: string) {
             @click="copySha(run.sha256)"
           >
             <code class="text-xs break-all text-slate-700 group-hover:text-slate-900">{{ run.sha256 }}</code>
-            <span class="text-xs text-slate-400 group-hover:text-slate-600 shrink-0">{{ shacopied ? '✓' : '⎘' }}</span>
+            <span class="text-slate-400 group-hover:text-slate-600 shrink-0">
+              <Icon :icon="shacopied ? Check : Copy" :size="16" />
+            </span>
           </button>
         </td>
       </tr>
