@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { useId } from 'vue'
+import { useId, computed } from 'vue'
 import FieldShell from './FieldShell.vue'
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
+    id?: string
     label?: string
     helpText?: string
     error?: string
@@ -15,7 +16,8 @@ withDefaults(
 
 const model = defineModel<string>({ default: '' })
 
-const id = useId()
+const autoId = useId()
+const id = computed(() => props.id ?? autoId)
 const helpId = useId()
 const errorId = useId()
 </script>

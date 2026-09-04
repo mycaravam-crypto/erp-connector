@@ -9,6 +9,8 @@ import PreviewTable from '@/components/PreviewTable.vue'
 import ExportRunsTable from '@/components/ExportRunsTable.vue'
 import { Check, X } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
+import Button from '@/components/ui/Button.vue'
+import Alert from '@/components/ui/Alert.vue'
 
 const FORMAT_KEY = 'connector_export_format'
 const selectedFormat = ref<'xlsx' | 'csv' | 'json'>(
@@ -102,20 +104,20 @@ onMounted(() => {
 <template>
   <div class="max-w-5xl">
     <div class="flex items-center gap-3 mb-2">
-      <span class="bg-slate-900 text-slate-200 px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide">Step 4</span>
-      <h1 class="m-0 text-xl font-semibold">Export</h1>
+      <span class="bg-brand text-white px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide">Step 4</span>
+      <h1 class="m-0 text-xl font-semibold text-text-primary">Export</h1>
     </div>
 
-    <p class="text-slate-500 text-sm mt-2 mb-5 leading-relaxed">
+    <p class="text-text-secondary text-sm mt-2 mb-5 leading-relaxed">
       Choose your export format, preview the data, then trigger the export. Each export run
       is logged below and requires a four-eyes release before it is considered final.
     </p>
 
     <!-- Format + Run card -->
-    <div class="border border-slate-200 rounded-lg overflow-hidden mb-8">
+    <div class="border border-border rounded-lg overflow-hidden mb-8">
       <div class="flex items-center justify-between gap-6 px-6 py-5">
         <div class="flex-1">
-          <h2 class="m-0 text-base font-semibold text-slate-900 mb-2.5">Export Format</h2>
+          <h2 class="m-0 text-base font-semibold text-text-primary mb-2.5">Export Format</h2>
           <div class="flex gap-2">
             <button
               v-for="fmt in [
@@ -124,24 +126,20 @@ onMounted(() => {
                 { id: 'json', label: 'JSON',  ext: '.json' },
               ]"
               :key="fmt.id"
-              :class="['flex items-center gap-1.5 px-3 py-1.5 border rounded-md text-sm font-semibold cursor-pointer', selectedFormat === fmt.id ? 'border-slate-900 bg-slate-900 text-slate-200' : 'border-slate-300 bg-white text-slate-500 hover:border-slate-400']"
+              :class="['flex items-center gap-1.5 px-3 py-1.5 border rounded-md text-sm font-semibold cursor-pointer transition-colors', selectedFormat === fmt.id ? 'border-brand bg-brand text-white' : 'border-border-strong bg-surface text-text-secondary hover:border-brand']"
               @click="saveFormat(fmt.id as 'xlsx' | 'csv' | 'json')"
             >
               {{ fmt.label }}<span class="text-xs opacity-70">{{ fmt.ext }}</span>
             </button>
           </div>
         </div>
-        <button
-          class="shrink-0 px-6 py-2 bg-slate-900 text-slate-200 border-0 rounded-md text-sm font-semibold cursor-pointer whitespace-nowrap hover:enabled:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
-          :disabled="running"
-          @click="triggerRun"
-        >
+        <Button variant="primary" class="shrink-0 whitespace-nowrap" :loading="running" @click="triggerRun">
           {{ running ? 'Running…' : `Export as ${selectedFormat.toUpperCase()}` }}
-        </button>
+        </Button>
       </div>
 
-      <div v-if="runResult" class="flex items-center gap-3 px-6 py-3 bg-green-50 border-t border-green-200 text-green-800 text-sm">
-        <Icon :icon="Check" :size="20" />
+      <Alert v-if="runResult" variant="success" class="rounded-none border-x-0 border-b-0">
+        <template #icon><Icon :icon="Check" :size="20" /></template>
         <span class="flex-1">
           Export <strong>#{{ runResult.sequenceNo }}</strong> created —
           {{ runResult.recordCount }} records ·
@@ -149,14 +147,14 @@ onMounted(() => {
         </span>
         <RouterLink
           :to="{ name: 'export-detail', params: { seqNo: runResult.sequenceNo } }"
-          class="text-inherit text-xs font-semibold no-underline border border-current rounded px-2 py-0.5 hover:opacity-75"
+          class="text-inherit text-xs font-semibold no-underline border border-current rounded px-2 py-0.5 hover:opacity-75 ml-3"
         >View → Release</RouterLink>
-      </div>
+      </Alert>
 
-      <div v-if="runError" class="flex items-center gap-3 px-6 py-3 bg-red-50 border-t border-red-200 text-red-800 text-sm">
-        <Icon :icon="X" :size="20" />
-        <span>{{ runError }}</span>
-      </div>
+      <Alert v-if="runError" variant="danger" class="rounded-none border-x-0 border-b-0">
+        <template #icon><Icon :icon="X" :size="20" /></template>
+        {{ runError }}
+      </Alert>
     </div>
 
     <ActiveMappingSummary :mapping="exportMapping" :loading="mappingLoading" />

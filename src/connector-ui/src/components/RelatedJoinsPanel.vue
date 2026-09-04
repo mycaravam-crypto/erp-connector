@@ -23,8 +23,8 @@ const emit = defineEmits<{
 <template>
   <!-- Collapsed unless already configured or a join was detected -->
   <details class="mb-7" :open="relations.length > 0 || suggestions.length > 0">
-    <summary class="cursor-pointer select-none text-base font-semibold text-slate-900">
-      Related Table Joins <span class="text-xs font-normal text-slate-400">(optional)</span>
+    <summary class="cursor-pointer select-none text-base font-semibold text-text-primary">
+      Related Table Joins <span class="text-xs font-normal text-text-muted">(optional)</span>
     </summary>
     <div class="mt-3">
       <SuggestedRelations

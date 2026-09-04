@@ -4,7 +4,7 @@ import { RouterView, RouterLink, useRouter, useRoute } from 'vue-router'
 import { getUsername, clearSession, isLoggedIn } from '@/api/auth'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import Icon from '@/components/ui/Icon.vue'
-import { ChevronRight } from 'lucide-vue-next'
+import { ChevronRight, Check } from 'lucide-vue-next'
 import logo from '@/assets/logo.svg'
 
 const router = useRouter()
@@ -23,26 +23,54 @@ const steps = [
   { name: 'export-schema', label: 'Export Schema', num: 3 },
   { name: 'exports', label: 'Export', num: 4 },
 ]
+
+// The current step, if the active route is one of the golden-path steps.
+// On a secondary page (Settings, Audit Log, ...) this is -1, so no step
+// shows as active or completed — we don't know where in the flow the user
+// left off from a page outside it.
+const currentStepIndex = computed(() =>
+  steps.findIndex((s) => route.path === `/${s.name}` || route.path.startsWith(`/${s.name}/`)),
+)
+
+const navLinkClass =
+  'flex items-center gap-1.5 px-3 py-1.5 rounded-md no-underline transition-colors duration-fast ' +
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-nav'
+
+const secondaryLinkClass =
+  'text-[0.82rem] text-nav-text no-underline hover:text-nav-text-strong transition-colors rounded-sm ' +
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-nav'
+
+function isStepCompleted(idx: number): boolean {
+  return idx < currentStepIndex.value
+}
+
+function stepLinkClass(idx: number): string {
+  return idx === currentStepIndex.value
+    ? `${navLinkClass} bg-nav-hover text-nav-text-strong`
+    : `${navLinkClass} text-nav-text hover:bg-nav-hover hover:text-nav-text-strong`
+}
 </script>
 
 <template>
-  <header class="flex items-center justify-between gap-6 px-6 py-2.5 bg-slate-900 text-slate-200">
+  <header class="flex items-center justify-between gap-6 px-6 py-2.5 bg-nav text-nav-text">
     <span class="flex items-center gap-2 shrink-0">
       <img :src="logo" alt="" class="w-6 h-6 rounded-md" />
       <span class="font-bold text-sm tracking-wide text-white">X5 Connector</span>
     </span>
 
-    <nav v-if="loggedIn" class="flex items-center gap-1 flex-1">
+    <nav v-if="loggedIn" aria-label="Workflow steps" class="flex items-center gap-1 flex-1">
       <template v-for="(step, idx) in steps" :key="step.name">
-        <RouterLink
-          :to="{ name: step.name }"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-slate-400 no-underline transition-colors hover:bg-slate-800 hover:text-slate-200"
-          active-class="!bg-slate-800 !text-slate-100"
-        >
-          <span class="flex items-center justify-center w-5 h-5 rounded-full border border-current text-[0.65rem] font-bold shrink-0">{{ step.num }}</span>
+        <RouterLink :to="{ name: step.name }" :class="stepLinkClass(idx)">
+          <span
+            class="flex items-center justify-center w-5 h-5 rounded-full border text-[0.65rem] font-bold shrink-0"
+            :class="isStepCompleted(idx) ? 'border-success text-success' : 'border-current'"
+          >
+            <Icon v-if="isStepCompleted(idx)" :icon="Check" :size="16" />
+            <template v-else>{{ step.num }}</template>
+          </span>
           <span class="text-[0.82rem]">{{ step.label }}</span>
         </RouterLink>
-        <span v-if="idx < steps.length - 1" class="text-slate-600 px-0.5 shrink-0" aria-hidden="true">
+        <span v-if="idx < steps.length - 1" class="text-nav-border px-0.5 shrink-0" aria-hidden="true">
           <Icon :icon="ChevronRight" :size="16" />
         </span>
       </template>
@@ -51,38 +79,25 @@ const steps = [
     <div class="flex items-center gap-3 shrink-0" :class="!loggedIn && 'ml-auto'">
       <ThemeToggle />
       <template v-if="loggedIn">
-        <RouterLink
-          :to="{ name: 'icd-schema' }"
-          class="text-[0.82rem] text-slate-400 no-underline hover:text-slate-200 transition-colors"
-          active-class="!text-slate-100"
-        >
-          ICD Schema
-        </RouterLink>
-        <RouterLink
-          :to="{ name: 'export-definitions' }"
-          class="text-[0.82rem] text-slate-400 no-underline hover:text-slate-200 transition-colors"
-          active-class="!text-slate-100"
-        >
-          Export Definitions
-        </RouterLink>
-        <RouterLink
-          :to="{ name: 'settings' }"
-          class="text-[0.82rem] text-slate-400 no-underline hover:text-slate-200 transition-colors"
-          active-class="!text-slate-100"
-        >
-          Settings
-        </RouterLink>
-        <RouterLink
-          :to="{ name: 'audit' }"
-          class="text-[0.82rem] text-slate-400 no-underline hover:text-slate-200 transition-colors"
-          active-class="!text-slate-100"
-        >
-          Audit Log
-        </RouterLink>
-        <span class="text-slate-600 text-xs" aria-hidden="true">|</span>
-        <span class="text-[0.82rem] text-slate-400">{{ username }}</span>
+        <span class="w-px self-stretch bg-nav-border" aria-hidden="true" />
+        <nav aria-label="Secondary" class="flex items-center gap-3">
+          <RouterLink :to="{ name: 'icd-schema' }" :class="secondaryLinkClass" active-class="!text-nav-text-strong">
+            ICD Schema
+          </RouterLink>
+          <RouterLink :to="{ name: 'export-definitions' }" :class="secondaryLinkClass" active-class="!text-nav-text-strong">
+            Export Definitions
+          </RouterLink>
+          <RouterLink :to="{ name: 'settings' }" :class="secondaryLinkClass" active-class="!text-nav-text-strong">
+            Settings
+          </RouterLink>
+          <RouterLink :to="{ name: 'audit' }" :class="secondaryLinkClass" active-class="!text-nav-text-strong">
+            Audit Log
+          </RouterLink>
+        </nav>
+        <span class="w-px self-stretch bg-nav-border" aria-hidden="true" />
+        <span class="text-[0.82rem] text-nav-text">{{ username }}</span>
         <button
-          class="border border-slate-600 text-slate-300 rounded-md px-2.5 py-1 text-[0.78rem] bg-transparent cursor-pointer hover:bg-slate-800"
+          class="border border-nav-border text-nav-text rounded-md px-2.5 py-1 text-[0.78rem] bg-transparent cursor-pointer hover:bg-nav-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-nav"
           @click="logout"
         >
           Sign out

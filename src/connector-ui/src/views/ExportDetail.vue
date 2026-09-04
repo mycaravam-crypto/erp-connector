@@ -7,8 +7,10 @@ import StatusBadge from '@/components/StatusBadge.vue'
 import RunDetailTable from '@/components/RunDetailTable.vue'
 import SkipRunForm from '@/components/SkipRunForm.vue'
 import DeliverRunForm from '@/components/DeliverRunForm.vue'
-import { Check } from 'lucide-vue-next'
+import { Check, ChevronLeft } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
+import Button from '@/components/ui/Button.vue'
+import Alert from '@/components/ui/Alert.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -40,24 +42,24 @@ function formatDate(iso: string | null | undefined): string {
 
 <template>
   <div>
-    <button
-      class="bg-transparent border-0 text-indigo-600 text-sm cursor-pointer p-0 mb-4 hover:underline"
-      @click="router.push({ name: 'exports' })"
-    >← Back to list</button>
+    <Button variant="ghost" class="mb-4" @click="router.push({ name: 'exports' })">
+      <template #icon><Icon :icon="ChevronLeft" :size="16" /></template>
+      Back to list
+    </Button>
 
-    <p v-if="loading" class="text-slate-500">Loading…</p>
-    <p v-else-if="notFound" class="text-red-600">Export run not found.</p>
+    <p v-if="loading" class="text-text-secondary">Loading…</p>
+    <p v-else-if="notFound" class="text-danger">Export run not found.</p>
 
     <template v-else-if="run">
       <div class="flex items-center gap-3 mb-4">
-        <h1 class="m-0 text-xl font-semibold">Export Run #{{ run.sequenceNo }}</h1>
+        <h1 class="m-0 text-xl font-semibold text-text-primary">Export Run #{{ run.sequenceNo }}</h1>
         <StatusBadge :status="run.status" />
       </div>
 
       <!-- Sequence gap warning -->
-      <div v-if="run.sequenceGapWarning" class="gap-warning bg-orange-50 border border-orange-200 border-l-4 border-l-orange-400 rounded-md px-4 py-3 text-sm text-orange-900 mb-5" role="alert">
-        <strong>Sequence gap detected.</strong> {{ run.sequenceGapWarning }}
-      </div>
+      <Alert v-if="run.sequenceGapWarning" variant="warning" title="Sequence gap detected." class="gap-warning mb-5">
+        {{ run.sequenceGapWarning }}
+      </Alert>
 
       <RunDetailTable :run="run" />
 
@@ -83,13 +85,13 @@ function formatDate(iso: string | null | undefined): string {
       />
 
       <!-- Delivery complete indicator -->
-      <div v-if="run.deliveredAt" class="delivery-done flex items-center gap-2 mt-6 bg-green-50 border border-green-200 rounded-md px-4 py-2.5 text-sm text-green-800 max-w-lg">
-        <Icon :icon="Check" :size="20" />
+      <Alert v-if="run.deliveredAt" variant="success" class="delivery-done mt-6 max-w-lg">
+        <template #icon><Icon :icon="Check" :size="20" /></template>
         Delivered on {{ formatDate(run.deliveredAt) }} by {{ run.deliveredBy }}.
         <span v-if="run.importedRecordCount !== null">
           Vendor confirmed {{ run.importedRecordCount }} records imported.
         </span>
-      </div>
+      </Alert>
     </template>
   </div>
 </template>

@@ -38,4 +38,9 @@ describe('Select', () => {
     const w = mountSelect({ disabled: true })
     expect(w.find('select').attributes('disabled')).toBeDefined()
   })
+
+  it('uses an explicit id when provided instead of the generated one', () => {
+    const w = mountSelect({ id: 'format' })
+    expect(w.find('select').attributes('id')).toBe('format')
+  })
 })

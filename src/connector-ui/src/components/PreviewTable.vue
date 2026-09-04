@@ -39,19 +39,19 @@ const state = computed<PreviewState>(() => {
 <template>
   <div class="mb-8">
     <div class="flex items-center gap-3 mb-1">
-      <h2 class="m-0 text-base font-semibold text-slate-900">Preview</h2>
-      <span v-if="preview" class="text-xs text-slate-500">{{ recordCountLabel }} records (preview) · schema v{{ preview.schemaVersion }}</span>
-      <span v-if="state === 'preview-error'" class="inline-block bg-orange-50 border border-orange-200 rounded-full px-2 py-0.5 text-xs font-semibold text-orange-700">Preview failed</span>
-      <button class="ml-auto px-2.5 py-1 border border-slate-300 rounded-md bg-white text-xs text-slate-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-slate-50" :disabled="loading" @click="$emit('refresh')">Refresh</button>
+      <h2 class="m-0 text-base font-semibold text-text-primary">Preview</h2>
+      <span v-if="preview" class="text-xs text-text-secondary">{{ recordCountLabel }} records (preview) · schema v{{ preview.schemaVersion }}</span>
+      <span v-if="state === 'preview-error'" class="inline-block bg-warning-bg border border-warning rounded-full px-2 py-0.5 text-xs font-semibold text-warning">Preview failed</span>
+      <button class="ml-auto px-2.5 py-1 border border-border-strong rounded-md bg-surface text-xs text-text-secondary cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-surface-elevated" :disabled="loading" @click="$emit('refresh')">Refresh</button>
     </div>
-    <p class="text-xs text-slate-500 m-0 mb-3">Read-only view of what the next export will contain. Nothing is written to disk.</p>
+    <p class="text-xs text-text-secondary m-0 mb-3">Read-only view of what the next export will contain. Nothing is written to disk.</p>
 
-    <p v-if="state === 'loading'" class="text-slate-500 text-sm">Loading preview…</p>
-    <p v-else-if="state === 'fetch-error'" class="text-red-600 text-sm">{{ error }}</p>
+    <p v-if="state === 'loading'" class="text-text-secondary text-sm">Loading preview…</p>
+    <p v-else-if="state === 'fetch-error'" class="text-danger text-sm">{{ error }}</p>
 
-    <div v-else-if="state === 'preview-error'" class="bg-red-50 border border-red-200 rounded-md px-4 py-3">
-      <p class="m-0 mb-1 text-sm text-red-700 font-semibold">{{ preview!.error }}</p>
-      <p class="m-0 text-xs text-red-600">Check your connection (Step 1) and make sure at least one column is enabled in Step 3.</p>
+    <div v-else-if="state === 'preview-error'" class="bg-danger-bg border border-danger rounded-md px-4 py-3">
+      <p class="m-0 mb-1 text-sm text-danger font-semibold">{{ preview!.error }}</p>
+      <p class="m-0 text-xs text-danger">Check your connection (Step 1) and make sure at least one column is enabled in Step 3.</p>
     </div>
 
     <NestedPreviewList
@@ -69,6 +69,6 @@ const state = computed<PreviewState>(() => {
       :max="PREVIEW_MAX"
     />
 
-    <p v-else-if="state === 'empty'" class="text-slate-500 text-sm">No in-scope records found.</p>
+    <p v-else-if="state === 'empty'" class="text-text-secondary text-sm">No in-scope records found.</p>
   </div>
 </template>

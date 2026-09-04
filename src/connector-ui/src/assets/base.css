@@ -30,6 +30,15 @@
   --color-border: var(--x-border);
   --color-border-strong: var(--x-border-strong);
 
+  /* application shell nav/header — a deliberately fixed dark rail (brand
+     chrome), same in both themes, so it's tokenized rather than raw slate-*
+     to make that intent explicit and give it one place to land */
+  --color-nav: #0f172a;
+  --color-nav-hover: #1e293b;
+  --color-nav-border: #334155;
+  --color-nav-text: #94a3b8;
+  --color-nav-text-strong: #f1f5f9;
+
   /* text */
   --color-text-primary: var(--x-text-primary);
   --color-text-secondary: var(--x-text-secondary);
