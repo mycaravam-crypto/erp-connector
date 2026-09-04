@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { useId } from 'vue'
+import { useId, computed } from 'vue'
 import FieldShell from './FieldShell.vue'
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
+    id?: string
     label?: string
     helpText?: string
     error?: string
@@ -11,13 +12,15 @@ withDefaults(
     disabled?: boolean
     required?: boolean
     rows?: number
+    maxlength?: number
   }>(),
   { disabled: false, required: false, rows: 3 },
 )
 
 const model = defineModel<string>({ default: '' })
 
-const id = useId()
+const autoId = useId()
+const id = computed(() => props.id ?? autoId)
 const helpId = useId()
 const errorId = useId()
 </script>
@@ -36,6 +39,7 @@ const errorId = useId()
       :id="id"
       v-model="model"
       :rows="rows"
+      :maxlength="maxlength"
       :placeholder="placeholder"
       :disabled="disabled"
       :required="required"

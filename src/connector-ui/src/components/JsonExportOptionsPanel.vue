@@ -21,8 +21,8 @@ const emit = defineEmits<{
 <template>
   <!-- Collapsed unless already configured -->
   <details class="mb-7" :open="nestedGroups.length > 0 || jsonWrapper !== null">
-    <summary class="cursor-pointer select-none text-base font-semibold text-slate-900">
-      JSON Export Options <span class="text-xs font-normal text-slate-400">(optional)</span>
+    <summary class="cursor-pointer select-none text-base font-semibold text-text-primary">
+      JSON Export Options <span class="text-xs font-normal text-text-muted">(optional)</span>
     </summary>
     <div class="mt-3">
       <NestedGroupsSection

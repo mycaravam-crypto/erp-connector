@@ -21,6 +21,10 @@ import JsonExportOptionsPanel from '@/components/JsonExportOptionsPanel.vue'
 import { type SuggestedRelation } from '@/components/SuggestedRelations.vue'
 import { findSuggestedRelations } from '@/lib/suggestedRelations'
 import PreviewTable from '@/components/PreviewTable.vue'
+import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import Icon from '@/components/ui/Icon.vue'
+import Button from '@/components/ui/Button.vue'
+import Alert from '@/components/ui/Alert.vue'
 
 const router = useRouter()
 
@@ -379,23 +383,19 @@ onMounted(load)
 <template>
   <div class="max-w-4xl">
     <div class="flex items-center gap-3 mb-2">
-      <span class="bg-slate-900 text-slate-200 px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide shrink-0">Step 3</span>
-      <h1 class="m-0 text-xl font-semibold flex-1">Export Schema Mapper</h1>
-      <button
-        class="px-3 py-1 border border-slate-300 rounded-md bg-white text-sm text-slate-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-slate-50"
-        :disabled="loading"
-        @click="load"
-      >Refresh</button>
+      <span class="bg-brand text-white px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide shrink-0">Step 3</span>
+      <h1 class="m-0 text-xl font-semibold text-text-primary flex-1">Export Schema Mapper</h1>
+      <Button variant="secondary" :disabled="loading" @click="load">Refresh</Button>
     </div>
 
-    <p class="text-slate-500 text-sm mt-2 mb-6 leading-relaxed">
+    <p class="text-text-secondary text-sm mt-2 mb-6 leading-relaxed">
       Select a source table, choose which columns to include and rename them for the target system
       (e.g. the target CMDB), then add joins from related tables.
       Changes are saved before the export runs.
     </p>
 
-    <p v-if="loading" class="text-slate-500">Loading…</p>
-    <p v-else-if="error" class="text-red-600">{{ error }}</p>
+    <p v-if="loading" class="text-text-secondary">Loading…</p>
+    <p v-else-if="error" class="text-danger">{{ error }}</p>
 
     <template v-else-if="sourceSchema">
       <!-- Presets toolbar -->
@@ -403,10 +403,10 @@ onMounted(load)
 
       <!-- Primary table selector -->
       <div class="mb-7">
-        <h2 class="text-base font-semibold text-slate-900 mb-2.5">Primary Source Table</h2>
+        <h2 class="text-base font-semibold text-text-primary mb-2.5">Primary Source Table</h2>
         <div class="flex items-center gap-3 flex-wrap">
           <select
-            class="table-select px-2.5 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white cursor-pointer min-w-56"
+            class="table-select px-2.5 py-2 border border-border-strong rounded-md text-sm text-text-primary bg-surface cursor-pointer min-w-56 focus:ring-2 focus:ring-focus focus:border-brand outline-none"
             v-model="selectedTable"
           >
             <option value="" disabled>— select a table —</option>
@@ -414,13 +414,12 @@ onMounted(load)
               {{ t.name }} ({{ t.columns.length }} cols — {{ tablePkLabel(t) }})
             </option>
           </select>
-          <span class="conn-chip text-xs text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full">{{ sourceSchema.connectionLabel }}</span>
+          <span class="conn-chip text-xs text-text-secondary bg-surface-elevated border border-border px-2.5 py-1 rounded-full">{{ sourceSchema.connectionLabel }}</span>
         </div>
-        <p v-if="selectedTable && selectedTablePkColumns.length === 0"
-          class="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 mt-2 leading-relaxed">
+        <Alert v-if="selectedTable && selectedTablePkColumns.length === 0" variant="warning" class="mt-2">
           <strong>"{{ selectedTable }}" has no primary key.</strong>
           Row identity, relation joins, and the suggested join key default may be unreliable — verify manually.
-        </p>
+        </Alert>
       </div>
 
       <!-- Everything below depends on a primary table being selected first. -->
@@ -451,13 +450,10 @@ onMounted(load)
         <ExportFormatPicker :model-value="previewFormat" @update:model-value="setPreviewFormat" />
 
         <!-- Silent data-loss warning: relations don't carry over into nested JSON output. -->
-        <div
-          v-if="relationsDroppedForJson"
-          class="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 mb-7 leading-relaxed"
-        >
+        <Alert v-if="relationsDroppedForJson" variant="warning" class="mb-7">
           <strong>Heads up:</strong> for JSON export, Related Table Joins are ignored once Nested JSON Structure
           or a custom envelope is used — that data won't appear in the file. Pull it in as a <strong>Nested Group</strong> instead.
-        </div>
+        </Alert>
 
         <!-- JSON-only options (optional) -->
         <JsonExportOptionsPanel
@@ -472,7 +468,7 @@ onMounted(load)
 
         <!-- Live preview of the last saved mapping — same query the real export runs. -->
         <div class="mb-2">
-          <p v-if="dirty && preview" class="text-xs text-amber-700 mt-0 mb-2">
+          <p v-if="dirty && preview" class="text-xs text-warning mt-0 mb-2">
             Showing the last saved mapping — Save Mapping to preview your latest edits.
           </p>
           <PreviewTable :preview="preview" :loading="previewLoading" :error="previewError" @refresh="loadPreview" />
@@ -480,15 +476,21 @@ onMounted(load)
       </template>
 
       <!-- Save status -->
-      <div v-if="saveError" class="save-error px-3.5 py-2.5 bg-red-50 border border-red-200 rounded-md text-sm text-red-600 mb-4">{{ saveError }}</div>
-      <div v-if="saved && !saveError" class="save-ok px-3.5 py-2.5 bg-green-50 border border-green-200 rounded-md text-sm text-green-700 mb-4">Mapping saved.</div>
+      <Alert v-if="saveError" variant="danger" class="save-error mb-4">{{ saveError }}</Alert>
+      <Alert v-if="saved && !saveError" variant="success" class="save-ok mb-4">Mapping saved.</Alert>
 
       <!-- Navigation -->
       <div class="flex items-center justify-between mt-6 gap-3">
-        <button class="px-4 py-2 border border-slate-300 rounded-md bg-white text-slate-500 text-sm cursor-pointer hover:bg-slate-50" @click="router.push({ name: 'source-schema' })">← Back to Source Schema</button>
+        <Button variant="ghost" @click="router.push({ name: 'source-schema' })">
+          <template #icon><Icon :icon="ChevronLeft" :size="16" /></template>
+          Back to Source Schema
+        </Button>
         <div v-if="selectedTable" class="flex gap-2.5">
-          <button class="btn-save px-4 py-2 border border-slate-900 rounded-md bg-white text-slate-900 text-sm font-semibold cursor-pointer hover:enabled:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="saving" @click="saveMapping">{{ saving ? 'Saving…' : 'Save Mapping' }}</button>
-          <button class="px-5 py-2 border-0 rounded-md bg-slate-900 text-slate-200 text-sm font-semibold cursor-pointer hover:enabled:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="saving" @click="proceed">Save & Go to Export →</button>
+          <Button class="btn-save" variant="secondary" :loading="saving" @click="saveMapping">{{ saving ? 'Saving…' : 'Save Mapping' }}</Button>
+          <Button variant="primary" :disabled="saving" @click="proceed">
+            Save & Go to Export
+            <Icon :icon="ChevronRight" :size="16" />
+          </Button>
         </div>
       </div>
     </template>

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { useId } from 'vue'
+import { useId, computed } from 'vue'
 import FieldShell from './FieldShell.vue'
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
+    id?: string
     label?: string
     helpText?: string
     error?: string
@@ -12,13 +13,15 @@ withDefaults(
     disabled?: boolean
     required?: boolean
     autocomplete?: string
+    maxlength?: number
   }>(),
   { type: 'text', disabled: false, required: false },
 )
 
 const model = defineModel<string>({ default: '' })
 
-const id = useId()
+const autoId = useId()
+const id = computed(() => props.id ?? autoId)
 const helpId = useId()
 const errorId = useId()
 </script>
@@ -41,6 +44,7 @@ const errorId = useId()
       :disabled="disabled"
       :required="required"
       :autocomplete="autocomplete"
+      :maxlength="maxlength"
       :aria-invalid="!!error || undefined"
       :aria-describedby="error ? errorId : helpText ? helpId : undefined"
       class="px-2.5 py-1.5 rounded-md text-sm bg-surface text-text-primary border outline-none transition-colors duration-fast placeholder:text-text-muted disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-focus"

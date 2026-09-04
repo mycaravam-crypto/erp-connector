@@ -13,16 +13,16 @@ const formats = [
 
 <template>
   <div class="mb-7">
-    <h2 class="text-base font-semibold text-slate-900 mb-2.5">Export Format</h2>
+    <h2 class="text-base font-semibold text-text-primary mb-2.5">Export Format</h2>
     <div class="flex gap-3">
       <button
         v-for="fmt in formats"
         :key="fmt.id"
-        :class="['format-btn flex-1 flex flex-col gap-1 px-4 py-3 border-2 rounded-lg bg-white cursor-pointer text-left transition-colors', modelValue === fmt.id ? 'border-slate-900 bg-slate-50' : 'border-slate-200 hover:border-slate-400']"
+        :class="['format-btn flex-1 flex flex-col gap-1 px-4 py-3 border-2 rounded-lg bg-surface cursor-pointer text-left transition-colors', modelValue === fmt.id ? 'border-slate-900 bg-surface-elevated' : 'border-border hover:border-border-strong']"
         @click="emit('update:modelValue', fmt.id)"
       >
-        <span class="text-sm font-semibold text-slate-900">{{ fmt.label }}</span>
-        <span class="text-xs text-slate-500 leading-snug">{{ fmt.desc }}</span>
+        <span class="text-sm font-semibold text-text-primary">{{ fmt.label }}</span>
+        <span class="text-xs text-text-secondary leading-snug">{{ fmt.desc }}</span>
       </button>
     </div>
   </div>

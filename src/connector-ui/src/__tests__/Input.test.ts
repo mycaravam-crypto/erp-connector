@@ -45,4 +45,10 @@ describe('Input', () => {
     const w = mount(Input, { props: { disabled: true } })
     expect(w.find('input').attributes('disabled')).toBeDefined()
   })
+
+  it('uses an explicit id when provided instead of the generated one', () => {
+    const w = mount(Input, { props: { id: 'host', label: 'Host' } })
+    expect(w.find('input').attributes('id')).toBe('host')
+    expect(w.find('label').attributes('for')).toBe('host')
+  })
 })

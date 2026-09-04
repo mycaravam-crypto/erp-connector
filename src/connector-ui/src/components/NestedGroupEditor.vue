@@ -86,20 +86,20 @@ const summary = computed(() => {
 
 <template>
   <div
-    :class="['nested-group-card flex gap-3 items-start px-4 py-3 border rounded-lg mb-2 bg-white', group.enabled ? 'border-indigo-200 bg-indigo-50/40' : 'border-slate-200 opacity-65']"
+    :class="['nested-group-card flex gap-3 items-start px-4 py-3 border rounded-lg mb-2 bg-surface', group.enabled ? 'border-brand/25 bg-brand/10' : 'border-border opacity-65']"
   >
     <div class="pt-1 shrink-0">
       <input type="checkbox" v-model="group.enabled" class="cursor-pointer w-4 h-4" @change="emit('dirty')" />
     </div>
 
     <details class="flex-1" :open="detailsOpen">
-      <summary class="cursor-pointer select-none text-sm text-slate-700">{{ summary }}</summary>
+      <summary class="cursor-pointer select-none text-sm text-text-primary">{{ summary }}</summary>
       <div class="flex flex-col gap-2 mt-2">
         <div class="flex gap-2.5 flex-wrap">
           <div class="flex flex-col gap-1 flex-1 min-w-32">
-            <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Export Key</label>
+            <label class="text-[0.7rem] font-semibold text-text-secondary uppercase tracking-wide">Export Key</label>
             <input
-              class="export-key-input px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900"
+              class="export-key-input px-2 py-1.5 border border-border-strong rounded text-sm text-text-primary bg-surface w-full outline-none focus:border-brand"
               type="text"
               v-model="group.targetKey"
               placeholder="e.g. manufacturer"
@@ -107,10 +107,10 @@ const summary = computed(() => {
             />
           </div>
           <div class="flex flex-col gap-1 flex-1 min-w-36">
-            <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Related Table</label>
+            <label class="text-[0.7rem] font-semibold text-text-secondary uppercase tracking-wide">Related Table</label>
             <select
               v-model="group.relatedTable"
-              class="related-table-select px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full"
+              class="related-table-select px-2 py-1.5 border border-border-strong rounded text-sm text-text-primary bg-surface w-full"
               @change="onRelatedTableChanged"
             >
               <option value="" disabled>— select —</option>
@@ -118,11 +118,11 @@ const summary = computed(() => {
             </select>
           </div>
           <div class="flex flex-col gap-1 flex-1 min-w-36">
-            <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Join Column (in {{ group.relatedTable || '…' }})</label>
+            <label class="text-[0.7rem] font-semibold text-text-secondary uppercase tracking-wide">Join Column (in {{ group.relatedTable || '…' }})</label>
             <select
               v-model="group.joinKey"
               :disabled="!group.relatedTable"
-              class="join-key-select px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full disabled:bg-slate-50 disabled:text-slate-400"
+              class="join-key-select px-2 py-1.5 border border-border-strong rounded text-sm text-text-primary bg-surface w-full disabled:bg-surface-elevated disabled:text-text-muted"
               @change="emit('dirty')"
             >
               <option value="" disabled>— select —</option>
@@ -130,9 +130,9 @@ const summary = computed(() => {
             </select>
           </div>
           <div class="flex flex-col gap-1 flex-1 min-w-36">
-            <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Matches Parent Column</label>
+            <label class="text-[0.7rem] font-semibold text-text-secondary uppercase tracking-wide">Matches Parent Column</label>
             <input
-              class="source-join-key-input px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full outline-none focus:border-slate-900"
+              class="source-join-key-input px-2 py-1.5 border border-border-strong rounded text-sm text-text-primary bg-surface w-full outline-none focus:border-brand"
               type="text"
               v-model="group.sourceJoinKey"
               placeholder="e.g. id"
@@ -140,10 +140,10 @@ const summary = computed(() => {
             />
           </div>
           <div class="flex flex-col gap-1 w-52 shrink-0">
-            <label class="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-wide">Shape</label>
+            <label class="text-[0.7rem] font-semibold text-text-secondary uppercase tracking-wide">Shape</label>
             <select
               v-model="group.kind"
-              class="kind-select px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900 bg-white w-full"
+              class="kind-select px-2 py-1.5 border border-border-strong rounded text-sm text-text-primary bg-surface w-full"
               @change="emit('dirty')"
             >
               <option value="object">Single object (1:1 lookup)</option>
@@ -162,13 +162,13 @@ const summary = computed(() => {
         />
 
         <!-- Children: further nested groups within this group's object/array shape. -->
-        <div class="flex flex-col gap-1 mt-1 pl-4 border-l-2 border-slate-100">
+        <div class="flex flex-col gap-1 mt-1 pl-4 border-l-2 border-border">
           <div class="flex items-center gap-2">
-            <span class="text-[0.7rem] font-semibold text-slate-400 uppercase tracking-wide">Nested within "{{ group.targetKey || '…' }}"</span>
+            <span class="text-[0.7rem] font-semibold text-text-muted uppercase tracking-wide">Nested within "{{ group.targetKey || '…' }}"</span>
             <button
               v-if="depth < MAX_NESTED_DEPTH"
               type="button"
-              class="add-child-btn ml-auto px-2 py-0.5 border border-slate-300 rounded text-[0.7rem] text-slate-600 bg-white cursor-pointer hover:bg-slate-100"
+              class="add-child-btn ml-auto px-2 py-0.5 border border-border-strong rounded text-[0.7rem] text-text-secondary bg-surface cursor-pointer hover:bg-surface-elevated"
               @click="addChild"
             >+ Add Nested Group</button>
           </div>
@@ -186,7 +186,7 @@ const summary = computed(() => {
     </details>
 
     <button
-      class="remove-group-btn shrink-0 p-1 border border-red-200 rounded text-red-600 bg-white leading-none cursor-pointer hover:bg-red-50"
+      class="remove-group-btn shrink-0 p-1 border border-danger rounded text-danger bg-surface leading-none cursor-pointer hover:bg-danger-bg"
       @click="emit('remove')"
       title="Remove nested group"
     ><Icon :icon="X" :size="16" /></button>
