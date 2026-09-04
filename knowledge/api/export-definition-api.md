@@ -80,7 +80,7 @@ the caller only sees an HTTP error.
 
 Unlike [On-Demand Run](/api/on-demand-run.md)'s `POST /api/pipeline/run`, this creates no
 `ExportRun`, writes nothing to the staging folder, and isn't subject to
-[Four-Eyes Release](/operations/four-eyes-release.md) — those model the CI-to-ServiceNow delivery
+[Four-Eyes Release](/operations/four-eyes-release.md) — those model the CI-to-vendor delivery
 contract specifically, out of scope for generic definitions (see
 [Export Definitions 2.0 §10](/pipeline/export-definitions-2.0.md)). A run is synchronous
 request/response only.

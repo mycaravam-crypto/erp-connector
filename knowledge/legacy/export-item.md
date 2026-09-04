@@ -24,7 +24,7 @@ changing what's included required touching both `DataMinimizer` and this record,
 
 | Field                | Type      | Description                                              |
 |----------------------|-----------|-----------------------------------------------------------|
-| `Guid`               | string    | Non-null (filter guarantees this). Coalesce key on ServiceNow. |
+| `Guid`               | string    | Non-null (filter guarantees this). Coalesce key on the vendor system. |
 | `SerialNumber`       | string?   | May be absent — does not block the export.               |
 | `PartNumber`         | string    | Article/part number.                                     |
 | `ParentSerialNumber` | string?   | Null for BOM root elements.                              |

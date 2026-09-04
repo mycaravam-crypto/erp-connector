@@ -50,7 +50,7 @@ onMounted(async () => {
 
     <p class="text-sm text-slate-500 mb-6">
       Read-only view of the agreed ICD export schema — the column contract between this connector
-      and the vendor's ServiceNow Transform Map. Changes require a joint ICD change process.
+      and the vendor's Transform Map. Changes require a joint ICD change process.
     </p>
 
     <div v-if="loading" class="text-slate-500 text-sm">Loading schema…</div>
@@ -100,7 +100,7 @@ onMounted(async () => {
         <p class="text-blue-700">
           The vendor's Transform Map coalesces on <code class="font-mono">guid</code>
           (<code class="font-mono">systemconfiguration.id</code> — PostgreSQL UUID, stable for the entity lifetime).
-          On every daily import, an existing ServiceNow record with this GUID is <em>updated</em>;
+          On every daily import, an existing vendor record with this GUID is <em>updated</em>;
           a missing GUID causes a new record to be <em>created</em>.
           The serial number identifies the physical unit but is not the coalesce key — serial corrections
           update the existing record rather than creating duplicates.

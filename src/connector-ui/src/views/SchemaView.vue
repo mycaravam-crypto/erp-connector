@@ -390,7 +390,7 @@ onMounted(load)
 
     <p class="text-slate-500 text-sm mt-2 mb-6 leading-relaxed">
       Select a source table, choose which columns to include and rename them for the target system
-      (e.g. ServiceNow), then add joins from related tables.
+      (e.g. the target CMDB), then add joins from related tables.
       Changes are saved before the export runs.
     </p>
 

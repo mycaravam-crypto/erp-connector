@@ -148,7 +148,7 @@ static class PipelineEndpoints
         // Runs a named Step-3 preset (Save As…) and returns the built file directly in the response —
         // the synchronous, external-system-friendly counterpart to /api/pipeline/run above. Unlike that
         // endpoint this does NOT create an ExportRun, does not write to the staging folder, and is not
-        // subject to Four-Eyes Release: those model the legacy CI-to-ServiceNow delivery contract
+        // subject to Four-Eyes Release: those model the legacy CI-to-vendor delivery contract
         // specifically (see knowledge/processes/four-eyes-release.md), which a generic API-triggered pull
         // is out of scope for — same reasoning ExportDefinitionEndpoints' /run already applies. Every call
         // still writes one audit log entry (success or failure), so triggering is never silent.

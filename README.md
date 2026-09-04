@@ -1,4 +1,4 @@
-# ERP → CI Connector
+# X5 Connector
 
 A self-contained .NET 9 + Vue 3 application that extracts warranty-relevant Configuration Items from an ERP system, runs them through a GDPR-compliant data pipeline, and produces a daily export package (Excel / CSV / JSON + SHA-256 manifest) for four-eyes review before physical transfer to a vendor's CMDB.
 

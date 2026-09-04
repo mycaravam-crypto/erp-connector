@@ -1,7 +1,7 @@
 ---
 type: Pipeline Stage
 title: IExportFilter — Stage 2
-description: Scope filter that retains only CIs with a non-empty GUID (the required ServiceNow Coalesce key).
+description: Scope filter that retains only CIs with a non-empty GUID (the required vendor Coalesce key).
 resource: src/Connector.Core/Interfaces/IExportFilter.cs
 tags: [pipeline, stage-2, filter, scope, coalesce]
 timestamp: 2026-06-28T00:00:00Z
@@ -15,7 +15,7 @@ timestamp: 2026-06-28T00:00:00Z
 > filter is required at all).
 
 The second stage of the original fixed pipeline. Applied the scope entitlement filter: only
-CIs with a non-null, non-empty `Guid` proceeded, since that's the required ServiceNow Coalesce
+CIs with a non-null, non-empty `Guid` proceeded, since that's the required vendor Coalesce
 key — a missing `SerialNumber` never blocked export. Excluded CIs were audit-logged (counts and
 non-personal identifiers only) without exposing personal data in log files.
 

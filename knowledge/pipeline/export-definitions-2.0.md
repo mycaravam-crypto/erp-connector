@@ -40,7 +40,7 @@ recursive tree type walked by one recursive service method — not a plugin syst
 ## 1. Vision
 
 Today the connector does one job well: extract CIs from ERP, minimize for GDPR, and release to
-ServiceNow via a four-eyes, air-gapped staging folder — via `DynamicExportService` and
+the vendor via a four-eyes, air-gapped staging folder — via `DynamicExportService` and
 `SchemaView.vue` (Phase 8–12). Four-eyes release, GDPR-denylist enforcement, audit log, and
 sequence-integrity checks are correctness-critical and **stay exactly as-is** — 2.0 does not
 touch them.

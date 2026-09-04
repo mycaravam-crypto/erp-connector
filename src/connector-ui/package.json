@@ -1,6 +1,6 @@
 {
   "name": "connector-ui",
-  "description": "ERP-to-ServiceNow CI Connector — frontend",
+  "description": "X5 Connector — ERP-to-vendor CI export frontend",
   "version": "1.0.0",
   "private": true,
   "type": "module",

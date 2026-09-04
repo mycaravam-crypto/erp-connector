@@ -68,7 +68,7 @@ static class SchemaEndpoints
                             "maintenance_state",
                             "systemconfiguration.status",
                             "Text (mapped enum)",
-                            "CI lifecycle state mapped to ServiceNow install_status values",
+                            "CI lifecycle state mapped to vendor install_status values",
                             true,
                             null
                         ),

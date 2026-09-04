@@ -5,7 +5,7 @@ defineProps<{
 const emit = defineEmits<{ 'update:modelValue': ['xlsx' | 'csv' | 'json'] }>()
 
 const formats = [
-  { id: 'xlsx', label: 'Excel (.xlsx)', desc: 'Full format with metadata row — required for ServiceNow Transform Map' },
+  { id: 'xlsx', label: 'Excel (.xlsx)', desc: 'Full format with metadata row — required for the vendor Transform Map' },
   { id: 'csv', label: 'CSV (.csv)', desc: 'Plain text, comma-separated — compatible with most tools' },
   { id: 'json', label: 'JSON (.json)', desc: 'Machine-readable — useful for APIs and custom pipelines' },
 ] as const

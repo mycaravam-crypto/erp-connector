@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { RouterView, RouterLink, useRouter, useRoute } from 'vue-router'
 import { getUsername, clearSession, isLoggedIn } from '@/api/auth'
+import logo from '@/assets/logo.svg'
 
 const router = useRouter()
 const route = useRoute()
@@ -23,7 +24,10 @@ const steps = [
 
 <template>
   <header class="flex items-center justify-between gap-6 px-6 py-2.5 bg-slate-900 text-slate-200">
-    <span class="font-bold text-sm tracking-wide text-white shrink-0">Connector</span>
+    <span class="flex items-center gap-2 shrink-0">
+      <img :src="logo" alt="" class="w-6 h-6 rounded-md" />
+      <span class="font-bold text-sm tracking-wide text-white">X5 Connector</span>
+    </span>
 
     <nav v-if="loggedIn" class="flex items-center gap-1 flex-1">
       <template v-for="(step, idx) in steps" :key="step.name">

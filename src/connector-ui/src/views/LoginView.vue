@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { login } from '@/api/auth'
+import logo from '@/assets/logo.svg'
 
 const router = useRouter()
 
@@ -27,7 +28,10 @@ async function submit() {
 <template>
   <div class="flex justify-center pt-24">
     <div class="border border-slate-200 rounded-lg p-8 w-full max-w-sm">
-      <h1 class="text-lg font-semibold m-0 mb-1">Connector — Sign in</h1>
+      <div class="flex items-center gap-2.5 mb-4">
+        <img :src="logo" alt="" class="w-8 h-8 rounded-lg" />
+        <h1 class="text-lg font-semibold m-0">X5 Connector</h1>
+      </div>
       <p class="text-slate-500 text-sm m-0 mb-6">Release UI requires authentication.</p>
 
       <div class="flex flex-col gap-1 mb-3">

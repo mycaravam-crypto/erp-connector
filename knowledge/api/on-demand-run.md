@@ -54,7 +54,7 @@ any authenticated caller — human or machine — triggers it by name.
 Authenticate, `POST .../run/{name}`, and the response body *is* the artifact — no polling, no
 staging folder, no Four-Eyes Release. Unlike `POST /api/pipeline/run`, this creates no `ExportRun`
 and isn't subject to four-eyes: it models an external system pulling data on demand, not the
-regulated CI-to-ServiceNow pipeline (same reasoning as
+regulated CI-to-vendor pipeline (same reasoning as
 [Export Definition API](/api/export-definition-api.md)'s `/run`, reusing Step 3's mapping
 directly instead of a named-definition tree). Every call writes one audit log entry
 (`export_preset_run`/`export_preset_run_failed`), so a failed run is never silent.

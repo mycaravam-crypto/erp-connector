@@ -7,7 +7,7 @@ namespace Connector.Infrastructure;
 
 /// <summary>
 /// Phase 14 Slice 4 — a sibling of <see cref="ExportWorker"/>, not a replacement: that worker still owns
-/// the legacy CI-to-ServiceNow four-eyes pipeline exactly as before. This one polls
+/// the legacy CI-to-vendor four-eyes pipeline exactly as before. This one polls
 /// <see cref="ExportDefinitionEntity"/> rows instead, running any enabled definition whose
 /// <see cref="ExportDefinitionEntity.Schedule"/> cron is due this minute, via the same
 /// <see cref="ExportDefinitionRunner"/> path manual run/test already use — so a scheduled run and a manual

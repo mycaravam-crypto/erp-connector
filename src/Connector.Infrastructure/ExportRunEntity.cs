@@ -45,7 +45,7 @@ public sealed class ExportRunEntity
     /// <summary>Username of the person who performed the physical delivery.</summary>
     public string? DeliveredBy { get; set; }
 
-    /// <summary>Number of records the vendor confirmed were imported into ServiceNow. Null = no confirmation.</summary>
+    /// <summary>Number of records the vendor confirmed were imported downstream. Null = no confirmation.</summary>
     public int? ImportedRecordCount { get; set; }
 
     /// <summary>Free-text notes from the delivery or import confirmation (medium, handover ref, etc.).</summary>
