@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import type { PreviewResult } from '@/api/pipeline'
 import FlatPreviewTable from './FlatPreviewTable.vue'
 import NestedPreviewList from './NestedPreviewList.vue'
+import Button from '@/components/ui/Button.vue'
 
 const props = defineProps<{
   preview: PreviewResult | null
@@ -42,7 +43,7 @@ const state = computed<PreviewState>(() => {
       <h2 class="m-0 text-base font-semibold text-text-primary">Preview</h2>
       <span v-if="preview" class="text-xs text-text-secondary">{{ recordCountLabel }} records (preview) · schema v{{ preview.schemaVersion }}</span>
       <span v-if="state === 'preview-error'" class="inline-block bg-warning-bg border border-warning rounded-full px-2 py-0.5 text-xs font-semibold text-warning">Preview failed</span>
-      <button class="ml-auto px-2.5 py-1 border border-border-strong rounded-md bg-surface text-xs text-text-secondary cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-surface-elevated" :disabled="loading" @click="$emit('refresh')">Refresh</button>
+      <Button variant="secondary" class="ml-auto" :loading="loading" @click="$emit('refresh')">Refresh</Button>
     </div>
     <p class="text-xs text-text-secondary m-0 mb-3">Read-only view of what the next export will contain. Nothing is written to disk.</p>
 

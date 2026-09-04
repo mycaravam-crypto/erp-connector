@@ -36,51 +36,55 @@ function deselectAll() {
         <button class="px-2.5 py-1 border border-border-strong rounded text-xs text-text-secondary bg-surface cursor-pointer hover:bg-surface-elevated" @click="deselectAll">Deselect All</button>
       </div>
     </div>
-    <table class="col-table w-full border-collapse text-sm">
-      <thead>
-        <tr>
-          <th class="px-2.5 py-2 text-center bg-surface-elevated font-semibold text-[0.72rem] uppercase tracking-wide text-text-secondary border-b border-border w-12">Export</th>
-          <th class="px-2.5 py-2 text-left bg-surface-elevated font-semibold text-[0.72rem] uppercase tracking-wide text-text-secondary border-b border-border w-8">#</th>
-          <th class="px-2.5 py-2 text-left bg-surface-elevated font-semibold text-[0.72rem] uppercase tracking-wide text-text-secondary border-b border-border">Source Column</th>
-          <th class="px-2.5 py-2 text-left bg-surface-elevated font-semibold text-[0.72rem] uppercase tracking-wide text-text-secondary border-b border-border">Export As (target name)</th>
-          <th class="px-2.5 py-2 text-left bg-surface-elevated font-semibold text-[0.72rem] uppercase tracking-wide text-text-secondary border-b border-border">Type</th>
-          <th class="px-2.5 py-2 text-left bg-surface-elevated font-semibold text-[0.72rem] uppercase tracking-wide text-text-secondary border-b border-border">PK</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="(field, idx) in fields"
-          :key="field.sourceName"
-          :class="field.enabled ? 'bg-success-bg' : 'bg-surface-elevated opacity-60'"
-        >
-          <td class="px-2.5 py-2 border-b border-border align-middle text-center">
-            <input type="checkbox" v-model="field.enabled" @change="emit('dirty')" />
-          </td>
-          <td class="px-2.5 py-2 border-b border-border align-middle text-center text-text-muted text-xs">{{ idx + 1 }}</td>
-          <td class="px-2.5 py-2 border-b border-border align-middle">
-            <code :class="['text-sm font-semibold', field.enabled ? 'text-text-primary' : 'text-text-muted']">{{ field.sourceName }}</code>
-          </td>
-          <td class="px-2.5 py-2 border-b border-border align-middle min-w-40">
-            <input
-              class="export-as-input w-full px-1.5 py-1 border border-border-strong rounded text-xs font-mono text-text-primary bg-surface box-border outline-none focus:border-brand placeholder-text-muted disabled:bg-surface-elevated"
-              type="text"
-              :placeholder="field.sourceName"
-              v-model="field.targetName"
-              :disabled="!field.enabled"
-              @input="emit('dirty')"
-            />
-          </td>
-          <td class="px-2.5 py-2 border-b border-border align-middle">
-            <span class="inline-block px-1.5 py-0.5 bg-surface-elevated border border-border rounded text-xs text-text-secondary whitespace-nowrap">
-              {{ columnMap[field.sourceName]?.type ?? '' }}
-            </span>
-          </td>
-          <td class="px-2.5 py-2 border-b border-border align-middle">
-            <span v-if="columnMap[field.sourceName]?.primaryKey" class="pk-badge text-[0.65rem] font-bold bg-info-bg text-info px-1.5 py-0.5 rounded">PK</span>
-            <span v-else class="text-text-muted">—</span>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="rounded-lg border border-border overflow-x-auto">
+      <p v-if="fields.length === 0" class="text-text-secondary text-sm text-center py-6">No columns available.</p>
+      <table v-else class="col-table w-full border-collapse text-sm">
+        <thead>
+          <tr>
+            <th class="px-3 py-2 text-center bg-surface-elevated font-semibold text-[0.7rem] uppercase tracking-wide text-text-secondary border-b border-border w-12">Export</th>
+            <th class="px-3 py-2 text-left bg-surface-elevated font-semibold text-[0.7rem] uppercase tracking-wide text-text-secondary border-b border-border w-8">#</th>
+            <th class="px-3 py-2 text-left bg-surface-elevated font-semibold text-[0.7rem] uppercase tracking-wide text-text-secondary border-b border-border">Source Column</th>
+            <th class="px-3 py-2 text-left bg-surface-elevated font-semibold text-[0.7rem] uppercase tracking-wide text-text-secondary border-b border-border">Export As (target name)</th>
+            <th class="px-3 py-2 text-left bg-surface-elevated font-semibold text-[0.7rem] uppercase tracking-wide text-text-secondary border-b border-border">Type</th>
+            <th class="px-3 py-2 text-left bg-surface-elevated font-semibold text-[0.7rem] uppercase tracking-wide text-text-secondary border-b border-border">PK</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="(field, idx) in fields"
+            :key="field.sourceName"
+            class="border-b border-border last:border-0 transition-colors"
+            :class="field.enabled ? 'bg-success-bg hover:bg-success-bg' : 'opacity-60 hover:bg-surface-elevated'"
+          >
+            <td class="px-3 py-2 align-middle text-center">
+              <input type="checkbox" v-model="field.enabled" @change="emit('dirty')" />
+            </td>
+            <td class="px-3 py-2 align-middle text-center text-text-muted text-xs">{{ idx + 1 }}</td>
+            <td class="px-3 py-2 align-middle">
+              <code :class="['text-sm font-semibold', field.enabled ? 'text-text-primary' : 'text-text-muted']">{{ field.sourceName }}</code>
+            </td>
+            <td class="px-3 py-2 align-middle min-w-40">
+              <input
+                class="export-as-input w-full px-1.5 py-1 border border-border-strong rounded text-xs font-mono text-text-primary bg-surface box-border outline-none focus:border-brand placeholder-text-muted disabled:bg-surface-elevated"
+                type="text"
+                :placeholder="field.sourceName"
+                v-model="field.targetName"
+                :disabled="!field.enabled"
+                @input="emit('dirty')"
+              />
+            </td>
+            <td class="px-3 py-2 align-middle">
+              <span class="inline-block px-1.5 py-0.5 bg-surface-elevated border border-border rounded text-xs text-text-secondary whitespace-nowrap">
+                {{ columnMap[field.sourceName]?.type ?? '' }}
+              </span>
+            </td>
+            <td class="px-3 py-2 align-middle">
+              <span v-if="columnMap[field.sourceName]?.primaryKey" class="pk-badge text-[0.65rem] font-bold bg-info-bg text-info px-1.5 py-0.5 rounded">PK</span>
+              <span v-else class="text-text-muted">—</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
