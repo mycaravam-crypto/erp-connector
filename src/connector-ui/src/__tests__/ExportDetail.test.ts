@@ -146,6 +146,15 @@ describe('ExportDetail', () => {
     expect(w.text()).not.toContain('2026-06-28T10:44:28Z')
   })
 
+  it('renders a valid date when extractedAt uses a +00:00 offset instead of Z', async () => {
+    vi.spyOn(exportsApi, 'getExport').mockResolvedValueOnce({
+      ...PENDING, extractedAt: '2026-06-28T10:44:28.1234567+00:00',
+    })
+    const w = mount(ExportDetail, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+    expect(w.text()).not.toContain('Invalid Date')
+  })
+
   it('shows SHA copy button containing the full hash', async () => {
     vi.spyOn(exportsApi, 'getExport').mockResolvedValueOnce(PENDING)
     const w = mount(ExportDetail, { global: { plugins: [buildRouter()] } })
