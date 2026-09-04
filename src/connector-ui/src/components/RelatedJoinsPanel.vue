@@ -17,15 +17,22 @@ const emit = defineEmits<{
   add: []
   remove: [idx: number]
   dirty: []
+  convertToNestedGroup: [idx: number]
 }>()
 </script>
 
 <template>
-  <!-- Collapsed unless already configured or a join was detected -->
-  <details class="mb-7" :open="relations.length > 0 || suggestions.length > 0">
+  <!-- Advanced/legacy path — collapsed by default, except when an existing mapping already has
+       relations configured, so nothing already saved is hidden. Suggested joins alone (with no
+       relations configured yet) no longer force this open, since Nested JSON is the primary path. -->
+  <details class="legacy-relations-details mb-7" :open="relations.length > 0">
     <summary class="cursor-pointer select-none text-base font-semibold text-text-primary">
-      Related Table Joins <span class="text-xs font-normal text-text-muted">(optional)</span>
+      Related Table Joins <span class="text-xs font-normal text-text-muted">(advanced — flat/legacy exports)</span>
     </summary>
+    <p class="text-xs text-text-secondary mt-1 mb-3 leading-snug">
+      Only needed for xlsx/csv exports without a Nested JSON Structure — for JSON export, use a
+      <strong>Nested Group</strong> above instead (table joins are ignored there).
+    </p>
     <div class="mt-3">
       <SuggestedRelations
         :suggestions="suggestions"
@@ -39,6 +46,7 @@ const emit = defineEmits<{
         @add="emit('add')"
         @remove="emit('remove', $event)"
         @dirty="emit('dirty')"
+        @convert-to-nested-group="emit('convertToNestedGroup', $event)"
       />
     </div>
   </details>
