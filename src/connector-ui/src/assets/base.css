@@ -1,1 +1,143 @@
 @import "tailwindcss";
+
+/*
+ * Theme foundation for X5 Connector.
+ *
+ * Runtime dark mode uses a `.dark` class on <html> (toggled by
+ * `useTheme.ts`, set pre-paint by the inline script in index.html), so
+ * `dark:` variants are enabled explicitly rather than relying on Tailwind's
+ * default `prefers-color-scheme` media variant.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Semantic tokens. `@theme` exposes each as both a CSS variable
+ * (--color-surface etc.) and a Tailwind utility (bg-surface, text-muted,
+ * border-border, ...). Each token points at a plain custom property so its
+ * value can be swapped at runtime by the `:root` / `.dark` blocks below,
+ * instead of being baked in at build time.
+ *
+ * Spacing: the app uses Tailwind's default spacing scale (0.25rem step),
+ * which already lines up with the 4/8/16/24/32/48/64px scale — no override
+ * needed. Radius: Tailwind's default rounded-sm/md/lg/xl/full scale is the
+ * app's convention; use it as-is rather than introducing a parallel scale.
+ */
+@theme {
+  /* surfaces + borders */
+  --color-bg: var(--x-bg);
+  --color-surface: var(--x-surface);
+  --color-surface-elevated: var(--x-surface-elevated);
+  --color-border: var(--x-border);
+  --color-border-strong: var(--x-border-strong);
+
+  /* text */
+  --color-text-primary: var(--x-text-primary);
+  --color-text-secondary: var(--x-text-secondary);
+  --color-text-muted: var(--x-text-muted);
+
+  /* brand */
+  --color-brand: var(--x-brand);
+  --color-brand-from: var(--x-brand-from);
+  --color-brand-to: var(--x-brand-to);
+
+  /* semantic status colors, each with a soft background for badges/alerts */
+  --color-success: var(--x-success);
+  --color-success-bg: var(--x-success-bg);
+  --color-warning: var(--x-warning);
+  --color-warning-bg: var(--x-warning-bg);
+  --color-danger: var(--x-danger);
+  --color-danger-bg: var(--x-danger-bg);
+  --color-info: var(--x-info);
+  --color-info-bg: var(--x-info-bg);
+
+  /* focus ring */
+  --color-focus: var(--x-focus);
+
+  /* elevation — overrides Tailwind's default shadow-sm/md/lg scale so
+     `shadow-*` utilities stay theme-aware without per-component work */
+  --shadow-sm: var(--x-elevation-sm);
+  --shadow-md: var(--x-elevation-md);
+  --shadow-lg: var(--x-elevation-lg);
+
+  /* motion */
+  --transition-duration-fast: 150ms;
+  --transition-duration-base: 200ms;
+  --transition-duration-slow: 300ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:root {
+  --x-bg: #f8fafc;
+  --x-surface: #ffffff;
+  --x-surface-elevated: #ffffff;
+  --x-border: #e2e8f0;
+  --x-border-strong: #cbd5e1;
+
+  --x-text-primary: #0f172a;
+  --x-text-secondary: #475569;
+  --x-text-muted: #64748b;
+
+  --x-brand: #4f46e5;
+  --x-brand-from: #6366f1;
+  --x-brand-to: #7c3aed;
+
+  --x-success: #16a34a;
+  --x-success-bg: rgb(22 163 74 / 10%);
+  --x-warning: #d97706;
+  --x-warning-bg: rgb(217 119 6 / 10%);
+  --x-danger: #dc2626;
+  --x-danger-bg: rgb(220 38 38 / 10%);
+  --x-info: #2563eb;
+  --x-info-bg: rgb(37 99 235 / 10%);
+
+  --x-focus: #6366f1;
+
+  --x-elevation-sm: 0 1px 2px 0 rgb(15 23 42 / 6%), 0 1px 3px 0 rgb(15 23 42 / 8%);
+  --x-elevation-md: 0 4px 6px -1px rgb(15 23 42 / 8%), 0 2px 4px -2px rgb(15 23 42 / 6%);
+  --x-elevation-lg: 0 10px 15px -3px rgb(15 23 42 / 10%), 0 4px 6px -4px rgb(15 23 42 / 8%);
+}
+
+/*
+ * Dark surfaces are their own hierarchy, not an inversion of the light
+ * palette: app background is darkest, each raised layer (surface →
+ * elevated) steps up in lightness so cards/dialogs read as "closer".
+ */
+.dark {
+  --x-bg: #0b1120;
+  --x-surface: #0f172a;
+  --x-surface-elevated: #1e293b;
+  --x-border: #334155;
+  --x-border-strong: #475569;
+
+  --x-text-primary: #f1f5f9;
+  --x-text-secondary: #cbd5e1;
+  --x-text-muted: #94a3b8;
+
+  --x-brand: #4f46e5;
+  --x-brand-from: #6366f1;
+  --x-brand-to: #7c3aed;
+
+  --x-success: #4ade80;
+  --x-success-bg: rgb(74 222 128 / 14%);
+  --x-warning: #fbbf24;
+  --x-warning-bg: rgb(251 191 36 / 14%);
+  --x-danger: #f87171;
+  --x-danger-bg: rgb(248 113 113 / 14%);
+  --x-info: #60a5fa;
+  --x-info-bg: rgb(96 165 250 / 14%);
+
+  --x-focus: #818cf8;
+
+  --x-elevation-sm: 0 1px 2px 0 rgb(0 0 0 / 30%);
+  --x-elevation-md: 0 4px 6px -1px rgb(0 0 0 / 40%), 0 2px 4px -2px rgb(0 0 0 / 30%);
+  --x-elevation-lg: 0 10px 15px -3px rgb(0 0 0 / 50%), 0 4px 6px -4px rgb(0 0 0 / 40%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

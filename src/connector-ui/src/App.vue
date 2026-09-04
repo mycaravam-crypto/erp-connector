@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { RouterView, RouterLink, useRouter, useRoute } from 'vue-router'
 import { getUsername, clearSession, isLoggedIn } from '@/api/auth'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 import logo from '@/assets/logo.svg'
 
 const router = useRouter()
@@ -43,43 +44,46 @@ const steps = [
       </template>
     </nav>
 
-    <div v-if="loggedIn" class="flex items-center gap-3 shrink-0">
-      <RouterLink
-        :to="{ name: 'icd-schema' }"
-        class="text-[0.82rem] text-slate-400 no-underline hover:text-slate-200 transition-colors"
-        active-class="!text-slate-100"
-      >
-        ICD Schema
-      </RouterLink>
-      <RouterLink
-        :to="{ name: 'export-definitions' }"
-        class="text-[0.82rem] text-slate-400 no-underline hover:text-slate-200 transition-colors"
-        active-class="!text-slate-100"
-      >
-        Export Definitions
-      </RouterLink>
-      <RouterLink
-        :to="{ name: 'settings' }"
-        class="text-[0.82rem] text-slate-400 no-underline hover:text-slate-200 transition-colors"
-        active-class="!text-slate-100"
-      >
-        Settings
-      </RouterLink>
-      <RouterLink
-        :to="{ name: 'audit' }"
-        class="text-[0.82rem] text-slate-400 no-underline hover:text-slate-200 transition-colors"
-        active-class="!text-slate-100"
-      >
-        Audit Log
-      </RouterLink>
-      <span class="text-slate-600 text-xs" aria-hidden="true">|</span>
-      <span class="text-[0.82rem] text-slate-400">{{ username }}</span>
-      <button
-        class="border border-slate-600 text-slate-300 rounded-md px-2.5 py-1 text-[0.78rem] bg-transparent cursor-pointer hover:bg-slate-800"
-        @click="logout"
-      >
-        Sign out
-      </button>
+    <div class="flex items-center gap-3 shrink-0" :class="!loggedIn && 'ml-auto'">
+      <ThemeToggle />
+      <template v-if="loggedIn">
+        <RouterLink
+          :to="{ name: 'icd-schema' }"
+          class="text-[0.82rem] text-slate-400 no-underline hover:text-slate-200 transition-colors"
+          active-class="!text-slate-100"
+        >
+          ICD Schema
+        </RouterLink>
+        <RouterLink
+          :to="{ name: 'export-definitions' }"
+          class="text-[0.82rem] text-slate-400 no-underline hover:text-slate-200 transition-colors"
+          active-class="!text-slate-100"
+        >
+          Export Definitions
+        </RouterLink>
+        <RouterLink
+          :to="{ name: 'settings' }"
+          class="text-[0.82rem] text-slate-400 no-underline hover:text-slate-200 transition-colors"
+          active-class="!text-slate-100"
+        >
+          Settings
+        </RouterLink>
+        <RouterLink
+          :to="{ name: 'audit' }"
+          class="text-[0.82rem] text-slate-400 no-underline hover:text-slate-200 transition-colors"
+          active-class="!text-slate-100"
+        >
+          Audit Log
+        </RouterLink>
+        <span class="text-slate-600 text-xs" aria-hidden="true">|</span>
+        <span class="text-[0.82rem] text-slate-400">{{ username }}</span>
+        <button
+          class="border border-slate-600 text-slate-300 rounded-md px-2.5 py-1 text-[0.78rem] bg-transparent cursor-pointer hover:bg-slate-800"
+          @click="logout"
+        >
+          Sign out
+        </button>
+      </template>
     </div>
   </header>
 
