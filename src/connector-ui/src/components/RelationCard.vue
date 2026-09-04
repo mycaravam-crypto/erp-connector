@@ -108,8 +108,8 @@ const summary = computed(() => {
 
     <div class="flex flex-col gap-1.5 shrink-0">
       <button
-        v-if="relation.relatedTable"
-        class="convert-to-nested-group-btn px-2 py-1 border border-border-strong rounded text-[0.7rem] text-text-secondary bg-surface cursor-pointer whitespace-nowrap hover:bg-surface-elevated"
+        :disabled="!relation.relatedTable"
+        class="convert-to-nested-group-btn px-2 py-1 border border-border-strong rounded text-[0.7rem] text-text-secondary bg-surface cursor-pointer whitespace-nowrap hover:bg-surface-elevated disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-surface"
         @click="emit('convertToNestedGroup')"
         title="Create an equivalent Nested Group for JSON export"
       >Convert to Nested Group</button>

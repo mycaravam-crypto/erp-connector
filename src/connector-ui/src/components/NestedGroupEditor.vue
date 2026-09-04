@@ -5,7 +5,7 @@ import type { MappingNestedGroup, MappingNestedField } from '@/api/mapping'
 import FieldPickerTable from '@/components/FieldPickerTable.vue'
 import { X } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
-import Alert from '@/components/ui/Alert.vue'
+import IssuesAlert from '@/components/ui/IssuesAlert.vue'
 
 // Self-referencing recursive component. Vue 3 SFCs can implicitly reference themselves by
 // filename, but defineOptions makes the self-registration explicit and independent of the file
@@ -183,11 +183,7 @@ const validationIssues = computed(() => {
           </div>
         </div>
 
-        <Alert v-if="validationIssues.length > 0" variant="danger" class="validation-alert py-2 px-3 text-xs">
-          <ul class="list-disc pl-4 m-0">
-            <li v-for="(issue, i) in validationIssues" :key="i">{{ issue }}</li>
-          </ul>
-        </Alert>
+        <IssuesAlert :issues="validationIssues" />
 
         <!-- Per-group field picker: which columns of the related table become object keys. -->
         <FieldPickerTable
