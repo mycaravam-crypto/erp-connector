@@ -3,6 +3,8 @@ import { computed, ref } from 'vue'
 import type { SourceColumn, SourceTable } from '@/api/connection'
 import type { MappingNestedGroup, MappingNestedField } from '@/api/mapping'
 import FieldPickerTable from '@/components/FieldPickerTable.vue'
+import { X } from 'lucide-vue-next'
+import Icon from '@/components/ui/Icon.vue'
 
 // Self-referencing recursive component. Vue 3 SFCs can implicitly reference themselves by
 // filename, but defineOptions makes the self-registration explicit and independent of the file
@@ -184,9 +186,9 @@ const summary = computed(() => {
     </details>
 
     <button
-      class="remove-group-btn shrink-0 px-2 py-1 border border-red-200 rounded text-red-600 bg-white text-base leading-none cursor-pointer hover:bg-red-50"
+      class="remove-group-btn shrink-0 p-1 border border-red-200 rounded text-red-600 bg-white leading-none cursor-pointer hover:bg-red-50"
       @click="emit('remove')"
       title="Remove nested group"
-    >×</button>
+    ><Icon :icon="X" :size="16" /></button>
   </div>
 </template>

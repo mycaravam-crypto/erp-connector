@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { ExportSummary } from '@/api/exports'
 import StatusBadge from '@/components/StatusBadge.vue'
+import { Check, Copy } from 'lucide-vue-next'
+import Icon from '@/components/ui/Icon.vue'
 
 defineProps<{
   runs: ExportSummary[]
@@ -67,7 +69,9 @@ async function copySha(seqNo: number, hash: string) {
               @click="copySha(run.sequenceNo, run.sha256Short)"
             >
               <code class="text-xs text-slate-500 group-hover:text-slate-800">{{ run.sha256Short }}</code>
-              <span class="text-[0.65rem] text-slate-300 group-hover:text-slate-500">{{ copiedSeqNo === run.sequenceNo ? '✓' : '⎘' }}</span>
+              <span class="text-slate-300 group-hover:text-slate-500">
+                <Icon :icon="copiedSeqNo === run.sequenceNo ? Check : Copy" :size="16" />
+              </span>
             </button>
           </td>
           <td class="px-2.5 py-1.5 border-b border-slate-200 align-middle whitespace-nowrap">

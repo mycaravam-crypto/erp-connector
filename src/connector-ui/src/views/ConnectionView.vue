@@ -3,6 +3,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getConnection, saveConnection, invalidateConnectionCache } from '@/api/connection'
 import { clearSession } from '@/api/auth'
+import { Check, X } from 'lucide-vue-next'
+import Icon from '@/components/ui/Icon.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -157,11 +159,11 @@ function proceed() {
     </form>
 
     <div v-if="testStatus === 'ok'" class="flex items-center gap-2 mt-4 px-4 py-3 rounded-md bg-green-50 border border-green-200 text-green-800 text-sm">
-      <span class="font-bold">✓</span>
+      <Icon :icon="Check" :size="16" />
       {{ testMessage }}
     </div>
     <div v-else-if="testStatus === 'error'" class="flex items-center gap-2 mt-4 px-4 py-3 rounded-md bg-red-50 border border-red-200 text-red-800 text-sm">
-      <span class="font-bold">✕</span>
+      <Icon :icon="X" :size="16" />
       {{ testMessage }}
     </div>
   </div>

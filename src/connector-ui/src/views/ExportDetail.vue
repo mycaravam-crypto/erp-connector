@@ -7,6 +7,8 @@ import StatusBadge from '@/components/StatusBadge.vue'
 import RunDetailTable from '@/components/RunDetailTable.vue'
 import SkipRunForm from '@/components/SkipRunForm.vue'
 import DeliverRunForm from '@/components/DeliverRunForm.vue'
+import { Check } from 'lucide-vue-next'
+import Icon from '@/components/ui/Icon.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -82,7 +84,7 @@ function formatDate(iso: string | null | undefined): string {
 
       <!-- Delivery complete indicator -->
       <div v-if="run.deliveredAt" class="delivery-done flex items-center gap-2 mt-6 bg-green-50 border border-green-200 rounded-md px-4 py-2.5 text-sm text-green-800 max-w-lg">
-        <span class="font-bold text-base">✓</span>
+        <Icon :icon="Check" :size="20" />
         Delivered on {{ formatDate(run.deliveredAt) }} by {{ run.deliveredBy }}.
         <span v-if="run.importedRecordCount !== null">
           Vendor confirmed {{ run.importedRecordCount }} records imported.

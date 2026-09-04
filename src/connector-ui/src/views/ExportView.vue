@@ -7,6 +7,8 @@ import { listExports, type ExportSummary } from '@/api/exports'
 import ActiveMappingSummary from '@/components/ActiveMappingSummary.vue'
 import PreviewTable from '@/components/PreviewTable.vue'
 import ExportRunsTable from '@/components/ExportRunsTable.vue'
+import { Check, X } from 'lucide-vue-next'
+import Icon from '@/components/ui/Icon.vue'
 
 const FORMAT_KEY = 'connector_export_format'
 const selectedFormat = ref<'xlsx' | 'csv' | 'json'>(
@@ -139,7 +141,7 @@ onMounted(() => {
       </div>
 
       <div v-if="runResult" class="flex items-center gap-3 px-6 py-3 bg-green-50 border-t border-green-200 text-green-800 text-sm">
-        <span class="font-bold text-base">✓</span>
+        <Icon :icon="Check" :size="20" />
         <span class="flex-1">
           Export <strong>#{{ runResult.sequenceNo }}</strong> created —
           {{ runResult.recordCount }} records ·
@@ -152,7 +154,7 @@ onMounted(() => {
       </div>
 
       <div v-if="runError" class="flex items-center gap-3 px-6 py-3 bg-red-50 border-t border-red-200 text-red-800 text-sm">
-        <span class="font-bold text-base">✕</span>
+        <Icon :icon="X" :size="20" />
         <span>{{ runError }}</span>
       </div>
     </div>

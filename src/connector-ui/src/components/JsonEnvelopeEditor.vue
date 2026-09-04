@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { ExportJsonWrapperConfig } from '@/api/mapping'
+import { X } from 'lucide-vue-next'
+import Icon from '@/components/ui/Icon.vue'
 
 const wrapper = defineModel<ExportJsonWrapperConfig | null>({ required: true })
 const emit = defineEmits<{ dirty: [] }>()
@@ -70,7 +72,7 @@ function removeMetadataField(idx: number) {
             <input type="checkbox" v-model="m.isDynamicTimestamp" @change="emit('dirty')" />
             Use export timestamp
           </label>
-          <button type="button" class="remove-metadata-field-btn shrink-0 px-2 py-1 border border-red-200 rounded text-red-600 bg-white text-sm leading-none cursor-pointer hover:bg-red-50" @click="removeMetadataField(mIdx)" title="Remove field">×</button>
+          <button type="button" class="remove-metadata-field-btn shrink-0 p-1 border border-red-200 rounded text-red-600 bg-white leading-none cursor-pointer hover:bg-red-50" @click="removeMetadataField(mIdx)" title="Remove field"><Icon :icon="X" :size="16" /></button>
         </div>
       </div>
     </div>
