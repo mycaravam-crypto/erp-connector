@@ -33,11 +33,11 @@ function onPresetChanged(e: Event) {
 
 <template>
   <div class="flex items-center gap-2">
-    <label class="text-sm text-slate-500 w-28 shrink-0">Schedule</label>
+    <label class="text-sm text-text-secondary w-28 shrink-0">Schedule</label>
     <select
       :value="selectedPreset"
       aria-label="Schedule preset"
-      class="px-2.5 py-1.5 border border-slate-300 rounded-md text-sm text-slate-900 bg-white"
+      class="px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary bg-surface"
       @change="onPresetChanged"
     >
       <option value="manual">Manual only</option>
@@ -51,9 +51,9 @@ function onPresetChanged(e: Event) {
       type="text"
       :value="modelValue"
       placeholder="5-field cron, e.g. 0 */4 * * *"
-      class="flex-1 px-2.5 py-1.5 border border-slate-300 rounded-md text-sm text-slate-900 font-mono outline-none focus:border-slate-900"
+      class="flex-1 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary font-mono outline-none focus:border-brand"
       @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
     />
-    <span v-else class="text-xs text-slate-400">hourly minimum granularity</span>
+    <span v-else class="text-xs text-text-muted">hourly minimum granularity</span>
   </div>
 </template>

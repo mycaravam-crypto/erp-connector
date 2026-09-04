@@ -8,6 +8,10 @@ import {
 } from '@/api/scheduler'
 import { Check, X } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
+import Input from '@/components/ui/Input.vue'
+import Select from '@/components/ui/Select.vue'
+import Button from '@/components/ui/Button.vue'
+import Alert from '@/components/ui/Alert.vue'
 
 const loading = ref(true)
 const loadError = ref<string | null>(null)
@@ -103,99 +107,63 @@ async function saveGdpr() {
 <template>
   <div class="max-w-xl">
     <div class="flex items-center gap-3 mb-2">
-      <h1 class="m-0 text-xl font-semibold">Settings</h1>
+      <h1 class="m-0 text-xl font-semibold text-text-primary">Settings</h1>
     </div>
 
-    <div v-if="loading" class="text-slate-500 text-sm mt-4">Loading…</div>
+    <div v-if="loading" class="text-text-secondary text-sm mt-4">Loading…</div>
 
-    <div v-else-if="loadError" class="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-800 mt-4">
-      {{ loadError }}
-    </div>
+    <Alert v-else-if="loadError" variant="danger" class="mt-4">{{ loadError }}</Alert>
 
     <template v-else>
       <section class="mt-6">
-        <h2 class="text-base font-semibold text-slate-800 mb-1">Export Scheduler</h2>
-        <p class="text-slate-500 text-sm mb-4 leading-relaxed">
+        <h2 class="text-base font-semibold text-text-primary mb-1">Export Scheduler</h2>
+        <p class="text-text-secondary text-sm mb-4 leading-relaxed">
           The scheduled export runs once daily at the configured UTC time.
           Changes take effect on the next export cycle — no restart required.
         </p>
 
         <form class="flex flex-col gap-4" @submit.prevent="save">
           <div class="flex gap-6">
-            <div class="flex flex-col gap-1">
-              <label for="scheduled-time" class="text-xs font-semibold text-slate-700">
-                Daily run time (UTC)
-              </label>
-              <input
-                id="scheduled-time"
-                v-model="scheduledTime"
-                type="time"
-                class="px-2.5 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white outline-none focus:outline-indigo-600 focus:outline-2 focus:border-transparent w-36"
-              />
-            </div>
+            <Input id="scheduled-time" v-model="scheduledTime" type="time" label="Daily run time (UTC)" class="w-36" />
 
-            <div class="flex flex-col gap-1">
-              <label for="retention-days" class="text-xs font-semibold text-slate-700">
-                Retention (days)
-              </label>
-              <input
-                id="retention-days"
-                v-model.number="retentionDays"
-                type="number"
-                min="1"
-                max="3650"
-                class="px-2.5 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white outline-none focus:outline-indigo-600 focus:outline-2 focus:border-transparent w-28"
-              />
-              <p class="text-xs text-slate-400 mt-0.5">1–3,650 days. Export runs and staging files older than this are deleted.</p>
-            </div>
+            <Input
+              id="retention-days"
+              v-model.number="retentionDays"
+              type="number"
+              :min="1"
+              :max="3650"
+              label="Retention (days)"
+              help-text="1–3,650 days. Export runs and staging files older than this are deleted."
+              class="w-28"
+            />
 
-            <div class="flex flex-col gap-1">
-              <label for="scheduled-format" class="text-xs font-semibold text-slate-700">
-                Export format
-              </label>
-              <select
-                id="scheduled-format"
-                v-model="format"
-                class="px-2.5 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white outline-none focus:outline-indigo-600 focus:outline-2 focus:border-transparent w-28"
-              >
-                <option value="xlsx">Excel</option>
-                <option value="csv">CSV</option>
-                <option value="json">JSON</option>
-              </select>
-              <p class="text-xs text-slate-400 mt-0.5">Nested JSON groups in the mapping only apply when set to JSON.</p>
-            </div>
+            <Select id="scheduled-format" v-model="format" label="Export format" help-text="Nested JSON groups in the mapping only apply when set to JSON." class="w-28">
+              <option value="xlsx">Excel</option>
+              <option value="csv">CSV</option>
+              <option value="json">JSON</option>
+            </Select>
           </div>
 
           <div>
-            <button
-              type="submit"
-              class="px-5 py-2 border border-slate-400 rounded-md bg-white text-slate-900 text-sm font-semibold cursor-pointer hover:enabled:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              :disabled="saving"
-            >
+            <Button type="submit" variant="secondary" :loading="saving">
               {{ saving ? 'Saving…' : 'Save Settings' }}
-            </button>
+            </Button>
           </div>
         </form>
 
-        <div
-          v-if="saveStatus === 'ok'"
-          class="flex items-center gap-2 mt-4 px-4 py-3 rounded-md bg-green-50 border border-green-200 text-green-800 text-sm"
-        >
-          <Icon :icon="Check" :size="16" />
+        <Alert v-if="saveStatus === 'ok'" variant="success" class="mt-4">
+          <template #icon><Icon :icon="Check" :size="16" /></template>
           {{ saveMessage }}
-        </div>
-        <div
-          v-else-if="saveStatus === 'error'"
-          class="flex items-center gap-2 mt-4 px-4 py-3 rounded-md bg-red-50 border border-red-200 text-red-800 text-sm"
-        >
-          <Icon :icon="X" :size="16" />
+        </Alert>
+        <Alert v-else-if="saveStatus === 'error'" variant="danger" class="mt-4">
+          <template #icon><Icon :icon="X" :size="16" /></template>
           {{ saveMessage }}
-        </div>
+        </Alert>
       </section>
 
       <section class="mt-10">
-        <h2 class="text-base font-semibold text-slate-800 mb-1">GDPR Denied Fields</h2>
-        <p class="text-slate-500 text-sm mb-4 leading-relaxed">
+        <h2 class="text-base font-semibold text-text-primary mb-1">GDPR Denied Fields</h2>
+        <p class="text-text-secondary text-sm mb-4 leading-relaxed">
           These fields are stripped from all exports at query time (GDPR Art. 5(1)(c)).
           Changes take effect immediately.
         </p>
@@ -204,61 +172,38 @@ async function saveGdpr() {
           <span
             v-for="field in deniedFields"
             :key="field"
-            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-300 text-slate-800 text-xs font-medium"
+            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-elevated border border-border-strong text-text-primary text-xs font-medium"
           >
             {{ field }}
             <button
               type="button"
-              class="ml-0.5 text-slate-500 hover:text-slate-800 cursor-pointer leading-none bg-transparent border-none p-0"
+              class="ml-0.5 text-text-secondary hover:text-text-primary cursor-pointer leading-none bg-transparent border-none p-0"
               :aria-label="`Remove ${field}`"
               @click="removeField(field)"
             >
-              &times;
+              <Icon :icon="X" :size="16" />
             </button>
           </span>
-          <span v-if="deniedFields.length === 0" class="text-xs text-slate-400 italic">No fields configured.</span>
+          <span v-if="deniedFields.length === 0" class="text-xs text-text-muted italic">No fields configured.</span>
         </div>
 
         <div class="flex gap-2 mb-4">
-          <input
-            v-model="newField"
-            type="text"
-            placeholder="Field name to add…"
-            class="px-2.5 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white outline-none focus:outline-indigo-600 focus:outline-2 focus:border-transparent w-56"
-            @keydown.enter.prevent="addField"
-          />
-          <button
-            type="button"
-            class="px-4 py-2 border border-slate-400 rounded-md bg-white text-slate-900 text-sm font-semibold cursor-pointer hover:bg-slate-50"
-            @click="addField"
-          >
-            Add
-          </button>
+          <Input v-model="newField" placeholder="Field name to add…" class="w-56" @keydown.enter.prevent="addField" />
+          <Button variant="secondary" @click="addField">Add</Button>
         </div>
 
-        <button
-          type="button"
-          class="px-5 py-2 border border-slate-400 rounded-md bg-white text-slate-900 text-sm font-semibold cursor-pointer hover:enabled:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          :disabled="gdprSaving"
-          @click="saveGdpr"
-        >
+        <Button variant="secondary" :loading="gdprSaving" @click="saveGdpr">
           {{ gdprSaving ? 'Saving…' : 'Save GDPR Denylist' }}
-        </button>
+        </Button>
 
-        <div
-          v-if="gdprSaveStatus === 'ok'"
-          class="flex items-center gap-2 mt-4 px-4 py-3 rounded-md bg-green-50 border border-green-200 text-green-800 text-sm"
-        >
-          <span class="font-bold">&#10003;</span>
+        <Alert v-if="gdprSaveStatus === 'ok'" variant="success" class="mt-4">
+          <template #icon><Icon :icon="Check" :size="16" /></template>
           {{ gdprSaveMessage }}
-        </div>
-        <div
-          v-else-if="gdprSaveStatus === 'error'"
-          class="flex items-center gap-2 mt-4 px-4 py-3 rounded-md bg-red-50 border border-red-200 text-red-800 text-sm"
-        >
-          <span class="font-bold">&#10005;</span>
+        </Alert>
+        <Alert v-else-if="gdprSaveStatus === 'error'" variant="danger" class="mt-4">
+          <template #icon><Icon :icon="X" :size="16" /></template>
           {{ gdprSaveMessage }}
-        </div>
+        </Alert>
       </section>
     </template>
   </div>

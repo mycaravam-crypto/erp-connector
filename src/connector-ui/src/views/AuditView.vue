@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { getAuditLog, type AuditEntry } from '@/api/audit'
+import Button from '@/components/ui/Button.vue'
+import Alert from '@/components/ui/Alert.vue'
 
 const entries = ref<AuditEntry[]>([])
 const loading = ref(true)
@@ -31,33 +33,23 @@ onMounted(load)
 <template>
   <div class="max-w-4xl">
     <div class="flex items-center justify-between gap-3 mb-4">
-      <h1 class="m-0 text-xl font-semibold">Audit Log</h1>
-      <button
-        type="button"
-        class="px-4 py-1.5 border border-slate-400 rounded-md bg-white text-slate-900 text-sm font-semibold cursor-pointer hover:bg-slate-50 disabled:opacity-50"
-        :disabled="loading"
-        @click="load"
-      >
+      <h1 class="m-0 text-xl font-semibold text-text-primary">Audit Log</h1>
+      <Button variant="secondary" :loading="loading" @click="load">
         {{ loading ? 'Loading…' : 'Refresh' }}
-      </button>
+      </Button>
     </div>
 
-    <div v-if="loading && entries.length === 0" class="text-slate-500 text-sm mt-4">Loading…</div>
+    <div v-if="loading && entries.length === 0" class="text-text-secondary text-sm mt-4">Loading…</div>
 
-    <div
-      v-else-if="loadError"
-      class="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-800 mt-4"
-    >
-      {{ loadError }}
-    </div>
+    <Alert v-else-if="loadError" variant="danger" class="mt-4">{{ loadError }}</Alert>
 
-    <div v-else-if="entries.length === 0" class="text-slate-500 text-sm mt-4">
+    <div v-else-if="entries.length === 0" class="text-text-secondary text-sm mt-4">
       No audit entries yet.
     </div>
 
     <table v-else class="w-full text-sm border-collapse">
       <thead>
-        <tr class="text-left text-slate-600 border-b border-slate-200">
+        <tr class="text-left text-text-secondary border-b border-border">
           <th class="px-3 py-2 font-semibold">Timestamp</th>
           <th class="px-3 py-2 font-semibold">User</th>
           <th class="px-3 py-2 font-semibold">Action</th>
@@ -68,12 +60,12 @@ onMounted(load)
         <tr
           v-for="entry in entries"
           :key="entry.id"
-          class="border-b border-slate-100 hover:bg-slate-50"
+          class="border-b border-border hover:bg-surface-elevated"
         >
-          <td class="px-3 py-2 whitespace-nowrap text-slate-600">{{ formatDate(entry.timestamp) }}</td>
-          <td class="px-3 py-2 font-medium text-slate-800">{{ entry.username }}</td>
-          <td class="px-3 py-2 font-mono text-slate-700">{{ entry.action }}</td>
-          <td class="px-3 py-2 text-slate-500">{{ entry.detail ?? '—' }}</td>
+          <td class="px-3 py-2 whitespace-nowrap text-text-secondary">{{ formatDate(entry.timestamp) }}</td>
+          <td class="px-3 py-2 font-medium text-text-primary">{{ entry.username }}</td>
+          <td class="px-3 py-2 font-mono text-text-primary">{{ entry.action }}</td>
+          <td class="px-3 py-2 text-text-secondary">{{ entry.detail ?? '—' }}</td>
         </tr>
       </tbody>
     </table>

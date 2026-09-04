@@ -3,6 +3,9 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { login } from '@/api/auth'
 import logo from '@/assets/logo.svg'
+import Card from '@/components/ui/Card.vue'
+import Input from '@/components/ui/Input.vue'
+import Button from '@/components/ui/Button.vue'
 
 const router = useRouter()
 
@@ -27,45 +30,26 @@ async function submit() {
 
 <template>
   <div class="flex justify-center pt-24">
-    <div class="border border-slate-200 rounded-lg p-8 w-full max-w-sm">
+    <Card class="w-full max-w-sm">
       <div class="flex items-center gap-2.5 mb-4">
         <img :src="logo" alt="" class="w-8 h-8 rounded-lg" />
-        <h1 class="text-lg font-semibold m-0">X5 Connector</h1>
+        <h1 class="text-lg font-semibold m-0 text-text-primary">X5 Connector</h1>
       </div>
-      <p class="text-slate-500 text-sm m-0 mb-6">Release UI requires authentication.</p>
+      <p class="text-text-secondary text-sm m-0 mb-6">Release UI requires authentication.</p>
 
-      <div class="flex flex-col gap-1 mb-3">
-        <label for="username" class="text-sm font-semibold">Username</label>
-        <input
-          id="username"
-          v-model="username"
-          autocomplete="username"
-          class="px-2.5 py-1.5 border border-slate-300 rounded-md text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-          @keyup.enter="submit"
-        />
-      </div>
+      <Input id="username" v-model="username" label="Username" autocomplete="username" class="mb-3" @keyup.enter="submit" />
+      <Input id="password" v-model="password" type="password" label="Password" autocomplete="current-password" class="mb-3" @keyup.enter="submit" />
 
-      <div class="flex flex-col gap-1 mb-3">
-        <label for="password" class="text-sm font-semibold">Password</label>
-        <input
-          id="password"
-          v-model="password"
-          type="password"
-          autocomplete="current-password"
-          class="px-2.5 py-1.5 border border-slate-300 rounded-md text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-          @keyup.enter="submit"
-        />
-      </div>
+      <p v-if="error" class="text-danger text-sm mt-1 mb-0">{{ error }}</p>
 
-      <p v-if="error" class="text-red-600 text-sm mt-1 mb-0">{{ error }}</p>
-
-      <button
-        class="mt-3 w-full py-2 bg-indigo-600 text-white border-0 rounded-md text-sm font-semibold cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed hover:enabled:bg-indigo-700"
+      <Button
+        class="mt-3 w-full justify-center"
         :disabled="!username.trim() || !password || submitting"
+        :loading="submitting"
         @click="submit"
       >
         {{ submitting ? 'Signing in…' : 'Sign in' }}
-      </button>
-    </div>
+      </Button>
+    </Card>
   </div>
 </template>
