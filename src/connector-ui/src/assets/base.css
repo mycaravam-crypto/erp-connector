@@ -35,10 +35,18 @@
   --color-text-secondary: var(--x-text-secondary);
   --color-text-muted: var(--x-text-muted);
 
-  /* brand */
+  /* brand — same across themes, so hover/active shades don't need a .dark override */
   --color-brand: var(--x-brand);
   --color-brand-from: var(--x-brand-from);
   --color-brand-to: var(--x-brand-to);
+  --color-brand-hover: #4338ca;
+  --color-brand-active: #3730a3;
+
+  /* solid danger (buttons) — kept apart from --color-danger, which is tuned
+     per-theme for text/icon use on a soft background */
+  --color-danger-solid: #dc2626;
+  --color-danger-solid-hover: #b91c1c;
+  --color-danger-solid-active: #991b1b;
 
   /* semantic status colors, each with a soft background for badges/alerts */
   --color-success: var(--x-success);
