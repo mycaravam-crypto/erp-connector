@@ -8,7 +8,8 @@ defineProps<{ run: ExportDetail }>()
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return '—'
-  return new Date(iso.includes('Z') ? iso : iso + 'Z').toLocaleString()
+  const hasTimezone = /(Z|[+-]\d{2}:\d{2})$/.test(iso)
+  return new Date(hasTimezone ? iso : iso + 'Z').toLocaleString()
 }
 
 const shacopied = ref(false)
