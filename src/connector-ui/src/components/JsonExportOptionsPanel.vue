@@ -19,20 +19,15 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <!-- Collapsed unless already configured -->
-  <details class="mb-7" :open="nestedGroups.length > 0 || jsonWrapper !== null">
-    <summary class="cursor-pointer select-none text-base font-semibold text-text-primary">
-      JSON Export Options <span class="text-xs font-normal text-text-muted">(optional)</span>
-    </summary>
-    <div class="mt-3">
-      <NestedGroupsSection
-        :groups="nestedGroups"
-        :available-tables="availableTables"
-        @add="emit('add')"
-        @remove="emit('remove', $event)"
-        @dirty="emit('dirty')"
-      />
-      <JsonEnvelopeEditor v-model="jsonWrapper" @dirty="emit('dirty')" />
-    </div>
-  </details>
+  <!-- Always visible — this is the primary Step 3 editing surface, not an optional add-on. -->
+  <div class="json-export-options">
+    <NestedGroupsSection
+      :groups="nestedGroups"
+      :available-tables="availableTables"
+      @add="emit('add')"
+      @remove="emit('remove', $event)"
+      @dirty="emit('dirty')"
+    />
+    <JsonEnvelopeEditor v-model="jsonWrapper" @dirty="emit('dirty')" />
+  </div>
 </template>

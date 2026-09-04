@@ -702,4 +702,179 @@ describe('SchemaView', () => {
 
     expect(w.find('.preset-error').text()).toContain('Name too long.')
   })
+
+  // ── Step 3 reframe (Nested JSON primary, Related Table Joins advanced) ──────
+
+  it('shows Nested JSON Structure before Related Table Joins on a fresh mapping', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+
+    const html = w.html()
+    expect(html.indexOf('Nested JSON Structure')).toBeGreaterThan(-1)
+    expect(html.indexOf('Nested JSON Structure')).toBeLessThan(html.indexOf('Related Table Joins'))
+  })
+
+  it('Related Table Joins is collapsed by default when no relations are configured', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+
+    expect(w.find('.legacy-relations-details').attributes('open')).toBeUndefined()
+  })
+
+  it('Related Table Joins opens by default when an existing mapping already has relations', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    vi.spyOn(erpApi, 'getExportMapping').mockResolvedValueOnce({
+      sourceTable: 'systemconfiguration',
+      fields: [{ sourceName: 'id', targetName: 'id', enabled: true }],
+      relations: [
+        {
+          relatedTable: 'masterdata',
+          joinKey: 'id',
+          sourceJoinKey: 'article_id',
+          enabled: true,
+          flattenStrategy: 'string_join',
+          delimiter: ', ',
+          fields: [{ sourceField: 'article_name', targetField: 'article_name', enabled: true }],
+        },
+      ],
+    })
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    expect(w.find('.legacy-relations-details').attributes('open')).toBeDefined()
+  })
+
+  it('keeps Nested JSON Structure and its configured groups visible when the preview-format picker is switched', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+    await w.find('.add-nested-group-btn').trigger('click')
+    expect(w.findAll('.nested-group-card')).toHaveLength(1)
+
+    const csvBtn = w.findAll('.format-btn').find((b) => b.text().includes('csv'))!
+    await csvBtn.trigger('click')
+    await w.vm.$nextTick()
+
+    expect(w.findAll('.nested-group-card')).toHaveLength(1)
+  })
+
+  it('does not frame Nested JSON Structure as optional', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+
+    expect(w.text()).not.toContain('JSON Export Options')
+    expect(w.text()).toContain('advanced — flat/legacy exports')
+  })
+
+  // ── Convert to Nested Group ──────────────────────────────────────────────────
+
+  it('converts a relation to an equivalent nested group and keeps the relation when declined', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+    await w.find('.add-btn').trigger('click')
+    await w.find('.relation-card select').setValue('masterdata')
+    await w.vm.$nextTick()
+
+    expect(w.findAll('.nested-group-card')).toHaveLength(0)
+    await w.find('.convert-to-nested-group-btn').trigger('click')
+
+    expect(w.findAll('.nested-group-card')).toHaveLength(1)
+    expect(w.findAll('.relation-card')).toHaveLength(1)
+    expect(w.find('.nested-group-card').text()).toContain('masterdata')
+  })
+
+  it('removes the source relation when the user confirms after converting', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+    await w.find('.add-btn').trigger('click')
+    await w.find('.relation-card select').setValue('masterdata')
+    await w.vm.$nextTick()
+
+    await w.find('.convert-to-nested-group-btn').trigger('click')
+
+    expect(w.findAll('.nested-group-card')).toHaveLength(1)
+    expect(w.findAll('.relation-card')).toHaveLength(0)
+  })
+
+  // ── Nested JSON editor polish: shape preview + inline validation ────────────
+
+  it('shows a JSON shape preview once a nested group has fields enabled', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+    await w.find('.add-nested-group-btn').trigger('click')
+
+    const group = w.find('.nested-group-card')
+    await group.find('.related-table-select').setValue('masterdata')
+    await w.vm.$nextTick()
+    await group.find('.field-picker-select-all-btn').trigger('click')
+    await w.vm.$nextTick()
+
+    const preview = w.find('.shape-preview pre')
+    expect(preview.exists()).toBe(true)
+    expect(preview.text()).toContain('article_name')
+  })
+
+  it('flags a missing join column inline on a nested group once it has a related table', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+    await w.find('.add-nested-group-btn').trigger('click')
+
+    const group = w.find('.nested-group-card')
+    await group.find('.related-table-select').setValue('masterdata')
+    await w.vm.$nextTick()
+
+    expect(group.find('.validation-alert').exists()).toBe(true)
+    expect(group.find('.validation-alert').text()).toContain('Join column is required.')
+  })
+
+  it('flags a duplicate export key between sibling nested groups', async () => {
+    vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
+    const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+
+    await w.find('select.table-select').setValue('systemconfiguration')
+    await w.vm.$nextTick()
+    await w.find('.add-nested-group-btn').trigger('click')
+    await w.find('.add-nested-group-btn').trigger('click')
+
+    const groups = w.findAll('.nested-group-card')
+    await groups[0].find('.export-key-input').setValue('dup')
+    await groups[1].find('.export-key-input').setValue('dup')
+    await w.vm.$nextTick()
+
+    expect(groups[1].find('.validation-alert').text()).toContain('already used by another nested group')
+  })
 })

@@ -19,6 +19,7 @@ const detailsOpen = ref(!props.relation.relatedTable)
 const emit = defineEmits<{
   remove: []
   dirty: []
+  convertToNestedGroup: []
 }>()
 
 function getTableColumns(tableName: string): SourceColumn[] {
@@ -50,7 +51,7 @@ const summary = computed(() => {
 
 <template>
   <div
-    :class="['relation-card flex gap-3 items-start px-4 py-3 border rounded-lg mb-2 bg-surface', relation.enabled ? 'border-info bg-sky-50' : 'border-border opacity-65']"
+    :class="['relation-card flex gap-3 items-start px-4 py-3 border rounded-lg mb-2 bg-surface', relation.enabled ? 'border-info bg-info-bg' : 'border-border opacity-65']"
   >
     <div class="pt-1 shrink-0">
       <input type="checkbox" v-model="relation.enabled" class="cursor-pointer w-4 h-4" @change="emit('dirty')" />
@@ -105,10 +106,18 @@ const summary = computed(() => {
       </div>
     </details>
 
-    <button
-      class="rel-remove-btn shrink-0 p-1 border border-danger rounded text-danger bg-surface leading-none cursor-pointer hover:bg-danger-bg"
-      @click="emit('remove')"
-      title="Remove relation"
-    ><Icon :icon="X" :size="16" /></button>
+    <div class="flex flex-col gap-1.5 shrink-0">
+      <button
+        :disabled="!relation.relatedTable"
+        class="convert-to-nested-group-btn px-2 py-1 border border-border-strong rounded text-[0.7rem] text-text-secondary bg-surface cursor-pointer whitespace-nowrap hover:bg-surface-elevated disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-surface"
+        @click="emit('convertToNestedGroup')"
+        title="Create an equivalent Nested Group for JSON export"
+      >Convert to Nested Group</button>
+      <button
+        class="rel-remove-btn self-end p-1 border border-danger rounded text-danger bg-surface leading-none cursor-pointer hover:bg-danger-bg"
+        @click="emit('remove')"
+        title="Remove relation"
+      ><Icon :icon="X" :size="16" /></button>
+    </div>
   </div>
 </template>

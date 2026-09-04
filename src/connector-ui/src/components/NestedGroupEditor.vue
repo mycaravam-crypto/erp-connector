@@ -5,6 +5,7 @@ import type { MappingNestedGroup, MappingNestedField } from '@/api/mapping'
 import FieldPickerTable from '@/components/FieldPickerTable.vue'
 import { X } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
+import IssuesAlert from '@/components/ui/IssuesAlert.vue'
 
 // Self-referencing recursive component. Vue 3 SFCs can implicitly reference themselves by
 // filename, but defineOptions makes the self-registration explicit and independent of the file
@@ -21,6 +22,10 @@ const props = defineProps<{
   group: MappingNestedGroup
   availableTables: SourceTable[]
   depth: number
+  // The full list of groups at this same level (including this one) — used to detect a
+  // duplicate export key among siblings, which would otherwise silently overwrite a key
+  // in the exported JSON. Defaults to just this group when no siblings are known.
+  siblings?: MappingNestedGroup[]
 }>()
 
 const emit = defineEmits<{
@@ -81,6 +86,32 @@ const summary = computed(() => {
   const shape = props.group.kind === 'array' ? 'array' : 'object'
   const key = props.group.targetKey ? `"${props.group.targetKey}": ` : ''
   return `${key}${props.group.relatedTable} (${shape}) · ${enabled}/${props.group.fields.length} fields`
+})
+
+// A brand-new, untouched group has nothing to validate yet — only start flagging once the
+// user has entered a target key or related table, so an empty "+ Add Nested Group" click
+// doesn't immediately show as broken.
+const isPristine = computed(() => !props.group.targetKey && !props.group.relatedTable)
+
+const hasDuplicateTargetKey = computed(() => {
+  if (!props.group.targetKey) return false
+  return (props.siblings ?? [props.group]).some(
+    (g) => g !== props.group && g.targetKey === props.group.targetKey,
+  )
+})
+
+// Structural problems that would only otherwise surface as a save error or a bad export —
+// surfaced inline instead, next to the fields that cause them.
+const validationIssues = computed(() => {
+  if (isPristine.value) return []
+  const issues: string[] = []
+  if (!props.group.relatedTable) issues.push('Related table is required.')
+  if (props.group.relatedTable && !props.group.joinKey) issues.push('Join column is required.')
+  if (props.group.relatedTable && !props.group.sourceJoinKey) issues.push('Matches Parent Column is required.')
+  if (hasDuplicateTargetKey.value) {
+    issues.push(`Export key "${props.group.targetKey}" is already used by another nested group at this level.`)
+  }
+  return issues
 })
 </script>
 
@@ -152,6 +183,8 @@ const summary = computed(() => {
           </div>
         </div>
 
+        <IssuesAlert :issues="validationIssues" />
+
         <!-- Per-group field picker: which columns of the related table become object keys. -->
         <FieldPickerTable
           v-if="group.relatedTable"
@@ -178,6 +211,7 @@ const summary = computed(() => {
             :group="child"
             :available-tables="availableTables"
             :depth="depth + 1"
+            :siblings="group.children"
             @remove="removeChild(idx)"
             @dirty="emit('dirty')"
           />

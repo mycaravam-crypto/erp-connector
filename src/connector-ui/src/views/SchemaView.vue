@@ -245,6 +245,43 @@ function removeRelation(idx: number) {
   dirty.value = true
 }
 
+// Builds the nested-group equivalent of a relation. Relations exist to flatten a 1:N join
+// (string_join or array) into the parent row, so the JSON-shape equivalent is always an array
+// of objects, never a single 1:1 object.
+function nestedGroupFromRelation(relation: MappingRelation): MappingNestedGroup {
+  return {
+    targetKey: relation.relatedTable,
+    relatedTable: relation.relatedTable,
+    joinKey: relation.joinKey,
+    sourceJoinKey: relation.sourceJoinKey,
+    enabled: relation.enabled,
+    kind: 'array',
+    fields: relation.fields.map((f) => ({
+      sourceField: f.sourceField,
+      targetKey: f.targetField,
+      enabled: f.enabled,
+    })),
+    children: [],
+  }
+}
+
+// Replaces the after-the-fact relationsDroppedForJson warning with a one-click migration path:
+// build the equivalent nested group, then ask whether the now-redundant (for JSON) relation
+// should also go — defaulting to "keep", since it may still be needed for xlsx/csv exports.
+function convertRelationToNestedGroup(idx: number) {
+  const relation = relations.value[idx]
+  if (!relation) return
+  nestedGroups.value.push(nestedGroupFromRelation(relation))
+  saved.value = false
+  dirty.value = true
+
+  const shouldRemove = window.confirm(
+    `Added "${relation.relatedTable}" as a Nested Group for JSON export.\n\n` +
+      `Remove the original Related Table Join too? Keep it if this mapping is still used for xlsx/csv exports.`,
+  )
+  if (shouldRemove) removeRelation(idx)
+}
+
 // ── Nested JSON structure (JSON export only) ────────────────────────────────────
 function addNestedGroup() {
   nestedGroups.value.push({
@@ -275,10 +312,10 @@ function markDirty() {
 // For JSON export, DynamicExportService builds nested output from Fields + NestedGroups only —
 // Relations are silently absent from that path (they only flatten into the plain/flat query).
 // Surfaced here so a relation someone already configured doesn't quietly vanish from the file
-// the moment they add a nested group or a custom envelope.
+// the moment they add a nested group or a custom envelope. Independent of previewFormat — that
+// toggle no longer gates the Nested JSON options, so this warning must hold regardless of it.
 const relationsDroppedForJson = computed(
   () =>
-    previewFormat.value === 'json' &&
     relations.value.some((r) => r.enabled) &&
     (nestedGroups.value.length > 0 || jsonWrapper.value !== null),
 )
@@ -390,8 +427,9 @@ onMounted(load)
 
     <p class="text-text-secondary text-sm mt-2 mb-6 leading-relaxed">
       Select a source table, choose which columns to include and rename them for the target system
-      (e.g. the target CMDB), then add joins from related tables.
-      Changes are saved before the export runs.
+      (e.g. the target CMDB), then build the Nested JSON Structure — objects and arrays sourced
+      from related tables — and configure its envelope. Related Table Joins remain available as an
+      advanced option for flat xlsx/csv exports. Changes are saved before the export runs.
     </p>
 
     <p v-if="loading" class="text-text-secondary">Loading…</p>
@@ -431,16 +469,14 @@ onMounted(load)
           @dirty="markDirty"
         />
 
-        <!-- Relations (optional) -->
-        <RelatedJoinsPanel
-          :relations="relations"
-          :relatable-tables="relatableTables"
-          :selected-table-columns="selectedTableColumns"
-          :selected-table-name="selectedTable"
-          :suggestions="suggestedRelations"
-          @add-suggested="addSuggestedRelation"
-          @add="addRelation"
-          @remove="removeRelation"
+        <!-- Nested JSON Structure — the primary mapping surface, always rendered and expanded.
+             Switching the preview-format picker below never hides or discards this configuration. -->
+        <JsonExportOptionsPanel
+          :nested-groups="nestedGroups"
+          :available-tables="sourceSchema.tables"
+          v-model:json-wrapper="jsonWrapper"
+          @add="addNestedGroup"
+          @remove="removeNestedGroup"
           @dirty="markDirty"
         />
 
@@ -455,15 +491,19 @@ onMounted(load)
           or a custom envelope is used — that data won't appear in the file. Pull it in as a <strong>Nested Group</strong> instead.
         </Alert>
 
-        <!-- JSON-only options (optional) -->
-        <JsonExportOptionsPanel
-          v-if="previewFormat === 'json'"
-          :nested-groups="nestedGroups"
-          :available-tables="sourceSchema.tables"
-          v-model:json-wrapper="jsonWrapper"
-          @add="addNestedGroup"
-          @remove="removeNestedGroup"
+        <!-- Related Table Joins — advanced/legacy path, collapsed by default. Still needed for
+             flat xlsx/csv exports without a nested JSON structure. -->
+        <RelatedJoinsPanel
+          :relations="relations"
+          :relatable-tables="relatableTables"
+          :selected-table-columns="selectedTableColumns"
+          :selected-table-name="selectedTable"
+          :suggestions="suggestedRelations"
+          @add-suggested="addSuggestedRelation"
+          @add="addRelation"
+          @remove="removeRelation"
           @dirty="markDirty"
+          @convert-to-nested-group="convertRelationToNestedGroup"
         />
 
         <!-- Live preview of the last saved mapping — same query the real export runs. -->
