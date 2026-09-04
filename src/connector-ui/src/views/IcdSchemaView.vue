@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { getSchema, type SchemaColumnDef, type SchemaDefinition } from '@/api/icdSchema'
+import Alert from '@/components/ui/Alert.vue'
 
 const schema = ref<SchemaDefinition | null>(null)
 const loading = ref(true)
@@ -39,55 +40,53 @@ onMounted(async () => {
 <template>
   <div class="max-w-3xl">
     <div class="flex items-center gap-3 mb-5">
-      <h1 class="m-0 text-xl font-semibold">ICD Export Schema</h1>
+      <h1 class="m-0 text-xl font-semibold text-text-primary">ICD Export Schema</h1>
       <span
         v-if="schema"
-        class="inline-flex items-center gap-1 bg-indigo-100 text-indigo-700 text-xs font-bold px-2.5 py-1 rounded-full"
+        class="inline-flex items-center gap-1 bg-brand/10 text-brand text-xs font-bold px-2.5 py-1 rounded-full"
       >
         v{{ schema.version }}
       </span>
     </div>
 
-    <p class="text-sm text-slate-500 mb-6">
+    <p class="text-sm text-text-secondary mb-6">
       Read-only view of the agreed ICD export schema — the column contract between this connector
       and the vendor's Transform Map. Changes require a joint ICD change process.
     </p>
 
-    <div v-if="loading" class="text-slate-500 text-sm">Loading schema…</div>
+    <div v-if="loading" class="text-text-secondary text-sm">Loading schema…</div>
 
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-800">
-      {{ error }}
-    </div>
+    <Alert v-else-if="error" variant="danger">{{ error }}</Alert>
 
     <template v-else-if="schema">
 
       <!-- Active columns table -->
       <section class="mb-8">
-        <h2 class="text-base font-semibold mb-3">Active columns <span class="text-slate-400 font-normal text-sm">({{ activeColumns.length }} of {{ schema.columns.length }})</span></h2>
-        <div class="rounded-lg border border-slate-200 overflow-hidden">
+        <h2 class="text-base font-semibold text-text-primary mb-3">Active columns <span class="text-text-muted font-normal text-sm">({{ activeColumns.length }} of {{ schema.columns.length }})</span></h2>
+        <div class="rounded-lg border border-border overflow-hidden">
           <table class="w-full text-sm">
             <thead>
-              <tr class="bg-slate-50 border-b border-slate-200">
-                <th class="text-left px-3 py-2 text-slate-600 font-medium w-36">Export column</th>
-                <th class="text-left px-3 py-2 text-slate-600 font-medium">ERP source</th>
-                <th class="text-left px-3 py-2 text-slate-600 font-medium w-32">Type / format</th>
-                <th class="text-left px-3 py-2 text-slate-600 font-medium">Notes</th>
+              <tr class="bg-surface-elevated border-b border-border">
+                <th class="text-left px-3 py-2 text-text-secondary font-medium w-36">Export column</th>
+                <th class="text-left px-3 py-2 text-text-secondary font-medium">ERP source</th>
+                <th class="text-left px-3 py-2 text-text-secondary font-medium w-32">Type / format</th>
+                <th class="text-left px-3 py-2 text-text-secondary font-medium">Notes</th>
               </tr>
             </thead>
             <tbody>
               <tr
                 v-for="col in schema.columns"
                 :key="col.name"
-                :class="col.active ? 'bg-white' : 'bg-slate-50 opacity-50'"
-                class="border-b border-slate-100 last:border-0"
+                :class="col.active ? 'bg-surface' : 'bg-surface-elevated opacity-50'"
+                class="border-b border-border last:border-0"
               >
-                <td class="px-3 py-2 font-mono text-xs text-indigo-700">
+                <td class="px-3 py-2 font-mono text-xs text-brand">
                   {{ col.exportName ?? col.name }}
-                  <span v-if="!col.active" class="ml-1 text-[0.65rem] text-slate-400 font-sans">(off)</span>
+                  <span v-if="!col.active" class="ml-1 text-[0.65rem] text-text-muted font-sans">(off)</span>
                 </td>
-                <td class="px-3 py-2 text-slate-500 font-mono text-xs">{{ col.erpSource }}</td>
-                <td class="px-3 py-2 text-slate-600 text-xs">{{ col.type }}</td>
-                <td class="px-3 py-2 text-slate-600 text-xs">{{ col.notes }}</td>
+                <td class="px-3 py-2 text-text-secondary font-mono text-xs">{{ col.erpSource }}</td>
+                <td class="px-3 py-2 text-text-secondary text-xs">{{ col.type }}</td>
+                <td class="px-3 py-2 text-text-secondary text-xs">{{ col.notes }}</td>
               </tr>
             </tbody>
           </table>
@@ -95,22 +94,19 @@ onMounted(async () => {
       </section>
 
       <!-- Coalesce key note -->
-      <section class="mb-8 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm">
-        <p class="font-semibold text-blue-800 mb-1">Coalesce key: <code class="font-mono">guid</code></p>
-        <p class="text-blue-700">
-          The vendor's Transform Map coalesces on <code class="font-mono">guid</code>
-          (<code class="font-mono">systemconfiguration.id</code> — PostgreSQL UUID, stable for the entity lifetime).
-          On every daily import, an existing vendor record with this GUID is <em>updated</em>;
-          a missing GUID causes a new record to be <em>created</em>.
-          The serial number identifies the physical unit but is not the coalesce key — serial corrections
-          update the existing record rather than creating duplicates.
-        </p>
-      </section>
+      <Alert variant="info" class="mb-8" title="Coalesce key: guid">
+        The vendor's Transform Map coalesces on <code class="font-mono">guid</code>
+        (<code class="font-mono">systemconfiguration.id</code> — PostgreSQL UUID, stable for the entity lifetime).
+        On every daily import, an existing vendor record with this GUID is <em>updated</em>;
+        a missing GUID causes a new record to be <em>created</em>.
+        The serial number identifies the physical unit but is not the coalesce key — serial corrections
+        update the existing record rather than creating duplicates.
+      </Alert>
 
       <!-- Pending / excluded fields -->
       <section>
-        <h2 class="text-base font-semibold mb-3">Excluded fields</h2>
-        <p class="text-sm text-slate-500 mb-3">
+        <h2 class="text-base font-semibold text-text-primary mb-3">Excluded fields</h2>
+        <p class="text-sm text-text-secondary mb-3">
           These ERP fields exist but are not in the current ICD allow-list and will never appear in any export artifact.
         </p>
         <div class="space-y-3">
@@ -118,17 +114,17 @@ onMounted(async () => {
             v-for="field in pendingFields"
             :key="field.erpSource"
             class="flex gap-3 items-start rounded-lg border px-4 py-3 text-sm"
-            :class="field.tag === 'gdpr' ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'"
+            :class="field.tag === 'gdpr' ? 'border-danger/25 bg-danger-bg' : 'border-warning/25 bg-warning-bg'"
           >
             <span
               class="shrink-0 text-[0.68rem] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide mt-0.5"
-              :class="field.tag === 'gdpr' ? 'bg-red-200 text-red-800' : 'bg-amber-200 text-amber-800'"
+              :class="field.tag === 'gdpr' ? 'bg-danger text-white' : 'bg-warning text-white'"
             >
               {{ field.reason }}
             </span>
             <div>
-              <code class="font-mono text-slate-700">{{ field.erpSource }}</code>
-              <p class="mt-0.5 text-slate-600">{{ field.detail }}</p>
+              <code class="font-mono text-text-primary">{{ field.erpSource }}</code>
+              <p class="mt-0.5 text-text-secondary">{{ field.detail }}</p>
             </div>
           </div>
         </div>

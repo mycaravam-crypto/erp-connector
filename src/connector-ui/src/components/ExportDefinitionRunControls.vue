@@ -9,6 +9,7 @@ import {
   type ExportDefinition,
   type ExportDefinitionTestResult,
 } from '@/api/exportDefinitions'
+import Button from '@/components/ui/Button.vue'
 
 const props = defineProps<{
   definition: ExportDefinition
@@ -138,69 +139,35 @@ async function confirmDelete() {
 <template>
   <div>
     <div class="flex items-center gap-3 mb-3 flex-wrap">
-      <button
-        type="button"
-        class="px-5 py-2 border-0 rounded-md bg-slate-900 text-slate-200 text-sm font-semibold cursor-pointer hover:bg-slate-800 disabled:opacity-50"
-        :disabled="saving"
-        @click="save"
-      >{{ saving ? 'Saving…' : 'Save' }}</button>
-      <button
-        type="button"
-        class="px-5 py-2 border border-slate-300 rounded-md bg-white text-slate-700 text-sm font-semibold cursor-pointer hover:bg-slate-50 disabled:opacity-50"
-        :disabled="testing"
-        @click="runTest"
-      >{{ testing ? 'Testing…' : 'Test against live connection' }}</button>
-      <button
-        type="button"
-        class="px-5 py-2 border border-slate-300 rounded-md bg-white text-slate-700 text-sm font-semibold cursor-pointer hover:bg-slate-50 disabled:opacity-50"
-        :disabled="running"
-        @click="runNow"
-      >{{ running ? 'Running…' : 'Run Now' }}</button>
-      <button
-        type="button"
-        class="px-4 py-2 border border-slate-300 rounded-md bg-white text-slate-700 text-sm cursor-pointer hover:bg-slate-50 disabled:opacity-50"
-        :disabled="duplicating"
-        @click="duplicate"
-      >{{ duplicating ? 'Duplicating…' : 'Duplicate' }}</button>
+      <Button :loading="saving" @click="save">{{ saving ? 'Saving…' : 'Save' }}</Button>
+      <Button variant="secondary" :loading="testing" @click="runTest">{{ testing ? 'Testing…' : 'Test against live connection' }}</Button>
+      <Button variant="secondary" :loading="running" @click="runNow">{{ running ? 'Running…' : 'Run Now' }}</Button>
+      <Button variant="secondary" :loading="duplicating" @click="duplicate">{{ duplicating ? 'Duplicating…' : 'Duplicate' }}</Button>
 
       <div class="ml-auto flex items-center gap-2">
         <template v-if="confirmingDelete">
-          <span class="text-sm text-red-700">Delete permanently?</span>
-          <button
-            type="button"
-            class="px-3 py-1.5 border-0 rounded-md bg-red-600 text-white text-sm font-semibold cursor-pointer hover:bg-red-700 disabled:opacity-50"
-            :disabled="deleting"
-            @click="confirmDelete"
-          >{{ deleting ? 'Deleting…' : 'Confirm' }}</button>
-          <button
-            type="button"
-            class="px-3 py-1.5 border border-slate-300 rounded-md bg-white text-slate-700 text-sm cursor-pointer hover:bg-slate-50"
-            @click="confirmingDelete = false"
-          >Cancel</button>
+          <span class="text-sm text-danger">Delete permanently?</span>
+          <Button variant="danger" :loading="deleting" @click="confirmDelete">{{ deleting ? 'Deleting…' : 'Confirm' }}</Button>
+          <Button variant="secondary" @click="confirmingDelete = false">Cancel</Button>
         </template>
-        <button
-          v-else
-          type="button"
-          class="px-4 py-2 border border-red-200 rounded-md bg-white text-red-600 text-sm cursor-pointer hover:bg-red-50"
-          @click="confirmingDelete = true"
-        >Delete</button>
+        <Button v-else variant="danger" @click="confirmingDelete = true">Delete</Button>
       </div>
     </div>
 
-    <p v-if="saveStatus === 'ok'" class="text-sm text-green-700 mb-3">{{ saveMessage }}</p>
-    <p v-else-if="saveStatus === 'error'" class="text-sm text-red-600 mb-3">{{ saveMessage }}</p>
+    <p v-if="saveStatus === 'ok'" class="text-sm text-success mb-3">{{ saveMessage }}</p>
+    <p v-else-if="saveStatus === 'error'" class="text-sm text-danger mb-3">{{ saveMessage }}</p>
 
-    <p v-if="runMessage" class="text-sm text-green-700 mb-3">{{ runMessage }}</p>
-    <p v-else-if="runError" class="text-sm text-red-600 mb-3">{{ runError }}</p>
+    <p v-if="runMessage" class="text-sm text-success mb-3">{{ runMessage }}</p>
+    <p v-else-if="runError" class="text-sm text-danger mb-3">{{ runError }}</p>
 
-    <div v-if="testResult" class="bg-slate-50 border border-slate-200 rounded-md px-4 py-3 text-sm mb-3">
-      <p v-if="testResult.status === 'Success'" class="text-green-700 m-0">
+    <div v-if="testResult" class="bg-surface-elevated border border-border rounded-md px-4 py-3 text-sm mb-3">
+      <p v-if="testResult.status === 'Success'" class="text-success m-0">
         Test succeeded — {{ testResult.recordCount }} record(s) read.
       </p>
-      <p v-else class="text-red-600 m-0">
+      <p v-else class="text-danger m-0">
         Test failed: {{ testResult.errorMessage }}
       </p>
     </div>
-    <p v-else-if="testError" class="text-sm text-red-600 mb-3">{{ testError }}</p>
+    <p v-else-if="testError" class="text-sm text-danger mb-3">{{ testError }}</p>
   </div>
 </template>

@@ -14,11 +14,13 @@ const props = withDefaults(
     required?: boolean
     autocomplete?: string
     maxlength?: number
+    min?: number
+    max?: number
   }>(),
   { type: 'text', disabled: false, required: false },
 )
 
-const model = defineModel<string>({ default: '' })
+const model = defineModel<string | number>({ default: '' })
 
 const autoId = useId()
 const id = computed(() => props.id ?? autoId)
@@ -45,6 +47,8 @@ const errorId = useId()
       :required="required"
       :autocomplete="autocomplete"
       :maxlength="maxlength"
+      :min="min"
+      :max="max"
       :aria-invalid="!!error || undefined"
       :aria-describedby="error ? errorId : helpText ? helpId : undefined"
       class="px-2.5 py-1.5 rounded-md text-sm bg-surface text-text-primary border outline-none transition-colors duration-fast placeholder:text-text-muted disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-focus"

@@ -16,21 +16,21 @@ defineEmits<{ refresh: [] }>()
 <template>
   <div>
     <div class="flex items-center gap-3 mb-1">
-      <h2 class="m-0 text-base font-semibold text-slate-900">Preview</h2>
-      <span v-if="recordCount !== null" class="text-xs text-slate-500">{{ recordCount }} record(s) (capped)</span>
+      <h2 class="m-0 text-base font-semibold text-text-primary">Preview</h2>
+      <span v-if="recordCount !== null" class="text-xs text-text-secondary">{{ recordCount }} record(s) (capped)</span>
       <button
-        class="ml-auto px-2.5 py-1 border border-slate-300 rounded-md bg-white text-xs text-slate-500 cursor-pointer disabled:opacity-50 hover:enabled:bg-slate-50"
+        class="ml-auto px-2.5 py-1 border border-border-strong rounded-md bg-surface text-xs text-text-secondary cursor-pointer disabled:opacity-50 hover:enabled:bg-surface-elevated"
         :disabled="loading"
         @click="$emit('refresh')"
       >{{ loading ? 'Loading…' : 'Preview' }}</button>
     </div>
-    <p class="text-xs text-slate-500 m-0 mb-3">Runs the same query Run Now uses, capped, without writing a run to history.</p>
+    <p class="text-xs text-text-secondary m-0 mb-3">Runs the same query Run Now uses, capped, without writing a run to history.</p>
 
-    <p v-if="error" class="text-red-600 text-sm">{{ error }}</p>
-    <p v-else-if="recordCount === 0" class="text-slate-500 text-sm">No records matched.</p>
+    <p v-if="error" class="text-danger text-sm">{{ error }}</p>
+    <p v-else-if="recordCount === 0" class="text-text-secondary text-sm">No records matched.</p>
     <pre
       v-else-if="records.length > 0"
-      class="bg-slate-50 border border-slate-200 rounded-md px-3 py-2 text-xs text-slate-800 overflow-auto max-h-96"
+      class="bg-surface-elevated border border-border rounded-md px-3 py-2 text-xs text-text-primary overflow-auto max-h-96"
     >{{ JSON.stringify(records, null, 2) }}</pre>
   </div>
 </template>

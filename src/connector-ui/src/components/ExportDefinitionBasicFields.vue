@@ -21,32 +21,32 @@ function onRootTableChanged() {
 <template>
   <div class="flex flex-col gap-3 mb-5">
     <div class="flex items-center gap-2">
-      <label class="text-sm text-slate-500 w-28 shrink-0">Name</label>
+      <label class="text-sm text-text-secondary w-28 shrink-0">Name</label>
       <input
         type="text"
         v-model="definition.name"
         aria-label="Name"
-        class="flex-1 px-2.5 py-1.5 border border-slate-300 rounded-md text-sm text-slate-900 outline-none focus:border-slate-900"
+        class="flex-1 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary outline-none focus:border-brand"
       />
     </div>
     <div class="flex items-center gap-2">
-      <label class="text-sm text-slate-500 w-28 shrink-0">Description</label>
+      <label class="text-sm text-text-secondary w-28 shrink-0">Description</label>
       <input
         type="text"
         v-model="definition.description"
         placeholder="optional"
         aria-label="Description"
-        class="flex-1 px-2.5 py-1.5 border border-slate-300 rounded-md text-sm text-slate-900 outline-none focus:border-slate-900"
+        class="flex-1 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary outline-none focus:border-brand"
       />
     </div>
     <div class="flex items-center gap-2">
-      <label class="text-sm text-slate-500 w-28 shrink-0">Root table</label>
+      <label class="text-sm text-text-secondary w-28 shrink-0">Root table</label>
       <select
         v-if="availableTables.length > 0"
         v-model="definition.rootTable"
         :disabled="rootTableLocked"
         aria-label="Root table"
-        class="flex-1 px-2.5 py-1.5 border border-slate-300 rounded-md text-sm text-slate-900 font-mono bg-white disabled:bg-slate-50 disabled:text-slate-400"
+        class="flex-1 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary font-mono bg-surface disabled:bg-surface-elevated disabled:text-text-muted"
         @change="onRootTableChanged"
       >
         <option value="" disabled>— select —</option>
@@ -58,14 +58,14 @@ function onRootTableChanged() {
         v-model="definition.rootTable"
         placeholder="e.g. systemconfiguration"
         aria-label="Root table"
-        class="flex-1 px-2.5 py-1.5 border border-slate-300 rounded-md text-sm text-slate-900 font-mono outline-none focus:border-slate-900"
+        class="flex-1 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary font-mono outline-none focus:border-brand"
       />
-      <span v-if="rootTableLocked" class="text-xs text-slate-400">clear all fields to change</span>
+      <span v-if="rootTableLocked" class="text-xs text-text-muted">clear all fields to change</span>
     </div>
     <div class="flex items-center gap-2">
-      <label class="text-sm text-slate-500 w-28 shrink-0">Enabled</label>
+      <label class="text-sm text-text-secondary w-28 shrink-0">Enabled</label>
       <input type="checkbox" v-model="definition.isEnabled" class="cursor-pointer" />
-      <span class="text-xs text-slate-500">Scheduled runs only fire for enabled definitions.</span>
+      <span class="text-xs text-text-secondary">Scheduled runs only fire for enabled definitions.</span>
     </div>
     <ExportScheduleField v-model="definition.schedule" />
   </div>

@@ -16,6 +16,9 @@ import ExportDefinitionRunControls from '@/components/ExportDefinitionRunControl
 import ExportNodeTreeEditor from '@/components/ExportNodeTreeEditor.vue'
 import ExportDefinitionPreviewPanel from '@/components/ExportDefinitionPreviewPanel.vue'
 import ExportDefinitionRunsTable from '@/components/ExportDefinitionRunsTable.vue'
+import { ChevronLeft } from 'lucide-vue-next'
+import Icon from '@/components/ui/Icon.vue'
+import Button from '@/components/ui/Button.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -174,18 +177,18 @@ async function refreshRuns() {
 
 <template>
   <div class="max-w-3xl">
-    <RouterLink
-      :to="{ name: 'export-definitions' }"
-      class="inline-block text-indigo-600 text-sm no-underline hover:underline mb-4"
-    >← Back to list</RouterLink>
+    <Button variant="ghost" class="mb-4" @click="router.push({ name: 'export-definitions' })">
+      <template #icon><Icon :icon="ChevronLeft" :size="16" /></template>
+      Back to list
+    </Button>
 
-    <p v-if="loading" class="text-slate-500">Loading…</p>
-    <p v-else-if="notFound" class="text-red-600">Export definition not found.</p>
-    <p v-else-if="loadError" class="text-red-600">{{ loadError }}</p>
+    <p v-if="loading" class="text-text-secondary">Loading…</p>
+    <p v-else-if="notFound" class="text-danger">Export definition not found.</p>
+    <p v-else-if="loadError" class="text-danger">{{ loadError }}</p>
 
     <template v-else-if="definition">
-      <h1 class="m-0 text-xl font-semibold mb-1">{{ isSaved ? definition.name || '(untitled)' : 'New Export Definition' }}</h1>
-      <p v-if="isSaved" class="text-slate-500 text-sm mt-1 mb-5">
+      <h1 class="m-0 text-xl font-semibold text-text-primary mb-1">{{ isSaved ? definition.name || '(untitled)' : 'New Export Definition' }}</h1>
+      <p v-if="isSaved" class="text-text-secondary text-sm mt-1 mb-5">
         Config version {{ definition.configVersion }} · created by {{ definition.createdBy }}
       </p>
 
@@ -196,8 +199,8 @@ async function refreshRuns() {
         @root-table-changed="onRootTableChanged"
       />
 
-      <h2 class="text-base font-semibold text-slate-900 mb-2.5">Fields</h2>
-      <p class="text-slate-500 text-sm mb-3 leading-relaxed">
+      <h2 class="text-base font-semibold text-text-primary mb-2.5">Fields</h2>
+      <p class="text-text-secondary text-sm mb-3 leading-relaxed">
         Add fields and related entities to build the export tree. Picking a related table fills in
         every one of its columns (unchecked) so you only have to check the ones you want.
       </p>
@@ -209,7 +212,7 @@ async function refreshRuns() {
         :depth="0"
         class="mb-6"
       />
-      <p v-else class="text-slate-400 text-sm mb-6">Select a root table above to start adding fields.</p>
+      <p v-else class="text-text-muted text-sm mb-6">Select a root table above to start adding fields.</p>
 
       <template v-if="isSaved">
         <ExportDefinitionRunControls
@@ -232,13 +235,10 @@ async function refreshRuns() {
       </template>
 
       <template v-else>
-        <button
-          type="button"
-          class="px-5 py-2 border-0 rounded-md bg-slate-900 text-slate-200 text-sm font-semibold cursor-pointer hover:bg-slate-800 disabled:opacity-50"
-          :disabled="creating || !definition.rootTable"
-          @click="create"
-        >{{ creating ? 'Creating…' : 'Create' }}</button>
-        <p v-if="createError" class="text-sm text-red-600 mt-3">{{ createError }}</p>
+        <Button :disabled="creating || !definition.rootTable" :loading="creating" @click="create">
+          {{ creating ? 'Creating…' : 'Create' }}
+        </Button>
+        <p v-if="createError" class="text-sm text-danger mt-3">{{ createError }}</p>
       </template>
     </template>
   </div>
