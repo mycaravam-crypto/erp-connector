@@ -15,3 +15,10 @@ export file (Excel/CSV/JSON) + manifest ready for the four-eyes release authorit
 For the original fixed six-stage pipeline this replaced (`IErpReader`/`IExportFilter`/
 `IDataMinimizer`/`ISchemaMapper`/`IPackager`) — deleted from the codebase, kept only as design
 rationale — see [legacy/](/legacy/).
+
+# Phase 17 — inbound JSON import (planning only, not started)
+
+* [Import Definitions](import-definitions.md) - Spec for the reverse leg: vendor-supplied JSON
+  written back into the live ERP under the same air-gap and four-eyes controls as the export path
+  (`ImportNode` tree, mirroring `ExportNode`). Resolves [Open Point #6](/planning/open-points.md).
+  No code exists yet — see the doc's Implementation status for the slice checklist.
