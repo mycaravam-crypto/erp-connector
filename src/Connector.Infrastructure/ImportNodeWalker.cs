@@ -8,20 +8,25 @@ namespace Connector.Infrastructure;
 
 /// <summary>
 /// The write-side mirror of <see cref="DynamicExportService"/>'s tree walker (import-definitions.md §5):
-/// parses an inbound JSON file, walks it alongside a saved <see cref="ImportNode"/> tree, and produces a
-/// field-level diff per accepted row plus a rejected-row list — with zero write capability. Every method here
-/// only ever issues SQL <c>SELECT</c>s; the eventual <c>UPDATE</c>/<c>INSERT</c> path is Slice 3's job, built
-/// against this same walk result so preview and commit can never disagree about what a row means.
+/// parses an inbound <c>ImportEnvelope</c> (Open Decision #14) against a saved <see cref="ImportNode"/> tree,
+/// and produces a field-level diff per accepted row plus a rejected-row list — with zero write capability.
+/// Every method here only ever issues SQL <c>SELECT</c>s; the eventual conditional <c>UPDATE</c>/<c>INSERT</c>
+/// path is Slice 3's job, built against this same walk result so preview and commit can never disagree about
+/// what a row means. This is Slice 2's own scope: several follow-on decisions from an external design review
+/// (Open Decisions #9-15) are only partially addressed here — see <see cref="ValidateWritableColumns"/> (#9)
+/// and the <c>OnMissingChild == Insert</c> branches (#15) for what's explicitly deferred, and
+/// <see cref="ImportWalkResult"/>/<see cref="ImportFieldDiff"/> for the not-yet-final <c>PlanJson</c> shape
+/// (#11, #12).
 /// </summary>
 public static class ImportNodeWalker
 {
     /// <summary>
-    /// Walks <paramref name="inboundJson"/> against <paramref name="root"/>, matching each record's
-    /// correlation key against <paramref name="definition"/>'s <c>RootTable</c>/<c>RootMatchColumn</c> and
-    /// computing a field-level diff for every match. Throws <see cref="ImportValidationException"/> for a
-    /// problem with the saved definition or the inbound file itself (never for one bad record — see that
-    /// type's doc comment); an individual record's correlation mismatch is reported via
-    /// <see cref="ImportRowResult"/>, not an exception.
+    /// Walks <paramref name="inboundJson"/> (an <c>ImportEnvelope</c> — <c>schemaVersion</c> + <c>records</c>,
+    /// Open Decision #14) against <paramref name="root"/>, matching each record's correlation key against
+    /// <paramref name="definition"/>'s <c>RootTable</c>/<c>RootMatchColumn</c> and computing a field-level diff
+    /// for every match. Throws <see cref="ImportValidationException"/> for a problem with the saved definition
+    /// or the inbound file itself (never for one bad record — see that type's doc comment); an individual
+    /// record's correlation mismatch is reported via <see cref="ImportRowResult"/>, not an exception.
     /// </summary>
     public static async Task<ImportWalkResult> WalkAsync(
         NpgsqlConnection conn,
@@ -136,6 +141,12 @@ public static class ImportNodeWalker
     /// outside its own allowlist must never be trusted silently (import-definitions.md §3 step 4). Returns the
     /// offending column names rather than throwing directly, so the caller can build one aggregate error
     /// message instead of failing on only the first violation found.
+    ///
+    /// <para>Deliberately NOT schema-aware yet: Open Decision #9 also wants this run-time re-check to reject a
+    /// <c>TargetColumn</c> that's a primary key, an identity/computed column, or an untracked foreign key, which
+    /// needs <c>IntrospectSchemaAsync</c> wired in here. That's left for the save-time validator's own slice
+    /// (Slice 5) to land first — this check is still list-membership + GDPR-denylist only for now, which is a
+    /// real (if narrower) safety boundary on its own, not a placeholder.</para>
     /// </summary>
     public static IReadOnlyList<string> ValidateWritableColumns(
         ImportNode root,
@@ -181,11 +192,19 @@ public static class ImportNodeWalker
 
     // ── Inbound JSON parsing ─────────────────────────────────────────────────────
 
-    /// <summary>Accepts either a bare top-level JSON array of records, or an object with a top-level
-    /// <c>"records"</c> array — the same envelope <see cref="DynamicExportService.BuildNestedJsonBytes"/> emits
-    /// by default, so a vendor confirmation file can reuse the shape they already receive. Anything else is a
-    /// definition-level problem (there's no per-record recovery from unparseable JSON), so it throws rather
-    /// than producing an empty result.</summary>
+    /// <summary>The only <c>schemaVersion</c> this walker currently understands (Open Decision #14,
+    /// import-definitions.md §3 step 2 / §6). An inbound file whose version is missing or doesn't match this
+    /// exactly is rejected before a single record is touched — never shape-guessed. The full <c>ImportEnvelope</c>
+    /// (<c>definition</c>/<c>generatedAt</c>/<c>sourceSystem</c>/<c>correlationId</c> alongside
+    /// <c>schemaVersion</c>/<c>records</c>) is a Slice 4/5 concern once those fields have real producers/consumers;
+    /// this walker only reads the two fields it needs to do its own job.</summary>
+    public const string SupportedSchemaVersion = "1";
+
+    /// <summary>Parses the inbound file as the canonical <c>ImportEnvelope</c> (Open Decision #14): a top-level
+    /// JSON object carrying <c>schemaVersion</c> and a <c>records</c> array. <c>schemaVersion</c> is checked
+    /// first, before any record is touched — a missing or unrecognized version is a definition/file-level
+    /// problem (there's no per-record recovery from "I don't understand this file's shape"), so it throws
+    /// rather than guessing at a shape.</summary>
     private static List<JsonNode?> ParseRecords(string inboundJson)
     {
         JsonNode? parsed;
@@ -198,14 +217,25 @@ public static class ImportNodeWalker
             throw new ImportValidationException($"Inbound file is not valid JSON: {ex.Message}", ex);
         }
 
-        return parsed switch
-        {
-            JsonArray arr => [.. arr],
-            JsonObject obj when obj.TryGetPropertyValue("records", out var recs) && recs is JsonArray recsArr => [.. recsArr],
-            _ => throw new ImportValidationException(
-                "Inbound JSON must be a top-level array of records, or an object with a top-level \"records\" array."
-            ),
-        };
+        if (parsed is not JsonObject envelope)
+            throw new ImportValidationException(
+                "Inbound file must be an ImportEnvelope object with \"schemaVersion\" and \"records\" "
+                    + "(Open Decision #14) — a bare JSON array is not a recognized envelope shape."
+            );
+
+        var schemaVersion = envelope.TryGetPropertyValue("schemaVersion", out var versionNode)
+            ? JsonValueToString(versionNode)
+            : null;
+        if (!string.Equals(schemaVersion, SupportedSchemaVersion, StringComparison.Ordinal))
+            throw new ImportValidationException(
+                $"Inbound file has schemaVersion '{schemaVersion ?? "(missing)"}' — this walker only "
+                    + $"understands '{SupportedSchemaVersion}' (Open Decision #14)."
+            );
+
+        if (!envelope.TryGetPropertyValue("records", out var recs) || recs is not JsonArray recsArr)
+            throw new ImportValidationException("ImportEnvelope is missing its top-level \"records\" array.");
+
+        return [.. recsArr];
     }
 
     // ── Root-row matching + field diff ───────────────────────────────────────────
@@ -394,6 +424,11 @@ public static class ImportNodeWalker
             : ResolveArrayChild(node, matches, parentJoinValue);
     }
 
+    // node.OnMissingChild == Insert is exercised below (both here and in ResolveArrayChild) even though Open
+    // Decision #15 wants it unreachable in v1 real definitions: that's enforced by a Slice 5 save-time
+    // validator which doesn't exist yet. Deliberately not deleted from the walker — ExportNode-style OCP means
+    // the type itself still supports it — but until Slice 5 lands, nothing stops a saved definition from
+    // reaching this branch today. Flagging so that gap stays visible rather than being mistaken for "done."
     private static async Task<ImportChildResult> ResolveObjectChildAsync(
         NpgsqlConnection conn,
         ImportNode node,
@@ -444,7 +479,9 @@ public static class ImportNodeWalker
     }
 
     // Array-kind children only get the existence check in v1 — see ImportChildResult's doc comment for why
-    // per-item field diffing is deferred rather than guessed at.
+    // per-item field diffing is deferred rather than guessed at. Its own OnMissingChild == Insert branch below
+    // is reachable today for the same reason noted above ResolveObjectChildAsync (Open Decision #15, pending
+    // Slice 5's save-time validator).
     private static ImportChildResult ResolveArrayChild(
         ImportNode node,
         List<Dictionary<string, string?>> matches,

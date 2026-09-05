@@ -39,6 +39,12 @@ public sealed class ImportNodeWalkerPostgresTests
         }
     }
 
+    // Wraps a bare JSON array of records in the canonical ImportEnvelope (Open Decision #14) every test needs
+    // — schemaVersion first, then records — so individual tests only spell out the part they're actually
+    // exercising.
+    private static string Envelope(string recordsArrayJson) =>
+        $$"""{ "schemaVersion": "{{ImportNodeWalker.SupportedSchemaVersion}}", "records": {{recordsArrayJson}} }""";
+
     // ── Tree builders ────────────────────────────────────────────────────────────
 
     private static ImportNode Scalar(string sourceKey, string targetColumn) =>
@@ -143,7 +149,7 @@ public sealed class ImportNodeWalkerPostgresTests
 
         var root = SystemConfigurationRoot();
         var definition = MakeDefinition("systemconfiguration", "id", ["status"]);
-        var json = $$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "confirmed" }]""";
+        var json = Envelope($$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "confirmed" }]""");
 
         var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
 
@@ -167,7 +173,7 @@ public sealed class ImportNodeWalkerPostgresTests
 
         var root = SystemConfigurationRoot();
         var definition = MakeDefinition("systemconfiguration", "id", ["status"]);
-        var json = $$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "active" }]""";
+        var json = Envelope($$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "active" }]""");
 
         var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
 
@@ -176,8 +182,27 @@ public sealed class ImportNodeWalkerPostgresTests
         Assert.Empty(row.Fields);
     }
 
+    // ── ImportEnvelope / schemaVersion gate (Open Decision #14) ──────────────────
+
     [Fact]
-    public async Task WalkAsync_RecordsEnvelope_IsAcceptedTheSameAsBareArray()
+    public async Task WalkAsync_BareArrayWithNoEnvelope_ThrowsValidationException()
+    {
+        await using var conn = await TryOpenAsync();
+        if (conn is null)
+            return;
+
+        var root = SystemConfigurationRoot();
+        var definition = MakeDefinition("systemconfiguration", "id", ["status"]);
+        // No longer accepted as of Open Decision #14 — every inbound file must be an ImportEnvelope object.
+        var json = $$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "confirmed" }]""";
+
+        await Assert.ThrowsAsync<ImportValidationException>(
+            () => ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None)
+        );
+    }
+
+    [Fact]
+    public async Task WalkAsync_MissingSchemaVersion_ThrowsValidationException()
     {
         await using var conn = await TryOpenAsync();
         if (conn is null)
@@ -187,9 +212,27 @@ public sealed class ImportNodeWalkerPostgresTests
         var definition = MakeDefinition("systemconfiguration", "id", ["status"]);
         var json = $$"""{ "records": [{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "confirmed" }] }""";
 
-        var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
+        await Assert.ThrowsAsync<ImportValidationException>(
+            () => ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None)
+        );
+    }
 
-        Assert.Equal(1, result.AcceptedCount);
+    [Fact]
+    public async Task WalkAsync_UnrecognizedSchemaVersion_ThrowsValidationException()
+    {
+        await using var conn = await TryOpenAsync();
+        if (conn is null)
+            return;
+
+        var root = SystemConfigurationRoot();
+        var definition = MakeDefinition("systemconfiguration", "id", ["status"]);
+        var json = $$"""
+            { "schemaVersion": "99", "records": [{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "confirmed" }] }
+            """;
+
+        await Assert.ThrowsAsync<ImportValidationException>(
+            () => ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None)
+        );
     }
 
     // ── Root correlation-key mismatch ────────────────────────────────────────────
@@ -203,7 +246,7 @@ public sealed class ImportNodeWalkerPostgresTests
 
         var root = SystemConfigurationRoot();
         var definition = MakeDefinition("systemconfiguration", "id", ["status"], UnmatchedRootPolicy.Reject);
-        var json = $$"""[{ "ciId": "{{UnknownCiId}}", "confirmationStatus": "confirmed" }]""";
+        var json = Envelope($$"""[{ "ciId": "{{UnknownCiId}}", "confirmationStatus": "confirmed" }]""");
 
         var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
 
@@ -223,7 +266,7 @@ public sealed class ImportNodeWalkerPostgresTests
 
         var root = SystemConfigurationRoot();
         var definition = MakeDefinition("systemconfiguration", "id", ["status"], UnmatchedRootPolicy.Quarantine);
-        var json = $$"""[{ "ciId": "{{UnknownCiId}}", "confirmationStatus": "confirmed" }]""";
+        var json = Envelope($$"""[{ "ciId": "{{UnknownCiId}}", "confirmationStatus": "confirmed" }]""");
 
         var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
 
@@ -243,7 +286,7 @@ public sealed class ImportNodeWalkerPostgresTests
         var root = SystemConfigurationRoot();
         // "status" is written by the tree but deliberately left off the allowlist.
         var definition = MakeDefinition("systemconfiguration", "id", []);
-        var json = $$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "confirmed" }]""";
+        var json = Envelope($$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "confirmed" }]""");
 
         await Assert.ThrowsAsync<ImportValidationException>(
             () => ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None)
@@ -261,9 +304,9 @@ public sealed class ImportNodeWalkerPostgresTests
 
         var root = SystemConfigurationRoot(MaintenancePlanChild());
         var definition = MakeDefinition("systemconfiguration", "id", ["status", "allocation_chart_ref"]);
-        var json = $$"""
-            [{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "active", "maintenancePlan": { "allocationChartRef": "AC-2024-099" } }]
-            """;
+        var json = Envelope(
+            $$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "active", "maintenancePlan": { "allocationChartRef": "AC-2024-099" } }]"""
+        );
 
         var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
 
@@ -286,9 +329,9 @@ public sealed class ImportNodeWalkerPostgresTests
 
         var root = SystemConfigurationRoot(MaintenancePlanChild());
         var definition = MakeDefinition("systemconfiguration", "id", ["status", "allocation_chart_ref"]);
-        var json = $$"""
-            [{ "ciId": "{{DecommissionedCiId}}", "confirmationStatus": "decommissioned", "maintenancePlan": { "allocationChartRef": "AC-2024-099" } }]
-            """;
+        var json = Envelope(
+            $$"""[{ "ciId": "{{DecommissionedCiId}}", "confirmationStatus": "decommissioned", "maintenancePlan": { "allocationChartRef": "AC-2024-099" } }]"""
+        );
 
         var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
 
@@ -309,7 +352,7 @@ public sealed class ImportNodeWalkerPostgresTests
 
         var root = SystemConfigurationRoot(MaintenancePlanChild());
         var definition = MakeDefinition("systemconfiguration", "id", ["status", "allocation_chart_ref"]);
-        var json = $$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "active" }]""";
+        var json = Envelope($$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "active" }]""");
 
         var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
 
@@ -328,7 +371,7 @@ public sealed class ImportNodeWalkerPostgresTests
 
         var root = ManufacturerRoot(AddressesChild());
         var definition = MakeDefinition("manufacturer", "id", ["city"]);
-        var json = $$"""[{ "manufacturerId": "{{AcmeManufacturerId}}", "addresses": [{ "city": "Austin" }] }]""";
+        var json = Envelope($$"""[{ "manufacturerId": "{{AcmeManufacturerId}}", "addresses": [{ "city": "Austin" }] }]""");
 
         var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
 
@@ -347,7 +390,9 @@ public sealed class ImportNodeWalkerPostgresTests
 
         var root = ManufacturerRoot(AddressesChild());
         var definition = MakeDefinition("manufacturer", "id", ["city"]);
-        var json = $$"""[{ "manufacturerId": "{{NorthbridgeManufacturerId}}", "addresses": [{ "city": "Somewhere" }] }]""";
+        var json = Envelope(
+            $$"""[{ "manufacturerId": "{{NorthbridgeManufacturerId}}", "addresses": [{ "city": "Somewhere" }] }]"""
+        );
 
         var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
 
@@ -374,9 +419,9 @@ public sealed class ImportNodeWalkerPostgresTests
 
         var root = SystemConfigurationRoot(MaintenancePlanChild());
         var definition = MakeDefinition("systemconfiguration", "id", ["status", "allocation_chart_ref"]);
-        var json = $$"""
-            [{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "confirmed", "maintenancePlan": { "allocationChartRef": "AC-2024-099" } }]
-            """;
+        var json = Envelope(
+            $$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "confirmed", "maintenancePlan": { "allocationChartRef": "AC-2024-099" } }]"""
+        );
 
         var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
 
