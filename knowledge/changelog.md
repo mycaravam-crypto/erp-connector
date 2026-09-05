@@ -6,7 +6,28 @@ tags: [changelog, roadmap, history]
 timestamp: 2026-09-03T00:00:00Z
 ---
 
-Last updated: 2026-09-03
+Last updated: 2026-09-05
+
+---
+
+## Phase 15 — Nested JSON mapping UX ✅
+
+Two follow-up passes over the Phase 12 nested-JSON export UI — no new backend capability, just
+making the existing `NestedGroupEditor.vue`/`SchemaView.vue` flow the JSON-first default it was
+always meant to become. Separate from, and does not touch, the Phase 14 `ExportNode`/
+`ExportDefinition` tree-builder system, which already models forward/reverse FKs and nested JSON
+generically.
+
+| Item | Notes |
+|---|---|
+| Step 3 reframed around nested JSON, not relations | "Nested JSON Structure" now renders directly after column mapping, always expanded; "Related Table Joins" demoted to a collapsed advanced section (opens by default only if a mapping already has relations configured). Visibility decoupled from the `previewFormat` toggle so switching the preview format no longer hides or discards nested-group/envelope config. Step 3 copy rewritten for the JSON-first mental model. Closes #41–#44. |
+| "Convert to Nested Group" action | Per-relation action builds the equivalent nested group and optionally removes the source relation — replaces the old dead-end `relationsDroppedForJson` warning with a real migration path. Closes #45. |
+| Structural preview + inline validation | `NestedGroupEditor.vue` gained a JSON-shape preview and inline validation (missing join config, duplicate export keys); the resulting template-complexity growth was kept under CI's `fallow` threshold by extracting `IssuesAlert.vue`. Closes #47. |
+| Design-token cleanup | `RelationsSection.vue`/`RelationCard.vue` raw slate/white/sky Tailwind classes replaced with design tokens. Closes #46. |
+| FK-direction suggestions | `findSuggestedRelations` (`lib/suggestedRelations.ts`) only surfaced reverse FKs (another table's column pointing back at the selected one), so a table's own FK column — the common case for a 1:1 nested "object" lookup, e.g. `item.manufacturer_id → manufacturer.id` — never appeared as a suggestion in the `ExportNode` tree builder. Forward FKs now suggest `object`, reverse FKs keep suggesting `array`; each suggestion carries its kind so `ExportNodeTreeEditor.vue` adds the right node type instead of always defaulting to `array`. Split into `findForwardRelations`/`findReverseRelations` to stay under the complexity gate. The legacy `SchemaView.vue` mapping only models 1:N joins, so it filters suggestions to `kind === 'array'`, unchanged behavior. |
+
+**Verification:** both PRs' CI green (`fallow audit`/`type-check`/`test` on the frontend); new
+`suggestedRelations.test.ts` and additions to `SchemaView.test.ts` cover the new behavior.
 
 ---
 
