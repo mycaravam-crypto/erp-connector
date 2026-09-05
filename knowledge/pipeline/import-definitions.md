@@ -7,8 +7,10 @@ tags: [pipeline, dynamic-mapping, phase-17, planning, not-started]
 timestamp: 2026-09-05T00:00:00Z
 ---
 
-> **Status: planning only.** Nothing in this document is implemented. It exists so the design is
-> settled, reviewed, and sliced into PRs before any code is written — the same process
+> **Status: planning only, decisions resolved.** Nothing in this document is implemented, but all
+> eight items in [§6 Open Decisions](#6-open-decisions) now have an answer — nothing but the actual
+> vendor ICD contract (for exact column names) blocks starting Slice 1. This exists so the design
+> is settled, reviewed, and sliced into PRs before any code is written — the same process
 > [Export Definitions 2.0](/pipeline/export-definitions-2.0.md) went through. See
 > [Implementation status](#implementation-status) for the slice checklist and the tracking issue.
 
@@ -60,6 +62,14 @@ Four-eyes review is required before any write reaches the ERP, matching the rigo
 to the outbound release — this writes to the system of record, which is a materially bigger risk
 than reading from it.
 
+**v1 scope (per [Open Decision #5](#6-open-decisions)):** the vendor is only allowed to write
+confirmation/status fields on the root entity — the narrowest option, matching Open Point #6's
+original framing ("write back CI update confirmations"). `ImportNode`'s `object`/`array`
+child-node mechanism (§4) stays in the type model — the same "no new types for a new source table"
+property `ExportNode` already has — but the first real `ImportDefinition`s won't exercise
+`OnMissingChild = insert`; that's a v2+ scope expansion (e.g. the vendor adding a discovered
+serial number), not a v1 requirement.
+
 ---
 
 ## 2. Current State
@@ -71,7 +81,7 @@ than reading from it.
 | Field-level control | `FieldMapping` (transform, default, data type) — reused as-is | same type, reused as-is |
 | Column scope control | GDPR denylist (default-allow-except) | `AllowedWritableColumns` allowlist (default-deny-except) |
 | Trigger | `ExportDefinitionWorker` polls cron | `ImportWorker` polls an `inbound/` folder |
-| Integrity | SHA-256 manifest + sequence number, `IExportSink` | mirrored: manifest + sequence check before processing |
+| Integrity | SHA-256 manifest + sequence number, `IExportSink` | SHA-256 manifest only for v1 — no sequence/gap detection, see Open Decision #8 |
 | Human approval | Four-eyes release (Operator/Approver, distinct JWT users) | same contract, generalized into a shared helper |
 | Run record | `ExportRunEntity` / `ExportDefinitionRunEntity` | `ImportRunEntity` (new) |
 | Audit | `AuditService.LogAsync` | same service, new action names |
@@ -86,7 +96,8 @@ Vendor produces JSON (per the ICD) + SHA-256 manifest
   ↓ physical media, human-carried — same air gap, opposite direction
 inbound/ folder on the connector host
   ↓ ImportWorker polls inbound/ (sibling of ExportDefinitionWorker; same "poll, don't push" model)
-1. Manifest check     — SHA-256 matches; sequence number recorded (gap detection, symmetric to export)
+1. Manifest check     — SHA-256 of the file matches the accompanying manifest (no sequence/gap
+                         check for v1 — see Open Decision #8)
 2. Shape validation   — parse JSON, walk it against the saved ImportNode tree; malformed input is
                          quarantined (moved to inbound/rejected/), never partially processed
 3. Row mapping        — per record: resolve the correlation key against RootTable/RootMatchColumn;
@@ -102,14 +113,20 @@ inbound/ folder on the connector host
 6. Four-eyes review   — an Operator reviews the diff (accepted-row sample, rejected/quarantined
                          count, record count) in the UI and submits a distinct Approver — the exact
                          POST .../release contract the export side already has
-7. Commit             — on approval, one DB transaction applies every accepted row; any failure
-                         rolls back the entire run and sets Status = Failed with a specific error —
-                         matches the "never a silent partial success" rule already enforced on export
+7. Commit             — on approval, one DB transaction applies every **accepted** row (rows
+                         rejected/quarantined in steps 2-4 were already excluded before the
+                         transaction opens — that's intentional, see Open Decision #6); if the
+                         commit transaction itself fails (e.g. an unexpected constraint violation),
+                         it rolls back completely and the run is marked Failed with a specific
+                         error — the "never a silent partial success" rule still holds at the
+                         transaction level, it just applies to the accepted set, not the raw file
 8. Audit + archive    — AuditService logs Operator/Approver/accepted/rejected counts; the source
                          file + manifest move to inbound/processed/, never deleted
 ```
 
-A rejected/quarantined **row** does not, by itself, fail the run — see [Open Decision #3](#6-open-decisions) for whether the *file* commits its accepted rows regardless (pending a policy call).
+A rejected/quarantined **row** does not fail the run by design — see
+[Open Decision #6](#6-open-decisions): the run commits its accepted rows and reports the rest for
+manual follow-up, rather than one bad vendor row blocking every good one in the file.
 
 ---
 
@@ -121,7 +138,9 @@ ImportDefinition                          (new EF Core entity)
 ├── RootTable, RootMatchColumn            (column the correlation key matches against)
 ├── RootNode                : ImportNode  (the tree)
 ├── AllowedWritableColumns  : string[]    (explicit allowlist — validated at save time; a save
-│                                           that targets a column outside this list is rejected)
+│                                           that targets a column outside this list is rejected.
+│                                           v1 scope per Open Decision #5: confirmation/status
+│                                           fields on the root only — see §1)
 ├── UnmatchedRootPolicy     : reject | quarantine   (never "auto-create" — see §1)
 ├── IsEnabled               : bool
 ├── ConfigVersion           : int
@@ -144,7 +163,7 @@ ImportNode                                (recursive — mirrors ExportNode exac
 ImportRunEntity                           (new — mirrors ExportDefinitionRunEntity + ExportRun's
                                             four-eyes fields combined)
 ├── Id, ImportDefinitionId, ConfigVersion
-├── SourceFileName, Sha256Checksum, SequenceNumber
+├── SourceFileName, Sha256Checksum         (no SequenceNumber — deferred, see Open Decision #8)
 ├── StartedAt / FinishedAt (UTC)
 ├── Status                  : PendingReview | Released | Rejected | Failed
 ├── RecordCount, AcceptedCount, RejectedCount
@@ -198,7 +217,7 @@ are meaningless half the time — worse than two small, honest types.
 
 ## 6. Open Decisions
 
-Resolved (from the initial planning conversation):
+All eight resolved. Nothing here blocks starting Slice 1.
 
 1. **Import target** — **Resolved: the live ERP database**, not a generic new target. This is the
    Open Point #6 return-channel, not a separate bidirectional-sync feature.
@@ -207,27 +226,27 @@ Resolved (from the initial planning conversation):
    back over the gap automatically; a human still carries the file.
 3. **Approval** — **Resolved: four-eyes required** before any row is committed to the ERP, using
    the same Operator/Approver contract as the export release.
-
-Pending (need a stakeholder decision before implementation, same flavor as
-[Open Points #3/#4/#8](/planning/open-points.md)):
-
-4. **Root-match key** — is it the same `Guid` correlation key from Open Point #1, or does the
-   vendor's confirmation payload carry a different identifier? Needs the actual ICD/vendor
-   contract for the return channel, not an assumption.
-5. **Scope of `AllowedWritableColumns`** — what is the vendor actually allowed to write back?
-   Confirmation-of-receipt only? Serial numbers? Status? A legal/data-owner conversation, not an
-   engineering one.
-6. **Partial-file commit policy** — does one rejected row block the whole file's commit, or does
-   the run commit its accepted rows while flagging the rest for manual follow-up? Leaning toward
-   "commit accepted, report rejected" (a single bad row from the vendor shouldn't block every good
-   one), but this is a policy call.
-7. **GDPR on the inbound side** — could a vendor confirmation payload ever carry personal data
-   back in? If so, the denylist check needs to run on write too, not just strip on read as it does
-   for export today.
-8. **Sequence/gap detection** — does the inbound side need the same "a missing file is detectable
-   without a back-channel" property the outbound manifest already gives? If the vendor sends
-   confirmations on its own cadence rather than 1:1 per export, sequence numbers may not even
-   apply the same way.
+4. **Root-match key** — **Resolved: the same `Guid` correlation key** from Open Point #1. It's
+   already the field the connector exports to the vendor, so no new identifier needs to be
+   introduced on their side. `RootMatchColumn` stays a per-`ImportDefinition` setting rather than
+   a hardcoded assumption, in case a future definition needs something else.
+5. **Scope of `AllowedWritableColumns`** — **Resolved: confirmation/status fields on the root
+   entity only**, the narrowest option — matching Open Point #6's original framing ("write back CI
+   update confirmations"). The exact column names still depend on the actual vendor ICD contract
+   (not yet negotiated), but the *category* of what's writable is settled. See the v1 scope note
+   in §1.
+6. **Partial-file commit policy** — **Resolved: commit accepted rows, quarantine the rest.** A
+   single bad row from the vendor doesn't block every good row in the same file; rejected rows are
+   reported on the run for manual follow-up rather than failing the whole batch.
+7. **GDPR on the inbound side** — **Resolved: not expected, but enforced defensively anyway.**
+   Personal data isn't expected in a confirmation/status payload (§5), but the denylist check runs
+   on write regardless — the same defence-in-depth posture the export side already applies on
+   read, and it costs nothing to check even when it never trips.
+8. **Sequence/gap detection** — **Resolved: not built for v1.** The SHA-256 manifest already gives
+   per-file integrity; vendor confirmations won't arrive 1:1 per export run, so sequence-number gap
+   detection doesn't map cleanly onto this direction the way it does for the outbound side. No
+   `SequenceNumber` field on `ImportRunEntity` for v1 (§4) — revisit only if the vendor's actual
+   cadence turns out to need it.
 
 ---
 
@@ -235,10 +254,10 @@ Pending (need a stakeholder decision before implementation, same flavor as
 
 | Quality | Requirement |
 |---|---|
-| **Reliability** | A rejected/failed run never partially writes to the ERP — commit is one transaction, all-or-nothing at the file level (pending Open Decision #6 on row-level granularity). |
+| **Reliability** | Row-level rejection is intentional (Open Decision #6) — an invalid row is excluded from the accepted set before the transaction opens. That accepted set then commits as one all-or-nothing transaction: a technical failure during commit rolls back completely and fails the whole run, never a half-applied write. |
 | **Security** | Every endpoint requires authentication; the commit step additionally requires two distinct authenticated users (Operator + Approver), same as export release. Writable columns are allowlisted per definition, not just authenticated-user-gated. |
 | **Traceability** | Every run carries `ConfigVersion`, `OperatedBy`, `ApprovedBy`, and a persisted `DiffJson` — "what was written and who approved it" is reconstructable after the fact. |
-| **Auditability without a back-channel** | SHA-256 manifest + sequence number on the inbound file, mirroring the outbound contract. |
+| **Auditability without a back-channel** | SHA-256 manifest on the inbound file (no sequence number for v1 — Open Decision #8). |
 | **Maintainability** | A new source table needs zero new C# types — same OCP property `ExportNode` already has. |
 
 **SOLID, concretely:** SRP — parsing/matching, validation, diff-building, and commit stay separate
@@ -281,14 +300,17 @@ preview and commit against the same transaction scope without opening two connec
 
 ## Implementation status
 
-Nothing started. Tracking issue: [#51](https://github.com/mycaravam-crypto/erp-connector/issues/51), with one sub-issue per slice (#52–58). Suggested slices, mirroring
+Nothing started. All eight design decisions in §6 are resolved — nothing blocks starting Slice 1
+except the actual vendor ICD contract for the exact `AllowedWritableColumns` column names (§6 #5).
+Tracking issue: [#51](https://github.com/mycaravam-crypto/erp-connector/issues/51), with one
+sub-issue per slice (#52–58). Suggested slices, mirroring
 [Export Definitions 2.0](/pipeline/export-definitions-2.0.md#implementation-status)'s shape —
 each roughly PR-sized and independently reviewable:
 
 - [ ] **Slice 1 — Data model + migration.** `ImportNode`/`FieldMapping` reuse, `ImportDefinitionEntity`/`ImportRunEntity`, EF migration. No behavior yet — just the shape.
 - [ ] **Slice 2 — `ImportNodeWalker`: parse, match, diff.** Parses inbound JSON against a saved tree, resolves root/child matches, builds `DiffJson`. **No writes** — output is only the computed diff, so this slice is testable and reviewable in complete isolation from the compliance-sensitive commit path.
 - [ ] **Slice 3 — Four-eyes commit path.** Applies an approved diff transactionally; `ImportRunEntity` lifecycle; the shared Operator/Approver helper (refactored out of the existing export release endpoint); audit logging.
-- [ ] **Slice 4 — `ImportWorker`.** Polls `inbound/`; manifest/sequence validation; quarantine handling for malformed files.
+- [ ] **Slice 4 — `ImportWorker`.** Polls `inbound/`; SHA-256 manifest validation (no sequence check — Open Decision #8); quarantine handling for malformed files.
 - [ ] **Slice 5 — API endpoints.** CRUD, preview, release, run history — `ImportDefinitionEndpoints.cs`.
 - [ ] **Slice 6 — Frontend.** `ImportNodeTreeEditor.vue`, review/diff UI, Import Definitions list + edit views.
 - [ ] **Slice 7 — Docs.** This page's status flip to "shipped," changelog entry, Open Point #6 resolution.
