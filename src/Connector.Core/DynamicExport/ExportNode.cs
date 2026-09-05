@@ -94,7 +94,9 @@ public static class ExportNodeJson
             Mapping = node.Mapping is null ? null : NormalizeMapping(node.Mapping),
         };
 
-    private static FieldMapping NormalizeMapping(FieldMapping mapping) =>
+    /// <summary>Public so <see cref="Connector.Core.DynamicImport.ImportNodeJson"/> can reuse the same
+    /// backfill for the <see cref="FieldMapping"/> it shares verbatim, instead of duplicating it.</summary>
+    public static FieldMapping NormalizeMapping(FieldMapping mapping) =>
         mapping with
         {
             Transform = string.IsNullOrWhiteSpace(mapping.Transform) ? FieldTransform.None : mapping.Transform,
