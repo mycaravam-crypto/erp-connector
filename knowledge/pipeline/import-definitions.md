@@ -307,8 +307,8 @@ sub-issue per slice (#52–58). Suggested slices, mirroring
 [Export Definitions 2.0](/pipeline/export-definitions-2.0.md#implementation-status)'s shape —
 each roughly PR-sized and independently reviewable:
 
-- [ ] **Slice 1 — Data model + migration.** `ImportNode`/`FieldMapping` reuse, `ImportDefinitionEntity`/`ImportRunEntity`, EF migration. No behavior yet — just the shape.
-- [ ] **Slice 2 — `ImportNodeWalker`: parse, match, diff.** Parses inbound JSON against a saved tree, resolves root/child matches, builds `DiffJson`. **No writes** — output is only the computed diff, so this slice is testable and reviewable in complete isolation from the compliance-sensitive commit path.
+- [x] **Slice 1 — Data model + migration.** `ImportNode`/`FieldMapping` reuse, `ImportDefinitionEntity`/`ImportRunEntity`, EF migration. No behavior yet — just the shape.
+- [x] **Slice 2 — `ImportNodeWalker`: parse, match, diff.** Parses inbound JSON against a saved tree, resolves root/child matches, builds `DiffJson`. **No writes** — output is only the computed diff, so this slice is testable and reviewable in complete isolation from the compliance-sensitive commit path.
 - [ ] **Slice 3 — Four-eyes commit path.** Applies an approved diff transactionally; `ImportRunEntity` lifecycle; the shared Operator/Approver helper (refactored out of the existing export release endpoint); audit logging.
 - [ ] **Slice 4 — `ImportWorker`.** Polls `inbound/`; SHA-256 manifest validation (no sequence check — Open Decision #8); quarantine handling for malformed files.
 - [ ] **Slice 5 — API endpoints.** CRUD, preview, release, run history — `ImportDefinitionEndpoints.cs`.
