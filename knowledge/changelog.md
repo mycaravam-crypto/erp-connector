@@ -10,7 +10,7 @@ Last updated: 2026-09-05
 
 ---
 
-## Phase 15 — Nested JSON mapping UX ✅
+## Phase 16 — Nested JSON mapping UX ✅
 
 Two follow-up passes over the Phase 12 nested-JSON export UI — no new backend capability, just
 making the existing `NestedGroupEditor.vue`/`SchemaView.vue` flow the JSON-first default it was
@@ -28,6 +28,29 @@ generically.
 
 **Verification:** both PRs' CI green (`fallow audit`/`type-check`/`test` on the frontend); new
 `suggestedRelations.test.ts` and additions to `SchemaView.test.ts` cover the new behavior.
+
+---
+
+## Phase 15 — UI redesign: dark theme and design system ✅
+
+Reworks `connector-ui`'s visual layer end-to-end — tokens, primitives, icons, then every view —
+behind a system-preference-aware dark mode, plus two small follow-up fixes discovered once it
+shipped. Zero backend change; existing views and functionality unchanged, presentation only. See
+#26 for the overall tracking issue.
+
+| Slice | Item | Notes |
+|---|---|---|
+| 1 | Theme foundation | Tailwind v4 `@theme` tokens (surfaces, borders, text, brand, semantic status colors, focus ring, elevation, motion) with distinct light/dark palettes — dark mode is its own surface hierarchy, not an inversion of light values. Theme resolves from system preference by default; a manual choice overrides and persists to `localStorage`; an inline pre-mount script in `index.html` applies the resolved class before first paint to avoid a flash of the wrong theme. Theme toggle (Light/Auto/Dark) added to the `App.vue` header. Closes #27. |
+| 2 | Shared UI primitives | New `components/ui/`: `Button` (primary/secondary/ghost/danger, hover/focus/active/disabled/loading), `Input`/`Select`/`TextField` (shared `FieldShell` label+help/error scaffold, `useId()`-generated ids for label/aria-describedby wiring), `Card`, `Modal` (backdrop, focus trap, Escape-to-close, focus returns to trigger on close), `Alert` (success/warning/danger/info, accent color confined to icon/border so message-text contrast holds regardless of variant). `ReleaseDialog` migrated onto Button+Modal+Input as first consumer — now a real dialog behind a "Release Run" trigger instead of always inline. Closes #28. |
+| 3 | Icon system | `lucide-vue-next` (per-icon, tree-shaken imports) plus an `Icon.vue` wrapper fixing size (16/20/24px), 2px stroke width, `aria-hidden` by default — icons stay decorative, status/actions keep their text label alongside. Replaced text-glyph affordances app-wide: `StatusBadge` status icons, the stepper's "→", Modal's "✕", success/error result indicators, copy-to-clipboard glyphs, connection/expand-collapse markers, remove-item "×" buttons. Closes #29. |
+| 4 | Golden-path migration | Migrated the primary 4-step workflow (Connect → Source Schema → Export Schema → Export, plus `ExportDetail`) and every embedded child component onto Slice 1's tokens and Slice 2's primitives — raw `slate-*`/`red-*`/`green-*`/`amber-*`/`indigo-*` utility classes replaced with semantic tokens throughout this path. `App.vue` shell gained dedicated `--color-nav-*` tokens for its fixed dark rail, a completed-step checkmark on the stepper, visible keyboard focus on nav controls, and its own `<nav aria-label="Secondary">` landmark separated from the primary stepper. Verified manually in headless Chromium, both themes, no console errors. Closes #30. |
+| 5 | Secondary views migration | Same treatment for every remaining view — Settings, Audit Log, ICD Schema, Export Definitions (list + edit), Login, NotFound — so no view is left on pre-redesign styling. `Input` gained `min`/`max` pass-through and a `string \| number` model type to back `v-model.number` fields (Settings' retention-days) without losing type safety. Verified manually in headless Chromium, dark mode, no console errors. Closes #31. |
+| 6 | Data-table design pass | Dedicated pass over the dense operational tables (`ExportRunsTable`, `ColumnMappingTable`, `PreviewTable`, `ExportDefinitionRunsTable`, `SourceColumnsTable`, `FieldPickerTable`) beyond Slices 4–5's mechanical color swap: bordered `overflow-x-auto` containers so wide content scrolls instead of breaking layout, border-based row separators instead of zebra striping (several tables already carry a semantic row tint that striping would fight with), standardized header typography, right-aligned tabular-nums for numeric columns, a real empty state inside the bordered container, Refresh buttons moved onto the Button primitive. Verified manually in headless Chromium, dark mode. Closes #32. |
+| — | Top bar decluttered | Flat row of secondary links + username + sign-out replaced with a single "username ▾" trigger revealing ICD Schema/Export Definitions/Settings/Audit Log/Sign out in one panel — the bar itself now shows only branding, workflow steps, and the theme toggle. |
+| — | Export-runs date-formatting bug fixed | Backend serializes `ExtractedAt` via `DateTimeOffset.ToString("O")`, which produces a `+00:00` offset rather than a literal `Z`; the frontend's `formatDate` only checked for a trailing `Z` before appending one, turning `+00:00` into the invalid `...+00:00Z`. Fixed to recognize numeric UTC offsets too. |
+
+**Verification:** each slice confirmed manually in headless Chromium in both themes (no console
+errors) in addition to the standing `npm run type-check`/`npm run test` gate.
 
 ---
 
