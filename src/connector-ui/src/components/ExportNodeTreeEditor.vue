@@ -224,7 +224,7 @@ const showAddMenu = ref(false)
       v-if="depth < MAX_NESTED_DEPTH"
       :suggestions="topLevelSuggestions"
       :selected-table-name="contextTable"
-      @add="(s) => addRelated('array', s)"
+      @add="(s) => addRelated(s.kind, s)"
     />
 
     <div v-if="depth < MAX_NESTED_DEPTH" class="relative">

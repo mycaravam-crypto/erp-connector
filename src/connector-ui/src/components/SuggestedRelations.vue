@@ -3,6 +3,10 @@ export interface SuggestedRelation {
   relatedTable: string
   joinKey: string
   sourceJoinKey: string
+  /** Which shape this FK naturally suggests: a forward FK (this table's own column pointing at
+   * relatedTable's key) is a 1:1 lookup ("object"); a reverse FK (relatedTable's column pointing
+   * back at this table) is a 1:N collection ("array"). */
+  kind: 'object' | 'array'
 }
 
 defineProps<{
@@ -24,7 +28,10 @@ const emit = defineEmits<{ add: [s: SuggestedRelation] }>()
         :key="`${s.relatedTable}.${s.joinKey}`"
         class="suggested-relation-card flex items-center justify-between gap-3 px-4 py-2.5 border border-dashed border-info bg-info-bg rounded-lg"
       >
-        <code class="text-sm text-text-primary">{{ s.relatedTable }}.{{ s.joinKey }} → {{ selectedTableName }}.{{ s.sourceJoinKey }}</code>
+        <div class="flex flex-col gap-0.5">
+          <code class="text-sm text-text-primary">{{ s.relatedTable }}.{{ s.joinKey }} → {{ selectedTableName }}.{{ s.sourceJoinKey }}</code>
+          <span class="text-xs text-text-secondary">{{ s.kind === 'object' ? 'single object (1:1)' : 'list (1:N)' }}</span>
+        </div>
         <button
           class="suggested-add-btn px-3 py-1 border border-info rounded-md bg-surface text-sm text-info cursor-pointer whitespace-nowrap shrink-0 hover:bg-info-bg"
           @click="emit('add', s)"
