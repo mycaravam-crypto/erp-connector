@@ -86,7 +86,21 @@ public sealed class ImportNodeTests
             SourceJoinKey: null,
             OnMissingChild: OnMissingChildPolicy.Reject,
             Mapping: null,
-            Children: [new ImportNode("status", ImportNodeKind.ScalarField, "status", null, null, null, OnMissingChildPolicy.Reject, null, [], true)],
+            Children:
+            [
+                new ImportNode(
+                    SourceKey: "status",
+                    Kind: ImportNodeKind.ScalarField,
+                    TargetColumn: "status",
+                    RelatedTable: null,
+                    JoinKey: null,
+                    SourceJoinKey: null,
+                    OnMissingChild: OnMissingChildPolicy.Reject,
+                    Mapping: null,
+                    Children: [],
+                    Enabled: true
+                ),
+            ],
             Enabled: true
         );
 
