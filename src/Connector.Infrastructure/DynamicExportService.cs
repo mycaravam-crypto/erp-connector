@@ -464,7 +464,9 @@ public static class DynamicExportService
         }
     }
 
-    private static JsonNode? ApplyFieldMapping(JsonNode? value, FieldMapping? mapping)
+    /// <summary>Internal (not private) so <see cref="ImportNodeWalker"/> can reuse this verbatim for the
+    /// write direction (import-definitions.md §5) instead of re-implementing transform/data-type coercion.</summary>
+    internal static JsonNode? ApplyFieldMapping(JsonNode? value, FieldMapping? mapping)
     {
         if (mapping is null)
             return value;
