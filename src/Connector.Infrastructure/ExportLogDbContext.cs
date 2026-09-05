@@ -67,6 +67,12 @@ public sealed class ExportLogDbContext(DbContextOptions<ExportLogDbContext> opti
     /// <summary>Execution history for <see cref="ExportDefinitions"/> — one row per run.</summary>
     public DbSet<ExportDefinitionRunEntity> ExportDefinitionRuns => Set<ExportDefinitionRunEntity>();
 
+    /// <summary>Phase 17 import definitions — the write-side counterpart to <see cref="ExportDefinitions"/>.</summary>
+    public DbSet<ImportDefinitionEntity> ImportDefinitions => Set<ImportDefinitionEntity>();
+
+    /// <summary>Execution history for <see cref="ImportDefinitions"/> — one row per run.</summary>
+    public DbSet<ImportRunEntity> ImportRuns => Set<ImportRunEntity>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ExportRunEntity>(e =>
@@ -101,6 +107,19 @@ public sealed class ExportLogDbContext(DbContextOptions<ExportLogDbContext> opti
             e.ToTable("ExportDefinitionRun");
             e.HasKey(r => r.Id);
             e.HasIndex(r => r.ExportDefinitionId);
+        });
+
+        modelBuilder.Entity<ImportDefinitionEntity>(e =>
+        {
+            e.ToTable("ImportDefinition");
+            e.HasKey(d => d.Id);
+        });
+
+        modelBuilder.Entity<ImportRunEntity>(e =>
+        {
+            e.ToTable("ImportRun");
+            e.HasKey(r => r.Id);
+            e.HasIndex(r => r.ImportDefinitionId);
         });
     }
 }
