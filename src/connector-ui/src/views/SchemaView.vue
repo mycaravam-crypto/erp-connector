@@ -206,8 +206,12 @@ watch(selectedTable, (newTable, oldTable) => {
 })
 
 // ── Suggested relations (from FK metadata) ─────────────────────────────────────
+// This legacy mapping only has a flatten-to-string "Relations" shape (see addSuggestedRelation
+// below), which models a 1:N join, not a 1:1 lookup — so only the reverse/array-shaped
+// suggestions apply here. Forward-FK "object" suggestions (findSuggestedRelations' other half)
+// are for the ExportNode tree builder (ExportNodeTreeEditor.vue), which can represent both shapes.
 const suggestedRelations = computed<SuggestedRelation[]>(() =>
-  findSuggestedRelations(sourceSchema.value, selectedTable.value, relations.value),
+  findSuggestedRelations(sourceSchema.value, selectedTable.value, relations.value).filter((s) => s.kind === 'array'),
 )
 
 function addSuggestedRelation(s: SuggestedRelation) {
