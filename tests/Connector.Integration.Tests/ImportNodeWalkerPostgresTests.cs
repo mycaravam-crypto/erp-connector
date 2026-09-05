@@ -196,8 +196,8 @@ public sealed class ImportNodeWalkerPostgresTests
         // No longer accepted as of Open Decision #14 — every inbound file must be an ImportEnvelope object.
         var json = $$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "confirmed" }]""";
 
-        await Assert.ThrowsAsync<ImportValidationException>(
-            () => ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None)
+        await Assert.ThrowsAsync<ImportValidationException>(() =>
+            ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None)
         );
     }
 
@@ -212,8 +212,8 @@ public sealed class ImportNodeWalkerPostgresTests
         var definition = MakeDefinition("systemconfiguration", "id", ["status"]);
         var json = $$"""{ "records": [{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "confirmed" }] }""";
 
-        await Assert.ThrowsAsync<ImportValidationException>(
-            () => ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None)
+        await Assert.ThrowsAsync<ImportValidationException>(() =>
+            ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None)
         );
     }
 
@@ -230,8 +230,8 @@ public sealed class ImportNodeWalkerPostgresTests
             { "schemaVersion": "99", "records": [{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "confirmed" }] }
             """;
 
-        await Assert.ThrowsAsync<ImportValidationException>(
-            () => ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None)
+        await Assert.ThrowsAsync<ImportValidationException>(() =>
+            ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None)
         );
     }
 
@@ -288,8 +288,8 @@ public sealed class ImportNodeWalkerPostgresTests
         var definition = MakeDefinition("systemconfiguration", "id", []);
         var json = Envelope($$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "confirmed" }]""");
 
-        await Assert.ThrowsAsync<ImportValidationException>(
-            () => ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None)
+        await Assert.ThrowsAsync<ImportValidationException>(() =>
+            ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None)
         );
     }
 
