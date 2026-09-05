@@ -73,5 +73,13 @@ public sealed record ImportWalkResult(
 /// individual record's data, which is reported via <see cref="ImportRowResult"/> instead. Distinguishing the
 /// two matters to the caller (Slice 5's API): a thrown exception means "this run cannot proceed at all," while
 /// a rejected/quarantined row is a normal, expected part of a successful walk.</summary>
-public sealed class ImportValidationException(string message, Exception? innerException = null)
-    : Exception(message, innerException);
+public sealed class ImportValidationException : Exception
+{
+    public ImportValidationException() { }
+
+    public ImportValidationException(string message)
+        : base(message) { }
+
+    public ImportValidationException(string message, Exception innerException)
+        : base(message, innerException) { }
+}

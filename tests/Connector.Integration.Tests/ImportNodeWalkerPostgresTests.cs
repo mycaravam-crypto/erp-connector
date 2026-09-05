@@ -371,7 +371,9 @@ public sealed class ImportNodeWalkerPostgresTests
 
         var root = ManufacturerRoot(AddressesChild());
         var definition = MakeDefinition("manufacturer", "id", ["city"]);
-        var json = Envelope($$"""[{ "manufacturerId": "{{AcmeManufacturerId}}", "addresses": [{ "city": "Austin" }] }]""");
+        var json = Envelope(
+            $$"""[{ "manufacturerId": "{{AcmeManufacturerId}}", "addresses": [{ "city": "Austin" }] }]"""
+        );
 
         var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
 
