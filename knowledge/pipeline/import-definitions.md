@@ -281,7 +281,7 @@ preview and commit against the same transaction scope without opening two connec
 
 ## Implementation status
 
-Nothing started. Tracking issue: TBD (opened alongside this document). Suggested slices, mirroring
+Nothing started. Tracking issue: [#51](https://github.com/mycaravam-crypto/erp-connector/issues/51), with one sub-issue per slice (#52–58). Suggested slices, mirroring
 [Export Definitions 2.0](/pipeline/export-definitions-2.0.md#implementation-status)'s shape —
 each roughly PR-sized and independently reviewable:
 

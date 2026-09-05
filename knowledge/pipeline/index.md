@@ -21,4 +21,4 @@ rationale — see [legacy/](/legacy/).
 * [Import Definitions](import-definitions.md) - Spec for the reverse leg: vendor-supplied JSON
   written back into the live ERP under the same air-gap and four-eyes controls as the export path
   (`ImportNode` tree, mirroring `ExportNode`). Resolves [Open Point #6](/planning/open-points.md).
-  No code exists yet — see the doc's Implementation status for the slice checklist.
+  No code exists yet — tracking issue #51, slice sub-issues #52–58.
