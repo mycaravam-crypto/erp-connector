@@ -35,6 +35,10 @@ export interface ImportDefinition extends ImportDefinitionSummary {
   rootMatchColumn: string
   rootNode: ImportNode
   allowedWritableColumns: string[]
+  // knowledge/pipeline/import-mapping-presets.md §3.1 — set together when this definition was created from
+  // (or manually paired with) a provenance-tagged ExportDefinition; null otherwise (the default).
+  integrationKey: string | null
+  contractVersion: number | null
 }
 
 export interface ImportDefinitionRequest {
@@ -46,6 +50,29 @@ export interface ImportDefinitionRequest {
   allowedWritableColumns: string[]
   unmatchedRootPolicy: string
   isEnabled: boolean
+  integrationKey?: string | null
+  contractVersion?: number | null
+}
+
+/** One best-effort candidate field alongside the deterministic root prefill (§3.4 step 3) — unchecked by
+ * default; the operator must explicitly enable it before it can ever be saved as writable. */
+export interface ImportMappingSuggestionCandidateField {
+  sourceKey: string
+  targetColumn: string
+}
+
+/** Response of POST /api/import-definitions/suggest-from-export — null when nothing matches (malformed
+ * sample, no provenance block, no enabled export shares its pair). Never an error: both cases render the
+ * same "no suggestion" state, degrading to exactly today's blank-tree flow. */
+export interface ImportMappingSuggestion {
+  exportDefinitionId: number
+  exportDefinitionName: string
+  integrationKey: string
+  contractVersion: number
+  rootTable: string
+  rootMatchColumn: string
+  rootMatchSourceKey: string
+  candidateFields: ImportMappingSuggestionCandidateField[]
 }
 
 /** One Connector.Core.DynamicImport.ImportPlanOperation — a single column-level write the commit step
@@ -205,6 +232,24 @@ export async function setImportDefinitionEnabled(id: number, enabled: boolean): 
  * created and nothing is written to the ERP (Slice 4's folder watcher is the real trigger). */
 export async function previewImportDefinition(id: number, inboundJson: string): Promise<ApiResult<ImportPlan>> {
   return sendJsonForResult<ImportPlan>(`/api/import-definitions/${id}/preview`, 'POST', { inboundJson })
+}
+
+/** Checks whether a pasted sample ImportEnvelope's provenance pair matches a known, provenance-tagged
+ * export — the "Create from export" suggestion the New Import Definition flow offers. Returns null for
+ * anything short of an exact match (malformed JSON, no provenance, no match) or a network failure; the
+ * caller must render both the same way, never as an error. */
+export async function suggestImportMappingFromExport(inboundJson: string): Promise<ImportMappingSuggestion | null> {
+  try {
+    const res = await fetch('/api/import-definitions/suggest-from-export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ inboundJson }),
+    })
+    if (!res.ok) return null
+    return (await res.json()) as ImportMappingSuggestion | null
+  } catch {
+    return null
+  }
 }
 
 /** Execution history for a definition, most recent first. */

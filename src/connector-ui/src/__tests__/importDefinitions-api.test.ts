@@ -40,6 +40,8 @@ const DEFINITION: ImportDefinition = {
   createdAt: '2026-09-01T00:00:00Z',
   updatedBy: null,
   updatedAt: null,
+  integrationKey: null,
+  contractVersion: null,
   rootNode: {
     sourceKey: 'root',
     kind: 'root',

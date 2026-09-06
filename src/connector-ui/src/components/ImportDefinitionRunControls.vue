@@ -39,6 +39,8 @@ async function save() {
       allowedWritableColumns: d.allowedWritableColumns,
       unmatchedRootPolicy: d.unmatchedRootPolicy,
       isEnabled: d.isEnabled,
+      integrationKey: d.integrationKey,
+      contractVersion: d.contractVersion,
     })
     if (result.ok) {
       // Mutate in place (not props.definition = result.data) so the parent's ref keeps pointing at the

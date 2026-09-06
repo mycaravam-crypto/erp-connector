@@ -37,6 +37,9 @@ async function save() {
       outputFormat: d.outputFormat,
       isEnabled: d.isEnabled,
       schedule: d.schedule,
+      integrationKey: d.integrationKey,
+      contractVersion: d.contractVersion,
+      correlationKeySourceField: d.correlationKeySourceField,
     })
     if (result.ok) {
       // Mutate in place (not props.definition = result.data) so the parent's ref keeps pointing

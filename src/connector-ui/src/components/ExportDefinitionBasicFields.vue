@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { SourceTable } from '@/api/connection'
 import type { ExportDefinition } from '@/api/exportDefinitions'
 import ExportFormatPicker from '@/components/ExportFormatPicker.vue'
@@ -16,6 +17,29 @@ const emit = defineEmits<{ 'root-table-changed': [] }>()
 function onRootTableChanged() {
   if (!props.rootTableLocked) emit('root-table-changed')
 }
+
+// v-model.number leaves a cleared number input as '' rather than null, which the backend's nullable int
+// rejects outright as a malformed body — coerce it explicitly instead of relying on the modifier.
+const contractVersionInput = computed<number | null>({
+  get: () => props.definition.contractVersion,
+  set: (v) => {
+    props.definition.contractVersion = v === null || Number.isNaN(v) ? null : v
+  },
+})
+
+// Plain v-model on a `string | null` field leaves a cleared input as '' rather than null — harmless for
+// free-text fields like Description, but IntegrationKey/ContractVersion must be null *together* (see the
+// save-time validator), so clearing one text field back to '' must mean "unset," not "set to empty string."
+function nullableTextInput(key: 'integrationKey' | 'correlationKeySourceField') {
+  return computed<string | null>({
+    get: () => props.definition[key],
+    set: (v) => {
+      props.definition[key] = v === '' ? null : v
+    },
+  })
+}
+const integrationKeyInput = nullableTextInput('integrationKey')
+const correlationKeySourceFieldInput = nullableTextInput('correlationKeySourceField')
 </script>
 
 <template>
@@ -71,4 +95,49 @@ function onRootTableChanged() {
   </div>
 
   <ExportFormatPicker v-model="definition.outputFormat as 'xlsx' | 'csv' | 'json'" />
+
+  <!-- knowledge/pipeline/import-mapping-presets.md §3.1/§3.2 — optional provenance tagging. Setting
+       IntegrationKey is what makes JsonExportFormatWriter emit a provenance block an ImportDefinition can
+       later be suggested from (§3.4); until it's set, this export is invisible to that feature entirely. -->
+  <div class="flex flex-col gap-3 mt-5 pt-5 border-t border-border-strong">
+    <h3 class="m-0 text-sm font-semibold text-text-primary">Integration tagging (optional)</h3>
+    <p class="text-xs text-text-secondary m-0">
+      Tag this export's JSON output with a stable, versioned identifier so a matching
+      <code>ImportDefinition</code> can later be created from it. Only takes effect for the JSON output
+      format.
+    </p>
+    <div class="flex items-center gap-2">
+      <label class="text-sm text-text-secondary w-36 shrink-0">Integration key</label>
+      <input
+        type="text"
+        v-model="integrationKeyInput"
+        placeholder="e.g. ci-confirmation"
+        aria-label="Integration key"
+        class="flex-1 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary font-mono outline-none focus:border-brand"
+      />
+    </div>
+    <div class="flex items-center gap-2">
+      <label class="text-sm text-text-secondary w-36 shrink-0">Contract version</label>
+      <input
+        type="number"
+        min="1"
+        v-model.number="contractVersionInput"
+        placeholder="1"
+        aria-label="Contract version"
+        class="w-24 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary outline-none focus:border-brand"
+      />
+      <span class="text-xs text-text-muted">set together with the integration key, or leave both blank</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <label class="text-sm text-text-secondary w-36 shrink-0">Correlation key field</label>
+      <input
+        type="text"
+        v-model="correlationKeySourceFieldInput"
+        placeholder="e.g. guid"
+        aria-label="Correlation key field"
+        class="flex-1 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary font-mono outline-none focus:border-brand"
+      />
+      <span class="text-xs text-text-muted">the root field name an inbound reply matches back against</span>
+    </div>
+  </div>
 </template>
