@@ -1,3 +1,4 @@
+using Connector.Core.DynamicImport;
 using Connector.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,6 +17,28 @@ static class ImportRunEndpoints
 {
     internal static void MapImportRunEndpoints(this WebApplication app, IReadOnlyDictionary<string, string> userStore)
     {
+        // Slice 6: the frontend's review/diff view needs a run's full plan before an Approver can meaningfully
+        // decide anything — GET .../{id}/runs on ImportDefinitionEndpoints only returns the summary counts.
+        // This is a plain read, so unlike release/reject it's not restricted to PendingReview runs: revisiting
+        // a Released/Rejected/Failed run's plan after the fact is useful too, and costs nothing extra here.
+        app.MapGet(
+                "/api/import-runs/{id:int}",
+                async (int id, ExportLogDbContext db, CancellationToken ct) =>
+                {
+                    var run = await db.ImportRuns.FirstOrDefaultAsync(r => r.Id == id, ct);
+                    if (run is null)
+                        return Results.NotFound();
+
+                    var definitionName = await db
+                        .ImportDefinitions.Where(d => d.Id == run.ImportDefinitionId)
+                        .Select(d => d.Name)
+                        .FirstOrDefaultAsync(ct);
+
+                    return Results.Ok(ToDetailDto(run, definitionName ?? "(deleted)"));
+                }
+            )
+            .RequireAuthorization();
+
         app.MapPost(
                 "/api/import-runs/{id:int}/release",
                 async (
@@ -69,6 +92,47 @@ static class ImportRunEndpoints
                 }
             )
             .RequireAuthorization();
+    }
+
+    private static ImportRunDetailDto ToDetailDto(ImportRunEntity r, string definitionName)
+    {
+        var plan = r.PlanJson is null ? null : ImportPlanJson.Deserialize(r.PlanJson);
+        var operations =
+            plan?.Operations.Select(o => new ImportRunOperationDto(
+                    o.CorrelationValue,
+                    o.Table,
+                    o.KeyColumn,
+                    o.KeyValue,
+                    o.Column,
+                    o.ExpectedOldValue,
+                    o.NewValue
+                ))
+                .ToList()
+            ?? [];
+
+        return new ImportRunDetailDto(
+            r.Id,
+            r.ImportDefinitionId,
+            definitionName,
+            r.ConfigVersion,
+            r.SourceFileName,
+            r.StartedAt,
+            r.FinishedAt,
+            r.Status,
+            r.RecordCount,
+            r.MatchedCount,
+            r.ChangedCount,
+            r.UnchangedCount,
+            r.RejectedCount,
+            r.ConflictCount,
+            r.InvalidCount,
+            r.ErrorMessage,
+            r.TriggeredBy,
+            r.OperatedBy,
+            r.ApprovedBy,
+            r.ReleasedAt,
+            operations
+        );
     }
 
     private static ImportRunDto ToDto(ImportRunEntity r) =>
