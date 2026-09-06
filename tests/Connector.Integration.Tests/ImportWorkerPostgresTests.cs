@@ -31,7 +31,9 @@ public sealed class ImportWorkerPostgresTests
     private const string ErpConnectionString =
         "Host=localhost;Port=5432;Database=erp_testdb;Username=erp_test;Password=erp_test_pw;Timeout=2";
 
-    // Seeded in testdb/init.sql: status=active, technician_name='M. Chen'. Read-only for this test class.
+    // Seeded in testdb/init.sql: status=active, storage_location='Bay 7'. Read-only for this test class.
+    // (technician_name is deliberately not used here — it's on DynamicExportService.GdprDeniedFields, so
+    // it's rejected outright as a writable target regardless of AllowedWritableColumns.)
     private const string FixtureCiId = "55555555-5555-5555-5555-555555555555";
 
     private static readonly ErpConnectionConfig ErpConfig = new(
@@ -129,7 +131,7 @@ public sealed class ImportWorkerPostgresTests
             SourceJoinKey: null,
             OnMissingChild: OnMissingChildPolicy.Reject,
             Mapping: null,
-            Children: [Scalar("ciId", "id"), Scalar("technicianName", "technician_name")],
+            Children: [Scalar("ciId", "id"), Scalar("storageLocation", "storage_location")],
             Enabled: true
         );
 
@@ -143,7 +145,7 @@ public sealed class ImportWorkerPostgresTests
             RootTable = "systemconfiguration",
             RootMatchColumn = "id",
             RootNode = ImportNodeJson.Serialize(Root()),
-            AllowedWritableColumns = """["technician_name"]""",
+            AllowedWritableColumns = """["storage_location"]""",
             IsEnabled = isEnabled,
             ConfigVersion = 1,
             CreatedBy = "test",
@@ -166,29 +168,26 @@ public sealed class ImportWorkerPostgresTests
         );
     }
 
-    private static string Envelope(string ciId, string technicianName) =>
+    private static string Envelope(string ciId, string storageLocation) =>
         $$"""
-        {
-          "schemaVersion": "1",
-          "definition": "{{DefinitionName}}",
-          "records": [ { "ciId": "{{ciId}}", "technicianName": "{{technicianName}}" } ]
-        }
-        """;
+            {
+              "schemaVersion": "1",
+              "definition": "{{DefinitionName}}",
+              "records": [ { "ciId": "{{ciId}}", "storageLocation": "{{storageLocation}}" } ]
+            }
+            """;
 
-    // Writes a data file + matching manifest (correct checksum unless overridden) into inboundDir, returning
-    // the data file's own path.
-    private static string DropFile(string inboundDir, string fileName, string content, string? checksumOverride = null)
+    // Writes a data file + matching manifest (correct checksum unless overridden) into inboundDir.
+    private static void DropFile(string inboundDir, string fileName, string content, string? checksumOverride = null)
     {
         var bytes = Encoding.UTF8.GetBytes(content);
         var checksum = checksumOverride ?? Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
 
-        var dataPath = Path.Combine(inboundDir, fileName);
-        File.WriteAllBytes(dataPath, bytes);
+        File.WriteAllBytes(Path.Combine(inboundDir, fileName), bytes);
         File.WriteAllText(
             Path.Combine(inboundDir, ExportSchema.BuildManifestFileName(fileName)),
             JsonSerializer.Serialize(new { Sha256Checksum = checksum })
         );
-        return dataPath;
     }
 
     [Fact]
@@ -204,7 +203,7 @@ public sealed class ImportWorkerPostgresTests
         var inboundDir = Directory.CreateTempSubdirectory("import-worker-test-");
         try
         {
-            DropFile(inboundDir.FullName, "vendor-drop-1.json", Envelope(FixtureCiId, "New Technician"));
+            DropFile(inboundDir.FullName, "vendor-drop-1.json", Envelope(FixtureCiId, "New Location"));
 
             var worker = NewWorker(db, inboundDir.FullName);
             await worker.PollOnceAsync(CancellationToken.None);
@@ -251,7 +250,7 @@ public sealed class ImportWorkerPostgresTests
         var inboundDir = Directory.CreateTempSubdirectory("import-worker-test-");
         try
         {
-            var content = Envelope(FixtureCiId, "New Technician");
+            var content = Envelope(FixtureCiId, "New Location");
             DropFile(inboundDir.FullName, "vendor-drop-1.json", content);
 
             var worker = NewWorker(db, inboundDir.FullName);
@@ -291,7 +290,7 @@ public sealed class ImportWorkerPostgresTests
             DropFile(
                 inboundDir.FullName,
                 "vendor-drop-1.json",
-                Envelope(FixtureCiId, "New Technician"),
+                Envelope(FixtureCiId, "New Location"),
                 checksumOverride: new string('0', 64)
             );
 
@@ -348,9 +347,9 @@ public sealed class ImportWorkerPostgresTests
         var inboundDir = Directory.CreateTempSubdirectory("import-worker-test-");
         try
         {
-            File.WriteAllText(
+            await File.WriteAllTextAsync(
                 Path.Combine(inboundDir.FullName, "vendor-drop-1.json"),
-                Envelope(FixtureCiId, "New Technician")
+                Envelope(FixtureCiId, "New Location")
             );
 
             var worker = NewWorker(db, inboundDir.FullName);
@@ -378,7 +377,7 @@ public sealed class ImportWorkerPostgresTests
         var inboundDir = Directory.CreateTempSubdirectory("import-worker-test-");
         try
         {
-            DropFile(inboundDir.FullName, "vendor-drop-1.json", Envelope(FixtureCiId, "New Technician"));
+            DropFile(inboundDir.FullName, "vendor-drop-1.json", Envelope(FixtureCiId, "New Location"));
 
             var worker = NewWorker(db, inboundDir.FullName);
             await worker.PollOnceAsync(CancellationToken.None);

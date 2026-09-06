@@ -112,7 +112,12 @@ public sealed class ImportWorker(
         }
     }
 
-    private async Task ProcessFileAsync(string dataFilePath, string processedDir, string rejectedDir, CancellationToken ct)
+    private async Task ProcessFileAsync(
+        string dataFilePath,
+        string processedDir,
+        string rejectedDir,
+        CancellationToken ct
+    )
     {
         var fileName = Path.GetFileName(dataFilePath);
         var manifestPath = Path.Combine(_inboundPath, ExportSchema.BuildManifestFileName(fileName));
@@ -377,7 +382,11 @@ public sealed class ImportWorker(
     {
         try
         {
-            File.Move(dataFilePath, UniquePath(Path.Combine(destDir, Path.GetFileName(dataFilePath))), overwrite: false);
+            File.Move(
+                dataFilePath,
+                UniquePath(Path.Combine(destDir, Path.GetFileName(dataFilePath))),
+                overwrite: false
+            );
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -389,7 +398,11 @@ public sealed class ImportWorker(
 
         try
         {
-            File.Move(manifestPath, UniquePath(Path.Combine(destDir, Path.GetFileName(manifestPath))), overwrite: false);
+            File.Move(
+                manifestPath,
+                UniquePath(Path.Combine(destDir, Path.GetFileName(manifestPath))),
+                overwrite: false
+            );
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -405,11 +418,13 @@ public sealed class ImportWorker(
         var dir = Path.GetDirectoryName(path)!;
         var stem = Path.GetFileNameWithoutExtension(path);
         var ext = Path.GetExtension(path);
-        for (var i = 1; ; i++)
+        var i = 1;
+        while (true)
         {
             var candidate = Path.Combine(dir, $"{stem}.{i}{ext}");
             if (!File.Exists(candidate))
                 return candidate;
+            i++;
         }
     }
 }
