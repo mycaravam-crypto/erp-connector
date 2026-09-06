@@ -310,20 +310,18 @@ public sealed class IntegrationKeyValidationTests
     public async Task Import_SecondEnabledDefinitionWithSamePair_Rejected()
     {
         await using var local = await LocalDb.NewAsync();
+        // Inserted directly rather than routed through ValidateRequestAsync: the full validator's
+        // schema-aware AllowedWritableColumns pass (Open Decision #9) needs a real Postgres connection,
+        // which this test — unlike ImportDefinitionEndpointsPostgresTests — deliberately doesn't depend
+        // on. `first`'s tree is already well-formed via the ImportRoot/ImportScalar helpers above.
         var first = ImportRequest(integrationKey: "ci-confirmation", contractVersion: 1);
-        var (firstRoot, firstError) = await ImportDefinitionEndpoints.ValidateRequestAsync(
-            first,
-            local.Db,
-            CancellationToken.None
-        );
-        Assert.Null(firstError);
         local.Db.ImportDefinitions.Add(
             new()
             {
                 Name = first.Name,
                 RootTable = first.RootTable,
                 RootMatchColumn = first.RootMatchColumn,
-                RootNode = ImportNodeJson.Serialize(firstRoot!),
+                RootNode = ImportNodeJson.Serialize(first.RootNode),
                 UnmatchedRootPolicy = first.UnmatchedRootPolicy,
                 IsEnabled = true,
                 ConfigVersion = 1,
@@ -349,20 +347,23 @@ public sealed class IntegrationKeyValidationTests
     [Fact]
     public async Task Import_DifferentContractVersionOfSameKey_DoesNotConflict()
     {
+        // Unlike the sibling "rejected" test above, a *successful* second validation here runs all the
+        // way through to ImportDefinitionEndpoints.ValidateRequestAsync's schema-aware
+        // AllowedWritableColumns pass (Open Decision #9), which needs a real Postgres connection — same
+        // "no-op instead of fail" convention as ImportDefinitionEndpointsPostgresTests.
+        if (!await ErpTestFixture.IsAvailableAsync())
+            return;
+
         await using var local = await LocalDb.NewAsync();
+        // See the sibling test above for why `first` is inserted directly instead of via ValidateRequestAsync.
         var first = ImportRequest(integrationKey: "ci-confirmation", contractVersion: 1);
-        var (firstRoot, _) = await ImportDefinitionEndpoints.ValidateRequestAsync(
-            first,
-            local.Db,
-            CancellationToken.None
-        );
         local.Db.ImportDefinitions.Add(
             new()
             {
                 Name = first.Name,
                 RootTable = first.RootTable,
                 RootMatchColumn = first.RootMatchColumn,
-                RootNode = ImportNodeJson.Serialize(firstRoot!),
+                RootNode = ImportNodeJson.Serialize(first.RootNode),
                 UnmatchedRootPolicy = first.UnmatchedRootPolicy,
                 IsEnabled = true,
                 ConfigVersion = 1,
