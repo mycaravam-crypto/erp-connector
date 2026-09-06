@@ -218,6 +218,56 @@ public sealed class ImportNodeWalkerPostgresTests
         );
     }
 
+    // ── ImportEnvelope provenance (Slice 3, import-mapping-presets.md §3.3) ──────
+
+    // Proves the single most important guardrail in that slice: an inbound file's optional "provenance"
+    // block is purely advisory and must have zero effect on staging/matching/commit — the walker only
+    // ever reads schemaVersion/records (ParseRecords' own doc comment), so this is a regression test
+    // against that invariant ever accidentally changing, not a test of new walker behavior.
+    [Fact]
+    public async Task WalkAsync_ProvenanceBlockOnEnvelope_HasNoEffectOnTheWalk()
+    {
+        await using var conn = await ErpTestFixture.TryOpenAsync();
+        if (conn is null)
+            return;
+
+        var root = SystemConfigurationRoot();
+        var definition = MakeDefinition("systemconfiguration", "id", ["status"]);
+        var recordsJson = $$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "confirmed" }]""";
+        var withoutProvenance = Envelope(recordsJson);
+        var withProvenance = $$"""
+            {
+                "schemaVersion": "{{ImportNodeWalker.SupportedSchemaVersion}}",
+                "provenance": { "integrationKey": "ci-confirmation", "contractVersion": 1 },
+                "records": {{recordsJson}}
+            }
+            """;
+
+        var resultWithout = await ImportNodeWalker.WalkAsync(
+            conn,
+            definition,
+            root,
+            withoutProvenance,
+            CancellationToken.None
+        );
+        var resultWith = await ImportNodeWalker.WalkAsync(
+            conn,
+            definition,
+            root,
+            withProvenance,
+            CancellationToken.None
+        );
+
+        Assert.Equal(resultWithout.RecordCount, resultWith.RecordCount);
+        Assert.Equal(resultWithout.AcceptedCount, resultWith.AcceptedCount);
+        Assert.Equal(resultWithout.RejectedCount, resultWith.RejectedCount);
+        var rowWithout = Assert.Single(resultWithout.Rows);
+        var rowWith = Assert.Single(resultWith.Rows);
+        Assert.Equal(rowWithout.Status, rowWith.Status);
+        Assert.Equal(rowWithout.CorrelationValue, rowWith.CorrelationValue);
+        Assert.Equal(rowWithout.Fields, rowWith.Fields);
+    }
+
     // ── Root correlation-key mismatch ────────────────────────────────────────────
 
     [Fact]

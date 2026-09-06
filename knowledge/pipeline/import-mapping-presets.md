@@ -1,21 +1,20 @@
 ---
 type: Pipeline Design
 title: Import Mapping Presets from Export Provenance (proposal)
-description: Design proposal — tag ExportDefinition/ImportDefinition with a shared, versioned IntegrationKey; if a vendor's inbound file round-trips it, offer to create a new ImportDefinition from the paired export's root-matching (and, best-effort, shared field names). Revised after design review. Slices 1-2 shipped.
+description: Design proposal — tag ExportDefinition/ImportDefinition with a shared, versioned IntegrationKey; if a vendor's inbound file round-trips it, offer to create a new ImportDefinition from the paired export's root-matching (and, best-effort, shared field names). Revised after design review. Slices 1-3 shipped.
 resource: src/Connector.Core/DynamicImport/ImportNode.cs
 tags: [pipeline, dynamic-mapping, proposal]
 timestamp: 2026-09-06T00:00:00Z
 ---
 
-> **Status: in progress — Slices 1–2 shipped, Slices 3–5 not started.** See
+> **Status: in progress — Slices 1–3 shipped, Slices 4–5 not started.** See
 > [Implementation status](#7-implementation-status) for the per-slice checklist. This is not an
 > Open Point from the original Technical Concept (see [Open Points](/planning/open-points.md)) —
 > it's an internally-raised idea about the Phase 14/17 tree types. Revised once, per
 > [Design Review Amendments](#design-review-amendments) below, before any slice began — the same
 > "amend before Slice 2" pattern Import Definitions itself used for its own Slice 1b. The export
-> side now tags its JSON output, but nothing reads it back yet — `ImportEnvelope`/
-> `ImportMappingSuggestion` (Slice 3) and the UI (Slice 4) don't exist, so this remains invisible
-> to any operator until then.
+> side tags its JSON output and the pure suggestion function now exists, but nothing surfaces it
+> to an operator yet — the UI (Slice 4) doesn't exist, so this remains invisible until then.
 
 ---
 
@@ -347,8 +346,18 @@ sub-issue per slice (#74–78).
       `ExportDefinitionEntity`. CSV/Excel writers accept (and ignore) the same parameter rather
       than forking the interface — no behavior change, per the doc's Non-Goals (§5). No internal
       database id placed on the wire. Shipped in #75.
-- [ ] **Slice 3 — Import-side wiring.** `ImportEnvelope` parser + `ImportMappingSuggestion`,
-      unit-testable in isolation, no UI yet.
+- [x] **Slice 3 — Import-side wiring.** `ImportNodeWalker.ParseRecords` already ignores every
+      envelope key besides `schemaVersion`/`records`, so an inbound file's optional
+      `provenance: { integrationKey, contractVersion }` block needed no parser code change to be
+      "accepted" — added a regression test (`WalkAsync_ProvenanceBlockOnEnvelope_HasNoEffectOnTheWalk`)
+      proving the walk is byte-identical with or without one, guarding that invariant against ever
+      accidentally changing. New pure `ImportMappingSuggestion.SuggestFrom` (`Connector.Core.DynamicImport`)
+      plus its `ExportDefinitionShape`/`ImportSampleShape`/`ImportMappingSuggestionResult` input/output
+      shapes — Core-level types rather than referencing the `Connector.Infrastructure` EF entities
+      directly, since Core has no dependency on Infrastructure. No I/O; unit-testable in complete
+      isolation (exact match, no match, disabled-export/no-correlation-field no-ops, ambiguous-candidate
+      safety, best-effort field candidates, nested children never walked). No UI or API endpoint yet —
+      deliberately reviewable before any frontend surfaces it. Shipped in #76.
 - [ ] **Slice 4 — Frontend.** Suggestion banner + "Create from export" action.
 - [ ] **Slice 5 — Docs.** Status flip, changelog.
 

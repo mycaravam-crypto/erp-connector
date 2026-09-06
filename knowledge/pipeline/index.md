@@ -30,6 +30,6 @@ rationale — see [legacy/](/legacy/).
 * [Import Mapping Presets from Export Provenance](import-mapping-presets.md) - Tag a JSON export
   and its paired import with a shared, versioned `IntegrationKey`, and if a vendor's reply
   round-trips it, offer to create a new `ImportDefinition`'s root-matching (and, best-effort,
-  shared field names) from the paired export. Slices 1–2 (data model + migration; export-side
-  JSON provenance key) shipped; Slices 3–5 (import-side parser + suggestion function, UI, docs)
-  not started — the feature isn't visible yet, since nothing reads the tag back.
+  shared field names) from the paired export. Slices 1–3 (data model + migration; export-side
+  JSON provenance key; the pure `ImportMappingSuggestion` function) shipped; Slices 4–5 (UI, docs)
+  not started — the feature isn't visible to any operator yet, since nothing surfaces it.
