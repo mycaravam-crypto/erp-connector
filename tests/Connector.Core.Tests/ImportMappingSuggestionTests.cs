@@ -68,12 +68,17 @@ public sealed class ImportMappingSuggestionTests
         params string[] recordKeys
     ) => new(integrationKey, contractVersion, recordKeys);
 
+    // Convenience overload for the common case (default provenance pair, explicit sample record keys) —
+    // avoids Sonar S3878 (array creation for a params parameter) at call sites, which fires even for a
+    // named `recordKeys: [...]` argument on the overload above.
+    private static ImportSampleShape SampleWithKeys(params string[] recordKeys) => Sample(recordKeys: recordKeys);
+
     [Fact]
     public void SuggestFrom_ExactMatch_PrefillsRootTableAndMatchColumn()
     {
         var export = Export(Root(Scalar("guid", "guid")));
 
-        var result = ImportMappingSuggestion.SuggestFrom([export], Sample(recordKeys: ["guid"]));
+        var result = ImportMappingSuggestion.SuggestFrom([export], SampleWithKeys("guid"));
 
         Assert.NotNull(result);
         Assert.Equal("system_configuration", result!.RootTable);
@@ -161,7 +166,7 @@ public sealed class ImportMappingSuggestionTests
     {
         var export = Export(Root(Scalar("guid", "guid"), Scalar("confirmationStatus", "status")));
 
-        var result = ImportMappingSuggestion.SuggestFrom([export], Sample(recordKeys: ["guid", "confirmationStatus"]));
+        var result = ImportMappingSuggestion.SuggestFrom([export], SampleWithKeys("guid", "confirmationStatus"));
 
         Assert.NotNull(result);
         var candidate = Assert.Single(result!.CandidateFields);
@@ -174,7 +179,7 @@ public sealed class ImportMappingSuggestionTests
     {
         var export = Export(Root(Scalar("guid", "guid"), Scalar("confirmationStatus", "status")));
 
-        var result = ImportMappingSuggestion.SuggestFrom([export], Sample(recordKeys: ["guid"]));
+        var result = ImportMappingSuggestion.SuggestFrom([export], SampleWithKeys("guid"));
 
         Assert.NotNull(result);
         Assert.Empty(result!.CandidateFields);
@@ -185,7 +190,7 @@ public sealed class ImportMappingSuggestionTests
     {
         var export = Export(Root(Scalar("guid", "guid"), Scalar("confirmationStatus", "status", enabled: false)));
 
-        var result = ImportMappingSuggestion.SuggestFrom([export], Sample(recordKeys: ["guid", "confirmationStatus"]));
+        var result = ImportMappingSuggestion.SuggestFrom([export], SampleWithKeys("guid", "confirmationStatus"));
 
         Assert.NotNull(result);
         Assert.Empty(result!.CandidateFields);
@@ -196,7 +201,7 @@ public sealed class ImportMappingSuggestionTests
     {
         var export = Export(Root(Scalar("guid", "guid")));
 
-        var result = ImportMappingSuggestion.SuggestFrom([export], Sample(recordKeys: ["guid"]));
+        var result = ImportMappingSuggestion.SuggestFrom([export], SampleWithKeys("guid"));
 
         Assert.NotNull(result);
         Assert.Empty(result!.CandidateFields);
@@ -207,7 +212,7 @@ public sealed class ImportMappingSuggestionTests
     {
         var export = Export(Root(Scalar("guid", "guid"), Object("nested", Scalar("innerStatus", "inner_status"))));
 
-        var result = ImportMappingSuggestion.SuggestFrom([export], Sample(recordKeys: ["guid", "innerStatus"]));
+        var result = ImportMappingSuggestion.SuggestFrom([export], SampleWithKeys("guid", "innerStatus"));
 
         Assert.NotNull(result);
         Assert.Empty(result!.CandidateFields);
