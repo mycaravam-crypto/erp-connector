@@ -369,10 +369,7 @@ static class ImportDefinitionEndpoints
             return (null, "Name is required.");
         if (string.IsNullOrWhiteSpace(request.RootTable) || !SqlIdentifierRegex.IsMatch(request.RootTable))
             return (null, "RootTable is required and must be a valid identifier.");
-        if (
-            string.IsNullOrWhiteSpace(request.RootMatchColumn)
-            || !SqlIdentifierRegex.IsMatch(request.RootMatchColumn)
-        )
+        if (string.IsNullOrWhiteSpace(request.RootMatchColumn) || !SqlIdentifierRegex.IsMatch(request.RootMatchColumn))
             return (null, "RootMatchColumn is required and must be a valid identifier.");
         if (request.UnmatchedRootPolicy is not (UnmatchedRootPolicy.Reject or UnmatchedRootPolicy.Quarantine))
             return (
