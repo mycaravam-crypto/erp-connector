@@ -24,5 +24,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Connector.Core\Connector.Core.csproj" />
     <ProjectReference Include="..\..\src\Connector.Infrastructure\Connector.Infrastructure.csproj" />
+    <!-- Phase 17 Slice 5: ImportDefinitionEndpointsPostgresTests exercises the internal, schema-aware
+         AllowedWritableColumns validator directly against a real Postgres schema (see the
+         InternalsVisibleTo grant in Connector.Api.csproj) rather than duplicating it as a pure function
+         reachable from Connector.Core, since it's inherently tied to the API-layer DTOs/DbContext. -->
+    <ProjectReference Include="..\..\src\Connector.Api\Connector.Api.csproj" />
   </ItemGroup>
 </Project>
