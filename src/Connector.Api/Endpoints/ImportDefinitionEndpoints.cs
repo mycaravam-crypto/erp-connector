@@ -70,6 +70,8 @@ static class ImportDefinitionEndpoints
                         ConfigVersion = 1,
                         CreatedBy = httpContext.User.Identity!.Name!,
                         CreatedAt = now,
+                        IntegrationKey = request.IntegrationKey,
+                        ContractVersion = request.ContractVersion,
                     };
                     db.ImportDefinitions.Add(entity);
                     await db.SaveChangesAsync(ct);
@@ -109,7 +111,7 @@ static class ImportDefinitionEndpoints
                     if (entity is null)
                         return Results.NotFound();
 
-                    var (normalizedRoot, validationError) = await ValidateRequestAsync(request, db, ct);
+                    var (normalizedRoot, validationError) = await ValidateRequestAsync(request, db, ct, excludeId: id);
                     if (validationError is not null)
                         return Results.BadRequest(validationError);
 
@@ -124,6 +126,8 @@ static class ImportDefinitionEndpoints
                     entity.ConfigVersion++;
                     entity.UpdatedBy = httpContext.User.Identity!.Name!;
                     entity.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
+                    entity.IntegrationKey = request.IntegrationKey;
+                    entity.ContractVersion = request.ContractVersion;
                     await db.SaveChangesAsync(ct);
 
                     await audit.LogAsync(
@@ -222,6 +226,19 @@ static class ImportDefinitionEndpoints
                     var entity = await db.ImportDefinitions.FindAsync([id], ct);
                     if (entity is null)
                         return Results.NotFound();
+
+                    if (request.Enabled)
+                    {
+                        var pairError = await ValidateIntegrationKeyPairEnabledAsync(
+                            db,
+                            entity.IntegrationKey,
+                            entity.ContractVersion,
+                            excludeId: id,
+                            ct
+                        );
+                        if (pairError is not null)
+                            return Results.BadRequest(pairError);
+                    }
 
                     entity.IsEnabled = request.Enabled;
                     entity.UpdatedBy = httpContext.User.Identity!.Name!;
@@ -334,7 +351,9 @@ static class ImportDefinitionEndpoints
             e.CreatedBy,
             e.CreatedAt,
             e.UpdatedBy,
-            e.UpdatedAt
+            e.UpdatedAt,
+            e.IntegrationKey,
+            e.ContractVersion
         );
 
     private static ImportDefinitionSummaryDto ToSummaryDto(ImportDefinitionEntity e) =>
@@ -362,7 +381,8 @@ static class ImportDefinitionEndpoints
     internal static async Task<(ImportNode? Root, string? Error)> ValidateRequestAsync(
         ImportDefinitionRequest request,
         ExportLogDbContext db,
-        CancellationToken ct
+        CancellationToken ct,
+        int? excludeId = null
     )
     {
         if (string.IsNullOrWhiteSpace(request.Name))
@@ -378,6 +398,30 @@ static class ImportDefinitionEndpoints
             );
         if (request.RootNode is null)
             return (null, "RootNode is required.");
+
+        // knowledge/pipeline/import-mapping-presets.md §3.1: IntegrationKey/ContractVersion are set
+        // together or not at all, and at most one *enabled* definition may ever claim a given pair.
+        if ((request.IntegrationKey is null) != (request.ContractVersion is null))
+            return (null, "IntegrationKey and ContractVersion must be set together, or not at all.");
+        if (request.IntegrationKey is not null)
+        {
+            if (string.IsNullOrWhiteSpace(request.IntegrationKey) || ContainsControlCharacters(request.IntegrationKey))
+                return (null, "IntegrationKey must be non-empty and free of control characters.");
+            if (request.ContractVersion is < 1)
+                return (null, "ContractVersion must be a positive integer.");
+        }
+        if (request.IsEnabled)
+        {
+            var pairError = await ValidateIntegrationKeyPairEnabledAsync(
+                db,
+                request.IntegrationKey,
+                request.ContractVersion,
+                excludeId,
+                ct
+            );
+            if (pairError is not null)
+                return (null, pairError);
+        }
         if (
             request.AllowedWritableColumns is null
             || request.AllowedWritableColumns.Any(c => string.IsNullOrWhiteSpace(c) || !SqlIdentifierRegex.IsMatch(c))
@@ -566,4 +610,34 @@ static class ImportDefinitionEndpoints
     }
 
     private static bool ContainsControlCharacters(string s) => s.Any(char.IsControl);
+
+    // Enforces knowledge/pipeline/import-mapping-presets.md §3.1's uniqueness rule: at most one *enabled*
+    // ImportDefinition may ever claim a given (IntegrationKey, ContractVersion) pair, so Slice 3's
+    // suggestion lookup is always an exact match, never a ranking. Shared between ValidateRequestAsync
+    // (create/update) and the /enable endpoint, since either path can turn a definition enabled. Mirrors
+    // ExportDefinitionEndpoints' own copy of this check, duplicated rather than shared per this file's own
+    // precedent for SqlIdentifierRegex.
+    internal static async Task<string?> ValidateIntegrationKeyPairEnabledAsync(
+        ExportLogDbContext db,
+        string? integrationKey,
+        int? contractVersion,
+        int? excludeId,
+        CancellationToken ct
+    )
+    {
+        if (integrationKey is null)
+            return null;
+
+        var conflict = await db.ImportDefinitions.AnyAsync(
+            d =>
+                (excludeId == null || d.Id != excludeId.Value)
+                && d.IsEnabled
+                && d.IntegrationKey == integrationKey
+                && d.ContractVersion == contractVersion,
+            ct
+        );
+        return conflict
+            ? $"Another enabled import definition already uses IntegrationKey '{integrationKey}' v{contractVersion}."
+            : null;
+    }
 }

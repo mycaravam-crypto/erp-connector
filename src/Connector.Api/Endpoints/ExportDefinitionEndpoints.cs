@@ -52,7 +52,7 @@ static class ExportDefinitionEndpoints
                     CancellationToken ct
                 ) =>
                 {
-                    var (normalizedRoot, validationError) = await ValidateRequestAsync(request, db);
+                    var (normalizedRoot, validationError) = await ValidateRequestAsync(request, db, ct);
                     if (validationError is not null)
                         return Results.BadRequest(validationError);
 
@@ -69,6 +69,9 @@ static class ExportDefinitionEndpoints
                         ConfigVersion = 1,
                         CreatedBy = httpContext.User.Identity!.Name!,
                         CreatedAt = now,
+                        IntegrationKey = request.IntegrationKey,
+                        ContractVersion = request.ContractVersion,
+                        CorrelationKeySourceField = request.CorrelationKeySourceField,
                     };
                     db.ExportDefinitions.Add(entity);
                     await db.SaveChangesAsync(ct);
@@ -108,7 +111,7 @@ static class ExportDefinitionEndpoints
                     if (entity is null)
                         return Results.NotFound();
 
-                    var (normalizedRoot, validationError) = await ValidateRequestAsync(request, db);
+                    var (normalizedRoot, validationError) = await ValidateRequestAsync(request, db, ct, excludeId: id);
                     if (validationError is not null)
                         return Results.BadRequest(validationError);
 
@@ -122,6 +125,9 @@ static class ExportDefinitionEndpoints
                     entity.ConfigVersion++;
                     entity.UpdatedBy = httpContext.User.Identity!.Name!;
                     entity.UpdatedAt = DateTimeOffset.UtcNow.ToString("O");
+                    entity.IntegrationKey = request.IntegrationKey;
+                    entity.ContractVersion = request.ContractVersion;
+                    entity.CorrelationKeySourceField = request.CorrelationKeySourceField;
                     await db.SaveChangesAsync(ct);
 
                     await audit.LogAsync(
@@ -220,6 +226,19 @@ static class ExportDefinitionEndpoints
                     var entity = await db.ExportDefinitions.FindAsync([id], ct);
                     if (entity is null)
                         return Results.NotFound();
+
+                    if (request.Enabled)
+                    {
+                        var pairError = await ValidateIntegrationKeyPairEnabledAsync(
+                            db,
+                            entity.IntegrationKey,
+                            entity.ContractVersion,
+                            excludeId: id,
+                            ct
+                        );
+                        if (pairError is not null)
+                            return Results.BadRequest(pairError);
+                    }
 
                     entity.IsEnabled = request.Enabled;
                     entity.UpdatedBy = httpContext.User.Identity!.Name!;
@@ -429,7 +448,10 @@ static class ExportDefinitionEndpoints
             e.CreatedBy,
             e.CreatedAt,
             e.UpdatedBy,
-            e.UpdatedAt
+            e.UpdatedAt,
+            e.IntegrationKey,
+            e.ContractVersion,
+            e.CorrelationKeySourceField
         );
 
     private static ExportDefinitionSummaryDto ToSummaryDto(ExportDefinitionEntity e) =>
@@ -458,10 +480,14 @@ static class ExportDefinitionEndpoints
 
     // Returns the normalized RootNode on success (null on failure) alongside the error, so callers store
     // exactly the tree that was validated instead of re-normalizing (or re-validating null-prone raw
-    // input) a second time.
-    private static async Task<(ExportNode? Root, string? Error)> ValidateRequestAsync(
+    // input) a second time. `internal` rather than `private` so Connector.Integration.Tests can exercise
+    // the IntegrationKey/ContractVersion save-time guardrails directly, mirroring
+    // ImportDefinitionEndpoints.ValidateRequestAsync's own visibility.
+    internal static async Task<(ExportNode? Root, string? Error)> ValidateRequestAsync(
         ExportDefinitionRequest request,
-        ExportLogDbContext db
+        ExportLogDbContext db,
+        CancellationToken ct,
+        int? excludeId = null
     )
     {
         if (string.IsNullOrWhiteSpace(request.Name))
@@ -477,6 +503,35 @@ static class ExportDefinitionEndpoints
             return (null, "Schedule must be a 5-field cron expression, or null for manual-only.");
         if (request.RootNode is null)
             return (null, "RootNode is required.");
+
+        // knowledge/pipeline/import-mapping-presets.md §3.1: IntegrationKey/ContractVersion are set
+        // together or not at all, and at most one *enabled* definition may ever claim a given pair.
+        if ((request.IntegrationKey is null) != (request.ContractVersion is null))
+            return (null, "IntegrationKey and ContractVersion must be set together, or not at all.");
+        if (request.IntegrationKey is not null)
+        {
+            if (string.IsNullOrWhiteSpace(request.IntegrationKey) || ContainsControlCharacters(request.IntegrationKey))
+                return (null, "IntegrationKey must be non-empty and free of control characters.");
+            if (request.ContractVersion is < 1)
+                return (null, "ContractVersion must be a positive integer.");
+        }
+        if (
+            request.CorrelationKeySourceField is not null
+            && !SqlIdentifierRegex.IsMatch(request.CorrelationKeySourceField)
+        )
+            return (null, "CorrelationKeySourceField must be a valid identifier.");
+        if (request.IsEnabled)
+        {
+            var pairError = await ValidateIntegrationKeyPairEnabledAsync(
+                db,
+                request.IntegrationKey,
+                request.ContractVersion,
+                excludeId,
+                ct
+            );
+            if (pairError is not null)
+                return (null, pairError);
+        }
 
         // The request body is bound by plain System.Text.Json, not ExportNodeJson, so a node that
         // naturally omits "children"/"mapping" (e.g. a hand-written scalar-field node from an external
@@ -560,4 +615,32 @@ static class ExportDefinitionEndpoints
     }
 
     private static bool ContainsControlCharacters(string s) => s.Any(char.IsControl);
+
+    // Enforces knowledge/pipeline/import-mapping-presets.md §3.1's uniqueness rule: at most one *enabled*
+    // ExportDefinition may ever claim a given (IntegrationKey, ContractVersion) pair, so Slice 3's
+    // suggestion lookup is always an exact match, never a ranking. Shared between ValidateRequestAsync
+    // (create/update) and the /enable endpoint, since either path can turn a definition enabled.
+    private static async Task<string?> ValidateIntegrationKeyPairEnabledAsync(
+        ExportLogDbContext db,
+        string? integrationKey,
+        int? contractVersion,
+        int? excludeId,
+        CancellationToken ct
+    )
+    {
+        if (integrationKey is null)
+            return null;
+
+        var conflict = await db.ExportDefinitions.AnyAsync(
+            d =>
+                (excludeId == null || d.Id != excludeId.Value)
+                && d.IsEnabled
+                && d.IntegrationKey == integrationKey
+                && d.ContractVersion == contractVersion,
+            ct
+        );
+        return conflict
+            ? $"Another enabled export definition already uses IntegrationKey '{integrationKey}' v{contractVersion}."
+            : null;
+    }
 }

@@ -45,6 +45,16 @@ public sealed class ImportDefinitionEntity
     public string CreatedAt { get; set; } = string.Empty;
     public string? UpdatedBy { get; set; }
     public string? UpdatedAt { get; set; }
+
+    /// <summary>Short, stable slug identifying the business exchange this import belongs to — same
+    /// meaning and pairing rule as <see cref="ExportDefinitionEntity.IntegrationKey"/>. Null means this
+    /// import doesn't opt into the provenance-tagging feature at all.</summary>
+    public string? IntegrationKey { get; set; }
+
+    /// <summary>Versions the exchange named by <see cref="IntegrationKey"/> — same meaning as
+    /// <see cref="ExportDefinitionEntity.ContractVersion"/>. Set together with <see cref="IntegrationKey"/>,
+    /// or not at all — enforced at save time.</summary>
+    public int? ContractVersion { get; set; }
 }
 
 /// <summary>Status values for <see cref="ImportRunEntity.Status"/>. Unlike
