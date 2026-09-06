@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { getSchema, type SchemaColumnDef, type SchemaDefinition } from '@/api/icdSchema'
+import { getSchema, type SchemaDefinition } from '@/api/icdSchema'
 import Alert from '@/components/ui/Alert.vue'
+import IcdActiveColumnsTable from '@/components/IcdActiveColumnsTable.vue'
+import IcdExcludedFieldsList from '@/components/IcdExcludedFieldsList.vue'
 
 const schema = ref<SchemaDefinition | null>(null)
 const loading = ref(true)
@@ -64,32 +66,7 @@ onMounted(async () => {
       <section class="mb-8">
         <h2 class="text-base font-semibold text-text-primary mb-3">Active columns <span class="text-text-muted font-normal text-sm">({{ activeColumns.length }} of {{ schema.columns.length }})</span></h2>
         <div class="rounded-lg border border-border overflow-hidden">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="bg-surface-elevated border-b border-border">
-                <th class="text-left px-3 py-2 text-text-secondary font-medium w-36">Export column</th>
-                <th class="text-left px-3 py-2 text-text-secondary font-medium">ERP source</th>
-                <th class="text-left px-3 py-2 text-text-secondary font-medium w-32">Type / format</th>
-                <th class="text-left px-3 py-2 text-text-secondary font-medium">Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="col in schema.columns"
-                :key="col.name"
-                :class="col.active ? 'bg-surface' : 'bg-surface-elevated opacity-50'"
-                class="border-b border-border last:border-0"
-              >
-                <td class="px-3 py-2 font-mono text-xs text-brand">
-                  {{ col.exportName ?? col.name }}
-                  <span v-if="!col.active" class="ml-1 text-[0.65rem] text-text-muted font-sans">(off)</span>
-                </td>
-                <td class="px-3 py-2 text-text-secondary font-mono text-xs">{{ col.erpSource }}</td>
-                <td class="px-3 py-2 text-text-secondary text-xs">{{ col.type }}</td>
-                <td class="px-3 py-2 text-text-secondary text-xs">{{ col.notes }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <IcdActiveColumnsTable :columns="schema.columns" />
         </div>
       </section>
 
@@ -109,25 +86,7 @@ onMounted(async () => {
         <p class="text-sm text-text-secondary mb-3">
           These ERP fields exist but are not in the current ICD allow-list and will never appear in any export artifact.
         </p>
-        <div class="space-y-3">
-          <div
-            v-for="field in pendingFields"
-            :key="field.erpSource"
-            class="flex gap-3 items-start rounded-lg border px-4 py-3 text-sm"
-            :class="field.tag === 'gdpr' ? 'border-danger/25 bg-danger-bg' : 'border-warning/25 bg-warning-bg'"
-          >
-            <span
-              class="shrink-0 text-[0.68rem] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide mt-0.5"
-              :class="field.tag === 'gdpr' ? 'bg-danger text-white' : 'bg-warning text-white'"
-            >
-              {{ field.reason }}
-            </span>
-            <div>
-              <code class="font-mono text-text-primary">{{ field.erpSource }}</code>
-              <p class="mt-0.5 text-text-secondary">{{ field.detail }}</p>
-            </div>
-          </div>
-        </div>
+        <IcdExcludedFieldsList :fields="pendingFields" />
       </section>
 
     </template>
