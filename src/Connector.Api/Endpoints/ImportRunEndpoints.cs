@@ -107,7 +107,8 @@ static class ImportRunEndpoints
                     o.ExpectedOldValue,
                     o.NewValue
                 ))
-                .ToList() ?? [];
+                .ToList()
+            ?? [];
 
         return new ImportRunDetailDto(
             r.Id,
