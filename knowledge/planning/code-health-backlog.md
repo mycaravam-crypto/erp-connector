@@ -219,17 +219,41 @@ both `POST /api/connection` (catches, returns 400) and the `GET /api/source-sche
 (catches, falls through to the demo schema) — call-site error handling preserved, only the
 connect+introspect+wrap core deduped.
 
+## 3. ✅ Duplicated test-fixture boilerplate in Connector.Integration.Tests — done
+
+Nine of the fifteen files under `tests/Connector.Integration.Tests` had accreted their own copy of one
+of two fixtures, each grown one Postgres-backed test class at a time without noticing the earlier
+copies:
+
+- **The local `testdb` connection string + "open-or-null" helper.** Six files (`ImportNodeWalkerPostgresTests`,
+  `ExportNodeQueryPostgresTests`, `DynamicExportServiceNestedJsonPostgresTests`,
+  `ImportRunReleaserPostgresTests`, `ImportWorkerPostgresTests`, `ImportDefinitionEndpointsPostgresTests`)
+  each redeclared the same connection string constant and a byte-for-byte identical try/catch
+  open-and-return-null-on-failure method (three of the six also redeclared the `ErpConnectionConfig`
+  record for `SetSettingAsync(SettingsKeys.ErpConnection, ...)`). Extracted to `ErpTestFixture`
+  (`ConnectionString`/`Config`/`TryOpenAsync`/`IsAvailableAsync`).
+- **The Sqlite-backed `ExportLogDbContext` + connection bundle.** Three files
+  (`ImportRunReleaserPostgresTests`, `ImportWorkerPostgresTests`, `ImportDefinitionEndpointsPostgresTests`)
+  each redeclared an identical `LocalDb` record (bundles the in-memory Sqlite connection with the
+  `ExportLogDbContext` on top of it so a test can dispose both via one `await using`) and an identical
+  `NewLocalDbAsync` factory pre-seeding the ERP connection setting. Extracted to `LocalDb.NewAsync()`.
+  Separately, three more files (`ExportDefinitionWorkerCandidateFilterTests`, `ImportRunEntitySchemaTests`,
+  `ExportDefinitionMigratorTests`) each redeclared the same constructor/`DisposeAsync` pair standing up a
+  fresh in-memory Sqlite `ExportLogDbContext` with no ERP setting seeded — extracted to a
+  `SqliteDbContextTestBase` these three now inherit from instead.
+
+All three extracted into new files (`ErpTestFixture.cs`, `LocalDb.cs`, `SqliteDbContextTestBase.cs`)
+rather than an existing one, since no single duplicated-from file was the obvious owner. Behavior-preserving
+only — no assertions or fixture semantics changed; the 9 existing files shed 367 lines for 98 (mostly
+call-site renames), and the 3 new shared files add 109 back, for a net -160 lines project-wide.
+
+`tests/Connector.Core.Tests` (pure unit tests, no DB fixtures) wasn't in scope for this pass.
+
 ## Backend tooling note
 
 No `fallow` equivalent for C#. When `dotnet` is available: `dotnet build Connector.sln -c
 Release` to confirm the warnings-as-errors baseline, `dotnet csharpier check .` for formatting.
 Consider a C# duplication/complexity analyzer if these findings recur elsewhere.
-
-## Not covered by this pass
-
-`tests/Connector.Core.Tests` and `tests/Connector.Integration.Tests` (~1.7k lines) weren't
-reviewed for duplicated setup/fixture boilerplate — lower priority than production code, worth a
-look if this list gets revisited.
 
 # Related
 

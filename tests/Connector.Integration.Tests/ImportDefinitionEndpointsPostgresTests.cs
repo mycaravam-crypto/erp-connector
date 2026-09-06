@@ -1,11 +1,6 @@
 using Connector.Api;
 using Connector.Api.Endpoints;
-using Connector.Core.DynamicExport;
 using Connector.Core.DynamicImport;
-using Connector.Infrastructure;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace Connector.Integration.Tests;
 
@@ -25,54 +20,6 @@ namespace Connector.Integration.Tests;
 /// </summary>
 public sealed class ImportDefinitionEndpointsPostgresTests
 {
-    private const string ErpConnectionString =
-        "Host=localhost;Port=5432;Database=erp_testdb;Username=erp_test;Password=erp_test_pw;Timeout=2";
-
-    private static readonly ErpConnectionConfig ErpConfig = new(
-        Host: "localhost",
-        Port: 5432,
-        Database: "erp_testdb",
-        Username: "erp_test",
-        Password: "erp_test_pw"
-    );
-
-    private static async Task<bool> ErpAvailableAsync()
-    {
-        try
-        {
-            await using var conn = new NpgsqlConnection(ErpConnectionString);
-            await conn.OpenAsync();
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    // Bundles the in-memory Sqlite connection with the ExportLogDbContext built on top of it, mirroring
-    // ImportRunReleaserPostgresTests.LocalDb — pre-seeded with the ERP connection setting
-    // ValidateRequestAsync reads via GetSettingRawAsync.
-    private sealed record LocalDb(ExportLogDbContext Db, SqliteConnection Connection) : IAsyncDisposable
-    {
-        public async ValueTask DisposeAsync()
-        {
-            await Db.DisposeAsync();
-            await Connection.DisposeAsync();
-        }
-    }
-
-    private static async Task<LocalDb> NewLocalDbAsync()
-    {
-        var connection = new SqliteConnection("Data Source=:memory:");
-        await connection.OpenAsync();
-        var options = new DbContextOptionsBuilder<ExportLogDbContext>().UseSqlite(connection).Options;
-        var db = new ExportLogDbContext(options);
-        await db.Database.EnsureCreatedAsync();
-        await db.SetSettingAsync(SettingsKeys.ErpConnection, ErpConfig);
-        return new LocalDb(db, connection);
-    }
-
     // ── Tree builders (mirrors ImportNodeWalkerPostgresTests' own Scalar/SystemConfigurationRoot) ──────
 
     private static ImportNode Scalar(string sourceKey, string targetColumn) =>
@@ -122,10 +69,10 @@ public sealed class ImportDefinitionEndpointsPostgresTests
     [Fact]
     public async Task ValidateRequestAsync_WritableColumnInAllowlistAndSchema_Succeeds()
     {
-        if (!await ErpAvailableAsync())
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
-        await using var local = await NewLocalDbAsync();
+        await using var local = await LocalDb.NewAsync();
         var root = Root(Scalar("ciId", "id"), Scalar("confirmationStatus", "status"));
         var request = RequestFor(root, ["status"]);
 
@@ -142,10 +89,10 @@ public sealed class ImportDefinitionEndpointsPostgresTests
     [Fact]
     public async Task ValidateRequestAsync_ColumnNotInAllowedWritableColumns_RejectsAsOutOfScope()
     {
-        if (!await ErpAvailableAsync())
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
-        await using var local = await NewLocalDbAsync();
+        await using var local = await LocalDb.NewAsync();
         // storage_location exists on systemconfiguration and isn't on the GDPR denylist — the only thing
         // wrong with it here is that the allowlist below doesn't mention it.
         var root = Root(Scalar("ciId", "id"), Scalar("location", "storage_location"));
@@ -164,10 +111,10 @@ public sealed class ImportDefinitionEndpointsPostgresTests
     [Fact]
     public async Task ValidateRequestAsync_ColumnDoesNotExistOnTable_RejectsWithSpecificError()
     {
-        if (!await ErpAvailableAsync())
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
-        await using var local = await NewLocalDbAsync();
+        await using var local = await LocalDb.NewAsync();
         var root = Root(Scalar("ciId", "id"), Scalar("nope", "no_such_column"));
         var request = RequestFor(root, ["no_such_column"]);
 
@@ -184,10 +131,10 @@ public sealed class ImportDefinitionEndpointsPostgresTests
     [Fact]
     public async Task ValidateRequestAsync_TargetIsPrimaryKey_Rejects()
     {
-        if (!await ErpAvailableAsync())
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
-        await using var local = await NewLocalDbAsync();
+        await using var local = await LocalDb.NewAsync();
         // Uses "serial" as the correlation key here so "id" is free to be tested as a (rejected) write
         // target — in a real definition the match column and "id" are almost always the same thing.
         var root = Root(Scalar("ciSerial", "serial"), Scalar("ciId", "id"));
@@ -206,10 +153,10 @@ public sealed class ImportDefinitionEndpointsPostgresTests
     [Fact]
     public async Task ValidateRequestAsync_TargetIsGeneratedColumn_Rejects()
     {
-        if (!await ErpAvailableAsync())
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
-        await using var local = await NewLocalDbAsync();
+        await using var local = await LocalDb.NewAsync();
         // status_upper is `GENERATED ALWAYS AS (upper(status)) STORED` in testdb/init.sql — dedicated to
         // exercising this exact rejection branch.
         var root = Root(Scalar("ciId", "id"), Scalar("statusUpper", "status_upper"));
@@ -228,10 +175,10 @@ public sealed class ImportDefinitionEndpointsPostgresTests
     [Fact]
     public async Task ValidateRequestAsync_TargetIsForeignKey_Rejects()
     {
-        if (!await ErpAvailableAsync())
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
-        await using var local = await NewLocalDbAsync();
+        await using var local = await LocalDb.NewAsync();
         var root = Root(Scalar("ciId", "id"), Scalar("articleId", "article_id"));
         var request = RequestFor(root, ["article_id"]);
 
@@ -251,7 +198,7 @@ public sealed class ImportDefinitionEndpointsPostgresTests
     {
         // Doesn't need testdb: the GDPR-denylist-in-allowlist check runs (and fails) before the schema-aware
         // pass ever opens an ERP connection.
-        await using var local = await NewLocalDbAsync();
+        await using var local = await LocalDb.NewAsync();
         var root = Root(Scalar("ciId", "id"), Scalar("tech", "technician_name"));
         var request = RequestFor(root, ["technician_name"]);
 
@@ -270,7 +217,7 @@ public sealed class ImportDefinitionEndpointsPostgresTests
     {
         // Doesn't need testdb: the tree walk rejects OnMissingChild = "insert" before ever reaching the
         // schema-aware pass — see ValidateRequestAsync's own doc comment.
-        await using var local = await NewLocalDbAsync();
+        await using var local = await LocalDb.NewAsync();
         var maintenancePlanChild = new ImportNode(
             SourceKey: "maintenancePlan",
             Kind: ImportNodeKind.Object,

@@ -1,6 +1,5 @@
 using Connector.Core.DynamicExport;
 using Connector.Infrastructure;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace Connector.Integration.Tests;
@@ -11,28 +10,8 @@ namespace Connector.Integration.Tests;
 /// not any live ERP/testdb connection, so unlike <see cref="DynamicExportServiceNestedJsonPostgresTests"/>
 /// it needs no external fixture and never no-ops.
 /// </summary>
-public sealed class ExportDefinitionMigratorTests : IAsyncDisposable
+public sealed class ExportDefinitionMigratorTests : SqliteDbContextTestBase
 {
-    private readonly SqliteConnection _connection;
-    private readonly ExportLogDbContext _db;
-
-    public ExportDefinitionMigratorTests()
-    {
-        // A SQLite in-memory database only lives as long as its connection stays open, so the
-        // connection (not the context) owns the database's lifetime across a test's several SaveChanges calls.
-        _connection = new SqliteConnection("Data Source=:memory:");
-        _connection.Open();
-        var options = new DbContextOptionsBuilder<ExportLogDbContext>().UseSqlite(_connection).Options;
-        _db = new ExportLogDbContext(options);
-        _db.Database.EnsureCreated();
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _db.DisposeAsync();
-        await _connection.DisposeAsync();
-    }
-
     private const string LegacyMappingJson = """
         {
             "SourceTable": "masterdata",
@@ -84,16 +63,16 @@ public sealed class ExportDefinitionMigratorTests : IAsyncDisposable
 
     private async Task SeedSettingAsync(string key, string rawJson)
     {
-        _db.AppSettings.Add(new AppSettingEntity { Key = key, Value = rawJson });
-        await _db.SaveChangesAsync();
+        Db.AppSettings.Add(new AppSettingEntity { Key = key, Value = rawJson });
+        await Db.SaveChangesAsync();
     }
 
     [Fact]
     public async Task MigrateLegacyMappingsAsync_EmptyState_NoOp()
     {
-        await ExportDefinitionMigrator.MigrateLegacyMappingsAsync(_db);
+        await ExportDefinitionMigrator.MigrateLegacyMappingsAsync(Db);
 
-        Assert.Empty(_db.ExportDefinitions);
+        Assert.Empty(Db.ExportDefinitions);
     }
 
     [Fact]
@@ -101,9 +80,9 @@ public sealed class ExportDefinitionMigratorTests : IAsyncDisposable
     {
         await SeedSettingAsync(SettingsKeys.ExportMapping, LegacyMappingJson);
 
-        await ExportDefinitionMigrator.MigrateLegacyMappingsAsync(_db);
+        await ExportDefinitionMigrator.MigrateLegacyMappingsAsync(Db);
 
-        var definition = Assert.Single(_db.ExportDefinitions);
+        var definition = Assert.Single(Db.ExportDefinitions);
         Assert.Equal("Legacy Export", definition.Name);
         Assert.Equal("masterdata", definition.RootTable);
         // An enabled NestedGroup was present — legacy nesting only ever rendered via the JSON path.
@@ -145,9 +124,9 @@ public sealed class ExportDefinitionMigratorTests : IAsyncDisposable
             """;
         await SeedSettingAsync(SettingsKeys.ExportPresets, presetsJson);
 
-        await ExportDefinitionMigrator.MigrateLegacyMappingsAsync(_db);
+        await ExportDefinitionMigrator.MigrateLegacyMappingsAsync(Db);
 
-        var names = await _db.ExportDefinitions.Select(d => d.Name).OrderBy(n => n).ToArrayAsync();
+        var names = await Db.ExportDefinitions.Select(d => d.Name).OrderBy(n => n).ToArrayAsync();
         Assert.Equal(["Preset A", "Preset B"], names);
     }
 
@@ -159,9 +138,9 @@ public sealed class ExportDefinitionMigratorTests : IAsyncDisposable
         await SeedSettingAsync(SettingsKeys.ExportMapping, LegacyMappingJson);
         await SeedSettingAsync(SettingsKeys.ExportPresets, presetsJson);
 
-        await ExportDefinitionMigrator.MigrateLegacyMappingsAsync(_db);
+        await ExportDefinitionMigrator.MigrateLegacyMappingsAsync(Db);
 
-        var names = await _db.ExportDefinitions.Select(d => d.Name).OrderBy(n => n).ToArrayAsync();
+        var names = await Db.ExportDefinitions.Select(d => d.Name).OrderBy(n => n).ToArrayAsync();
         Assert.Equal(["Legacy Export", "Preset A"], names);
     }
 
@@ -170,10 +149,10 @@ public sealed class ExportDefinitionMigratorTests : IAsyncDisposable
     {
         await SeedSettingAsync(SettingsKeys.ExportMapping, LegacyMappingJson);
 
-        await ExportDefinitionMigrator.MigrateLegacyMappingsAsync(_db);
-        await ExportDefinitionMigrator.MigrateLegacyMappingsAsync(_db);
+        await ExportDefinitionMigrator.MigrateLegacyMappingsAsync(Db);
+        await ExportDefinitionMigrator.MigrateLegacyMappingsAsync(Db);
 
-        Assert.Single(_db.ExportDefinitions);
+        Assert.Single(Db.ExportDefinitions);
     }
 
     [Fact]
@@ -186,9 +165,9 @@ public sealed class ExportDefinitionMigratorTests : IAsyncDisposable
         await SeedSettingAsync(SettingsKeys.ExportMapping, flatMappingJson);
         await SeedSettingAsync(SettingsKeys.SchedulerConfig, schedulerJson);
 
-        await ExportDefinitionMigrator.MigrateLegacyMappingsAsync(_db);
+        await ExportDefinitionMigrator.MigrateLegacyMappingsAsync(Db);
 
-        var definition = Assert.Single(_db.ExportDefinitions);
+        var definition = Assert.Single(Db.ExportDefinitions);
         Assert.Equal("csv", definition.OutputFormat);
     }
 }

@@ -1,8 +1,5 @@
-using Connector.Core.DynamicExport;
 using Connector.Core.DynamicImport;
 using Connector.Infrastructure;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 
@@ -21,35 +18,10 @@ namespace Connector.Integration.Tests;
 /// </summary>
 public sealed class ImportRunReleaserPostgresTests
 {
-    private const string ErpConnectionString =
-        "Host=localhost;Port=5432;Database=erp_testdb;Username=erp_test;Password=erp_test_pw;Timeout=2";
-
     // Seeded in testdb/init.sql, reserved for this test class — see its own comment there.
     private const string FixtureA = "c0000001-0001-0001-0001-000000000001";
     private const string FixtureB = "c0000002-0002-0002-0002-000000000002";
     private const string FixtureC = "c0000003-0003-0003-0003-000000000003";
-
-    private static readonly ErpConnectionConfig ErpConfig = new(
-        Host: "localhost",
-        Port: 5432,
-        Database: "erp_testdb",
-        Username: "erp_test",
-        Password: "erp_test_pw"
-    );
-
-    private static async Task<NpgsqlConnection?> TryOpenErpAsync()
-    {
-        try
-        {
-            var conn = new NpgsqlConnection(ErpConnectionString);
-            await conn.OpenAsync();
-            return conn;
-        }
-        catch
-        {
-            return null;
-        }
-    }
 
     private static async Task<string?> ReadStatusAsync(NpgsqlConnection conn, string ciId)
     {
@@ -68,31 +40,6 @@ public sealed class ImportRunReleaserPostgresTests
         cmd.Parameters.AddWithValue("status", status);
         cmd.Parameters.AddWithValue("id", ciId);
         await cmd.ExecuteNonQueryAsync();
-    }
-
-    // Bundles the in-memory Sqlite connection with the ExportLogDbContext built on top of it so a test can
-    // dispose both through one `await using`, without EF's connection-ownership rules leaving the raw
-    // SqliteConnection to leak.
-    private sealed record LocalDb(ExportLogDbContext Db, SqliteConnection Connection) : IAsyncDisposable
-    {
-        public async ValueTask DisposeAsync()
-        {
-            await Db.DisposeAsync();
-            await Connection.DisposeAsync();
-        }
-    }
-
-    // Fresh in-memory Sqlite ExportLogDbContext per test (mirrors ImportRunEntitySchemaTests), pre-seeded
-    // with the ERP connection setting ImportRunReleaser.ReleaseAsync reads via GetSettingRawAsync.
-    private static async Task<LocalDb> NewLocalDbAsync()
-    {
-        var connection = new SqliteConnection("Data Source=:memory:");
-        await connection.OpenAsync();
-        var options = new DbContextOptionsBuilder<ExportLogDbContext>().UseSqlite(connection).Options;
-        var db = new ExportLogDbContext(options);
-        await db.Database.EnsureCreatedAsync();
-        await db.SetSettingAsync(SettingsKeys.ErpConnection, ErpConfig);
-        return new LocalDb(db, connection);
     }
 
     private static async Task<ImportRunEntity> SeedRunAsync(ExportLogDbContext db, ImportPlan plan, string checksum)
@@ -151,11 +98,11 @@ public sealed class ImportRunReleaserPostgresTests
     [Fact]
     public async Task ReleaseAsync_ExpectedOldValueStillMatches_CommitsAndMarksReleased()
     {
-        await using var erp = await TryOpenErpAsync();
+        await using var erp = await ErpTestFixture.TryOpenAsync();
         if (erp is null)
             return;
 
-        await using var local = await NewLocalDbAsync();
+        await using var local = await LocalDb.NewAsync();
         var db = local.Db;
         var audit = new AuditService(db, NullLogger<AuditService>.Instance);
 
@@ -187,11 +134,11 @@ public sealed class ImportRunReleaserPostgresTests
     [Fact]
     public async Task ReleaseAsync_RowChangedSinceStaging_ExcludesRowAsConflictedWithoutOverwriting()
     {
-        await using var erp = await TryOpenErpAsync();
+        await using var erp = await ErpTestFixture.TryOpenAsync();
         if (erp is null)
             return;
 
-        await using var local = await NewLocalDbAsync();
+        await using var local = await LocalDb.NewAsync();
         var db = local.Db;
         var audit = new AuditService(db, NullLogger<AuditService>.Instance);
 
@@ -221,11 +168,11 @@ public sealed class ImportRunReleaserPostgresTests
     [Fact]
     public async Task ReleaseAsync_UnrelatedFailureMidCommit_RollsBackEverythingAndMarksFailed()
     {
-        await using var erp = await TryOpenErpAsync();
+        await using var erp = await ErpTestFixture.TryOpenAsync();
         if (erp is null)
             return;
 
-        await using var local = await NewLocalDbAsync();
+        await using var local = await LocalDb.NewAsync();
         var db = local.Db;
         var audit = new AuditService(db, NullLogger<AuditService>.Instance);
 
@@ -285,7 +232,7 @@ public sealed class ImportRunReleaserPostgresTests
     [Fact]
     public async Task RejectAsync_MarksRejectedWithoutTouchingErpOrRequiringApprover()
     {
-        await using var local = await NewLocalDbAsync();
+        await using var local = await LocalDb.NewAsync();
         var db = local.Db;
         var audit = new AuditService(db, NullLogger<AuditService>.Instance);
 
