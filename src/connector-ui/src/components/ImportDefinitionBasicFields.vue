@@ -88,5 +88,12 @@ function onRootTableChanged() {
       <input type="checkbox" v-model="definition.isEnabled" class="cursor-pointer" />
       <span class="text-xs text-text-secondary">The inbound folder watcher only stages files against enabled definitions.</span>
     </div>
+    <!-- knowledge/pipeline/import-mapping-presets.md §6 Open Decision #2 — read-only, for later auditing
+         of why this definition's tree looks the way it does. Only set via "Create from export"; not
+         editable by hand here. -->
+    <div v-if="definition.integrationKey" class="flex items-center gap-2">
+      <label class="text-sm text-text-secondary w-36 shrink-0">Paired with</label>
+      <span class="text-sm text-text-secondary font-mono">{{ definition.integrationKey }} v{{ definition.contractVersion }}</span>
+    </div>
   </div>
 </template>

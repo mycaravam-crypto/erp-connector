@@ -38,6 +38,9 @@ const DEFINITION: ExportDefinition = {
   createdAt: '2026-08-01T00:00:00Z',
   updatedBy: null,
   updatedAt: null,
+  integrationKey: null,
+  contractVersion: null,
+  correlationKeySourceField: null,
   rootNode: {
     targetKey: 'root',
     kind: 'root',

@@ -1,5 +1,5 @@
 import type { SourceTable } from '@/api/connection'
-import type { ImportNode } from '@/api/importDefinitions'
+import type { ImportMappingSuggestion, ImportNode } from '@/api/importDefinitions'
 import { blankFieldMapping } from './exportNodeBuilders'
 
 /** An empty root node — the starting tree for a brand-new import definition. */
@@ -57,4 +57,32 @@ export function columnsAsDisabledScalarFields(
     children: [],
     enabled: false,
   }))
+}
+
+/**
+ * "Create from export" (knowledge/pipeline/import-mapping-presets.md §3.4/§4): builds the root node a New
+ * Import Definition starts from once an operator accepts a suggestion. Same starting point as picking the
+ * root table by hand (one disabled scalar-field node per column), except the deterministic root match
+ * field is pre-enabled and correctly keyed to the export's own JSON field name, and every best-effort
+ * candidate field (still unchecked/disabled — the operator must explicitly enable each one) gets its
+ * SourceKey pre-filled so accepting it later is a checkbox, not a retype.
+ */
+export function applyImportMappingSuggestion(
+  suggestion: ImportMappingSuggestion,
+  availableTables: SourceTable[],
+): ImportNode {
+  const children = columnsAsDisabledScalarFields(suggestion.rootTable, availableTables)
+
+  const matchNode = children.find((c) => c.targetColumn === suggestion.rootMatchColumn)
+  if (matchNode) {
+    matchNode.enabled = true
+    matchNode.sourceKey = suggestion.rootMatchSourceKey
+  }
+
+  for (const candidate of suggestion.candidateFields) {
+    const node = children.find((c) => c.targetColumn === candidate.targetColumn)
+    if (node) node.sourceKey = candidate.sourceKey
+  }
+
+  return { ...blankRootNode(), children }
 }

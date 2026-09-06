@@ -358,7 +358,28 @@ sub-issue per slice (#74–78).
       isolation (exact match, no match, disabled-export/no-correlation-field no-ops, ambiguous-candidate
       safety, best-effort field candidates, nested children never walked). No UI or API endpoint yet —
       deliberately reviewable before any frontend surfaces it. Shipped in #76.
-- [ ] **Slice 4 — Frontend.** Suggestion banner + "Create from export" action.
+- [x] **Slice 4 — Frontend.** New `POST /api/import-definitions/suggest-from-export` endpoint
+      (`ImportDefinitionEndpoints.BuildSuggestionAsync`) parses a pasted sample `ImportEnvelope`'s
+      `provenance` block and first record's field names, then delegates to Slice 3's
+      `ImportMappingSuggestion.SuggestFrom` against every enabled, tagged `ExportDefinition` — degrading to
+      `null` (200 OK) for anything short of an exact match, never an error. Resolves the matched export's
+      own `TargetKey` for the correlation field server-side (`RootMatchSourceKey`) so the suggested tree's
+      `SourceKey` reads the real inbound JSON key rather than assuming it matches the column name. New
+      `ImportMappingSuggestionPanel.vue` — settling Open Decision #1 as a **dedicated step** in the New
+      Import Definition flow rather than reusing `ImportDefinitionPreviewPanel.vue` verbatim: that panel
+      drives `.../{id}/preview` against an already-saved definition's live ERP connection, which doesn't
+      exist yet at this point in the flow. Mirrors its paste-JSON UX instead. On accept,
+      `applyImportMappingSuggestion` (`importNodeBuilders.ts`) builds the same disabled-scalar-fields-per-
+      column starting tree a manual root-table pick gives, pre-enables and correctly keys the deterministic
+      root match field, and pre-fills (still unchecked) every best-effort candidate's `SourceKey` — nothing
+      is auto-enabled. Settled Open Decision #2: the paired `IntegrationKey`/`ContractVersion` is shown
+      read-only on `ImportDefinitionBasicFields.vue` once set, cheap given Slice 1 already stores it.
+      **Deviation:** the proposal's §4 "New" list didn't call out that no UI existed anywhere for an
+      operator to actually set `ExportDefinition.IntegrationKey`/`ContractVersion`/
+      `CorrelationKeySourceField` (Slice 2 was backend-only) — without it the feature would have shipped
+      with no way to tag an export at all. Added a small "Integration tagging (optional)" section to
+      `ExportDefinitionBasicFields.vue` in this slice rather than deferring it, since this slice's own
+      verification step requires being able to "create an export with `IntegrationKey` set." Shipped in #77.
 - [ ] **Slice 5 — Docs.** Status flip, changelog.
 
 ## Related

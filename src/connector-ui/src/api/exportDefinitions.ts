@@ -39,6 +39,11 @@ export interface ExportDefinitionSummary {
 
 export interface ExportDefinition extends ExportDefinitionSummary {
   rootNode: ExportNode
+  // knowledge/pipeline/import-mapping-presets.md §3.1 — optional, paired provenance tagging. Null on every
+  // export that doesn't opt into the import-mapping-presets suggestion feature (the default).
+  integrationKey: string | null
+  contractVersion: number | null
+  correlationKeySourceField: string | null
 }
 
 export interface ExportDefinitionRequest {
@@ -49,6 +54,9 @@ export interface ExportDefinitionRequest {
   outputFormat: string
   isEnabled: boolean
   schedule: string | null
+  integrationKey?: string | null
+  contractVersion?: number | null
+  correlationKeySourceField?: string | null
 }
 
 export interface ExportDefinitionTestResult {

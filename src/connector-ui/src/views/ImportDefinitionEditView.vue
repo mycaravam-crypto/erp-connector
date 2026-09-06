@@ -9,12 +9,19 @@ import {
   listImportDefinitionRuns,
   type ImportDefinition,
   type ImportDefinitionRun,
+  type ImportMappingSuggestion,
   type ImportPlan,
 } from '@/api/importDefinitions'
-import { blankRootNode, columnsAsDisabledScalarFields, collectWritableTargets } from '@/lib/importNodeBuilders'
+import {
+  applyImportMappingSuggestion,
+  blankRootNode,
+  columnsAsDisabledScalarFields,
+  collectWritableTargets,
+} from '@/lib/importNodeBuilders'
 import ImportDefinitionBasicFields from '@/components/ImportDefinitionBasicFields.vue'
 import ImportAllowedColumnsEditor from '@/components/ImportAllowedColumnsEditor.vue'
 import ImportDefinitionRunControls from '@/components/ImportDefinitionRunControls.vue'
+import ImportMappingSuggestionPanel from '@/components/ImportMappingSuggestionPanel.vue'
 import ImportNodeTreeEditor from '@/components/ImportNodeTreeEditor.vue'
 import ImportDefinitionPreviewPanel from '@/components/ImportDefinitionPreviewPanel.vue'
 import ImportDefinitionRunsTable from '@/components/ImportDefinitionRunsTable.vue'
@@ -43,6 +50,8 @@ function blankDefinition(): ImportDefinition {
     updatedBy: null,
     updatedAt: null,
     rootNode: blankRootNode(),
+    integrationKey: null,
+    contractVersion: null,
   }
 }
 
@@ -101,6 +110,24 @@ function onRootTableChanged() {
   definition.value.rootNode.children = columnsAsDisabledScalarFields(definition.value.rootTable, availableTables.value)
 }
 
+// Gates ImportMappingSuggestionPanel in the New Import Definition flow — hidden the moment the operator
+// picks a starting point (accept or "Start blank"), same as `isNew` itself flips false once created.
+const showStartPanel = ref(true)
+
+function onSuggestionAccepted(suggestion: ImportMappingSuggestion) {
+  if (!definition.value) return
+  definition.value.rootTable = suggestion.rootTable
+  definition.value.rootMatchColumn = suggestion.rootMatchColumn
+  definition.value.rootNode = applyImportMappingSuggestion(suggestion, availableTables.value)
+  definition.value.integrationKey = suggestion.integrationKey
+  definition.value.contractVersion = suggestion.contractVersion
+  showStartPanel.value = false
+}
+
+function onStartBlank() {
+  showStartPanel.value = false
+}
+
 const creating = ref(false)
 const createError = ref<string | null>(null)
 
@@ -119,6 +146,8 @@ async function create() {
       allowedWritableColumns: d.allowedWritableColumns,
       unmatchedRootPolicy: d.unmatchedRootPolicy,
       isEnabled: d.isEnabled,
+      integrationKey: d.integrationKey,
+      contractVersion: d.contractVersion,
     })
     if (result.ok) {
       definition.value = result.data
@@ -211,63 +240,71 @@ function onReviewResolved() {
         Config version {{ definition.configVersion }} · created by {{ definition.createdBy }}
       </p>
 
-      <ImportDefinitionBasicFields
-        :definition="definition"
-        :available-tables="availableTables"
-        :root-table-locked="rootTableLocked"
-        @root-table-changed="onRootTableChanged"
+      <ImportMappingSuggestionPanel
+        v-if="isNew && showStartPanel"
+        @accept="onSuggestionAccepted"
+        @start-blank="onStartBlank"
       />
-
-      <ImportAllowedColumnsEditor :columns="definition.allowedWritableColumns" :used-columns="usedColumns" />
-
-      <h2 class="text-base font-semibold text-text-primary mb-2.5">Fields</h2>
-      <p class="text-text-secondary text-sm mb-3 leading-relaxed">
-        Add the root's correlation-key field (mapped to the root match column above) plus every
-        confirmation/status field the vendor may write back. Picking a related table fills in every one of
-        its columns (unchecked) so you only have to check the ones you want.
-      </p>
-      <ImportNodeTreeEditor
-        v-if="definition.rootTable"
-        :nodes="definition.rootNode.children"
-        :context-table="definition.rootTable"
-        :available-tables="availableTables"
-        :depth="0"
-        class="mb-6"
-      />
-      <p v-else class="text-text-muted text-sm mb-6">Select a root table above to start adding fields.</p>
-
-      <template v-if="isSaved">
-        <ImportDefinitionRunControls
-          :definition="definition"
-          @duplicated="onDuplicated"
-          @deleted="onDeleted"
-        />
-
-        <div class="mt-6 mb-6">
-          <ImportDefinitionPreviewPanel
-            v-model:inbound-json="previewInboundJson"
-            :plan="previewPlan"
-            :loading="previewLoading"
-            :error="previewError"
-            @refresh="runPreview"
-          />
-        </div>
-
-        <ImportDefinitionRunsTable
-          :runs="runs"
-          :loading="runsLoading"
-          :error="runsError"
-          @refresh="refreshRuns"
-          @review="openReview"
-        />
-        <ImportRunReviewDialog v-model:open="reviewOpen" :run-id="reviewingRunId" @resolved="onReviewResolved" />
-      </template>
 
       <template v-else>
-        <Button :disabled="creating || !definition.rootTable" :loading="creating" @click="create">
-          {{ creating ? 'Creating…' : 'Create' }}
-        </Button>
-        <p v-if="createError" class="text-sm text-danger mt-3">{{ createError }}</p>
+        <ImportDefinitionBasicFields
+          :definition="definition"
+          :available-tables="availableTables"
+          :root-table-locked="rootTableLocked"
+          @root-table-changed="onRootTableChanged"
+        />
+
+        <ImportAllowedColumnsEditor :columns="definition.allowedWritableColumns" :used-columns="usedColumns" />
+
+        <h2 class="text-base font-semibold text-text-primary mb-2.5">Fields</h2>
+        <p class="text-text-secondary text-sm mb-3 leading-relaxed">
+          Add the root's correlation-key field (mapped to the root match column above) plus every
+          confirmation/status field the vendor may write back. Picking a related table fills in every one of
+          its columns (unchecked) so you only have to check the ones you want.
+        </p>
+        <ImportNodeTreeEditor
+          v-if="definition.rootTable"
+          :nodes="definition.rootNode.children"
+          :context-table="definition.rootTable"
+          :available-tables="availableTables"
+          :depth="0"
+          class="mb-6"
+        />
+        <p v-else class="text-text-muted text-sm mb-6">Select a root table above to start adding fields.</p>
+
+        <template v-if="isSaved">
+          <ImportDefinitionRunControls
+            :definition="definition"
+            @duplicated="onDuplicated"
+            @deleted="onDeleted"
+          />
+
+          <div class="mt-6 mb-6">
+            <ImportDefinitionPreviewPanel
+              v-model:inbound-json="previewInboundJson"
+              :plan="previewPlan"
+              :loading="previewLoading"
+              :error="previewError"
+              @refresh="runPreview"
+            />
+          </div>
+
+          <ImportDefinitionRunsTable
+            :runs="runs"
+            :loading="runsLoading"
+            :error="runsError"
+            @refresh="refreshRuns"
+            @review="openReview"
+          />
+          <ImportRunReviewDialog v-model:open="reviewOpen" :run-id="reviewingRunId" @resolved="onReviewResolved" />
+        </template>
+
+        <template v-else>
+          <Button :disabled="creating || !definition.rootTable" :loading="creating" @click="create">
+            {{ creating ? 'Creating…' : 'Create' }}
+          </Button>
+          <p v-if="createError" class="text-sm text-danger mt-3">{{ createError }}</p>
+        </template>
       </template>
     </template>
   </div>

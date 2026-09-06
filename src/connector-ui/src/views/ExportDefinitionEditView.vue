@@ -39,6 +39,9 @@ function blankDefinition(): ExportDefinition {
     updatedBy: null,
     updatedAt: null,
     rootNode: blankRootNode(),
+    integrationKey: null,
+    contractVersion: null,
+    correlationKeySourceField: null,
   }
 }
 
@@ -111,6 +114,9 @@ async function create() {
       outputFormat: d.outputFormat,
       isEnabled: d.isEnabled,
       schedule: d.schedule,
+      integrationKey: d.integrationKey,
+      contractVersion: d.contractVersion,
+      correlationKeySourceField: d.correlationKeySourceField,
     })
     if (result.ok) {
       definition.value = result.data

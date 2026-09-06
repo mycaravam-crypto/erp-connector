@@ -50,6 +50,8 @@ const DEFINITION: ImportDefinition = {
   createdAt: '2026-09-01T00:00:00Z',
   updatedBy: null,
   updatedAt: null,
+  integrationKey: null,
+  contractVersion: null,
   rootNode: {
     sourceKey: 'root',
     kind: 'root',
@@ -327,13 +329,17 @@ describe('ImportDefinitionEditView', () => {
   })
 
   describe('create mode (id = "new")', () => {
-    it('does not fetch an existing definition and shows the create form', async () => {
+    it('offers Create from export vs Start blank before showing the create form', async () => {
       const getSpy = vi.spyOn(importDefinitionsApi, 'getImportDefinition')
       const w = mount(ImportDefinitionEditView, { global: { plugins: [await buildRouter('new')] } })
       await flushPromises()
 
       expect(getSpy).not.toHaveBeenCalled()
       expect(w.text()).toContain('New Import Definition')
+      expect(w.text()).toContain('Start from')
+      expect(w.findAll('button').some((b) => b.text() === 'Create')).toBe(false)
+
+      await w.findAll('button').find((b) => b.text() === 'Start blank')!.trigger('click')
       expect(w.findAll('button').some((b) => b.text() === 'Create')).toBe(true)
     })
 
@@ -345,6 +351,7 @@ describe('ImportDefinitionEditView', () => {
       const w = mount(ImportDefinitionEditView, { global: { plugins: [router] } })
       await flushPromises()
 
+      await w.findAll('button').find((b) => b.text() === 'Start blank')!.trigger('click')
       await w.find('select[aria-label="Root table"]').setValue('masterdata')
       await w.find('input[aria-label="Name"]').setValue('New One')
       const createBtn = w.findAll('button').find((b) => b.text() === 'Create')!
@@ -353,6 +360,33 @@ describe('ImportDefinitionEditView', () => {
 
       expect(createSpy).toHaveBeenCalledWith(expect.objectContaining({ name: 'New One', rootTable: 'masterdata' }))
       expect(router.currentRoute.value.params.id).toBe('42')
+    })
+
+    it('accepts a "Create from export" suggestion and prefills the root table, match column, and tree', async () => {
+      vi.spyOn(importDefinitionsApi, 'suggestImportMappingFromExport').mockResolvedValueOnce({
+        exportDefinitionId: 7,
+        exportDefinitionName: 'CI confirmation export',
+        integrationKey: 'ci-confirmation',
+        contractVersion: 1,
+        rootTable: 'masterdata',
+        rootMatchColumn: 'guid',
+        rootMatchSourceKey: 'guidField',
+        candidateFields: [{ sourceKey: 'status', targetColumn: 'status' }],
+      })
+      const w = mount(ImportDefinitionEditView, { global: { plugins: [await buildRouter('new')] } })
+      await flushPromises()
+
+      await w.find('textarea[aria-label="Sample inbound JSON"]').setValue('{"provenance":{"integrationKey":"ci-confirmation","contractVersion":1}}')
+      await w.findAll('button').find((b) => b.text() === 'Check for match')!.trigger('click')
+      await flushPromises()
+
+      expect(w.text()).toContain('CI confirmation export')
+      await w.findAll('button').find((b) => b.text() === 'Create from export')!.trigger('click')
+      await flushPromises()
+
+      expect((w.find('input[aria-label="Root match column"]').element as HTMLInputElement).value).toBe('guid')
+      expect(w.text()).toContain('Paired with')
+      expect(w.text()).toContain('ci-confirmation v1')
     })
   })
 })

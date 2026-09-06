@@ -314,6 +314,32 @@ record ImportDefinitionSummaryDto(
 /// <summary>Body for POST .../duplicate. Name is optional — defaults to "{original} (Copy)".</summary>
 record DuplicateImportDefinitionRequest(string? Name);
 
+/// <summary>Body for POST /api/import-definitions/suggest-from-export (Slice 4,
+/// knowledge/pipeline/import-mapping-presets.md §3.4/§4) — the same sample <c>ImportEnvelope</c> JSON the
+/// preview panel already accepts, pasted before any <c>ImportDefinition</c> exists yet.</summary>
+record ImportMappingSuggestionRequest(string InboundJson);
+
+/// <summary>One best-effort candidate field, projected from <c>Connector.Core.DynamicImport.ImportMappingCandidateField</c>
+/// verbatim for the wire.</summary>
+record ImportMappingSuggestionCandidateFieldDto(string SourceKey, string TargetColumn);
+
+/// <summary>Response for POST .../suggest-from-export — <c>null</c> (200 OK, JSON <c>null</c>) whenever
+/// there's nothing to suggest (malformed sample, no provenance, no match), exactly the same silent-degrade
+/// contract <c>ImportMappingSuggestion.SuggestFrom</c> itself has. The frontend must render both the same
+/// way: no banner, never an error. <c>RootMatchSourceKey</c> is the matched export's own JSON key for the
+/// correlation field (its <c>TargetKey</c>) — not necessarily the same string as <c>RootMatchColumn</c>,
+/// which is a column name.</summary>
+record ImportMappingSuggestionDto(
+    int ExportDefinitionId,
+    string ExportDefinitionName,
+    string IntegrationKey,
+    int ContractVersion,
+    string RootTable,
+    string RootMatchColumn,
+    string RootMatchSourceKey,
+    IReadOnlyList<ImportMappingSuggestionCandidateFieldDto> CandidateFields
+);
+
 /// <summary>Body for POST .../preview: the raw inbound file content, since Slice 4's inbound/ folder
 /// watcher doesn't exist yet — an operator pastes/uploads the vendor JSON directly to preview against a
 /// saved definition. Must be a well-formed <c>ImportEnvelope</c> (schemaVersion + records) per
