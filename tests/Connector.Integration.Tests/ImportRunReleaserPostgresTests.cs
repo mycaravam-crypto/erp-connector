@@ -134,12 +134,7 @@ public sealed class ImportRunReleaserPostgresTests
         return run;
     }
 
-    private static ImportPlan SingleOperationPlan(
-        string ciId,
-        string column,
-        string? expectedOld,
-        string newValue
-    ) =>
+    private static ImportPlan SingleOperationPlan(string ciId, string column, string? expectedOld, string newValue) =>
         new(
             RecordCount: 1,
             MatchedCount: 1,
