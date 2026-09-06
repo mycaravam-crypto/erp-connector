@@ -17,14 +17,17 @@ services:
 
       ConnectionStrings__ExportLog: "Data Source=/data/db/export_log.db"
       ExportSink__StagingPath: "/data/staging"
+      ImportSink__InboundPath: "/data/inbound"
 
       AllowedHosts: "*"
       # ExportWorker__ScheduledTimeUtc: "02:00"
       # ExportWorker__RetentionDays: "30"
+      # ImportWorker__PollInterval: "00:00:30"
       # AllowedOrigins__0: "https://your-domain.com"
     volumes:
       - connector-db:/data/db
       - connector-staging:/data/staging
+      - connector-inbound:/data/inbound
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/health"]
@@ -56,3 +59,4 @@ services:
 volumes:
   connector-db:
   connector-staging:
+  connector-inbound:

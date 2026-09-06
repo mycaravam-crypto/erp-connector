@@ -89,6 +89,9 @@ builder.Services.Configure<ExportSinkOptions>(builder.Configuration.GetSection("
 builder.Services.Configure<ExportWorkerOptions>(builder.Configuration.GetSection("ExportWorker"));
 builder.Services.AddSingleton<FileSystemExportSink>();
 
+builder.Services.Configure<ImportSinkOptions>(builder.Configuration.GetSection("ImportSink"));
+builder.Services.Configure<ImportWorkerOptions>(builder.Configuration.GetSection("ImportWorker"));
+
 builder.Services.AddDbContext<ExportLogDbContext>(opt =>
     opt.UseSqlite(builder.Configuration.GetConnectionString("ExportLog"))
 );
@@ -96,6 +99,7 @@ builder.Services.AddDbContext<ExportLogDbContext>(opt =>
 builder.Services.AddScoped<AuditService>();
 builder.Services.AddHostedService<ExportWorker>();
 builder.Services.AddHostedService<ExportDefinitionWorker>();
+builder.Services.AddHostedService<ImportWorker>();
 
 // ─────────────────────────────────────────────────────────────────────────────
 
