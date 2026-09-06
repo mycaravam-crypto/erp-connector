@@ -416,6 +416,38 @@ public sealed class ExportNodeEngineTests
         Assert.Equal("Acme", manufacturer.GetProperty("name").GetString());
     }
 
+    // knowledge/pipeline/import-mapping-presets.md §3.2 (Slice 2).
+    [Fact]
+    public void JsonExportFormatWriter_Write_WithProvenance_EmitsProvenanceKey()
+    {
+        var root = MakeRoot(ScalarField("id", "id"));
+        var records = new List<JsonObject> { new() { ["id"] = "1" } };
+        var provenance = new ExportProvenance("ci-confirmation", ContractVersion: 1, ConfigVersion: 7);
+
+        var bytes = new JsonExportFormatWriter().Write(root, records, "v1", DateTimeOffset.UtcNow, provenance);
+
+        var doc = System.Text.Json.JsonDocument.Parse(bytes);
+        var prov = doc.RootElement.GetProperty("provenance");
+        Assert.Equal("ci-confirmation", prov.GetProperty("integrationKey").GetString());
+        Assert.Equal(1, prov.GetProperty("contractVersion").GetInt32());
+        Assert.Equal(7, prov.GetProperty("configVersion").GetInt32());
+    }
+
+    [Fact]
+    public void JsonExportFormatWriter_Write_WithoutProvenance_IsByteIdenticalToOmittingTheParameter()
+    {
+        var root = MakeRoot(ScalarField("id", "id"));
+        var records = new List<JsonObject> { new() { ["id"] = "1" } };
+        var extractedAt = DateTimeOffset.UtcNow;
+
+        var withoutParam = new JsonExportFormatWriter().Write(root, records, "v1", extractedAt);
+        var withExplicitNull = new JsonExportFormatWriter().Write(root, records, "v1", extractedAt, provenance: null);
+
+        Assert.Equal(withoutParam, withExplicitNull);
+        var doc = System.Text.Json.JsonDocument.Parse(withoutParam);
+        Assert.False(doc.RootElement.TryGetProperty("provenance", out _));
+    }
+
     [Fact]
     public void CsvExportFormatWriter_Write_FlattensNestedArrayIntoJoinedColumn()
     {
@@ -445,6 +477,22 @@ public sealed class ExportNodeEngineTests
 
         Assert.Contains("addresses.city", text);
         Assert.Contains("Austin, Dallas", text);
+    }
+
+    // knowledge/pipeline/import-mapping-presets.md §3.2/§5 Non-Goals: CSV/Excel have no natural home for
+    // structured metadata and stay untouched — a passed-in provenance is silently ignored, never an error.
+    [Fact]
+    public void CsvExportFormatWriter_Write_IgnoresProvenance()
+    {
+        var root = MakeRoot(ScalarField("id", "id"));
+        var records = new List<JsonObject> { new() { ["id"] = "1" } };
+        var extractedAt = DateTimeOffset.UtcNow;
+        var provenance = new ExportProvenance("ci-confirmation", ContractVersion: 1, ConfigVersion: 7);
+
+        var withoutProvenance = new CsvExportFormatWriter().Write(root, records, "v1", extractedAt);
+        var withProvenance = new CsvExportFormatWriter().Write(root, records, "v1", extractedAt, provenance);
+
+        Assert.Equal(withoutProvenance, withProvenance);
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
