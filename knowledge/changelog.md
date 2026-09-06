@@ -6,7 +6,44 @@ tags: [changelog, roadmap, history]
 timestamp: 2026-09-03T00:00:00Z
 ---
 
-Last updated: 2026-09-05
+Last updated: 2026-09-06
+
+---
+
+## Phase 17 — Inbound JSON import ✅
+
+The reverse leg of the pipeline: vendor-supplied JSON written back into the live ERP database
+under the same air-gap and four-eyes controls as the export path, resolving [Open Point
+#6](/planning/open-points.md) ("Return-channel timing"). Mirrors [Export Definitions
+2.0](/pipeline/export-definitions-2.0.md) in reverse — see [Import
+Definitions](/pipeline/import-definitions.md) for the full spec (all fifteen Open Decisions) and
+[Dynamic Import](/dynamic-import/index.md) for how the shipped result actually runs. Tracking
+issue [#51](https://github.com/mycaravam-crypto/erp-connector/issues/51).
+
+| Slice | Item | Notes |
+|---|---|---|
+| 1 | Data model + migration | `ImportNode`/`FieldMapping` reuse, `ImportDefinitionEntity`/`ImportRunEntity`, EF migration — no behavior yet, just the shape. Shipped via #60, closes #52. |
+| 1b | Schema amendments from design review | An external design review of the shipped Slice 1 model, done before Slice 2 began, added Open Decisions #9–15 — most importantly that a staged run didn't freeze the definition it was staged against (#10), nothing guarded against the ERP row changing while a run sat in review (#12), and the same vendor file could be re-imported with no idempotency check (#13). `DefinitionSnapshotJson`, the richer run statistics, and the `(ImportDefinitionId, Sha256Checksum)` uniqueness constraint amended `ImportDefinitionEntity`/`ImportRunEntity` via a new EF migration; everything from Slice 2 onward is written against the amended shape. Shipped via #64, closes #61. |
+| 2 | `ImportNodeWalker` — parse, match, diff | Parses the `ImportEnvelope` (#14, `schemaVersion` checked before anything else) against a saved tree, resolves root/child matches, and produces a per-row field-level diff (`ImportWalkResult`). **No writes** — deliberately ordered before the commit path so the compliance-sensitive part is de-risked with a zero-write-capability deliverable first. Shipped via #63, closes #53. |
+| 3 | Four-eyes commit path | `ImportPlanBuilder` reshapes Slice 2's diff into the persisted `ImportPlan`/`ImportPlanOperation` list Open Decision #11 calls for. `ImportRunReleaser.ReleaseAsync` applies it: one conditional `UPDATE` per row, guarded by every one of that row's expected-old-values in a single `WHERE` clause (#12) — zero affected rows marks that row Conflicted, excluded, not overwritten, without failing the run (#6); an unrelated failure rolls back the whole transaction and marks the run Failed. `RejectAsync` declines a run without touching the ERP. The Operator/Approver-distinctness check became `FourEyesReview.ValidateApprover`, shared by the export release endpoint (refactored to call it) and the new `POST /api/import-runs/{id}/release`+`/reject` endpoints. Also added `ImportRowStatus.Invalid`, distinct from `Rejected`. Shipped via #66, closes #54. |
+| 4 | `ImportWorker` (inbound folder watcher) | Polls `inbound/` on a timer, sibling of `ExportWorker`/`ExportDefinitionWorker`. SHA-256 manifest check (no sequence check, #8); routes to the target `ImportDefinition` via its own `ImportEnvelope`'s `definition` field; idempotency check against `(ImportDefinitionId, Sha256Checksum)` (#13), reporting already-staged/already-released/rejected-duplicate distinctly and never staging a second run, with the unique-constraint violation as a race-safe fallback; quarantines to `inbound/rejected/` for a bad manifest, unparseable JSON, or no matching enabled definition, always audit-logged. On success, stages an `ImportRunEntity` at `PendingReview` with `DefinitionSnapshotJson` frozen (#10) and moves the file to `inbound/processed/` (never deleted). Shipped via #68, closes #55. |
+| 5 | API endpoints | `ImportDefinitionEndpoints.cs` — CRUD with the schema-aware `AllowedWritableColumns` validator (#9: must exist on its table, and must not be a primary key, identity/computed column, or untracked foreign key) and the `OnMissingChild = insert` rejection (#15), preview (parse + plan, no write), run history. Shipped via #67, closes #56. |
+| 6 | Frontend | `ImportNodeTreeEditor.vue` mirrors `ExportNodeTreeEditor.vue` for `ImportNode` (no Filter, no `OnMissingChild` picker). `ImportAllowedColumnsEditor.vue` is a prominent, separately-editable allowlist editor — the feature's main safety control. `ImportDefinitionsView.vue`/`ImportDefinitionEditView.vue` mirror the export side's list/edit views; `ImportDefinitionPreviewPanel.vue` previews a pasted sample `ImportEnvelope`. `ImportRunReviewDialog.vue` is the four-eyes review surface — full matched/changed/unchanged/rejected/conflicted/invalid breakdown (#11) plus a field-level diff, reusing `ReleaseDialog`'s Operator/Approver pattern with a Reject option (`ImportPlanDiffTable.vue`/`ImportRunCountSummary.vue`/`ImportRunOutcome.vue` split out to manage complexity and dedupe with the preview panel). Added `GET /api/import-runs/{id}` — no existing endpoint exposed a single run's `PlanJson` for the review dialog to use. Also closed out #55 (Slice 4), which had shipped via #68 but was never itself closed. Shipped via #69, closes #57. |
+| 7 | Docs | This entry; [Import Definitions](/pipeline/import-definitions.md)'s status flip to shipped and implementation-status checklist closed out; new [`knowledge/dynamic-import/`](/dynamic-import/index.md) bundle (`index.md`, `import-node.md`, `import-worker.md`, `run-history.md`); [Open Point #6](/planning/open-points.md) moved from Pending to Resolved; [`knowledge/pipeline/index.md`](/pipeline/index.md)'s Phase 17 section updated. Closes #58. |
+
+**Verification:** per-slice, not one end-to-end pass — each slice's own real-Postgres integration
+tests (the schema-aware validator's specific rejection reasons, the idempotency race, conditional-
+write conflict detection) plus `dotnet build`/`dotnet test`/`dotnet csharpier check` clean at that
+point in the sequence; Slice 6's `npm run type-check && npm run test` (371 tests) and `npx fallow
+audit --base origin/main` clean (Export/Import duplication accepted by design, not suppressed —
+see [Code Health
+Backlog](/planning/code-health-backlog.md#phase-17-slice-6-additions-new-files--resolved-via-threshold-override))
+plus a Playwright smoke pass covering the full golden path (list → edit → tree-build → preview →
+run history → review → release with a distinct approver). No dotnet SDK/Docker daemon was
+available in the Slice 6 session, so the backend `GET /api/import-runs/{id}` addition there was
+verified by manual review rather than a live run, unlike [Export Definitions 2.0's Slice
+4–6 verification](/pipeline/export-definitions-2.0.md#verification-end-to-end-after-all-slices),
+which did have a live .NET toolchain and Postgres available in one session.
 
 ---
 

@@ -16,9 +16,11 @@ For the original fixed six-stage pipeline this replaced (`IErpReader`/`IExportFi
 `IDataMinimizer`/`ISchemaMapper`/`IPackager`) — deleted from the codebase, kept only as design
 rationale — see [legacy/](/legacy/).
 
-# Phase 17 — inbound JSON import (planning only, not started)
+# Phase 17 — inbound JSON import ✅
 
-* [Import Definitions](import-definitions.md) - Spec for the reverse leg: vendor-supplied JSON
-  written back into the live ERP under the same air-gap and four-eyes controls as the export path
-  (`ImportNode` tree, mirroring `ExportNode`). Resolves [Open Point #6](/planning/open-points.md).
-  No code exists yet — tracking issue #51, slice sub-issues #52–58.
+* [Import Definitions](import-definitions.md) - Spec + final per-slice implementation status for
+  the reverse leg: vendor-supplied JSON written back into the live ERP under the same air-gap and
+  four-eyes controls as the export path (`ImportNode` tree, mirroring `ExportNode`). Resolves
+  [Open Point #6](/planning/open-points.md)
+* [dynamic-import/](/dynamic-import/) - How it actually runs: the `ImportNode` tree, `ImportWorker`
+  (the inbound folder watcher), and the four-eyes commit path
