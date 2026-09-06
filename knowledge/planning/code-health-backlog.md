@@ -16,9 +16,33 @@ work isn't lost between sessions.
 
 Done (session `claude/codebase-minimize-optimize-ywu53y`): both backend items below, and 5 of 7
 frontend template-complexity items (SchemaView, ErpDatabaseView, ExportView, ExportDetail,
-SourceSchemaView, plus `router/index.ts:42`) — see the ✅ rows below. Not done:
-`NestedGroupEditor.vue`, `IcdSchemaView.vue`, `SettingsView.vue`, `AuditView.vue`, `App.vue` —
-lower priority, untouched.
+SourceSchemaView, plus `router/index.ts:42`) — see the ✅ rows below.
+
+Done (session `claude/issues-code-health-prs-9ens0s`): of the remaining 5 items, `fallow health`
+no longer flags `NestedGroupEditor.vue` or `App.vue` at all (thresholds or their scoring must have
+shifted since this doc was written — re-verified against a fresh `fallow health --hotspots
+--targets` run, 8 findings total, neither file present). The 3 that were still flagged are fixed:
+
+- **`IcdSchemaView.vue`** — CRAP 43.1, off the list. Split into `IcdActiveColumnsTable.vue` and
+  `IcdExcludedFieldsList.vue`.
+- **`SettingsView.vue`** — CRAP 132.0 (CRITICAL), off the list. Split into
+  `SchedulerSettingsForm.vue` and `GdprDenylistEditor.vue` (each owns its own fetch-independent
+  save call, following `SkipRunForm.vue`'s pattern; the parent view keeps the combined
+  loading/error fetch and passes the loaded data down as props so behavior is unchanged).
+- **`AuditView.vue`** — CRAP 72.0 (HIGH), off the list. Split into `AuditLogTable.vue`. Splitting
+  alone only got cyclomatic/cognitive down (8/9 → 6/6); CRAP stayed at 42 (still above the 30
+  threshold) because both this file and the new `GdprDenylistEditor.vue` had zero test coverage,
+  which the CRAP formula (`CC² × (1-cov/100)³ + CC`) punishes heavily. Added
+  `AuditView.test.ts` and `GdprDenylistEditor.test.ts` (fallow's own primary suggested action for
+  a CRAP-only finding) — both now resolved.
+
+Verified with `npm run type-check`, `npm run test` (331 passing), `npx fallow audit --base
+origin/main` (clean — 0 complexity/duplication findings, one pre-existing advisory-only CSS-token
+note carried over from code this pass moved rather than authored), and a Playwright smoke pass
+against `npm run dev` (mocked API responses) confirming all three views render populated and
+error states correctly and the GDPR add/remove/save flow works end-to-end.
+
+Not done: `App.vue` — not currently flagged (see above), so nothing to do unless it regresses.
 
 **CI-gate note:** `fallow audit --base origin/main` flags 9 residual cognitive-complexity
 findings (e.g. `ActiveMappingSummary.vue` at 37) in files the completed extractions *created* —
@@ -49,8 +73,10 @@ item for it — but re-check comments in any region a refactor touches, fixing o
 
 `fallow`'s dead-code/duplication findings are already fixed (see `claude/fallow-js-code-checking-l5imc9`).
 What's left is `fallow health`'s **template complexity** findings — Vue `<template>` blocks (or
-one `.ts` arrow function) over cyclomatic/cognitive/CRAP thresholds. Not done yet because
-verifying a UI refactor needs a running browser, unavailable in the analysis sessions.
+one `.ts` arrow function) over cyclomatic/cognitive/CRAP thresholds. Earlier sessions left the
+lower-priority items undone because verifying a UI refactor needs a running browser; a Playwright
+browser became available in the `issues-code-health-prs-9ens0s` session's environment, used to
+smoke-test the items closed out there (see Status above).
 
 Re-run `npx fallow health --hotspots --targets` (from `src/connector-ui/`) any time for fresh numbers.
 
@@ -68,17 +94,22 @@ Re-run `npx fallow health --hotspots --targets` (from `src/connector-ui/`) any t
    `SkipRunForm.vue`, `DeliverRunForm.vue` (latter two follow `ReleaseDialog.vue`'s pattern).
 5. ✅ **`SourceSchemaView.vue`** — CRAP 56.3, off the list. Split into `SourceColumnsTable.vue`.
 
-## Also flagged, lower priority — not done
+## Also flagged, lower priority
 
-6. `NestedGroupEditor.vue` — 13 cyclomatic, 16 cognitive, 207 lines, CRAP 49.5
-7. `IcdSchemaView.vue` — 12 cyclomatic, 19 cognitive, 139 lines, CRAP 43.1
-8. `SettingsView.vue` — 11 cyclomatic, 19 cognitive, 240 lines, CRAP 132.0 (CRITICAL)
-9. `AuditView.vue` — 8 cyclomatic, 9 cognitive, 81 lines, CRAP 72.0 (HIGH)
+6. `NestedGroupEditor.vue` — no longer flagged (re-checked in the `issues-code-health-prs-9ens0s`
+   session; not present in a fresh `fallow health` run). Left as-is: it's the same
+   deliberately-unsplit, self-referencing shape as `ExportNodeTreeEditor.vue` (see its own
+   in-file comment), so there'd be nothing to change even if it were still flagged.
+7. ✅ **`IcdSchemaView.vue`** — CRAP 43.1, off the list. Split into `IcdActiveColumnsTable.vue`
+   and `IcdExcludedFieldsList.vue`.
+8. ✅ **`SettingsView.vue`** — CRAP 132.0 (CRITICAL), off the list. Split into
+   `SchedulerSettingsForm.vue` and `GdprDenylistEditor.vue`.
+9. ✅ **`AuditView.vue`** — CRAP 72.0 (HIGH), off the list. Split into `AuditLogTable.vue`, plus
+   `AuditView.test.ts` and `GdprDenylistEditor.test.ts` to bring CRAP under threshold (see
+   Status above — cyclomatic/cognitive alone weren't enough once these files had zero coverage).
 10. ✅ `router/index.ts:42` (arrow fn) — CRAP 42.0, off the list. Split into
     `needsLogin()`/`needsConnection()`.
-11. `App.vue` — 5 cyclomatic, 7 cognitive, 85 lines, CRAP 30.0
-
-Items 6–9 and 11 are untouched — same priority as before this session.
+11. `App.vue` — no longer flagged (same re-check as item 6). Untouched.
 
 ## Phase 14 Slice 5 additions (new files) — resolved via threshold override
 
