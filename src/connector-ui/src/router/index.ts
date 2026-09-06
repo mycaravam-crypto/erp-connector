@@ -12,6 +12,8 @@ import IcdSchemaView from '../views/IcdSchemaView.vue'
 import AuditView from '../views/AuditView.vue'
 import ExportDefinitionsView from '../views/ExportDefinitionsView.vue'
 import ExportDefinitionEditView from '../views/ExportDefinitionEditView.vue'
+import ImportDefinitionsView from '../views/ImportDefinitionsView.vue'
+import ImportDefinitionEditView from '../views/ImportDefinitionEditView.vue'
 import NotFoundView from '../views/NotFoundView.vue'
 
 const router = createRouter({
@@ -29,6 +31,8 @@ const router = createRouter({
     { path: '/audit', name: 'audit', component: AuditView },
     { path: '/export-definitions', name: 'export-definitions', component: ExportDefinitionsView },
     { path: '/export-definitions/:id', name: 'export-definition-edit', component: ExportDefinitionEditView },
+    { path: '/import-definitions', name: 'import-definitions', component: ImportDefinitionsView },
+    { path: '/import-definitions/:id', name: 'import-definition-edit', component: ImportDefinitionEditView },
     // legacy redirects
     { path: '/schema', redirect: '/export-schema' },
     { path: '/erp-database', redirect: '/icd-schema' },

@@ -17,6 +17,7 @@ async function buildRouter(initialPath: string) {
       { path: '/icd-schema', name: 'icd-schema', component: { template: '<div/>' } },
       { path: '/audit', name: 'audit', component: { template: '<div/>' } },
       { path: '/export-definitions', name: 'export-definitions', component: { template: '<div/>' } },
+      { path: '/import-definitions', name: 'import-definitions', component: { template: '<div/>' } },
       { path: '/login', name: 'login', component: { template: '<div/>' } },
     ],
   })

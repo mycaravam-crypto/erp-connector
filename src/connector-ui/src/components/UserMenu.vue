@@ -14,6 +14,7 @@ const rootEl = ref<HTMLElement | null>(null)
 const links = [
   { name: 'icd-schema', label: 'ICD Schema' },
   { name: 'export-definitions', label: 'Export Definitions' },
+  { name: 'import-definitions', label: 'Import Definitions' },
   { name: 'settings', label: 'Settings' },
   { name: 'audit', label: 'Audit Log' },
 ]

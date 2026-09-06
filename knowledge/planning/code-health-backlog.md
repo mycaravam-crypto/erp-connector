@@ -150,6 +150,43 @@ the file's actual framework, so it can't target a Vue `<template>` finding. Reso
 pre-existing `SchemaView.vue`, caught in the same diff only because this pass touched it), each
 with a `reason`, rather than a global threshold change or an ignore comment that doesn't work.
 
+## Phase 17 Slice 6 additions (new files) — resolved via threshold override, duplication accepted
+
+`fallow audit --base origin/main` run for import-definitions.md Slice 6 (the Import Definitions
+frontend — the write-side mirror of Phase 14 Slice 5 above) flagged the same shape of finding,
+resolved the same way:
+
+- `ImportNodeTreeEditor.vue` — 17 cyclomatic, 29 cognitive, CRAP 79.4 (HIGH). The same
+  self-referencing recursive tree-node editor as `ExportNodeTreeEditor.vue`, built against
+  `ImportNode` instead — same "deliberately unsplit" rationale.
+- `ImportRunReviewDialog.vue` — started CRITICAL (CRAP 172.0); extracting its count breakdown and
+  terminal-state summary into `ImportRunCountSummary.vue`/`ImportRunOutcome.vue` (real, justified
+  extractions — both pieces were also duplicated with `ImportDefinitionPreviewPanel.vue`'s own diff
+  table, which now shares `ImportPlanDiffTable.vue` instead) brought it down to HIGH (CRAP 63.6).
+  What's left is inherent to one dialog covering four largely-exclusive states (loading, error,
+  interactive Operator/Approver review, read-only terminal outcome) — the same
+  "small independent branches, no shared logic to extract further" call `ExportDefinitionRunControls.vue`
+  made above.
+- `ImportDefinitionEditView.vue` — 13 cyclomatic, 22 cognitive, CRAP 49.5 — same numbers as
+  `ExportDefinitionEditView.vue`, same reason (orchestrates create vs. edit, the tree editor,
+  preview, run history, and the review dialog).
+- `ImportDefinitionsView.vue` — 10 cyclomatic, 19 cognitive, CRAP 31.6 — same shape as
+  `ExportDefinitionsView.vue`'s own list view.
+
+All four added to the existing Phase 14 `thresholdOverrides` entry's file list (same
+`maxCognitive`/`maxCrap`, same reasoning) rather than a new entry, since the numbers land in the
+same band for the same underlying reason.
+
+**Duplication accepted, not suppressed.** `fallow audit` also reports ~1,000 duplicated lines
+across `Export*`/`Import*` pairs (tree editor, run controls, list/edit views, API clients). This is
+the intended shape, not accumulated debt: import-definitions.md §4 explains at length why
+`ImportNode` deliberately doesn't merge into `ExportNode` (opposite read/write directions, policy
+fields meaningless on the other side), and the same reasoning holds one layer up in the UI — an
+`ExportNode`-shaped tree editor and an `ImportNode`-shaped one are two small, honest components,
+not one generic one with half its props unused per direction. `.fallowrc.json` has no precedent for
+suppressing a *duplication* finding (only `health.thresholdOverrides` for complexity), so none was
+added; this note is that precedent for the next mirrored feature.
+
 ## Suggested approach per item
 
 Extract repeated/large template branches into small sub-components under `src/components/`

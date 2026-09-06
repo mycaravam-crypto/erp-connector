@@ -202,6 +202,47 @@ record ImportRunDto(
     string? ErrorMessage
 );
 
+/// <summary>One <see cref="Connector.Core.DynamicImport.ImportPlanOperation"/>, projected verbatim for the
+/// Slice 6 review UI's field-level diff — see <see cref="ImportRunDetailDto"/>.</summary>
+record ImportRunOperationDto(
+    string CorrelationValue,
+    string Table,
+    string KeyColumn,
+    string KeyValue,
+    string Column,
+    string? ExpectedOldValue,
+    string? NewValue
+);
+
+/// <summary>Response for GET /api/import-runs/{id} (Phase 17 Slice 6): everything the review/diff view needs
+/// to render a <c>PendingReview</c> run before an Approver commits — the Open Decision #11 count breakdown
+/// plus the persisted <c>PlanJson</c> operations (empty once none exist, e.g. a Failed run that never
+/// produced a plan). Not returned by the release/reject endpoints themselves, which stay on the smaller
+/// <see cref="ImportRunDto"/> shape — this is a read, not a mutation response.</summary>
+record ImportRunDetailDto(
+    int Id,
+    int ImportDefinitionId,
+    string ImportDefinitionName,
+    int ConfigVersion,
+    string SourceFileName,
+    string StartedAt,
+    string? FinishedAt,
+    string Status,
+    int RecordCount,
+    int MatchedCount,
+    int ChangedCount,
+    int UnchangedCount,
+    int RejectedCount,
+    int ConflictCount,
+    int InvalidCount,
+    string? ErrorMessage,
+    string TriggeredBy,
+    string? OperatedBy,
+    string? ApprovedBy,
+    string? ReleasedAt,
+    IReadOnlyList<ImportRunOperationDto> Operations
+);
+
 /// <summary>Body for POST/PUT /api/import-definitions (Phase 17 Slice 5) — everything an operator
 /// configures for one saved inbound mapping. RootNode must be a "root"-kind
 /// <see cref="Connector.Core.DynamicImport.ImportNode"/>, and must have an enabled scalar-field child

@@ -10,6 +10,7 @@ async function buildRouter() {
       { path: '/connect', name: 'connect', component: { template: '<div/>' } },
       { path: '/icd-schema', name: 'icd-schema', component: { template: '<div/>' } },
       { path: '/export-definitions', name: 'export-definitions', component: { template: '<div/>' } },
+      { path: '/import-definitions', name: 'import-definitions', component: { template: '<div/>' } },
       { path: '/settings', name: 'settings', component: { template: '<div/>' } },
       { path: '/audit', name: 'audit', component: { template: '<div/>' } },
     ],

@@ -39,6 +39,17 @@
         "maxCognitive": 35,
         "maxCrap": 85,
         "reason": "Pre-existing, already-reviewed complexity (see knowledge/planning/code-health-backlog.md item 1) surfaced only because this PR's diff touches the file (extracting suggestedRelations to lib/) — that extraction reduced its CRAP score, not increased it."
+      },
+      {
+        "files": [
+          "src/components/ImportNodeTreeEditor.vue",
+          "src/components/ImportRunReviewDialog.vue",
+          "src/views/ImportDefinitionEditView.vue",
+          "src/views/ImportDefinitionsView.vue"
+        ],
+        "maxCognitive": 35,
+        "maxCrap": 85,
+        "reason": "Phase 17 Slice 6 (Import Definitions frontend) — the write-side mirror of the Phase 14 Slice 5 override above, same rationale and near-identical numbers (e.g. ImportDefinitionEditView.vue's 13/22/49.5 vs. ExportDefinitionEditView.vue's own). ImportNodeTreeEditor.vue is the same self-referencing recursive editor shape as ExportNodeTreeEditor.vue; ImportRunReviewDialog.vue already had its count-summary and terminal-state blocks extracted into ImportRunCountSummary.vue/ImportRunOutcome.vue (dropping it from CRITICAL 106.4 to HIGH 63.6) but keeps its own loading/error/pending-review/terminal branching, which is inherent to one dialog covering both an interactive review and a read-only outcome view, not accumulated debt."
       }
     ]
   }
