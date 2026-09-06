@@ -244,12 +244,7 @@ static class ImportDefinitionEndpoints
         // folder watcher doesn't exist yet.
         app.MapPost(
                 "/api/import-definitions/{id:int}/preview",
-                async (
-                    int id,
-                    ImportDefinitionPreviewRequest request,
-                    ExportLogDbContext db,
-                    CancellationToken ct
-                ) =>
+                async (int id, ImportDefinitionPreviewRequest request, ExportLogDbContext db, CancellationToken ct) =>
                 {
                     var def = await db.ImportDefinitions.FindAsync([id], ct);
                     if (def is null)
