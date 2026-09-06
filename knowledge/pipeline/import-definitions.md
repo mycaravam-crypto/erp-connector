@@ -467,3 +467,6 @@ Slice 2 is deliberately ordered before Slice 3 (commit) despite normally being "
 - [GDPR Compliance](/operations/gdpr-compliance.md) — the denylist model `AllowedWritableColumns` inverts
 - [Open Points](/planning/open-points.md) — Open Point #6, which this document resolves
 - [ExportManifest](/domain/export-manifest.md) — the integrity contract the inbound manifest mirrors
+- [Import Mapping Presets from Export Provenance](/pipeline/import-mapping-presets.md) — design
+  proposal (not started) to prefill a new `ImportDefinition` from a paired `ExportDefinition`,
+  built against Open Decisions #4, #5, #9, and #14 above

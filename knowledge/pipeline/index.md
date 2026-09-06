@@ -24,3 +24,10 @@ rationale — see [legacy/](/legacy/).
   [Open Point #6](/planning/open-points.md)
 * [dynamic-import/](/dynamic-import/) - How it actually runs: the `ImportNode` tree, `ImportWorker`
   (the inbound folder watcher), and the four-eyes commit path
+
+# Proposed — not started
+
+* [Import Mapping Presets from Export Provenance](import-mapping-presets.md) - Design-only
+  proposal: tag a JSON export and its paired import with a shared, versioned `IntegrationKey`, and
+  if a vendor's reply round-trips it, offer to create a new `ImportDefinition`'s root-matching
+  (and, best-effort, shared field names) from the paired export. No slice started.
