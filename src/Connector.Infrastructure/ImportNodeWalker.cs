@@ -134,8 +134,10 @@ public static class ImportNodeWalker
     /// <summary>Finds the root's own scalar-field child mapped to <paramref name="rootMatchColumn"/> — the
     /// JSON property the walker reads to get each record's correlation value. Only ever looked up among the
     /// root's DIRECT children: the correlation key names a column on <c>RootTable</c> itself, never a nested
-    /// related table.</summary>
-    private static ImportNode? FindMatchField(ImportNode root, string rootMatchColumn) =>
+    /// related table. Public so the Slice 5 save-time validator (<c>Connector.Api.Endpoints.ImportDefinitionEndpoints</c>)
+    /// can reuse this exact lookup rather than re-implementing it, instead of only discovering a missing
+    /// match field at run time.</summary>
+    public static ImportNode? FindMatchField(ImportNode root, string rootMatchColumn) =>
         root.Children.FirstOrDefault(c => c.Kind == ImportNodeKind.ScalarField && c.TargetColumn == rootMatchColumn);
 
     /// <summary>

@@ -55,7 +55,15 @@ record SourceColumnDto(
     bool Nullable,
     bool PrimaryKey,
     string? ForeignKeyTable = null,
-    string? ForeignKeyColumn = null
+    string? ForeignKeyColumn = null,
+    // Populated by ConnectionEndpoints.IntrospectSchemaAsync from information_schema.columns'
+    // own is_identity/is_generated columns. Added for Phase 17 Slice 5 (import-definitions.md §6
+    // Open Decision #9): the save-time AllowedWritableColumns validator needs to reject a
+    // TargetColumn the ERP itself manages (an identity sequence or a GENERATED ... STORED
+    // expression), not just one that's the primary key or an FK. Defaults false so every existing
+    // SourceColumnDto call site (the hardcoded demo schema) stays valid without updating.
+    bool IsIdentity = false,
+    bool IsGenerated = false
 );
 
 record SourceTableDto(string Name, string Description, SourceColumnDto[] Columns);
@@ -192,4 +200,87 @@ record ImportRunDto(
     string? ApprovedBy,
     string? ReleasedAt,
     string? ErrorMessage
+);
+
+/// <summary>Body for POST/PUT /api/import-definitions (Phase 17 Slice 5) — everything an operator
+/// configures for one saved inbound mapping. RootNode must be a "root"-kind
+/// <see cref="Connector.Core.DynamicImport.ImportNode"/>, and must have an enabled scalar-field child
+/// whose TargetColumn equals RootMatchColumn (see <c>ImportNodeWalker.FindMatchField</c>).
+/// AllowedWritableColumns is validated against the live ERP schema at save time (Open Decision #9) — see
+/// <see cref="Connector.Api.Endpoints.ImportDefinitionEndpoints"/>.</summary>
+record ImportDefinitionRequest(
+    string Name,
+    string? Description,
+    string RootTable,
+    string RootMatchColumn,
+    Connector.Core.DynamicImport.ImportNode RootNode,
+    List<string> AllowedWritableColumns,
+    string UnmatchedRootPolicy,
+    bool IsEnabled
+);
+
+/// <summary>Full view of a saved import definition, returned by GET/POST/PUT .../{id}.</summary>
+record ImportDefinitionDto(
+    int Id,
+    string Name,
+    string? Description,
+    string RootTable,
+    string RootMatchColumn,
+    Connector.Core.DynamicImport.ImportNode RootNode,
+    List<string> AllowedWritableColumns,
+    string UnmatchedRootPolicy,
+    bool IsEnabled,
+    int ConfigVersion,
+    string CreatedBy,
+    string CreatedAt,
+    string? UpdatedBy,
+    string? UpdatedAt
+);
+
+/// <summary>Lightweight list-view row for GET /api/import-definitions — omits RootNode/AllowedWritableColumns,
+/// which aren't needed to identify or enable/disable a definition.</summary>
+record ImportDefinitionSummaryDto(
+    int Id,
+    string Name,
+    string? Description,
+    string RootTable,
+    string UnmatchedRootPolicy,
+    bool IsEnabled,
+    int ConfigVersion,
+    string CreatedBy,
+    string CreatedAt,
+    string? UpdatedBy,
+    string? UpdatedAt
+);
+
+/// <summary>Body for POST .../duplicate. Name is optional — defaults to "{original} (Copy)".</summary>
+record DuplicateImportDefinitionRequest(string? Name);
+
+/// <summary>Body for POST .../preview: the raw inbound file content, since Slice 4's inbound/ folder
+/// watcher doesn't exist yet — an operator pastes/uploads the vendor JSON directly to preview against a
+/// saved definition. Must be a well-formed <c>ImportEnvelope</c> (schemaVersion + records) per
+/// <c>ImportNodeWalker.SupportedSchemaVersion</c>.</summary>
+record ImportDefinitionPreviewRequest(string InboundJson);
+
+/// <summary>One row returned by GET /api/import-definitions/{id}/runs — the full Open Decision #11 count
+/// breakdown plus the four-eyes fields, mirroring <see cref="ImportRunDto"/> with the run-history fields
+/// <see cref="ExportDefinitionRunDto"/> also carries (StartedAt/FinishedAt/TriggeredBy).</summary>
+record ImportDefinitionRunDto(
+    int Id,
+    int ConfigVersion,
+    string StartedAt,
+    string? FinishedAt,
+    string Status,
+    int RecordCount,
+    int MatchedCount,
+    int ChangedCount,
+    int UnchangedCount,
+    int RejectedCount,
+    int ConflictCount,
+    int InvalidCount,
+    string? ErrorMessage,
+    string TriggeredBy,
+    string? OperatedBy,
+    string? ApprovedBy,
+    string? ReleasedAt
 );

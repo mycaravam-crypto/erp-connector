@@ -102,6 +102,8 @@ static class ConnectionEndpoints
                 c.column_name,
                 c.data_type,
                 c.is_nullable,
+                c.is_identity,
+                c.is_generated,
                 EXISTS (
                     SELECT 1
                     FROM information_schema.table_constraints tc
@@ -151,9 +153,12 @@ static class ConnectionEndpoints
                         Name: reader.GetString(1),
                         Type: reader.GetString(2),
                         Nullable: reader.GetString(3) == "YES",
-                        PrimaryKey: reader.GetBoolean(4),
-                        ForeignKeyTable: await reader.IsDBNullAsync(5, ct) ? null : reader.GetString(5),
-                        ForeignKeyColumn: await reader.IsDBNullAsync(6, ct) ? null : reader.GetString(6)
+                        PrimaryKey: reader.GetBoolean(6),
+                        ForeignKeyTable: await reader.IsDBNullAsync(7, ct) ? null : reader.GetString(7),
+                        ForeignKeyColumn: await reader.IsDBNullAsync(8, ct) ? null : reader.GetString(8),
+                        IsIdentity: reader.GetString(4) == "YES",
+                        // "ALWAYS" (GENERATED ALWAYS AS ... STORED) or "NEVER" — never NULL for a real column.
+                        IsGenerated: reader.GetString(5) != "NEVER"
                     )
                 );
         }

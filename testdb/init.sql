@@ -34,7 +34,13 @@ CREATE TABLE systemconfiguration (
     status character varying(50),
     commission_date date,
     technician_name character varying(100),
-    storage_location character varying(200)
+    storage_location character varying(200),
+    -- Dedicated to the Phase 17 Slice 5 AllowedWritableColumns validator (import-definitions.md §6 Open
+    -- Decision #9): a real GENERATED ALWAYS AS ... STORED column so its "identity/computed column"
+    -- rejection branch has an actual computed column to reject, not just id's PK/DEFAULT. Derives
+    -- automatically from `status` for both the seed rows above and any row inserted later, so it never
+    -- needs its own INSERT statement.
+    status_upper character varying(50) GENERATED ALWAYS AS (upper(status)) STORED
 );
 
 CREATE TABLE maintenance_plan (

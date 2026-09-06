@@ -198,6 +198,7 @@ app.MapConnectionEndpoints();
 app.MapSettingsEndpoints();
 app.MapExportMappingEndpoints();
 app.MapExportDefinitionEndpoints();
+app.MapImportDefinitionEndpoints();
 app.MapImportRunEndpoints(userStore);
 
 // SPA fallback: any path not matched by an API route serves index.html
