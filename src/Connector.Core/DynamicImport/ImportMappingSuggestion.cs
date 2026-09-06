@@ -104,10 +104,6 @@ public static class ImportMappingSuggestion
                 candidateFields.Add(new ImportMappingCandidateField(child.TargetKey, child.SourceField));
         }
 
-        return new ImportMappingSuggestionResult(
-            matched.RootTable,
-            matched.CorrelationKeySourceField,
-            candidateFields
-        );
+        return new ImportMappingSuggestionResult(matched.RootTable, matched.CorrelationKeySourceField, candidateFields);
     }
 }

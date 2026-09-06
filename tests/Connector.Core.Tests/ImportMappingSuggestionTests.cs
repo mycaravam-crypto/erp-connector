@@ -161,10 +161,7 @@ public sealed class ImportMappingSuggestionTests
     {
         var export = Export(Root(Scalar("guid", "guid"), Scalar("confirmationStatus", "status")));
 
-        var result = ImportMappingSuggestion.SuggestFrom(
-            [export],
-            Sample(recordKeys: ["guid", "confirmationStatus"])
-        );
+        var result = ImportMappingSuggestion.SuggestFrom([export], Sample(recordKeys: ["guid", "confirmationStatus"]));
 
         Assert.NotNull(result);
         var candidate = Assert.Single(result!.CandidateFields);
@@ -188,10 +185,7 @@ public sealed class ImportMappingSuggestionTests
     {
         var export = Export(Root(Scalar("guid", "guid"), Scalar("confirmationStatus", "status", enabled: false)));
 
-        var result = ImportMappingSuggestion.SuggestFrom(
-            [export],
-            Sample(recordKeys: ["guid", "confirmationStatus"])
-        );
+        var result = ImportMappingSuggestion.SuggestFrom([export], Sample(recordKeys: ["guid", "confirmationStatus"]));
 
         Assert.NotNull(result);
         Assert.Empty(result!.CandidateFields);
