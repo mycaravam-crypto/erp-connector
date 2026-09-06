@@ -111,12 +111,7 @@ static class ExportDefinitionEndpoints
                     if (entity is null)
                         return Results.NotFound();
 
-                    var (normalizedRoot, validationError) = await ValidateRequestAsync(
-                        request,
-                        db,
-                        ct,
-                        excludeId: id
-                    );
+                    var (normalizedRoot, validationError) = await ValidateRequestAsync(request, db, ct, excludeId: id);
                     if (validationError is not null)
                         return Results.BadRequest(validationError);
 

@@ -211,10 +211,7 @@ public sealed class IntegrationKeyValidationTests
     public async Task Export_CorrelationKeySourceFieldNotAnIdentifier_Rejected()
     {
         await using var local = await LocalDb.NewAsync();
-        var request = ExportRequest() with
-        {
-            CorrelationKeySourceField = "not an identifier",
-        };
+        var request = ExportRequest() with { CorrelationKeySourceField = "not an identifier" };
 
         var (root, error) = await ExportDefinitionEndpoints.ValidateRequestAsync(
             request,
