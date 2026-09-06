@@ -205,9 +205,7 @@ public sealed class ImportMappingSuggestionTests
     [Fact]
     public void SuggestFrom_NestedObjectChildren_NeverWalkedForCandidates()
     {
-        var export = Export(
-            Root(Scalar("guid", "guid"), Object("nested", Scalar("innerStatus", "inner_status")))
-        );
+        var export = Export(Root(Scalar("guid", "guid"), Object("nested", Scalar("innerStatus", "inner_status"))));
 
         var result = ImportMappingSuggestion.SuggestFrom([export], Sample(recordKeys: ["guid", "innerStatus"]));
 
