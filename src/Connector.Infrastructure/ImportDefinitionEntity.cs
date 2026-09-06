@@ -71,10 +71,19 @@ public sealed class ImportRunEntity
     public int ImportDefinitionId { get; set; }
     public int ConfigVersion { get; set; }
 
+    /// <summary>The full <see cref="ImportDefinitionEntity"/> (RootTable, RootMatchColumn, RootNode,
+    /// AllowedWritableColumns, UnmatchedRootPolicy), serialized exactly as it stood at staging time.
+    /// <see cref="ConfigVersion"/> names *which* version; this field *is* that version, frozen — so an
+    /// approver reviewing this run is never looking at a diff computed against a definition that's
+    /// since been edited (Open Decision #10).</summary>
+    public string? DefinitionSnapshotJson { get; set; }
+
     public string SourceFileName { get; set; } = string.Empty;
 
     /// <summary>SHA-256 of the inbound file, hex lowercase. No SequenceNumber field — per resolved
-    /// Open Decision #8, the manifest alone covers file integrity for v1 (see import-definitions.md §6).</summary>
+    /// Open Decision #8, the manifest alone covers file integrity for v1 (see import-definitions.md §6).
+    /// Unique together with <see cref="ImportDefinitionId"/> (Open Decision #13) so the same vendor file
+    /// can never be staged twice.</summary>
     public string Sha256Checksum { get; set; } = string.Empty;
 
     public string StartedAt { get; set; } = string.Empty;
@@ -82,13 +91,33 @@ public sealed class ImportRunEntity
     public string Status { get; set; } = ImportRunStatus.PendingReview;
 
     public int RecordCount { get; set; }
-    public int AcceptedCount { get; set; }
+
+    /// <summary>Root rows whose correlation key resolved to an existing CI — the sum of
+    /// <see cref="ChangedCount"/> and <see cref="UnchangedCount"/>.</summary>
+    public int MatchedCount { get; set; }
+
+    /// <summary>Matched rows with at least one field-level change to apply.</summary>
+    public int ChangedCount { get; set; }
+
+    /// <summary>Matched rows whose target fields already equal the incoming values — counted
+    /// explicitly rather than folded into "accepted" (Open Decision #11).</summary>
+    public int UnchangedCount { get; set; }
+
     public int RejectedCount { get; set; }
 
-    /// <summary>The persisted field-level diff (old value → new value per accepted row), computed once
-    /// by the walker (Slice 2) and reused verbatim by both the review UI and the commit step (Slice 3)
-    /// so preview and commit can never disagree about what a row means.</summary>
-    public string? DiffJson { get; set; }
+    /// <summary>Matched/changed rows excluded at commit time because the ERP row's value no longer
+    /// matched the expected-old-value captured when this run was staged (Open Decision #12). Stays 0
+    /// until Slice 3 populates it at commit time.</summary>
+    public int ConflictCount { get; set; }
+
+    public int InvalidCount { get; set; }
+
+    /// <summary>A structured, versioned list of write operations (table, row-key, column, old value,
+    /// new value, expected old value) — the write-side source of truth for this run. A UI diff is a
+    /// read-only projection of this, never a second authoritative shape (Open Decision #11). Reused
+    /// verbatim by both the review UI and the commit step (Slice 3) so preview and commit can never
+    /// disagree about what a row means.</summary>
+    public string? PlanJson { get; set; }
 
     public string? ErrorMessage { get; set; }
 

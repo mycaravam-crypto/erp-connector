@@ -120,6 +120,10 @@ public sealed class ExportLogDbContext(DbContextOptions<ExportLogDbContext> opti
             e.ToTable("ImportRun");
             e.HasKey(r => r.Id);
             e.HasIndex(r => r.ImportDefinitionId);
+            // Same source file staged twice for the same definition is a no-op, not a second pending
+            // review (Open Decision #13) — enforced at the database level so a race between two worker
+            // polls can't both insert it.
+            e.HasIndex(r => new { r.ImportDefinitionId, r.Sha256Checksum }).IsUnique();
         });
     }
 }
