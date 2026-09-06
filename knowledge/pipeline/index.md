@@ -28,6 +28,6 @@ rationale — see [legacy/](/legacy/).
 # Proposed — not started
 
 * [Import Mapping Presets from Export Provenance](import-mapping-presets.md) - Design-only
-  proposal: tag a JSON export with a stable `Kind`, and if a vendor's reply round-trips it, offer
-  to prefill a new `ImportDefinition`'s root-matching (and, best-effort, shared field names) from
-  the paired export. No slice started.
+  proposal: tag a JSON export and its paired import with a shared, versioned `IntegrationKey`, and
+  if a vendor's reply round-trips it, offer to create a new `ImportDefinition`'s root-matching
+  (and, best-effort, shared field names) from the paired export. No slice started.

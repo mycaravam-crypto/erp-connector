@@ -424,4 +424,5 @@ repo targets net9.0 — got a working toolchain; a local `postgresql-16` server 
 - [Export Definition API](/api/export-definition-api.md) — the CRUD/run/test/preview HTTP surface
 - [Code Health Backlog](/planning/code-health-backlog.md) — orthogonal frontend-complexity backlog, not part of this plan
 - [Import Mapping Presets from Export Provenance](/pipeline/import-mapping-presets.md) — design
-  proposal (not started) that would add an optional `Kind` tag to `ExportDefinition`
+  proposal (not started) that would add an optional `IntegrationKey`/`ContractVersion` pair and a
+  `CorrelationKeySourceField` to `ExportDefinition`
