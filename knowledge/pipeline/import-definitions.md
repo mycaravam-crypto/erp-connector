@@ -1,15 +1,16 @@
 ---
 type: Pipeline Design
 title: Import Definitions — inbound JSON write-back (Phase 17)
-description: Spec for the reverse leg of the connector — vendor-supplied JSON written back into the live ERP database under the same air-gap and four-eyes controls as the existing export path. Slices 1, 1b, 2, and 3 (data model, design-review amendments, plan-only walker, four-eyes commit) shipped; Slices 4-7 not started.
+description: Spec for the reverse leg of the connector — vendor-supplied JSON written back into the live ERP database under the same air-gap and four-eyes controls as the existing export path. Slices 1, 1b, 2, 3, 4, and 5 (data model, design-review amendments, plan-only walker, four-eyes commit, inbound folder watcher, API endpoints) shipped; Slices 6-7 not started.
 resource: src/Connector.Core/DynamicImport/ImportNode.cs
 tags: [pipeline, dynamic-mapping, phase-17, planning, in-progress]
 timestamp: 2026-09-05T00:00:00Z
 ---
 
-> **Status: Slices 1-3 shipped, rest in progress.** The data model (Slice 1), its design-review amendments
-> (Slice 1b), the plan-only walker (Slice 2), and the four-eyes commit path (Slice 3) are all merged. All
-> fifteen items in [§6 Open Decisions](#6-open-decisions) have an answer. This exists so the design is
+> **Status: Slices 1-5 shipped, rest in progress.** The data model (Slice 1), its design-review amendments
+> (Slice 1b), the plan-only walker (Slice 2), the four-eyes commit path (Slice 3), the inbound folder
+> watcher (Slice 4), and the API endpoints (Slice 5) are all merged. All fifteen items in
+> [§6 Open Decisions](#6-open-decisions) have an answer. This exists so the design is
 > settled, reviewed, and sliced into PRs before compliance-sensitive code (parsing untrusted JSON into a
 > write path against the ERP) is written — the same process
 > [Export Definitions 2.0](/pipeline/export-definitions-2.0.md) went through. See
@@ -424,8 +425,8 @@ importantly, that a staged run doesn't freeze the definition it was staged again
 nothing guards against the ERP row changing while a run sits in review (#12), and that the same
 vendor file could be re-imported with no idempotency check (#13). Those amended
 `ImportDefinitionEntity`/`ImportRunEntity` again in **Slice 1b**, before Slice 2 began — everything
-from Slice 2 onward is written against the amended shape. Slices 1b, 2, and 3 have since shipped too
-(see the checklist below); Slices 4-7 remain. Tracking issue:
+from Slice 2 onward is written against the amended shape. Slices 1b, 2, 3, 4, and 5 have since
+shipped too (see the checklist below); Slices 6-7 remain. Tracking issue:
 [#51](https://github.com/mycaravam-crypto/erp-connector/issues/51), with one sub-issue per slice
 (#52–58, plus 1b). Suggested slices, mirroring
 [Export Definitions 2.0](/pipeline/export-definitions-2.0.md#implementation-status)'s shape —
@@ -447,8 +448,8 @@ each roughly PR-sized and independently reviewable:
   new `POST /api/import-runs/{id}/release`+`/reject` endpoints. Also added: `ImportRowStatus.Invalid` (a
   malformed record, distinct from `Rejected`'s "parsed fine, correlation key didn't match" — both existed
   as one bucket in Slice 2).
-- [ ] **Slice 4 — `ImportWorker`.** Polls `inbound/`; SHA-256 manifest validation (no sequence check — Open Decision #8); the idempotency check against `(ImportDefinitionId, Sha256Checksum)` (#13), reporting duplicate/already-staged/already-released/rejected-duplicate distinctly; quarantine handling for malformed files.
-- [ ] **Slice 5 — API endpoints.** CRUD (with the schema-aware `AllowedWritableColumns` validator, #9, and the `OnMissingChild = insert` rejection, #15), preview, release, run history — `ImportDefinitionEndpoints.cs`.
+- [x] **Slice 4 — `ImportWorker`.** Polls `inbound/` on a timer, sibling of `ExportWorker`/`ExportDefinitionWorker`. Per file: SHA-256 manifest check against the accompanying `.manifest.json` (no sequence check — Open Decision #8); routes to the target `ImportDefinitionEntity` via the `definition` field on the file's own `ImportEnvelope` (#14) — the manifest itself carries only the checksum; the idempotency check against `(ImportDefinitionId, Sha256Checksum)` (#13), reporting already-staged/already-released/rejected-duplicate (or a bare "duplicate" for a prior Failed run) distinctly and never staging a second run, with the unique-constraint violation as a race-safe fallback if two pollers ever overlapped; quarantine to `inbound/rejected/` for a missing/mismatched manifest, unparseable JSON, or no enabled definition matching `definition`, always audit-logged via `AuditService`. On success, invokes `ImportNodeWalker` + `ImportPlanBuilder` (Slices 2/3) against the matching definition, persists the `ImportRunEntity` at `PendingReview` with `DefinitionSnapshotJson` frozen (#10), and moves the source file + manifest to `inbound/processed/` (never deleted, matching `FileSystemExportSink`'s atomic-move convention). Worker-level failures are caught and logged per file, never crashing the host process.
+- [x] **Slice 5 — API endpoints.** CRUD (with the schema-aware `AllowedWritableColumns` validator, #9, and the `OnMissingChild = insert` rejection, #15), preview, release, run history — `ImportDefinitionEndpoints.cs`.
 - [ ] **Slice 6 — Frontend.** `ImportNodeTreeEditor.vue`, review/diff UI surfacing matched/changed/unchanged/rejected/conflicted/invalid counts (#11), Import Definitions list + edit views.
 - [ ] **Slice 7 — Docs.** This page's status flip to "shipped," changelog entry, Open Point #6 resolution.
 

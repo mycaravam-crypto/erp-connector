@@ -156,7 +156,7 @@ Build and run with docker-compose:
 docker-compose up --build
 ```
 
-The API starts on port `8080`. SQLite databases and staging files are persisted on named Docker volumes (`connector-db`, `connector-staging`).
+The API starts on port `8080`. SQLite databases and staging/inbound files are persisted on named Docker volumes (`connector-db`, `connector-staging`, `connector-inbound`).
 
 See [`docker-compose.yml`](docker-compose.yml) and [`Dockerfile`](Dockerfile) for full configuration. At minimum, override the JWT secret before deploying:
 
@@ -178,6 +178,8 @@ All production keys are documented in [`appsettings.Production.json`](src/Connec
 | `ExportSink:StagingPath` | Directory where export packages are written |
 | `ExportWorker:ScheduledTimeUtc` | Daily export time in UTC (HH:mm) |
 | `ExportWorker:RetentionDays` | How long to keep export files and log records |
+| `ImportSink:InboundPath` | Directory `ImportWorker` polls for vendor-supplied import files |
+| `ImportWorker:PollInterval` | How often `ImportWorker` polls the inbound directory |
 
 Environment variable overrides use `__` as the separator (e.g. `Auth__JwtSecret=...`).
 
