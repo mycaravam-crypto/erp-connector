@@ -69,10 +69,9 @@ public static class ExportDefinitionRunner
 
             // knowledge/pipeline/import-mapping-presets.md §3.2 — only set (and only ever read by
             // JsonExportFormatWriter) when this definition opted into provenance tagging.
-            var provenance =
-                def.IntegrationKey is null
-                    ? null
-                    : new ExportProvenance(def.IntegrationKey, def.ContractVersion!.Value, def.ConfigVersion);
+            var provenance = def.IntegrationKey is null
+                ? null
+                : new ExportProvenance(def.IntegrationKey, def.ContractVersion!.Value, def.ConfigVersion);
 
             await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(connCfg));
             await conn.OpenAsync(ct);
