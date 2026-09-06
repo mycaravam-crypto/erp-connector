@@ -172,3 +172,24 @@ record ExportDefinitionRunDto(
 /// <summary>Response for POST .../preview: capped, tree-shaped rows for on-screen inspection — never
 /// written to run history (see <see cref="Connector.Api.Endpoints.ExportDefinitionEndpoints"/>).</summary>
 record ExportDefinitionPreviewDto(int RecordCount, System.Text.Json.Nodes.JsonArray Records);
+
+/// <summary>Response for the Phase 17 import-run release/reject endpoints
+/// (<see cref="Connector.Api.Endpoints.ImportRunEndpoints"/>) — the post-action state of one
+/// <c>ImportRunEntity</c> (Connector.Infrastructure), including the six Open Decision #11 counts and, once
+/// released, the conflict count Open Decision #12's optimistic-concurrency check populated.</summary>
+record ImportRunDto(
+    int Id,
+    int ImportDefinitionId,
+    string Status,
+    int RecordCount,
+    int MatchedCount,
+    int ChangedCount,
+    int UnchangedCount,
+    int RejectedCount,
+    int ConflictCount,
+    int InvalidCount,
+    string? OperatedBy,
+    string? ApprovedBy,
+    string? ReleasedAt,
+    string? ErrorMessage
+);

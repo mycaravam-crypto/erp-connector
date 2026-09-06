@@ -106,20 +106,11 @@ static class ExportEndpoints
                     AuditService audit
                 ) =>
                 {
-                    if (string.IsNullOrWhiteSpace(request.Approver))
-                        return Results.BadRequest("Approver is required.");
-
                     var operatorName = httpContext.User.Identity!.Name!;
 
-                    if (string.Equals(operatorName, request.Approver, StringComparison.OrdinalIgnoreCase))
-                        return Results.BadRequest(
-                            "Operator and approver must be different users (four-eyes principle)."
-                        );
-
-                    if (!userStore.ContainsKey(request.Approver))
-                        return Results.BadRequest(
-                            $"Unknown approver: '{request.Approver}'. Only registered users can approve a release."
-                        );
+                    var approvalError = FourEyesReview.ValidateApprover(operatorName, request.Approver, userStore);
+                    if (approvalError is not null)
+                        return Results.BadRequest(approvalError);
 
                     var run = await db.ExportRuns.FirstOrDefaultAsync(r => r.SequenceNo == seqNo);
                     if (run is null)
