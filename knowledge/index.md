@@ -15,6 +15,8 @@ Folders are organized by the question you're asking, not just by topic:
   the scheduler, the staging writer, and the Phase 14 spec it grew into.
 * [dynamic-export/](dynamic-export/) — **How does a saved Export Definition run?** The
   `ExportNode` tree, its own scheduler, and its run-history entity (Phase 14).
+* [dynamic-import/](dynamic-import/) — **How does a saved Import Definition run?** The
+  `ImportNode` tree, the inbound folder watcher, and the four-eyes commit path (Phase 17).
 * [domain/](domain/) — **What are the data shapes?** Live domain types only.
 * [schema/](schema/) — **What's the ICD column contract with the vendor?**
 * [api/](api/) — **How do I call the API?** Authentication, on-demand triggers, and the

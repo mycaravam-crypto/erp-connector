@@ -1,20 +1,19 @@
 ---
 type: Pipeline Design
 title: Import Definitions — inbound JSON write-back (Phase 17)
-description: Spec for the reverse leg of the connector — vendor-supplied JSON written back into the live ERP database under the same air-gap and four-eyes controls as the existing export path. Slices 1, 1b, 2, 3, 4, and 5 (data model, design-review amendments, plan-only walker, four-eyes commit, inbound folder watcher, API endpoints) shipped; Slices 6-7 not started.
+description: Spec and implementation status for Phase 17, the reverse leg of the connector — vendor-supplied JSON written back into the live ERP database under the same air-gap and four-eyes controls as the existing export path. All 7 slices shipped.
 resource: src/Connector.Core/DynamicImport/ImportNode.cs
-tags: [pipeline, dynamic-mapping, phase-17, planning, in-progress]
-timestamp: 2026-09-05T00:00:00Z
+tags: [pipeline, dynamic-mapping, phase-17]
+timestamp: 2026-09-06T00:00:00Z
 ---
 
-> **Status: Slices 1-5 shipped, rest in progress.** The data model (Slice 1), its design-review amendments
-> (Slice 1b), the plan-only walker (Slice 2), the four-eyes commit path (Slice 3), the inbound folder
-> watcher (Slice 4), and the API endpoints (Slice 5) are all merged. All fifteen items in
-> [§6 Open Decisions](#6-open-decisions) have an answer. This exists so the design is
-> settled, reviewed, and sliced into PRs before compliance-sensitive code (parsing untrusted JSON into a
-> write path against the ERP) is written — the same process
-> [Export Definitions 2.0](/pipeline/export-definitions-2.0.md) went through. See
-> [Implementation status](#implementation-status) for the slice checklist and the tracking issue.
+> **Status: all 7 slices shipped.** The data model (Slice 1), its design-review amendments (Slice 1b), the
+> plan-only walker (Slice 2), the four-eyes commit path (Slice 3), the inbound folder watcher (Slice 4), the
+> API endpoints (Slice 5), the frontend (Slice 6), and this doc pass (Slice 7) are all merged. All fifteen
+> items in [§6 Open Decisions](#6-open-decisions) have an answer, and [Open Point
+> #6](/planning/open-points.md) is resolved. See [Implementation status](#implementation-status) for the
+> per-slice checklist and [Dynamic Import](/dynamic-import/index.md) for how the shipped result actually
+> runs.
 
 ---
 
@@ -425,10 +424,9 @@ importantly, that a staged run doesn't freeze the definition it was staged again
 nothing guards against the ERP row changing while a run sits in review (#12), and that the same
 vendor file could be re-imported with no idempotency check (#13). Those amended
 `ImportDefinitionEntity`/`ImportRunEntity` again in **Slice 1b**, before Slice 2 began — everything
-from Slice 2 onward is written against the amended shape. Slices 1b, 2, 3, 4, and 5 have since
-shipped too (see the checklist below); Slices 6-7 remain. Tracking issue:
-[#51](https://github.com/mycaravam-crypto/erp-connector/issues/51), with one sub-issue per slice
-(#52–58, plus 1b). Suggested slices, mirroring
+from Slice 2 onward is written against the amended shape. All 7 slices have since shipped (see the
+checklist below). Tracking issue: [#51](https://github.com/mycaravam-crypto/erp-connector/issues/51),
+with one sub-issue per slice (#52–58, plus 1b). Suggested slices, mirroring
 [Export Definitions 2.0](/pipeline/export-definitions-2.0.md#implementation-status)'s shape —
 each roughly PR-sized and independently reviewable:
 
@@ -450,8 +448,8 @@ each roughly PR-sized and independently reviewable:
   as one bucket in Slice 2).
 - [x] **Slice 4 — `ImportWorker`.** Polls `inbound/` on a timer, sibling of `ExportWorker`/`ExportDefinitionWorker`. Per file: SHA-256 manifest check against the accompanying `.manifest.json` (no sequence check — Open Decision #8); routes to the target `ImportDefinitionEntity` via the `definition` field on the file's own `ImportEnvelope` (#14) — the manifest itself carries only the checksum; the idempotency check against `(ImportDefinitionId, Sha256Checksum)` (#13), reporting already-staged/already-released/rejected-duplicate (or a bare "duplicate" for a prior Failed run) distinctly and never staging a second run, with the unique-constraint violation as a race-safe fallback if two pollers ever overlapped; quarantine to `inbound/rejected/` for a missing/mismatched manifest, unparseable JSON, or no enabled definition matching `definition`, always audit-logged via `AuditService`. On success, invokes `ImportNodeWalker` + `ImportPlanBuilder` (Slices 2/3) against the matching definition, persists the `ImportRunEntity` at `PendingReview` with `DefinitionSnapshotJson` frozen (#10), and moves the source file + manifest to `inbound/processed/` (never deleted, matching `FileSystemExportSink`'s atomic-move convention). Worker-level failures are caught and logged per file, never crashing the host process.
 - [x] **Slice 5 — API endpoints.** CRUD (with the schema-aware `AllowedWritableColumns` validator, #9, and the `OnMissingChild = insert` rejection, #15), preview, release, run history — `ImportDefinitionEndpoints.cs`.
-- [ ] **Slice 6 — Frontend.** `ImportNodeTreeEditor.vue`, review/diff UI surfacing matched/changed/unchanged/rejected/conflicted/invalid counts (#11), Import Definitions list + edit views.
-- [ ] **Slice 7 — Docs.** This page's status flip to "shipped," changelog entry, Open Point #6 resolution.
+- [x] **Slice 6 — Frontend.** Shipped in [#69](https://github.com/mycaravam-crypto/erp-connector/pull/69). `ImportNodeTreeEditor.vue` mirrors `ExportNodeTreeEditor.vue`'s recursive editor for `ImportNode` (no Filter input, no `OnMissingChild` picker since v1 only permits `"reject"`, #15). `ImportAllowedColumnsEditor.vue` is a prominent, separately-editable list editor for the allowlist, flagging any tree target column missing from it — the feature's main safety control, per the issue's acceptance criteria. `ImportDefinitionsView.vue`/`ImportDefinitionEditView.vue` mirror the export side's list/edit views; `ImportDefinitionPreviewPanel.vue` lets an operator paste a sample `ImportEnvelope` and see the computed plan. `ImportRunReviewDialog.vue` is the four-eyes review surface — full matched/changed/unchanged/rejected/conflicted/invalid breakdown (#11) plus a field-level old→new diff, reusing `ReleaseDialog`'s Operator/Approver pattern with a Reject option; `ImportPlanDiffTable.vue`/`ImportRunCountSummary.vue`/`ImportRunOutcome.vue` were split out to keep the dialog's complexity down and deduplicate with the preview panel. **Addition beyond the issue's listed scope:** `GET /api/import-runs/{id}` (`ImportRunEndpoints.cs`) — no existing endpoint exposed a single run's `PlanJson`, which the review dialog needs before an Approver can act. Also closed out #55 (Slice 4), which had already shipped via #68 but was never itself closed. `fallow`'s complexity findings for the new tree editor/dialog/views are scoped via `.fallowrc.json` (Phase 14 Slice 5 precedent); the Export/Import duplication it also flags is accepted by design, not suppressed — see [Code Health Backlog](/planning/code-health-backlog.md#phase-17-slice-6-additions-new-files--resolved-via-threshold-override).
+- [x] **Slice 7 — Docs.** This page's status flip to "shipped" and this checklist closed out; [Open Point #6](/planning/open-points.md) moved from Pending to Resolved; new [`knowledge/dynamic-import/`](/dynamic-import/index.md) bundle documenting how the shipped result actually runs (mirroring [`knowledge/dynamic-export/`](/dynamic-export/index.md)); [`knowledge/pipeline/index.md`](/pipeline/index.md)'s Phase 17 section updated; changelog entry added.
 
 Slice 2 is deliberately ordered before Slice 3 (commit) despite normally being "the same feature"
 — being able to see and review a computed plan with zero write capability is a meaningfully lower
@@ -459,6 +457,8 @@ Slice 2 is deliberately ordered before Slice 3 (commit) despite normally being "
 
 ## Related
 
+- [Dynamic Import](/dynamic-import/index.md) — how the shipped result actually runs: the
+  `ImportNode` tree, `ImportWorker`, and `ImportRunEntity`/`ImportRunReleaser`
 - [Export Definitions 2.0](/pipeline/export-definitions-2.0.md) — the export-side sibling this
   design mirrors throughout
 - [DynamicExportService](/pipeline/dynamic-export-service.md) — the live export pipeline
