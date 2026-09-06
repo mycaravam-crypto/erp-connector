@@ -37,6 +37,23 @@ public sealed class ExportDefinitionEntity
     public string CreatedAt { get; set; } = string.Empty;
     public string? UpdatedBy { get; set; }
     public string? UpdatedAt { get; set; }
+
+    /// <summary>Short, stable slug identifying the business exchange this export belongs to (e.g.
+    /// "ci-confirmation") — independent of <see cref="Name"/> (renamable) and <see cref="Id"/>
+    /// (DB-internal, not portable across environments/restores). Free text, not an enum — see
+    /// knowledge/pipeline/import-mapping-presets.md §3.1. Null means this export doesn't opt into the
+    /// provenance-tagging feature at all.</summary>
+    public string? IntegrationKey { get; set; }
+
+    /// <summary>Versions the exchange named by <see cref="IntegrationKey"/> itself, separately from
+    /// <see cref="ConfigVersion"/> (which versions this one mapping's edits). Set together with
+    /// <see cref="IntegrationKey"/>, or not at all — enforced at save time.</summary>
+    public int? ContractVersion { get; set; }
+
+    /// <summary>Names which enabled root-level scalar-field node's SourceField is the correlation key
+    /// (e.g. "guid") — purely advisory metadata for <c>ImportMappingSuggestion</c> (Slice 3); does not
+    /// change <see cref="Connector.Infrastructure.DynamicExportService"/>'s query building in any way.</summary>
+    public string? CorrelationKeySourceField { get; set; }
 }
 
 /// <summary>Status values for <see cref="ExportDefinitionRunEntity.Status"/>. Deliberately separate from

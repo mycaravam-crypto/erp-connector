@@ -101,7 +101,11 @@ record GdprDenylistRequest(List<string> Fields);
 record AuditEntryDto(int Id, string Timestamp, string Username, string Action, string? Detail);
 
 /// <summary>Body for POST/PUT /api/export-definitions — everything an operator configures for one saved,
-/// independently triggerable export. RootNode must be a "root"-kind <see cref="Connector.Core.DynamicExport.ExportNode"/>.</summary>
+/// independently triggerable export. RootNode must be a "root"-kind <see cref="Connector.Core.DynamicExport.ExportNode"/>.
+/// IntegrationKey/ContractVersion/CorrelationKeySourceField (knowledge/pipeline/import-mapping-presets.md
+/// §3.1) are optional and only used by the not-yet-built import-mapping-presets suggestion feature — set
+/// together or not at all, validated at save time by
+/// <see cref="Connector.Api.Endpoints.ExportDefinitionEndpoints"/>.</summary>
 record ExportDefinitionRequest(
     string Name,
     string? Description,
@@ -109,7 +113,10 @@ record ExportDefinitionRequest(
     Connector.Core.DynamicExport.ExportNode RootNode,
     string OutputFormat,
     bool IsEnabled,
-    string? Schedule
+    string? Schedule,
+    string? IntegrationKey = null,
+    int? ContractVersion = null,
+    string? CorrelationKeySourceField = null
 );
 
 /// <summary>Full view of a saved export definition, returned by GET/POST/PUT .../{id}.</summary>
@@ -126,7 +133,10 @@ record ExportDefinitionDto(
     string CreatedBy,
     string CreatedAt,
     string? UpdatedBy,
-    string? UpdatedAt
+    string? UpdatedAt,
+    string? IntegrationKey,
+    int? ContractVersion,
+    string? CorrelationKeySourceField
 );
 
 /// <summary>Lightweight list-view row for GET /api/export-definitions — omits RootNode, which can be
@@ -248,7 +258,10 @@ record ImportRunDetailDto(
 /// <see cref="Connector.Core.DynamicImport.ImportNode"/>, and must have an enabled scalar-field child
 /// whose TargetColumn equals RootMatchColumn (see <c>ImportNodeWalker.FindMatchField</c>).
 /// AllowedWritableColumns is validated against the live ERP schema at save time (Open Decision #9) — see
-/// <see cref="Connector.Api.Endpoints.ImportDefinitionEndpoints"/>.</summary>
+/// <see cref="Connector.Api.Endpoints.ImportDefinitionEndpoints"/>. IntegrationKey/ContractVersion
+/// (knowledge/pipeline/import-mapping-presets.md §3.1) are optional and only used by the not-yet-built
+/// import-mapping-presets suggestion feature — set together or not at all, validated at save time by the
+/// same endpoints class.</summary>
 record ImportDefinitionRequest(
     string Name,
     string? Description,
@@ -257,7 +270,9 @@ record ImportDefinitionRequest(
     Connector.Core.DynamicImport.ImportNode RootNode,
     List<string> AllowedWritableColumns,
     string UnmatchedRootPolicy,
-    bool IsEnabled
+    bool IsEnabled,
+    string? IntegrationKey = null,
+    int? ContractVersion = null
 );
 
 /// <summary>Full view of a saved import definition, returned by GET/POST/PUT .../{id}.</summary>
@@ -275,7 +290,9 @@ record ImportDefinitionDto(
     string CreatedBy,
     string CreatedAt,
     string? UpdatedBy,
-    string? UpdatedAt
+    string? UpdatedAt,
+    string? IntegrationKey,
+    int? ContractVersion
 );
 
 /// <summary>Lightweight list-view row for GET /api/import-definitions — omits RootNode/AllowedWritableColumns,

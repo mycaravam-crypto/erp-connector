@@ -1,18 +1,20 @@
 ---
 type: Pipeline Design
 title: Import Mapping Presets from Export Provenance (proposal)
-description: Design proposal — tag ExportDefinition/ImportDefinition with a shared, versioned IntegrationKey; if a vendor's inbound file round-trips it, offer to create a new ImportDefinition from the paired export's root-matching (and, best-effort, shared field names). Revised after design review. Not started.
+description: Design proposal — tag ExportDefinition/ImportDefinition with a shared, versioned IntegrationKey; if a vendor's inbound file round-trips it, offer to create a new ImportDefinition from the paired export's root-matching (and, best-effort, shared field names). Revised after design review. Slice 1 shipped.
 resource: src/Connector.Core/DynamicImport/ImportNode.cs
 tags: [pipeline, dynamic-mapping, proposal]
 timestamp: 2026-09-06T00:00:00Z
 ---
 
-> **Status: proposal, design only.** No slice has started. This is not an Open Point from the
-> original Technical Concept (see [Open Points](/planning/open-points.md)) — it's an
-> internally-raised idea about the Phase 14/17 tree types. Revised once, per
+> **Status: in progress — Slice 1 shipped, Slices 2–5 not started.** See
+> [Implementation status](#7-implementation-status) for the per-slice checklist. This is not an
+> Open Point from the original Technical Concept (see [Open Points](/planning/open-points.md)) —
+> it's an internally-raised idea about the Phase 14/17 tree types. Revised once, per
 > [Design Review Amendments](#design-review-amendments) below, before any slice began — the same
-> "amend before Slice 2" pattern Import Definitions itself used for its own Slice 1b. Nothing here
-> changes shipped behavior.
+> "amend before Slice 2" pattern Import Definitions itself used for its own Slice 1b. Slice 1
+> itself is data-model-only — no writer/parser/suggestion/UI behavior yet, so nothing here changes
+> shipped runtime behavior.
 
 ---
 
@@ -321,10 +323,25 @@ decision.)
 
 ## 7. Implementation status
 
-Not started — proposal only, pending a decision to schedule it. If approved, expect it to follow
-the same slice shape as Phases 14/17 (data model + migration → writer/parser plumbing →
-suggestion function + tests → UI → docs), each independently shippable and each leaving the system
-in a fully working state with the feature simply not yet visible.
+5 slices, each independently shippable and leaving the system in a fully working state with the
+feature simply not yet visible until Slice 4. Slice 1 came first since everything else depends on
+the `IntegrationKey`/`ContractVersion` shape being settled. Tracking issue: #73, with one
+sub-issue per slice (#74–78).
+
+- [x] **Slice 1 — Data model + migration.** New nullable `ExportDefinition.IntegrationKey`/
+      `ContractVersion`/`CorrelationKeySourceField` and `ImportDefinition.IntegrationKey`/
+      `ContractVersion` columns; EF migration, no backfill. Save-time validator addition on each
+      definition type independently: `IntegrationKey`/`ContractVersion` must be set together or
+      not at all, and at most one *enabled* definition of a given type may ever claim a given
+      pair — enforced in `ValidateRequestAsync` (create/update) and the `.../enable` endpoint,
+      since either path can turn a definition enabled. `CorrelationKeySourceField` is validated
+      only for identifier-safety at this slice; no query-building/tree-walk behavior changes.
+      Shipped in #74.
+- [ ] **Slice 2 — Export-side wiring.** `JsonExportFormatWriter` provenance key.
+- [ ] **Slice 3 — Import-side wiring.** `ImportEnvelope` parser + `ImportMappingSuggestion`,
+      unit-testable in isolation, no UI yet.
+- [ ] **Slice 4 — Frontend.** Suggestion banner + "Create from export" action.
+- [ ] **Slice 5 — Docs.** Status flip, changelog.
 
 ## Related
 
