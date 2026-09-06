@@ -10,6 +10,40 @@ Last updated: 2026-09-06
 
 ---
 
+## Phase 18 — Import mapping presets from export provenance ✅
+
+A UI-time authoring convenience, not a runtime feature: tag a JSON `ExportDefinition`'s output with
+a stable, versioned `IntegrationKey`/`ContractVersion`; if a vendor's inbound reply round-trips the
+same pair, offer to create a new `ImportDefinition` from the paired export — reading
+`RootTable`/`RootMatchColumn` directly off the export (deterministic, no tree walk) and offering
+any other name-matched fields as disabled, human-reviewed candidates. `ImportEnvelope.definition`
+stays the only routing mechanism; every suggested field still goes through the existing
+`AllowedWritableColumns` schema-aware validator and four-eyes review before anything is written to
+the ERP. See [Import Mapping Presets from Export Provenance](/pipeline/import-mapping-presets.md)
+for the full spec (all Design Review Amendments and Open Decisions) and [ExportNode
+Tree](/dynamic-export/export-node.md)/[ImportNode Tree](/dynamic-import/import-node.md) for the new
+fields as they run today. Tracking issue
+[#73](https://github.com/mycaravam-crypto/erp-connector/issues/73).
+
+| Slice | Item | Notes |
+|---|---|---|
+| 1 | Data model + migration | New nullable `ExportDefinition.IntegrationKey`/`ContractVersion`/`CorrelationKeySourceField` and `ImportDefinition.IntegrationKey`/`ContractVersion` columns, EF migration, no backfill. Save-time validator on each definition type: the pair must be set together or not at all, and at most one *enabled* definition of a given type may ever claim a given pair — enforced in `ValidateRequestAsync` (create/update) and the `.../enable` endpoint, since either path can turn a definition enabled. Shipped via #79, closes #74. |
+| 2 | Export-side wiring | `JsonExportFormatWriter` emits an optional top-level `provenance: { integrationKey, contractVersion, configVersion }` key when `ExportDefinitionEntity.IntegrationKey` is set — omitted entirely otherwise, byte-identical to before. New `ExportProvenance` record threaded through `IExportFormatWriter.Write`/`DynamicExportService.BuildExportNodeAsync`/`BuildNestedJsonBytes`; CSV/Excel writers accept and ignore it rather than forking the interface. No internal database id placed on the wire. Shipped via #80, closes #75. |
+| 3 | Import-side wiring | `ImportNodeWalker.ParseRecords` already ignored every envelope key besides `schemaVersion`/`records`, so an inbound file's optional `provenance` block needed no parser change to be "accepted" — added a regression test proving the walk is byte-identical with or without one. New pure `ImportMappingSuggestion.SuggestFrom` (`Connector.Core.DynamicImport`): exact-match lookup on `(integrationKey, contractVersion)`, deterministic root-field prefill, best-effort disabled candidates for other matching field names, nested children never walked. No I/O; unit-tested in complete isolation. No UI or API endpoint yet — deliberately reviewable before any frontend surfaced it. Shipped via #81, closes #76. |
+| 4 | Frontend | New `POST /api/import-definitions/suggest-from-export` endpoint parses a pasted sample `ImportEnvelope`'s `provenance` block and delegates to Slice 3's pure function against every enabled, tagged export — degrading to `null` for anything short of an exact match, never an error. New `ImportMappingSuggestionPanel.vue` offers "Create from export" vs. "Start blank" as a dedicated step in the New Import Definition flow (Open Decision #1, overriding the doc's original lean toward reusing the preview panel — that panel needs an already-saved definition's live ERP connection, which doesn't exist yet at this point). Accepting prefills the root table/match column/tree with the deterministic correlation field pre-enabled and every best-effort candidate's `SourceKey` pre-filled but still unchecked. Paired `IntegrationKey`/`ContractVersion` shown read-only once set (Open Decision #2). Also added the export-side "Integration tagging" UI (`ExportDefinitionBasicFields.vue`) the proposal doc's own §4 never called out — without it there was no way for an operator to set `IntegrationKey`/`ContractVersion`/`CorrelationKeySourceField` on an export at all, since Slice 2 was backend-only. Shipped via #82, closes #77. |
+| 5 | Docs | This entry; [Import Mapping Presets](/pipeline/import-mapping-presets.md)'s status flip to shipped and implementation-status/Open-Decisions close-out; [`knowledge/pipeline/index.md`](/pipeline/index.md)'s "Proposed" entry replaced with this Phase 18 section; [ExportNode Tree](/dynamic-export/export-node.md)/[ImportNode Tree](/dynamic-import/import-node.md) updated with the new fields; [Import Definitions](/pipeline/import-definitions.md)'s Related section note updated to shipped. Closes #78. |
+
+**Verification:** per-slice, not one end-to-end pass — each slice's own tests (`ImportMappingSuggestionTests`
+for the Slice 3 pure function; `ImportMappingSuggestionEndpointTests`/`IntegrationKeyValidationTests`
+for the Slice 1/4 save-time guardrails and endpoint, both against the in-memory Sqlite `LocalDb`
+fixture, no Postgres testdb required) plus `dotnet build`/`dotnet test`/`dotnet csharpier check`
+and `npm run type-check`/`npm test` clean at each point in the sequence. No dotnet SDK was
+preinstalled in the Slice 4 session; the .NET 10 SDK (`dotnet-sdk-10.0` via `apt`, roll-forward to
+run the net9.0 test host) was used to build and run the full backend suite locally rather than
+skipping verification.
+
+---
+
 ## Phase 17 — Inbound JSON import ✅
 
 The reverse leg of the pipeline: vendor-supplied JSON written back into the live ERP database

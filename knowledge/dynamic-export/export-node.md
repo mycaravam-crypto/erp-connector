@@ -37,6 +37,32 @@ A `root` node's own fields (`SourceField`/`RelatedTable`/etc.) are unused — it
 CSV/Excel row is just the case where every node is a `scalar-field` at depth 1, so no separate
 "flat" shape is needed — a fourth level of CSV nesting needs zero new types, only a smarter writer.
 
+`ExportDefinition` also carries, outside the tree itself, three fields from [Import Mapping
+Presets §3.1](/pipeline/import-mapping-presets.md#31-integrationkeycontractversioncorrelationkeysourcefield--explicit-paired-fields)
+(all nullable; a definition that doesn't opt in has none of them set, which is every definition
+saved before this feature existed):
+
+```
+ExportDefinition
+├── IntegrationKey            : string?  — short, stable slug identifying the business exchange
+│                                          this export belongs to (e.g. "ci-confirmation"),
+│                                          independent of Name (renamable) and Id (DB-internal)
+├── ContractVersion           : int?     — versions the exchange itself, separately from
+│                                          ConfigVersion (which versions this one mapping's edits)
+└── CorrelationKeySourceField : string?  — names which enabled root-level scalar-field node's
+                                           SourceField is the correlation key (e.g. "guid");
+                                           purely advisory — doesn't change query building
+```
+
+Setting `IntegrationKey` makes `JsonExportFormatWriter` emit an optional `provenance: {
+integrationKey, contractVersion, configVersion }` key in this export's JSON output, which
+`ImportMappingSuggestion.SuggestFrom` ([ImportNode Tree](/dynamic-import/import-node.md)) can later
+match a pasted sample against to suggest a starting `ImportDefinition` — a UI-time authoring
+convenience, never a routing or trust mechanism. `IntegrationKey`/`ContractVersion` must be set
+together or not at all, and at most one *enabled* `ExportDefinition` may ever claim a given pair —
+enforced by `ExportDefinitionEndpoints`'s save-time validator, the same posture `ImportDefinition`'s
+own copy of these two fields is validated under (see [ImportNode Tree](/dynamic-import/import-node.md)).
+
 # FieldMapping — value shaping on a scalar-field node
 
 ```
@@ -91,3 +117,5 @@ single-mapping flow), so building a multi-level export needs no manually-typed `
 - [Export Definition API](/api/export-definition-api.md) — the CRUD/validation HTTP surface
 - [DynamicExportService](/pipeline/dynamic-export-service.md) — the query engine that walks this tree
 - [GDPR Compliance](/operations/gdpr-compliance.md) — the denylist enforced on every `SourceField`
+- [Import Mapping Presets from Export Provenance](/pipeline/import-mapping-presets.md) — what
+  `IntegrationKey`/`ContractVersion`/`CorrelationKeySourceField` are for

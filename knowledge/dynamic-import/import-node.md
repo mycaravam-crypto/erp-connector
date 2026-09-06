@@ -46,13 +46,27 @@ ImportDefinition
 │                                     same Guid exported today) must resolve against
 ├── RootNode           : ImportNode — the tree above
 ├── AllowedWritableColumns : string[]  — explicit allowlist (see below)
-└── UnmatchedRootPolicy    : "reject" | "quarantine"  — deliberately no "auto-create"
+├── UnmatchedRootPolicy    : "reject" | "quarantine"  — deliberately no "auto-create"
+├── IntegrationKey     : string?  — set together with ContractVersion, or not at all (see below)
+└── ContractVersion    : int?
 ```
 
 A root row with no correlation-key match is excluded from the accepted set per
 `UnmatchedRootPolicy` — never inserted. Only object/array *children* may ever be created, and only
 when their own `OnMissingChild = "insert"` — a capability the v1 validator currently blocks
 everywhere, per the paragraph above.
+
+`IntegrationKey`/`ContractVersion` are the write side of [Import Mapping
+Presets §3.1](/pipeline/import-mapping-presets.md#31-integrationkeycontractversioncorrelationkeysourcefield--explicit-paired-fields) —
+the same meaning as the identically-named fields on `ExportDefinition` ([ExportNode
+Tree](/dynamic-export/export-node.md)), set on this `ImportDefinition` either by hand or, more
+commonly, by accepting a "Create from export" suggestion built from a paired, provenance-tagged
+export. Purely advisory metadata for auditing which export a definition's tree was built from —
+`ImportNodeWalker`/`ImportWorker` never read either field, and `ImportEnvelope.definition` (Open
+Decision #14) stays the only routing mechanism. Nullable; set together or not at all, and at most
+one *enabled* `ImportDefinition` may ever claim a given pair — enforced by
+`ImportDefinitionEndpoints`'s save-time validator, mirroring `ExportDefinition`'s own copy of the
+same rule.
 
 # Reading and writing a persisted tree
 
@@ -104,3 +118,6 @@ or being blocked, here.
 - [ExportNode Tree](/dynamic-export/export-node.md) — the read-side sibling this mirrors
 - [GDPR Compliance](/operations/gdpr-compliance.md) — the denylist `AllowedWritableColumns` is cross-checked against
 - [ImportWorker](import-worker.md) — the run-time caller that re-checks the allowlist via `ImportNodeWalker`
+- [Import Mapping Presets from Export Provenance](/pipeline/import-mapping-presets.md) — what
+  `IntegrationKey`/`ContractVersion` are for, and `ImportMappingSuggestion.SuggestFrom`, the pure
+  function that builds a "Create from export" suggestion from a paired export

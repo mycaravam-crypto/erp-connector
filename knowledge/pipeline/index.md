@@ -25,11 +25,11 @@ rationale — see [legacy/](/legacy/).
 * [dynamic-import/](/dynamic-import/) - How it actually runs: the `ImportNode` tree, `ImportWorker`
   (the inbound folder watcher), and the four-eyes commit path
 
-# Proposed — not started
+# Phase 18 — import mapping presets from export provenance ✅
 
 * [Import Mapping Presets from Export Provenance](import-mapping-presets.md) - Tag a JSON export
   and its paired import with a shared, versioned `IntegrationKey`, and if a vendor's reply
   round-trips it, offer to create a new `ImportDefinition`'s root-matching (and, best-effort,
-  shared field names) from the paired export. Slices 1–3 (data model + migration; export-side
-  JSON provenance key; the pure `ImportMappingSuggestion` function) shipped; Slices 4–5 (UI, docs)
-  not started — the feature isn't visible to any operator yet, since nothing surfaces it.
+  shared field names) from the paired export — a "Create from export" suggestion in the New
+  Import Definition flow. Full spec + final per-slice implementation status. Inert for any given
+  exchange until the vendor's ICD is told to echo the pair back (Open Decision #3)

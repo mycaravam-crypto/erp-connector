@@ -1,20 +1,21 @@
 ---
 type: Pipeline Design
-title: Import Mapping Presets from Export Provenance (proposal)
-description: Design proposal — tag ExportDefinition/ImportDefinition with a shared, versioned IntegrationKey; if a vendor's inbound file round-trips it, offer to create a new ImportDefinition from the paired export's root-matching (and, best-effort, shared field names). Revised after design review. Slices 1-3 shipped.
+title: Import Mapping Presets from Export Provenance (Phase 18)
+description: Tag ExportDefinition/ImportDefinition with a shared, versioned IntegrationKey; if a vendor's inbound file round-trips it, offer to create a new ImportDefinition from the paired export's root-matching (and, best-effort, shared field names). Revised after design review. All 5 slices shipped.
 resource: src/Connector.Core/DynamicImport/ImportNode.cs
-tags: [pipeline, dynamic-mapping, proposal]
+tags: [pipeline, dynamic-mapping, phase-18]
 timestamp: 2026-09-06T00:00:00Z
 ---
 
-> **Status: in progress — Slices 1–3 shipped, Slices 4–5 not started.** See
-> [Implementation status](#7-implementation-status) for the per-slice checklist. This is not an
-> Open Point from the original Technical Concept (see [Open Points](/planning/open-points.md)) —
-> it's an internally-raised idea about the Phase 14/17 tree types. Revised once, per
-> [Design Review Amendments](#design-review-amendments) below, before any slice began — the same
-> "amend before Slice 2" pattern Import Definitions itself used for its own Slice 1b. The export
-> side tags its JSON output and the pure suggestion function now exists, but nothing surfaces it
-> to an operator yet — the UI (Slice 4) doesn't exist, so this remains invisible until then.
+> **Status: all 5 slices shipped.** See [Implementation status](#7-implementation-status) for the
+> per-slice checklist. This was not an Open Point from the original Technical Concept (see [Open
+> Points](/planning/open-points.md)) — it started as an internally-raised idea about the Phase
+> 14/17 tree types. Revised once, per [Design Review Amendments](#design-review-amendments) below,
+> before any slice began — the same "amend before Slice 2" pattern Import Definitions itself used
+> for its own Slice 1b. The mechanism is fully built and operator-visible (an export tagged with an
+> `IntegrationKey` can be turned into a starting `ImportDefinition` via the "Create from export"
+> suggestion) but stays inert for any given exchange until the vendor's ICD is told to echo
+> `provenance.integrationKey`/`contractVersion` back — see Open Decision #3.
 
 ---
 
@@ -304,16 +305,22 @@ migrating the columns onto it.
    existing paste-a-sample flow) vs. a dedicated step in "New Import Definition." *Leaning:* reuse
    the preview panel — it already parses a sample file and is the one place both a real inbound
    file and a hypothetical "does my export/import pair make sense" check would look.
+   **Decided in Slice 4: a dedicated step** (`ImportMappingSuggestionPanel.vue`), overriding the
+   lean above — `ImportDefinitionPreviewPanel.vue` drives `.../{id}/preview` against an
+   already-saved definition's live ERP connection, which doesn't exist yet in the New Import
+   Definition flow. The new panel mirrors its paste-JSON UX instead of reusing the component.
 2. **Is the paired `IntegrationKey`/`ContractVersion` shown read-only on the Import Definition
    itself after creation**, purely for an operator auditing "why does this definition's tree look
    like that" months later? Cheap to add given §3.1 already stores it on `ImportDefinition`; the
    only question is whether the edit view surfaces it.
+   **Decided in Slice 4: yes** — shown read-only on `ImportDefinitionBasicFields.vue` whenever set.
 3. **Vendor ICD dependency.** The whole mechanism is inert until the vendor's ICD is told to echo
    `provenance.integrationKey`/`contractVersion` back — same posture as Import Definitions' own
    confirmation-field names (Open Decision #5): the *shape* can be built now, but it only starts
    firing once negotiated. Not a blocker to building this — the export side gets the tag
    regardless, and the import side's suggestion simply never triggers until a vendor file actually
-   carries it.
+   carries it. **Still open post-Slice-5** — this is an external negotiation, not something a
+   future slice of this codebase resolves on its own.
 
 (The review's point about picking among multiple `Kind`-matching definitions no longer applies —
 §3.1's uniqueness constraint prevents the collision outright rather than needing a tiebreak
@@ -380,7 +387,14 @@ sub-issue per slice (#74–78).
       with no way to tag an export at all. Added a small "Integration tagging (optional)" section to
       `ExportDefinitionBasicFields.vue` in this slice rather than deferring it, since this slice's own
       verification step requires being able to "create an export with `IntegrationKey` set." Shipped in #77.
-- [ ] **Slice 5 — Docs.** Status flip, changelog.
+- [x] **Slice 5 — Docs.** This status flip and checklist close-out; [`knowledge/pipeline/index.md`](/pipeline/index.md)'s
+      "Proposed — not started" entry replaced with a **Phase 18** shipped-phase section; a new Phase 18
+      entry in [`knowledge/changelog.md`](/changelog.md) in the same per-slice-table format Phases 14/17
+      use; [`knowledge/dynamic-export/export-node.md`](/dynamic-export/export-node.md) and
+      [`knowledge/dynamic-import/import-node.md`](/dynamic-import/import-node.md) now document the new
+      `IntegrationKey`/`ContractVersion`/`CorrelationKeySourceField` fields; [Import
+      Definitions](/pipeline/import-definitions.md)'s Related section note updated from "design proposal
+      (not started)" to shipped. Shipped in #78.
 
 ## Related
 
