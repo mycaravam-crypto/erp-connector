@@ -1,16 +1,12 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using Connector.Core.DynamicExport;
 using Connector.Core.DynamicImport;
 using Connector.Core.Schema;
 using Connector.Infrastructure;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using Npgsql;
 
 namespace Connector.Integration.Tests;
 
@@ -28,35 +24,10 @@ namespace Connector.Integration.Tests;
 /// </summary>
 public sealed class ImportWorkerPostgresTests
 {
-    private const string ErpConnectionString =
-        "Host=localhost;Port=5432;Database=erp_testdb;Username=erp_test;Password=erp_test_pw;Timeout=2";
-
     // Seeded in testdb/init.sql: status=active, storage_location='Bay 7'. Read-only for this test class.
     // (technician_name is deliberately not used here — it's on DynamicExportService.GdprDeniedFields, so
     // it's rejected outright as a writable target regardless of AllowedWritableColumns.)
     private const string FixtureCiId = "55555555-5555-5555-5555-555555555555";
-
-    private static readonly ErpConnectionConfig ErpConfig = new(
-        Host: "localhost",
-        Port: 5432,
-        Database: "erp_testdb",
-        Username: "erp_test",
-        Password: "erp_test_pw"
-    );
-
-    private static async Task<bool> TestdbIsRunningAsync()
-    {
-        try
-        {
-            await using var conn = new NpgsqlConnection(ErpConnectionString);
-            await conn.OpenAsync();
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
 
     // Hands ImportWorker a fixed pair of already-constructed services, standing in for the DI scope it
     // would normally get from IServiceScopeFactory in Program.cs — avoids standing up a real ServiceCollection
@@ -83,28 +54,6 @@ public sealed class ImportWorkerPostgresTests
                 return audit;
             return null;
         }
-    }
-
-    // Bundles the in-memory Sqlite connection with the ExportLogDbContext built on top of it so a test can
-    // dispose both through one `await using`, mirroring ImportRunReleaserPostgresTests' LocalDb.
-    private sealed record LocalDb(ExportLogDbContext Db, SqliteConnection Connection) : IAsyncDisposable
-    {
-        public async ValueTask DisposeAsync()
-        {
-            await Db.DisposeAsync();
-            await Connection.DisposeAsync();
-        }
-    }
-
-    private static async Task<LocalDb> NewLocalDbAsync()
-    {
-        var connection = new SqliteConnection("Data Source=:memory:");
-        await connection.OpenAsync();
-        var options = new DbContextOptionsBuilder<ExportLogDbContext>().UseSqlite(connection).Options;
-        var db = new ExportLogDbContext(options);
-        await db.Database.EnsureCreatedAsync();
-        await db.SetSettingAsync(SettingsKeys.ErpConnection, ErpConfig);
-        return new LocalDb(db, connection);
     }
 
     private static ImportNode Scalar(string sourceKey, string targetColumn) =>
@@ -193,10 +142,10 @@ public sealed class ImportWorkerPostgresTests
     [Fact]
     public async Task PollOnceAsync_ValidFileAndManifest_StagesPendingReviewRunAndMovesFilesToProcessed()
     {
-        if (!await TestdbIsRunningAsync())
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
-        await using var local = await NewLocalDbAsync();
+        await using var local = await LocalDb.NewAsync();
         var db = local.Db;
         await SeedDefinitionAsync(db);
 
@@ -240,10 +189,10 @@ public sealed class ImportWorkerPostgresTests
     [Fact]
     public async Task PollOnceAsync_SameFileContentDroppedTwice_DoesNotCreateSecondRun()
     {
-        if (!await TestdbIsRunningAsync())
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
-        await using var local = await NewLocalDbAsync();
+        await using var local = await LocalDb.NewAsync();
         var db = local.Db;
         await SeedDefinitionAsync(db);
 
@@ -280,7 +229,7 @@ public sealed class ImportWorkerPostgresTests
     [Fact]
     public async Task PollOnceAsync_ChecksumMismatch_QuarantinesFileWithoutStagingARun()
     {
-        await using var local = await NewLocalDbAsync();
+        await using var local = await LocalDb.NewAsync();
         var db = local.Db;
         await SeedDefinitionAsync(db);
 
@@ -313,7 +262,7 @@ public sealed class ImportWorkerPostgresTests
     [Fact]
     public async Task PollOnceAsync_MalformedJson_QuarantinesFileWithoutCrashing()
     {
-        await using var local = await NewLocalDbAsync();
+        await using var local = await LocalDb.NewAsync();
         var db = local.Db;
         await SeedDefinitionAsync(db);
 
@@ -340,7 +289,7 @@ public sealed class ImportWorkerPostgresTests
     [Fact]
     public async Task PollOnceAsync_NoAccompanyingManifest_QuarantinesFile()
     {
-        await using var local = await NewLocalDbAsync();
+        await using var local = await LocalDb.NewAsync();
         var db = local.Db;
         await SeedDefinitionAsync(db);
 
@@ -370,7 +319,7 @@ public sealed class ImportWorkerPostgresTests
     [Fact]
     public async Task PollOnceAsync_NoEnabledDefinitionMatchesEnvelope_QuarantinesFile()
     {
-        await using var local = await NewLocalDbAsync();
+        await using var local = await LocalDb.NewAsync();
         var db = local.Db;
         await SeedDefinitionAsync(db, isEnabled: false);
 

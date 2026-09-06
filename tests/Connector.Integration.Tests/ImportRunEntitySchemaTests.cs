@@ -1,5 +1,4 @@
 using Connector.Infrastructure;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace Connector.Integration.Tests;
@@ -10,26 +9,8 @@ namespace Connector.Integration.Tests;
 /// <see cref="ExportLogDbContext"/> — no live ERP/testdb connection needed, since this only exercises
 /// the local metadata store's own schema.
 /// </summary>
-public sealed class ImportRunEntitySchemaTests : IAsyncDisposable
+public sealed class ImportRunEntitySchemaTests : SqliteDbContextTestBase
 {
-    private readonly SqliteConnection _connection;
-    private readonly ExportLogDbContext _db;
-
-    public ImportRunEntitySchemaTests()
-    {
-        _connection = new SqliteConnection("Data Source=:memory:");
-        _connection.Open();
-        var options = new DbContextOptionsBuilder<ExportLogDbContext>().UseSqlite(_connection).Options;
-        _db = new ExportLogDbContext(options);
-        _db.Database.EnsureCreated();
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _db.DisposeAsync();
-        await _connection.DisposeAsync();
-    }
-
     private async Task<int> SeedDefinitionAsync()
     {
         var definition = new ImportDefinitionEntity
@@ -42,8 +23,8 @@ public sealed class ImportRunEntitySchemaTests : IAsyncDisposable
             CreatedBy = "tester",
             CreatedAt = "2026-09-05T00:00:00Z",
         };
-        _db.ImportDefinitions.Add(definition);
-        await _db.SaveChangesAsync();
+        Db.ImportDefinitions.Add(definition);
+        await Db.SaveChangesAsync();
         return definition.Id;
     }
 
@@ -70,11 +51,11 @@ public sealed class ImportRunEntitySchemaTests : IAsyncDisposable
             InvalidCount = 0,
             PlanJson = """{"operations":[]}""",
         };
-        _db.ImportRuns.Add(run);
-        await _db.SaveChangesAsync();
+        Db.ImportRuns.Add(run);
+        await Db.SaveChangesAsync();
 
-        _db.ChangeTracker.Clear();
-        var reloaded = await _db.ImportRuns.SingleAsync(r => r.Id == run.Id);
+        Db.ChangeTracker.Clear();
+        var reloaded = await Db.ImportRuns.SingleAsync(r => r.Id == run.Id);
 
         Assert.Equal("""{"RootTable":"masterdata"}""", reloaded.DefinitionSnapshotJson);
         Assert.Equal("""{"operations":[]}""", reloaded.PlanJson);
@@ -93,7 +74,7 @@ public sealed class ImportRunEntitySchemaTests : IAsyncDisposable
         var definitionId = await SeedDefinitionAsync();
         var checksum = new string('b', 64);
 
-        _db.ImportRuns.Add(
+        Db.ImportRuns.Add(
             new ImportRunEntity
             {
                 ImportDefinitionId = definitionId,
@@ -103,9 +84,9 @@ public sealed class ImportRunEntitySchemaTests : IAsyncDisposable
                 TriggeredBy = "watcher",
             }
         );
-        await _db.SaveChangesAsync();
+        await Db.SaveChangesAsync();
 
-        _db.ImportRuns.Add(
+        Db.ImportRuns.Add(
             new ImportRunEntity
             {
                 ImportDefinitionId = definitionId,
@@ -116,7 +97,7 @@ public sealed class ImportRunEntitySchemaTests : IAsyncDisposable
             }
         );
 
-        await Assert.ThrowsAsync<DbUpdateException>(() => _db.SaveChangesAsync());
+        await Assert.ThrowsAsync<DbUpdateException>(() => Db.SaveChangesAsync());
     }
 
     [Fact]
@@ -126,7 +107,7 @@ public sealed class ImportRunEntitySchemaTests : IAsyncDisposable
         var definitionId2 = await SeedDefinitionAsync();
         var checksum = new string('c', 64);
 
-        _db.ImportRuns.Add(
+        Db.ImportRuns.Add(
             new ImportRunEntity
             {
                 ImportDefinitionId = definitionId1,
@@ -136,7 +117,7 @@ public sealed class ImportRunEntitySchemaTests : IAsyncDisposable
                 TriggeredBy = "watcher",
             }
         );
-        _db.ImportRuns.Add(
+        Db.ImportRuns.Add(
             new ImportRunEntity
             {
                 ImportDefinitionId = definitionId2,
@@ -147,8 +128,8 @@ public sealed class ImportRunEntitySchemaTests : IAsyncDisposable
             }
         );
 
-        await _db.SaveChangesAsync();
+        await Db.SaveChangesAsync();
 
-        Assert.Equal(2, await _db.ImportRuns.CountAsync());
+        Assert.Equal(2, await Db.ImportRuns.CountAsync());
     }
 }

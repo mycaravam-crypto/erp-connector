@@ -15,29 +15,12 @@ namespace Connector.Integration.Tests;
 /// </summary>
 public sealed class ImportNodeWalkerPostgresTests
 {
-    private const string ConnectionString =
-        "Host=localhost;Port=5432;Database=erp_testdb;Username=erp_test;Password=erp_test_pw;Timeout=2";
-
     // Seeded in testdb/init.sql.
     private const string ActiveCiId = "44444444-4444-4444-4444-444444444444"; // status=active, has a maintenance_plan
     private const string DecommissionedCiId = "66666666-6666-6666-6666-666666666666"; // status=decommissioned, no maintenance_plan
     private const string AcmeManufacturerId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"; // has 2 addresses
     private const string NorthbridgeManufacturerId = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"; // has 0 addresses
     private const string UnknownCiId = "ffffffff-ffff-ffff-ffff-ffffffffffff"; // matches no row at all
-
-    private static async Task<NpgsqlConnection?> TryOpenAsync()
-    {
-        try
-        {
-            var conn = new NpgsqlConnection(ConnectionString);
-            await conn.OpenAsync();
-            return conn;
-        }
-        catch
-        {
-            return null;
-        }
-    }
 
     // Wraps a bare JSON array of records in the canonical ImportEnvelope (Open Decision #14) every test needs
     // — schemaVersion first, then records — so individual tests only spell out the part they're actually
@@ -143,7 +126,7 @@ public sealed class ImportNodeWalkerPostgresTests
     [Fact]
     public async Task WalkAsync_ChangedRootScalar_ProducesFieldDiff()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 
@@ -167,7 +150,7 @@ public sealed class ImportNodeWalkerPostgresTests
     [Fact]
     public async Task WalkAsync_UnchangedRootScalar_ProducesEmptyFieldDiff()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 
@@ -187,7 +170,7 @@ public sealed class ImportNodeWalkerPostgresTests
     [Fact]
     public async Task WalkAsync_BareArrayWithNoEnvelope_ThrowsValidationException()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 
@@ -204,7 +187,7 @@ public sealed class ImportNodeWalkerPostgresTests
     [Fact]
     public async Task WalkAsync_MissingSchemaVersion_ThrowsValidationException()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 
@@ -220,7 +203,7 @@ public sealed class ImportNodeWalkerPostgresTests
     [Fact]
     public async Task WalkAsync_UnrecognizedSchemaVersion_ThrowsValidationException()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 
@@ -240,7 +223,7 @@ public sealed class ImportNodeWalkerPostgresTests
     [Fact]
     public async Task WalkAsync_UnmatchedCorrelationKey_RejectPolicy_RowIsRejected()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 
@@ -260,7 +243,7 @@ public sealed class ImportNodeWalkerPostgresTests
     [Fact]
     public async Task WalkAsync_UnmatchedCorrelationKey_QuarantinePolicy_RowIsQuarantined()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 
@@ -279,7 +262,7 @@ public sealed class ImportNodeWalkerPostgresTests
     [Fact]
     public async Task WalkAsync_TargetColumnOutsideAllowedWritableColumns_ThrowsValidationException()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 
@@ -298,7 +281,7 @@ public sealed class ImportNodeWalkerPostgresTests
     [Fact]
     public async Task WalkAsync_ObjectChildMatched_ProducesChildFieldDiff()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 
@@ -323,7 +306,7 @@ public sealed class ImportNodeWalkerPostgresTests
     [Fact]
     public async Task WalkAsync_ObjectChildUnresolvedJoinKey_RejectedWithSpecificReason()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 
@@ -346,7 +329,7 @@ public sealed class ImportNodeWalkerPostgresTests
     [Fact]
     public async Task WalkAsync_ChildOmittedFromPayload_IsNotReportedAtAll()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 
@@ -365,7 +348,7 @@ public sealed class ImportNodeWalkerPostgresTests
     [Fact]
     public async Task WalkAsync_ArrayChildWithMatchingRows_IsMarkedMatched()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 
@@ -386,7 +369,7 @@ public sealed class ImportNodeWalkerPostgresTests
     [Fact]
     public async Task WalkAsync_ArrayChildWithNoMatchingRows_IsRejectedPerOnMissingChild()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 
@@ -409,7 +392,7 @@ public sealed class ImportNodeWalkerPostgresTests
     [Fact]
     public async Task WalkAsync_UnderReadOnlyTransaction_NeverAttemptsAWrite()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 

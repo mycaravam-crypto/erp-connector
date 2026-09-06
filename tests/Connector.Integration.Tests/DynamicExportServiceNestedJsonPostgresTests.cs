@@ -1,7 +1,6 @@
 using System.Text.Json.Nodes;
 using Connector.Core.DynamicExport;
 using Connector.Infrastructure;
-using Npgsql;
 
 namespace Connector.Integration.Tests;
 
@@ -18,32 +17,15 @@ namespace Connector.Integration.Tests;
 /// </summary>
 public sealed class DynamicExportServiceNestedJsonPostgresTests
 {
-    private const string ConnectionString =
-        "Host=localhost;Port=5432;Database=erp_testdb;Username=erp_test;Password=erp_test_pw;Timeout=2";
-
     // Seeded in testdb/init.sql: Acme Industrial has 2 addresses, Northbridge Sensors has 0.
     private const string AcmeManufacturerId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
     private const string AcmeItemId = "11111111-1111-1111-1111-111111111111"; // masterdata row → Acme
     private const string NorthbridgeItemId = "33333333-3333-3333-3333-333333333333"; // masterdata row → Northbridge
 
-    private static async Task<NpgsqlConnection?> TryOpenAsync()
-    {
-        try
-        {
-            var conn = new NpgsqlConnection(ConnectionString);
-            await conn.OpenAsync();
-            return conn;
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
     [Fact]
     public async Task ExecuteNestedJsonQueryAsync_ObjectKindGroup_EmbedsSingleNestedObject()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 
@@ -75,7 +57,7 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
     [Fact]
     public async Task ExecuteNestedJsonQueryAsync_ArrayKindGroup_EmbedsArrayOfObjects()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 
@@ -108,7 +90,7 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
     [Fact]
     public async Task ExecuteNestedJsonQueryAsync_TwoHopNesting_ChildGroupNestsUnderParentKey()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 
@@ -154,7 +136,7 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
     [Fact]
     public async Task ExecuteNestedJsonQueryAsync_DisabledGroupAndDisabledField_AreExcluded()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 
@@ -188,7 +170,7 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
     [Fact]
     public async Task ExecuteNestedJsonQueryAsync_ZeroMatchingRelatedRows_YieldsEmptyArrayNotNull()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 
@@ -232,7 +214,7 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
     [Fact]
     public async Task ExecuteNestedJsonQueryAsync_GdprDeniedField_StrippedFromNestedObject()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 
@@ -270,7 +252,7 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
     [Fact]
     public async Task ExecuteNestedJsonQueryAsync_ObjectKindGroupWithMultipleMatches_ThrowsActionableError()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 
@@ -305,7 +287,7 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
     [Fact]
     public async Task ExecuteNestedJsonQueryAsync_TargetKeyWithApostrophe_EscapedSafely()
     {
-        await using var conn = await TryOpenAsync();
+        await using var conn = await ErpTestFixture.TryOpenAsync();
         if (conn is null)
             return;
 
