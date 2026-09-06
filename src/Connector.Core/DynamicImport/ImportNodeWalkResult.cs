@@ -12,18 +12,22 @@ public sealed record ImportFieldDiff(string Column, string? OldValue, string? Ne
 /// <summary>Outcome of matching one inbound record's correlation key against <c>RootTable</c>/
 /// <c>RootMatchColumn</c>. <see cref="Rejected"/> and <see cref="Quarantined"/> both mean "excluded from the
 /// accepted set" (see <see cref="UnmatchedRootPolicy"/>) — kept distinct here so a review UI can show which
-/// policy fired, not just that the record didn't match. <see cref="Accepted"/> deliberately folds together
-/// what Open Decision #11 calls "matched/changed" and "matched/unchanged" — a row whose target fields already
-/// equal the incoming values is still <see cref="Accepted"/> here, just with an empty <see cref="ImportRowResult.Fields"/>
-/// diff. Splitting that into its own status (and the richer <c>MatchedCount</c>/<c>ChangedCount</c>/
-/// <c>UnchangedCount</c> statistics Decision #11 wants on <c>ImportRunEntity</c>) is Slice 1b's job, once that
-/// entity shape exists; nothing here blocks it, since "no fields changed" is already fully recoverable from an
-/// <see cref="Accepted"/> row with empty <see cref="ImportRowResult.Fields"/>.</summary>
+/// policy fired, not just that the record didn't match; <see cref="ImportPlanBuilder"/> (Slice 3) folds both
+/// into <c>ImportRunEntity.RejectedCount</c>, since that entity has no separate quarantine counter (Open
+/// Decision #11 lists only matched/changed, matched/unchanged, rejected, and invalid). <see cref="Invalid"/>
+/// is for a record that isn't even a well-formed row to evaluate a policy against (e.g. not a JSON object) —
+/// distinct from <see cref="Rejected"/>, which means the row parsed fine but its correlation key didn't
+/// match anything. <see cref="Accepted"/> deliberately folds together what Open Decision #11 calls
+/// "matched/changed" and "matched/unchanged" — a row whose target fields already equal the incoming values is
+/// still <see cref="Accepted"/> here, just with an empty <see cref="ImportRowResult.Fields"/> diff;
+/// <see cref="ImportPlanBuilder"/> is what splits that back out into <c>ChangedCount</c>/
+/// <c>UnchangedCount</c>.</summary>
 public enum ImportRowStatus
 {
     Accepted,
     Rejected,
     Quarantined,
+    Invalid,
 }
 
 /// <summary>One <see cref="ImportNodeKind.Object"/>/<see cref="ImportNodeKind.Array"/> child's resolution

@@ -1,17 +1,16 @@
 ---
 type: Pipeline Design
 title: Import Definitions — inbound JSON write-back (Phase 17)
-description: Spec for the reverse leg of the connector — vendor-supplied JSON written back into the live ERP database under the same air-gap and four-eyes controls as the existing export path. Slice 1 (data model) shipped; Slice 1b (design-review amendments) and Slices 2-7 not started.
+description: Spec for the reverse leg of the connector — vendor-supplied JSON written back into the live ERP database under the same air-gap and four-eyes controls as the existing export path. Slices 1, 1b, 2, and 3 (data model, design-review amendments, plan-only walker, four-eyes commit) shipped; Slices 4-7 not started.
 resource: src/Connector.Core/DynamicImport/ImportNode.cs
 tags: [pipeline, dynamic-mapping, phase-17, planning, in-progress]
 timestamp: 2026-09-05T00:00:00Z
 ---
 
-> **Status: Slice 1 shipped, rest in progress.** Slice 1 (the data model + migration) is merged; an
-> external design review of that shipped model then resolved seven more decisions (§6 #9-15),
-> amending the entities again in a new Slice 1b before Slice 2 starts. All fifteen items in
-> [§6 Open Decisions](#6-open-decisions) now have an answer. This exists so the design is settled,
-> reviewed, and sliced into PRs before compliance-sensitive code (parsing untrusted JSON into a
+> **Status: Slices 1-3 shipped, rest in progress.** The data model (Slice 1), its design-review amendments
+> (Slice 1b), the plan-only walker (Slice 2), and the four-eyes commit path (Slice 3) are all merged. All
+> fifteen items in [§6 Open Decisions](#6-open-decisions) have an answer. This exists so the design is
+> settled, reviewed, and sliced into PRs before compliance-sensitive code (parsing untrusted JSON into a
 > write path against the ERP) is written — the same process
 > [Export Definitions 2.0](/pipeline/export-definitions-2.0.md) went through. See
 > [Implementation status](#implementation-status) for the slice checklist and the tracking issue.
@@ -423,18 +422,31 @@ Slice 1 shipped (#52, merged via [#60](https://github.com/mycaravam-crypto/erp-c
 An external design review of that shipped data model then surfaced Open Decisions #9-15 — most
 importantly, that a staged run doesn't freeze the definition it was staged against (#10), that
 nothing guards against the ERP row changing while a run sits in review (#12), and that the same
-vendor file could be re-imported with no idempotency check (#13). Those amend
-`ImportDefinitionEntity`/`ImportRunEntity` again, so a new **Slice 1b** lands before Slice 2 begins
-— everything from Slice 2 onward is written against the amended shape. Tracking issue:
+vendor file could be re-imported with no idempotency check (#13). Those amended
+`ImportDefinitionEntity`/`ImportRunEntity` again in **Slice 1b**, before Slice 2 began — everything
+from Slice 2 onward is written against the amended shape. Slices 1b, 2, and 3 have since shipped too
+(see the checklist below); Slices 4-7 remain. Tracking issue:
 [#51](https://github.com/mycaravam-crypto/erp-connector/issues/51), with one sub-issue per slice
 (#52–58, plus 1b). Suggested slices, mirroring
 [Export Definitions 2.0](/pipeline/export-definitions-2.0.md#implementation-status)'s shape —
 each roughly PR-sized and independently reviewable:
 
 - [x] **Slice 1 — Data model + migration.** `ImportNode`/`FieldMapping` reuse, `ImportDefinitionEntity`/`ImportRunEntity`, EF migration. No behavior yet — just the shape. Shipped in #60.
-- [ ] **Slice 1b — Schema amendments from design review.** `DefinitionSnapshotJson` (#10), `PlanJson` + richer run statistics replacing the bare accepted/rejected split (#11), the `(ImportDefinitionId, Sha256Checksum)` uniqueness constraint (#13); new EF migration amending Slice 1's entities. Blocks every slice below — see the tracking issue for the sub-issue number.
-- [ ] **Slice 2 — `ImportNodeWalker`: parse, match, diff.** Parses the `ImportEnvelope` (#14) against a saved tree, resolves root/child matches, builds `PlanJson` (#11) including each operation's expected-old-value for later concurrency checking (#12). **No writes** — output is only the computed plan, so this slice is testable and reviewable in complete isolation from the compliance-sensitive commit path.
-- [ ] **Slice 3 — Four-eyes commit path.** Applies an approved `PlanJson` transactionally, with each operation a conditional write against its expected-old-value (#12) — a mismatch marks that row Conflicted, excluded from the commit, never overwritten; `ImportRunEntity` lifecycle; the shared Operator/Approver helper (refactored out of the existing export release endpoint); audit logging.
+- [x] **Slice 1b — Schema amendments from design review.** `DefinitionSnapshotJson` (#10), the richer run statistics replacing the bare accepted/rejected split (#11), the `(ImportDefinitionId, Sha256Checksum)` uniqueness constraint (#13); new EF migration amending Slice 1's entities. `PlanJson` itself (the structured operation list, as opposed to the statistics columns) turned out to need Slice 2's walker output shape to build against, so it landed with Slice 3 instead — see that row.
+- [x] **Slice 2 — `ImportNodeWalker`: parse, match, diff.** Parses the `ImportEnvelope` (#14) against a saved tree, resolves root/child matches, and produces a per-row field-level diff (`ImportWalkResult`). **No writes** — output is only the computed diff, so this slice was testable and reviewable in complete isolation from the compliance-sensitive commit path. Turning that diff into the persisted `PlanJson` operation list (#11) — the reshaping this slice's own doc comment flagged as deferred — became Slice 3's job once `ImportRunEntity` had somewhere to store it.
+- [x] **Slice 3 — Four-eyes commit path.** `ImportPlanBuilder` reshapes Slice 2's per-row `ImportWalkResult`
+  into the persisted `ImportPlan`/`ImportPlanOperation` list Open Decision #11 calls for (root-row fields
+  only — see its own doc comment for why child-table diffs stay preview-only in v1, the same "type supports
+  more than v1 commits" precedent Open Decision #15 sets). `ImportRunReleaser.ReleaseAsync` applies it: one
+  conditional `UPDATE` per row, guarded by every one of that row's expected-old-values in a single `WHERE`
+  clause so a row commits all its changed columns or none (#12); zero affected rows marks that row
+  Conflicted, excluded, not overwritten, without failing the run (#6); an unrelated failure rolls back the
+  whole transaction and marks the run Failed. `RejectAsync` declines a run without touching the ERP
+  (single-person, no Approver needed — nothing is written). The Operator/Approver-distinctness check is now
+  `FourEyesReview.ValidateApprover`, shared by the export release endpoint (refactored to call it) and the
+  new `POST /api/import-runs/{id}/release`+`/reject` endpoints. Also added: `ImportRowStatus.Invalid` (a
+  malformed record, distinct from `Rejected`'s "parsed fine, correlation key didn't match" — both existed
+  as one bucket in Slice 2).
 - [ ] **Slice 4 — `ImportWorker`.** Polls `inbound/`; SHA-256 manifest validation (no sequence check — Open Decision #8); the idempotency check against `(ImportDefinitionId, Sha256Checksum)` (#13), reporting duplicate/already-staged/already-released/rejected-duplicate distinctly; quarantine handling for malformed files.
 - [ ] **Slice 5 — API endpoints.** CRUD (with the schema-aware `AllowedWritableColumns` validator, #9, and the `OnMissingChild = insert` rejection, #15), preview, release, run history — `ImportDefinitionEndpoints.cs`.
 - [ ] **Slice 6 — Frontend.** `ImportNodeTreeEditor.vue`, review/diff UI surfacing matched/changed/unchanged/rejected/conflicted/invalid counts (#11), Import Definitions list + edit views.

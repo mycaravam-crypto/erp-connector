@@ -198,6 +198,7 @@ app.MapConnectionEndpoints();
 app.MapSettingsEndpoints();
 app.MapExportMappingEndpoints();
 app.MapExportDefinitionEndpoints();
+app.MapImportRunEndpoints(userStore);
 
 // SPA fallback: any path not matched by an API route serves index.html
 // so Vue Router can handle client-side navigation.

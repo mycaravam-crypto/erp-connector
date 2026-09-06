@@ -62,7 +62,11 @@ public static class ImportNodeWalker
         {
             if (recordNode is not JsonObject record)
             {
-                rows.Add(new ImportRowResult(null, ImportRowStatus.Rejected, "Record is not a JSON object.", [], []));
+                // Invalid, not Rejected: this record never reached the point of having a correlation key to
+                // evaluate UnmatchedRootPolicy against — see ImportRowStatus.Invalid's doc comment. Counted via
+                // AcceptedCount/RejectedCount here (Slice 2's own coarse split) but ImportPlanBuilder (Slice 3)
+                // reports it under ImportRunEntity.InvalidCount, not RejectedCount.
+                rows.Add(new ImportRowResult(null, ImportRowStatus.Invalid, "Record is not a JSON object.", [], []));
                 rejected++;
                 continue;
             }

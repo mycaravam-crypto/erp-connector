@@ -74,5 +74,15 @@ INSERT INTO maintenance_plan (id, system_configuration_id, status, allocation_ch
     ('77777777-7777-7777-7777-777777777777', '44444444-4444-4444-4444-444444444444', 'scheduled', 'AC-2024-011'),
     ('88888888-8888-8888-8888-888888888888', '55555555-5555-5555-5555-555555555555', 'scheduled', 'AC-2024-012');
 
+-- Dedicated to ImportRunReleaserPostgresTests (Phase 17 Slice 3): unlike every row above, which
+-- ImportNodeWalkerPostgresTests only ever reads, these rows get actually written to by the commit-path
+-- tests. Kept separate so a commit test's write can never change what a read-only walker test expects to
+-- find; each commit test restores its row's value in a `finally` block regardless, so re-running the suite
+-- (or a partial/failed run) never leaves these rows in a mutated state for the next run.
+INSERT INTO systemconfiguration (id, serial, article_id, status, commission_date, technician_name, storage_location) VALUES
+    ('c0000001-0001-0001-0001-000000000001', 'SN-C0001', '11111111-1111-1111-1111-111111111111', 'active', '2024-01-01', 'Test Fixture', 'Bay 1'),
+    ('c0000002-0002-0002-0002-000000000002', 'SN-C0002', '11111111-1111-1111-1111-111111111111', 'active', '2024-01-01', 'Test Fixture', 'Bay 2'),
+    ('c0000003-0003-0003-0003-000000000003', 'SN-C0003', '11111111-1111-1111-1111-111111111111', 'active', '2024-01-01', 'Test Fixture', 'Bay 3');
+
 INSERT INTO articlestructure (id, parent_id, child_id) VALUES
     ('99999999-9999-9999-9999-999999999999', '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333');
