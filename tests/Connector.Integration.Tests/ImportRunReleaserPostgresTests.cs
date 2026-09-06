@@ -53,10 +53,7 @@ public sealed class ImportRunReleaserPostgresTests
 
     private static async Task<string?> ReadStatusAsync(NpgsqlConnection conn, string ciId)
     {
-        await using var cmd = new NpgsqlCommand(
-            "SELECT status FROM systemconfiguration WHERE id::text = @id",
-            conn
-        );
+        await using var cmd = new NpgsqlCommand("SELECT status FROM systemconfiguration WHERE id::text = @id", conn);
         cmd.Parameters.AddWithValue("id", ciId);
         var result = await cmd.ExecuteScalarAsync();
         return result as string;
