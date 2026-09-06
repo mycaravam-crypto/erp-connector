@@ -609,12 +609,13 @@ public static class DynamicExportService
         DateTimeOffset extractedAt,
         CancellationToken ct,
         int? limit = null,
-        IReadOnlySet<string>? gdprDenylist = null
+        IReadOnlySet<string>? gdprDenylist = null,
+        ExportProvenance? provenance = null
     )
     {
         var records = await ExecuteExportNodeQueryAsync(conn, rootTable, root, ct, limit, gdprDenylist);
         var writer = ExportFormatWriterFactory.Get(format);
-        var bytes = writer.Write(root, records, schemaVersion, extractedAt);
+        var bytes = writer.Write(root, records, schemaVersion, extractedAt, provenance);
         return new ExportBuildResult(bytes, records.Count, writer.FileExtension);
     }
 
@@ -659,7 +660,8 @@ public static class DynamicExportService
         IReadOnlyList<JsonObject> records,
         ExportJsonWrapperConfig? wrapper,
         string schemaVersion,
-        DateTimeOffset extractedAt
+        DateTimeOffset extractedAt,
+        ExportProvenance? provenance = null
     )
     {
         var itemsArray = new JsonArray(records.Select(r => (JsonNode?)r.DeepClone()).ToArray());
@@ -670,8 +672,20 @@ public static class DynamicExportService
             {
                 ["schema_version"] = schemaVersion,
                 ["extracted_at"] = extractedAt.ToString("O"),
-                ["records"] = itemsArray,
             };
+            // knowledge/pipeline/import-mapping-presets.md §3.2: additive, optional key, omitted entirely
+            // when the exporting definition doesn't opt in — zero shape change for every export that
+            // doesn't set IntegrationKey. `wrapper is null` is also the legacy single-mapping flow's
+            // fallback shape (no ExportDefinitionEntity to source a key from), but that caller never
+            // passes provenance, so this stays inert there.
+            if (provenance is not null)
+                legacy["provenance"] = new JsonObject
+                {
+                    ["integrationKey"] = provenance.IntegrationKey,
+                    ["contractVersion"] = provenance.ContractVersion,
+                    ["configVersion"] = provenance.ConfigVersion,
+                };
+            legacy["records"] = itemsArray;
             return JsonSerializer.SerializeToUtf8Bytes(legacy, new JsonSerializerOptions { WriteIndented = true });
         }
 

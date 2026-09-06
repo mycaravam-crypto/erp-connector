@@ -4,6 +4,18 @@ using Connector.Core.DynamicExport;
 namespace Connector.Infrastructure;
 
 /// <summary>
+/// knowledge/pipeline/import-mapping-presets.md §3.2 — the optional <c>provenance</c> key
+/// <see cref="JsonExportFormatWriter"/> emits when <see cref="ExportDefinitionEntity.IntegrationKey"/> is
+/// set. Only <see cref="IntegrationKey"/>/<see cref="ContractVersion"/> are ever matched on by the (not
+/// yet built) import-side suggestion function; <see cref="ConfigVersion"/> rides along purely for an
+/// operator-facing tooltip, reusing the existing per-run traceability field rather than inventing a new
+/// one. No internal database id (<see cref="ExportDefinitionEntity.Id"/>, any run id) is ever placed on
+/// the wire — this is an external interchange payload, and an internal primary key has no meaning outside
+/// this one connector instance.
+/// </summary>
+public sealed record ExportProvenance(string IntegrationKey, int ContractVersion, int ConfigVersion);
+
+/// <summary>
 /// OCP seam for output formats (knowledge/pipeline/export-definitions-2.0.md §8): every implementation accepts the exact same
 /// tree-shaped records <see cref="DynamicExportService.ExecuteExportNodeQueryAsync"/> produces for any
 /// <see cref="ExportNode"/> tree (LSP — none may reject a shape another accepts), so adding a new format
@@ -18,7 +30,16 @@ public interface IExportFormatWriter
     /// <summary>File extension for the generated artifact, without a leading dot.</summary>
     string FileExtension { get; }
 
-    byte[] Write(ExportNode root, IReadOnlyList<JsonObject> records, string schemaVersion, DateTimeOffset extractedAt);
+    /// <summary><paramref name="provenance"/> is honored only by <see cref="JsonExportFormatWriter"/>
+    /// (knowledge/pipeline/import-mapping-presets.md §3.2) — CSV/Excel have no natural home for
+    /// structured metadata and ignore it entirely, per that proposal's Non-Goals.</summary>
+    byte[] Write(
+        ExportNode root,
+        IReadOnlyList<JsonObject> records,
+        string schemaVersion,
+        DateTimeOffset extractedAt,
+        ExportProvenance? provenance = null
+    );
 }
 
 /// <summary>JSON honors the tree's nesting natively — records serialize as-is, no flattening needed.</summary>
@@ -31,8 +52,9 @@ public sealed class JsonExportFormatWriter : IExportFormatWriter
         ExportNode root,
         IReadOnlyList<JsonObject> records,
         string schemaVersion,
-        DateTimeOffset extractedAt
-    ) => DynamicExportService.BuildNestedJsonBytes(records, wrapper: null, schemaVersion, extractedAt);
+        DateTimeOffset extractedAt,
+        ExportProvenance? provenance = null
+    ) => DynamicExportService.BuildNestedJsonBytes(records, wrapper: null, schemaVersion, extractedAt, provenance);
 }
 
 /// <summary>CSV has no native nesting: every record is flattened to one column per leaf path first
@@ -46,7 +68,8 @@ public sealed class CsvExportFormatWriter : IExportFormatWriter
         ExportNode root,
         IReadOnlyList<JsonObject> records,
         string schemaVersion,
-        DateTimeOffset extractedAt
+        DateTimeOffset extractedAt,
+        ExportProvenance? provenance = null
     )
     {
         var columns = DynamicExportService.GetExportNodeColumnNames(root);
@@ -65,7 +88,8 @@ public sealed class ExcelExportFormatWriter : IExportFormatWriter
         ExportNode root,
         IReadOnlyList<JsonObject> records,
         string schemaVersion,
-        DateTimeOffset extractedAt
+        DateTimeOffset extractedAt,
+        ExportProvenance? provenance = null
     )
     {
         var columns = DynamicExportService.GetExportNodeColumnNames(root);

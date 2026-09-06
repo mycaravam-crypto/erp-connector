@@ -67,6 +67,12 @@ public static class ExportDefinitionRunner
             var extractedAt = DateTimeOffset.UtcNow;
             var gdprDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
 
+            // knowledge/pipeline/import-mapping-presets.md §3.2 — only set (and only ever read by
+            // JsonExportFormatWriter) when this definition opted into provenance tagging.
+            var provenance = def.IntegrationKey is null
+                ? null
+                : new ExportProvenance(def.IntegrationKey, def.ContractVersion!.Value, def.ConfigVersion);
+
             await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(connCfg));
             await conn.OpenAsync(ct);
 
@@ -79,7 +85,8 @@ public static class ExportDefinitionRunner
                 extractedAt,
                 ct,
                 limit,
-                gdprDenylist
+                gdprDenylist,
+                provenance
             );
 
             if (built.RecordCount == 0)

@@ -1,20 +1,21 @@
 ---
 type: Pipeline Design
 title: Import Mapping Presets from Export Provenance (proposal)
-description: Design proposal — tag ExportDefinition/ImportDefinition with a shared, versioned IntegrationKey; if a vendor's inbound file round-trips it, offer to create a new ImportDefinition from the paired export's root-matching (and, best-effort, shared field names). Revised after design review. Slice 1 shipped.
+description: Design proposal — tag ExportDefinition/ImportDefinition with a shared, versioned IntegrationKey; if a vendor's inbound file round-trips it, offer to create a new ImportDefinition from the paired export's root-matching (and, best-effort, shared field names). Revised after design review. Slices 1-2 shipped.
 resource: src/Connector.Core/DynamicImport/ImportNode.cs
 tags: [pipeline, dynamic-mapping, proposal]
 timestamp: 2026-09-06T00:00:00Z
 ---
 
-> **Status: in progress — Slice 1 shipped, Slices 2–5 not started.** See
+> **Status: in progress — Slices 1–2 shipped, Slices 3–5 not started.** See
 > [Implementation status](#7-implementation-status) for the per-slice checklist. This is not an
 > Open Point from the original Technical Concept (see [Open Points](/planning/open-points.md)) —
 > it's an internally-raised idea about the Phase 14/17 tree types. Revised once, per
 > [Design Review Amendments](#design-review-amendments) below, before any slice began — the same
-> "amend before Slice 2" pattern Import Definitions itself used for its own Slice 1b. Slice 1
-> itself is data-model-only — no writer/parser/suggestion/UI behavior yet, so nothing here changes
-> shipped runtime behavior.
+> "amend before Slice 2" pattern Import Definitions itself used for its own Slice 1b. The export
+> side now tags its JSON output, but nothing reads it back yet — `ImportEnvelope`/
+> `ImportMappingSuggestion` (Slice 3) and the UI (Slice 4) don't exist, so this remains invisible
+> to any operator until then.
 
 ---
 
@@ -337,7 +338,15 @@ sub-issue per slice (#74–78).
       since either path can turn a definition enabled. `CorrelationKeySourceField` is validated
       only for identifier-safety at this slice; no query-building/tree-walk behavior changes.
       Shipped in #74.
-- [ ] **Slice 2 — Export-side wiring.** `JsonExportFormatWriter` provenance key.
+- [x] **Slice 2 — Export-side wiring.** `JsonExportFormatWriter` emits an optional top-level
+      `provenance: { integrationKey, contractVersion, configVersion }` key when
+      `ExportDefinitionEntity.IntegrationKey` is set — omitted entirely otherwise, byte-identical
+      to pre-Slice-2 output. New `ExportProvenance` record and an optional parameter threaded
+      through `IExportFormatWriter.Write`/`DynamicExportService.BuildExportNodeAsync`/
+      `BuildNestedJsonBytes`; `ExportDefinitionRunner.ExecuteAsync` builds it from the running
+      `ExportDefinitionEntity`. CSV/Excel writers accept (and ignore) the same parameter rather
+      than forking the interface — no behavior change, per the doc's Non-Goals (§5). No internal
+      database id placed on the wire. Shipped in #75.
 - [ ] **Slice 3 — Import-side wiring.** `ImportEnvelope` parser + `ImportMappingSuggestion`,
       unit-testable in isolation, no UI yet.
 - [ ] **Slice 4 — Frontend.** Suggestion banner + "Create from export" action.
