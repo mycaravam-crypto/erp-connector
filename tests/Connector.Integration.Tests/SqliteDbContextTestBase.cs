@@ -11,7 +11,7 @@ namespace Connector.Integration.Tests;
 /// several SaveChanges calls. xunit constructs a fresh instance of the test class (and so a fresh
 /// connection/context pair) per test method.
 /// </summary>
-internal abstract class SqliteDbContextTestBase : IAsyncDisposable
+public abstract class SqliteDbContextTestBase : IAsyncDisposable
 {
     private readonly SqliteConnection _connection;
     protected ExportLogDbContext Db { get; }
