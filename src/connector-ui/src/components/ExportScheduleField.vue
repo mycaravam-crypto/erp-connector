@@ -51,7 +51,7 @@ function onPresetChanged(e: Event) {
       type="text"
       :value="modelValue"
       placeholder="5-field cron, e.g. 0 */4 * * *"
-      class="flex-1 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary font-mono outline-none focus:border-brand"
+      class="flex-1 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary font-mono bg-surface outline-none focus:border-brand"
       @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
     />
     <span v-else class="text-xs text-text-muted">hourly minimum granularity</span>
