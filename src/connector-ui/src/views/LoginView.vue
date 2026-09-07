@@ -21,7 +21,10 @@ async function submit() {
   const result = await login(username.value.trim(), password.value)
   submitting.value = false
   if (result.ok) {
-    await router.push({ name: 'connect' })
+    // The dashboard route's own guard bounces first-run visitors (no connection yet) to Connect —
+    // pushing here instead of straight to 'connect' lets returning, already-connected users land on
+    // the dashboard instead of always re-landing on Step 1.
+    await router.push({ name: 'dashboard' })
   } else {
     error.value = result.error ?? 'Login failed.'
   }

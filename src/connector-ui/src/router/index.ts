@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { isLoggedIn } from '@/api/auth'
 import { isConnectionConfigured } from '@/api/connection'
+import DashboardView from '../views/DashboardView.vue'
 import ConnectionView from '../views/ConnectionView.vue'
 import SourceSchemaView from '../views/SourceSchemaView.vue'
 import SchemaView from '../views/SchemaView.vue'
@@ -20,7 +21,7 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/login', name: 'login', component: LoginView },
-    { path: '/', redirect: '/connect' },
+    { path: '/', name: 'dashboard', component: DashboardView },
     { path: '/connect', name: 'connect', component: ConnectionView },
     { path: '/source-schema', name: 'source-schema', component: SourceSchemaView },
     { path: '/export-schema', name: 'export-schema', component: SchemaView },
@@ -43,8 +44,10 @@ const router = createRouter({
   ],
 })
 
-// Routes that require a stored ERP connection before they're useful.
-const REQUIRES_CONNECTION = new Set(['source-schema', 'export-schema'])
+// Routes that require a stored ERP connection before they're useful. The dashboard is the / landing
+// page once a connection exists — with no connection yet, it has nothing to show, so first-run visitors
+// still land on Connect (Step 1) same as before this route existed.
+const REQUIRES_CONNECTION = new Set(['source-schema', 'export-schema', 'dashboard'])
 
 function needsLogin(routeName: unknown): boolean {
   return routeName !== 'login' && !isLoggedIn()
