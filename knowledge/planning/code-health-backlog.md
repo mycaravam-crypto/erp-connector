@@ -277,6 +277,33 @@ Purely mechanical: every method/field moved verbatim (verified by a sorted-line 
 original — the only differences are new file-header comments), nothing renamed, no new
 interfaces/abstractions added, no call site outside this file touched.
 
+## 5. ✅ ImportDefinitionEndpoints.cs split by responsibility (GitHub issue #85) — done
+
+At 775 lines / 37.1 KB, `ImportDefinitionEndpoints.cs` mixed route registration with request validation
+and entity/DTO mapping in one file — the validation/mapping logic was already factored into standalone
+`internal`/`private` static methods (not inlined in the endpoint lambdas), it just all lived alongside the
+route registrations.
+
+Split into 3 files, kept as one `partial class` (not separate classes) so the `internal` methods
+`Connector.Integration.Tests` already reaches into (`ValidateRequestAsync`, `BuildSuggestionAsync`,
+`ValidateIntegrationKeyPairEnabledAsync`) keep compiling unchanged:
+
+- `ImportDefinitionEndpoints.cs` — route registrations only (`MapImportDefinitionEndpoints`).
+- `ImportDefinitionEndpoints.Validation.cs` — the Open Decision #9/#15 save-time guardrails
+  (`SqlIdentifierRegex`, `ValidateRequestAsync`, `ValidateTargetAgainstSchema`, `ValidateNode`,
+  `ContainsControlCharacters`, `ValidateIntegrationKeyPairEnabledAsync`).
+- `ImportDefinitionEndpoints.Mapping.cs` — entity/DTO mapping and the "create from export" suggestion
+  lookup (`ToDto`, `ToSummaryDto`, `BuildSuggestionAsync`, `TryParseSample`).
+
+Left `ExportDefinitionEndpoints.cs` (the explicit twin this file's own comments mirror throughout —
+`SqlIdentifierRegex`, `ValidateRequestAsync`, `ValidateNode`, the IntegrationKey-pair check) untouched:
+issue #85 only scoped `ImportDefinitionEndpoints.cs`, and this split doesn't merge any logic between the
+two, so the twins still mirror each other — one twin just now also has smaller files.
+
+Purely mechanical, same technique as item 4 above: every method/field moved verbatim (verified by a
+sorted-line diff against the original — the only differences are new file-header comments), nothing
+renamed, no new interfaces/abstractions, no call site outside this file touched.
+
 ## Backend tooling note
 
 No `fallow` equivalent for C#. When `dotnet` is available: `dotnet build Connector.sln -c
