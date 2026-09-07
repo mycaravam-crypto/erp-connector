@@ -10,17 +10,17 @@ const props = defineProps<{ status: string }>()
 // every consumer — export runs, export/import definition runs, import-run four-eyes review — funnels
 // through the same table rather than each growing its own branch.
 const STYLES: Record<string, { icon: Component; bg: string; text: string }> = {
-  pending: { icon: Clock, bg: 'bg-yellow-100', text: 'text-yellow-800' },
-  pendingreview: { icon: Clock, bg: 'bg-yellow-100', text: 'text-yellow-800' },
-  running: { icon: Clock, bg: 'bg-yellow-100', text: 'text-yellow-800' },
-  released: { icon: Check, bg: 'bg-green-100', text: 'text-green-800' },
-  success: { icon: Check, bg: 'bg-green-100', text: 'text-green-800' },
-  failed: { icon: X, bg: 'bg-red-100', text: 'text-red-800' },
-  rejected: { icon: X, bg: 'bg-red-100', text: 'text-red-800' },
-  skipped: { icon: Ban, bg: 'bg-slate-100', text: 'text-slate-500' },
-  delivered: { icon: Truck, bg: 'bg-blue-100', text: 'text-blue-800' },
+  pending: { icon: Clock, bg: 'bg-warning-bg', text: 'text-warning' },
+  pendingreview: { icon: Clock, bg: 'bg-warning-bg', text: 'text-warning' },
+  running: { icon: Clock, bg: 'bg-warning-bg', text: 'text-warning' },
+  released: { icon: Check, bg: 'bg-success-bg', text: 'text-success' },
+  success: { icon: Check, bg: 'bg-success-bg', text: 'text-success' },
+  failed: { icon: X, bg: 'bg-danger-bg', text: 'text-danger' },
+  rejected: { icon: X, bg: 'bg-danger-bg', text: 'text-danger' },
+  skipped: { icon: Ban, bg: 'bg-surface-elevated', text: 'text-text-muted' },
+  delivered: { icon: Truck, bg: 'bg-info-bg', text: 'text-info' },
 }
-const DEFAULT_STYLE = { icon: null, bg: 'bg-slate-100', text: 'text-slate-600' }
+const DEFAULT_STYLE = { icon: null, bg: 'bg-surface-elevated', text: 'text-text-secondary' }
 
 const style = computed(() => STYLES[props.status.toLowerCase()] ?? DEFAULT_STYLE)
 </script>

@@ -30,12 +30,12 @@ function onTransformChanged() {
 </script>
 
 <template>
-  <div class="flex gap-2.5 flex-wrap mt-1.5 pl-4 border-l-2 border-slate-100">
+  <div class="flex gap-2.5 flex-wrap mt-1.5 pl-4 border-l-2 border-border">
     <div class="flex flex-col gap-1 min-w-36">
-      <label class="text-[0.65rem] font-semibold text-slate-400 uppercase tracking-wide">Transform</label>
+      <label class="text-[0.65rem] font-semibold text-text-muted uppercase tracking-wide">Transform</label>
       <select
         v-model="mapping.transform"
-        class="px-2 py-1 border border-slate-300 rounded text-sm text-slate-900 bg-white"
+        class="px-2 py-1 border border-border-strong rounded text-sm text-text-primary bg-surface"
         @change="onTransformChanged"
       >
         <option value="none">None</option>
@@ -48,31 +48,31 @@ function onTransformChanged() {
     </div>
 
     <div v-if="transformArgLabel" class="flex flex-col gap-1 min-w-40 flex-1">
-      <label class="text-[0.65rem] font-semibold text-slate-400 uppercase tracking-wide">{{ transformArgLabel }}</label>
+      <label class="text-[0.65rem] font-semibold text-text-muted uppercase tracking-wide">{{ transformArgLabel }}</label>
       <input
         type="text"
         v-model="mapping.transformArg"
-        class="px-2 py-1 border border-slate-300 rounded text-sm text-slate-900 outline-none focus:border-slate-900"
+        class="px-2 py-1 border border-border-strong rounded text-sm text-text-primary outline-none focus:border-brand"
         @input="emit('dirty')"
       />
     </div>
 
     <div class="flex flex-col gap-1 min-w-40 flex-1">
-      <label class="text-[0.65rem] font-semibold text-slate-400 uppercase tracking-wide">Default (if null)</label>
+      <label class="text-[0.65rem] font-semibold text-text-muted uppercase tracking-wide">Default (if null)</label>
       <input
         type="text"
         v-model="mapping.defaultValue"
         placeholder="none"
-        class="px-2 py-1 border border-slate-300 rounded text-sm text-slate-900 outline-none focus:border-slate-900"
+        class="px-2 py-1 border border-border-strong rounded text-sm text-text-primary outline-none focus:border-brand"
         @input="emit('dirty')"
       />
     </div>
 
     <div class="flex flex-col gap-1 min-w-28">
-      <label class="text-[0.65rem] font-semibold text-slate-400 uppercase tracking-wide">Data type</label>
+      <label class="text-[0.65rem] font-semibold text-text-muted uppercase tracking-wide">Data type</label>
       <select
         v-model="mapping.dataType"
-        class="px-2 py-1 border border-slate-300 rounded text-sm text-slate-900 bg-white"
+        class="px-2 py-1 border border-border-strong rounded text-sm text-text-primary bg-surface"
         @change="emit('dirty')"
       >
         <option value="string">String</option>

@@ -45,11 +45,11 @@ defineEmits<{ refresh: [] }>()
 
     <template v-else-if="plan">
       <div class="flex flex-wrap gap-2 mb-3 text-xs">
-        <span class="px-2 py-1 rounded-full bg-slate-100 text-slate-700">{{ plan.recordCount }} record(s)</span>
-        <span class="px-2 py-1 rounded-full bg-green-100 text-green-800">{{ plan.changedCount }} changed</span>
-        <span class="px-2 py-1 rounded-full bg-slate-100 text-slate-600">{{ plan.unchangedCount }} unchanged</span>
-        <span class="px-2 py-1 rounded-full bg-amber-100 text-amber-800">{{ plan.rejectedCount }} rejected</span>
-        <span class="px-2 py-1 rounded-full bg-red-100 text-red-800">{{ plan.invalidCount }} invalid</span>
+        <span class="px-2 py-1 rounded-full bg-surface-elevated text-text-secondary">{{ plan.recordCount }} record(s)</span>
+        <span class="px-2 py-1 rounded-full bg-success-bg text-success">{{ plan.changedCount }} changed</span>
+        <span class="px-2 py-1 rounded-full bg-surface-elevated text-text-muted">{{ plan.unchangedCount }} unchanged</span>
+        <span class="px-2 py-1 rounded-full bg-warning-bg text-warning">{{ plan.rejectedCount }} rejected</span>
+        <span class="px-2 py-1 rounded-full bg-danger-bg text-danger">{{ plan.invalidCount }} invalid</span>
       </div>
 
       <ImportPlanDiffTable :operations="plan.operations" />

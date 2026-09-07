@@ -117,8 +117,8 @@ async function confirmDelete(def: ImportDefinitionSummary) {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="def in definitions" :key="def.id" class="border-b border-slate-100 hover:bg-slate-50">
-          <td class="px-3 py-2 font-medium text-slate-800">{{ def.name }}</td>
+        <tr v-for="def in definitions" :key="def.id" class="border-b border-border hover:bg-surface-elevated">
+          <td class="px-3 py-2 font-medium text-text-primary">{{ def.name }}</td>
           <td class="px-3 py-2 font-mono text-text-primary">{{ def.rootTable }}</td>
           <td class="px-3 py-2 text-text-secondary">{{ def.unmatchedRootPolicy }}</td>
           <td class="px-3 py-2">

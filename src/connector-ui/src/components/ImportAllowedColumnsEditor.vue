@@ -35,7 +35,7 @@ const missing = computed(() => props.usedColumns.filter((c) => !props.columns.in
 </script>
 
 <template>
-  <div class="mb-6 border-2 border-amber-300 bg-amber-50/60 rounded-lg px-4 py-3">
+  <div class="mb-6 border-2 border-warning bg-warning-bg rounded-lg px-4 py-3">
     <h2 class="m-0 text-base font-semibold text-text-primary mb-1">Allowed Writable Columns</h2>
     <p class="text-sm text-text-secondary mt-0 mb-3 leading-relaxed">
       The only columns this definition may ever write. A tree field targeting a column not listed here
@@ -47,7 +47,7 @@ const missing = computed(() => props.usedColumns.filter((c) => !props.columns.in
       <span
         v-for="(col, idx) in columns"
         :key="col"
-        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-amber-300 text-sm font-mono text-text-primary"
+        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface border border-warning text-sm font-mono text-text-primary"
       >
         {{ col }}
         <button
@@ -70,7 +70,7 @@ const missing = computed(() => props.usedColumns.filter((c) => !props.columns.in
       />
       <button
         type="button"
-        class="px-3 py-1.5 border border-slate-300 rounded-md bg-white text-sm text-slate-700 cursor-pointer hover:bg-slate-50"
+        class="px-3 py-1.5 border border-border-strong rounded-md bg-surface text-sm text-text-primary cursor-pointer hover:bg-surface-elevated"
         @click="add"
       >+ Add</button>
     </div>
