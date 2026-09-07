@@ -387,6 +387,19 @@ sub-issue per slice (#74–78).
       with no way to tag an export at all. Added a small "Integration tagging (optional)" section to
       `ExportDefinitionBasicFields.vue` in this slice rather than deferring it, since this slice's own
       verification step requires being able to "create an export with `IntegrationKey` set." Shipped in #77.
+      **Post-Slice-4 fix:** operator feedback was that a matched pair silently missing
+      `CorrelationKeySourceField` (a field independent of `IntegrationKey`/`ContractVersion` at save time,
+      §3.1) read as "the paste wasn't recognized" rather than "one more field to set" — the endpoint returned
+      the same bare `null` for that case as for "no export uses this key at all." `ImportMappingSuggestion`
+      gained `Evaluate` (`SuggestFrom` now a thin wrapper over it, unchanged for existing callers/tests),
+      which names the specific gate a miss stopped at
+      (`NoProvenance`/`NoDefinitionForPair`/`DefinitionDisabled`/`MissingCorrelationKeySourceField`) instead
+      of collapsing every case into one boolean. `BuildSuggestionAsync` now loads disabled tagged exports too
+      (previously filtered out at the DB query) purely so a disabled match can be named specifically, and
+      turns the miss reason into an operator-facing message naming the matched export by `Name` where one
+      exists. The wire response changed shape from a bare nullable `ImportMappingSuggestionDto` to
+      `ImportMappingSuggestionCheckResult { Suggestion, Reason }` — still always 200 OK, a miss is a normal
+      lookup outcome, never a 4xx.
 - [x] **Slice 5 — Docs.** This status flip and checklist close-out; [`knowledge/pipeline/index.md`](/pipeline/index.md)'s
       "Proposed — not started" entry replaced with a **Phase 18** shipped-phase section; a new Phase 18
       entry in [`knowledge/changelog.md`](/changelog.md) in the same per-slice-table format Phases 14/17

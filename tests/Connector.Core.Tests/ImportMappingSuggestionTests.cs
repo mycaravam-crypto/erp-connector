@@ -217,4 +217,62 @@ public sealed class ImportMappingSuggestionTests
         Assert.NotNull(result);
         Assert.Empty(result!.CandidateFields);
     }
+
+    // Evaluate coverage: same lookup as SuggestFrom, but names which gate stopped a miss instead of
+    // collapsing every reason into a bare null (the API layer turns this into an operator-facing message).
+
+    [Fact]
+    public void Evaluate_NoProvenanceOnSample_NamesNoProvenance()
+    {
+        var export = Export(Root(Scalar("guid", "guid")));
+
+        var outcome = ImportMappingSuggestion.Evaluate([export], Sample(integrationKey: null, contractVersion: null));
+
+        Assert.Null(outcome.Result);
+        Assert.Equal(ImportMappingSuggestionMiss.NoProvenance, outcome.Miss);
+    }
+
+    [Fact]
+    public void Evaluate_NoCandidateSharesThePair_NamesNoDefinitionForPair()
+    {
+        var export = Export(Root(Scalar("guid", "guid")), integrationKey: "other-exchange");
+
+        var outcome = ImportMappingSuggestion.Evaluate([export], Sample());
+
+        Assert.Null(outcome.Result);
+        Assert.Equal(ImportMappingSuggestionMiss.NoDefinitionForPair, outcome.Miss);
+    }
+
+    [Fact]
+    public void Evaluate_MatchingPairButDisabled_NamesDefinitionDisabled()
+    {
+        var export = Export(Root(Scalar("guid", "guid")), isEnabled: false);
+
+        var outcome = ImportMappingSuggestion.Evaluate([export], Sample());
+
+        Assert.Null(outcome.Result);
+        Assert.Equal(ImportMappingSuggestionMiss.DefinitionDisabled, outcome.Miss);
+    }
+
+    [Fact]
+    public void Evaluate_MatchedExportHasNoCorrelationKeySourceField_NamesMissingCorrelationKeySourceField()
+    {
+        var export = Export(Root(Scalar("guid", "guid")), correlationKeySourceField: null);
+
+        var outcome = ImportMappingSuggestion.Evaluate([export], Sample());
+
+        Assert.Null(outcome.Result);
+        Assert.Equal(ImportMappingSuggestionMiss.MissingCorrelationKeySourceField, outcome.Miss);
+    }
+
+    [Fact]
+    public void Evaluate_ExactMatch_ReturnsResultWithNoMissReason()
+    {
+        var export = Export(Root(Scalar("guid", "guid")));
+
+        var outcome = ImportMappingSuggestion.Evaluate([export], SampleWithKeys("guid"));
+
+        Assert.NotNull(outcome.Result);
+        Assert.Null(outcome.Miss);
+    }
 }

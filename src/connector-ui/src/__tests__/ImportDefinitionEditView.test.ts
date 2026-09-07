@@ -364,14 +364,17 @@ describe('ImportDefinitionEditView', () => {
 
     it('accepts a "Create from export" suggestion and prefills the root table, match column, and tree', async () => {
       vi.spyOn(importDefinitionsApi, 'suggestImportMappingFromExport').mockResolvedValueOnce({
-        exportDefinitionId: 7,
-        exportDefinitionName: 'CI confirmation export',
-        integrationKey: 'ci-confirmation',
-        contractVersion: 1,
-        rootTable: 'masterdata',
-        rootMatchColumn: 'guid',
-        rootMatchSourceKey: 'guidField',
-        candidateFields: [{ sourceKey: 'status', targetColumn: 'status' }],
+        suggestion: {
+          exportDefinitionId: 7,
+          exportDefinitionName: 'CI confirmation export',
+          integrationKey: 'ci-confirmation',
+          contractVersion: 1,
+          rootTable: 'masterdata',
+          rootMatchColumn: 'guid',
+          rootMatchSourceKey: 'guidField',
+          candidateFields: [{ sourceKey: 'status', targetColumn: 'status' }],
+        },
+        reason: null,
       })
       const w = mount(ImportDefinitionEditView, { global: { plugins: [await buildRouter('new')] } })
       await flushPromises()
@@ -387,6 +390,25 @@ describe('ImportDefinitionEditView', () => {
       expect((w.find('input[aria-label="Root match column"]').element as HTMLInputElement).value).toBe('guid')
       expect(w.text()).toContain('Paired with')
       expect(w.text()).toContain('ci-confirmation v1')
+    })
+
+    it('shows the server-provided reason when a sample carries a provenance pair but nothing usable matches', async () => {
+      vi.spyOn(importDefinitionsApi, 'suggestImportMappingFromExport').mockResolvedValueOnce({
+        suggestion: null,
+        reason:
+          'Export "CI confirmation export" matches this integration key and version, but has no ' +
+          'Correlation key field set. Add one under that export\'s "Integration tagging" section, then ' +
+          'check this sample again.',
+      })
+      const w = mount(ImportDefinitionEditView, { global: { plugins: [await buildRouter('new')] } })
+      await flushPromises()
+
+      await w.find('textarea[aria-label="Sample inbound JSON"]').setValue('{"provenance":{"integrationKey":"ci-confirmation","contractVersion":1}}')
+      await w.findAll('button').find((b) => b.text() === 'Check for match')!.trigger('click')
+      await flushPromises()
+
+      expect(w.text()).toContain('Correlation key field set')
+      expect(w.text()).not.toContain('No matching export found for this sample')
     })
   })
 })

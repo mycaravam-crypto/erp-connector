@@ -61,9 +61,6 @@ export interface ImportMappingSuggestionCandidateField {
   targetColumn: string
 }
 
-/** Response of POST /api/import-definitions/suggest-from-export — null when nothing matches (malformed
- * sample, no provenance block, no enabled export shares its pair). Never an error: both cases render the
- * same "no suggestion" state, degrading to exactly today's blank-tree flow. */
 export interface ImportMappingSuggestion {
   exportDefinitionId: number
   exportDefinitionName: string
@@ -73,6 +70,16 @@ export interface ImportMappingSuggestion {
   rootMatchColumn: string
   rootMatchSourceKey: string
   candidateFields: ImportMappingSuggestionCandidateField[]
+}
+
+/** Response of POST /api/import-definitions/suggest-from-export. Exactly one of `suggestion`/`reason` is
+ * set: a hit carries `suggestion` with `reason` null; a miss carries a null `suggestion` with an
+ * operator-facing explanation of which gate stopped it (no provenance in the pasted sample, no export
+ * tagged with that key/version, one tagged but disabled, or one tagged and enabled but missing its
+ * Correlation key field) — never a flat, unexplained "no match." */
+export interface ImportMappingSuggestionCheckResult {
+  suggestion: ImportMappingSuggestion | null
+  reason: string | null
 }
 
 /** One Connector.Core.DynamicImport.ImportPlanOperation — a single column-level write the commit step
@@ -238,17 +245,19 @@ export async function previewImportDefinition(id: number, inboundJson: string): 
  * export — the "Create from export" suggestion the New Import Definition flow offers. Returns null for
  * anything short of an exact match (malformed JSON, no provenance, no match) or a network failure; the
  * caller must render both the same way, never as an error. */
-export async function suggestImportMappingFromExport(inboundJson: string): Promise<ImportMappingSuggestion | null> {
+export async function suggestImportMappingFromExport(
+  inboundJson: string,
+): Promise<ImportMappingSuggestionCheckResult> {
   try {
     const res = await fetch('/api/import-definitions/suggest-from-export', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ inboundJson }),
     })
-    if (!res.ok) return null
-    return (await res.json()) as ImportMappingSuggestion | null
+    if (!res.ok) return { suggestion: null, reason: 'Could not check this sample — the server returned an error.' }
+    return (await res.json()) as ImportMappingSuggestionCheckResult
   } catch {
-    return null
+    return { suggestion: null, reason: "Could not reach the server to check this sample. Check your connection and try again." }
   }
 }
 

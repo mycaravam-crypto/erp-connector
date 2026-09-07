@@ -323,12 +323,9 @@ record ImportMappingSuggestionRequest(string InboundJson);
 /// verbatim for the wire.</summary>
 record ImportMappingSuggestionCandidateFieldDto(string SourceKey, string TargetColumn);
 
-/// <summary>Response for POST .../suggest-from-export — <c>null</c> (200 OK, JSON <c>null</c>) whenever
-/// there's nothing to suggest (malformed sample, no provenance, no match), exactly the same silent-degrade
-/// contract <c>ImportMappingSuggestion.SuggestFrom</c> itself has. The frontend must render both the same
-/// way: no banner, never an error. <c>RootMatchSourceKey</c> is the matched export's own JSON key for the
-/// correlation field (its <c>TargetKey</c>) — not necessarily the same string as <c>RootMatchColumn</c>,
-/// which is a column name.</summary>
+/// <summary><c>RootMatchSourceKey</c> is the matched export's own JSON key for the correlation field (its
+/// <c>TargetKey</c>) — not necessarily the same string as <c>RootMatchColumn</c>, which is a column
+/// name.</summary>
 record ImportMappingSuggestionDto(
     int ExportDefinitionId,
     string ExportDefinitionName,
@@ -339,6 +336,15 @@ record ImportMappingSuggestionDto(
     string RootMatchSourceKey,
     IReadOnlyList<ImportMappingSuggestionCandidateFieldDto> CandidateFields
 );
+
+/// <summary>Response for POST .../suggest-from-export. Exactly one of <c>Suggestion</c>/<c>Reason</c> is
+/// set: a hit carries <c>Suggestion</c> with <c>Reason</c> null, and a miss carries a null
+/// <c>Suggestion</c> with an operator-facing explanation of which of
+/// <c>ImportMappingSuggestion.Evaluate</c>'s gates stopped it (no provenance in the pasted sample, no
+/// export tagged with that key/version at all, one tagged but disabled, or one tagged and enabled but
+/// missing <c>CorrelationKeySourceField</c>) — never a flat, unexplained "no match," and never a 4xx: this
+/// is a lookup that can legitimately come up empty, not a client error.</summary>
+record ImportMappingSuggestionCheckResult(ImportMappingSuggestionDto? Suggestion, string? Reason);
 
 /// <summary>Body for POST .../preview: the raw inbound file content, since Slice 4's inbound/ folder
 /// watcher doesn't exist yet — an operator pastes/uploads the vendor JSON directly to preview against a
