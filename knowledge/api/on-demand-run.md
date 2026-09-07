@@ -1,7 +1,7 @@
 ---
 type: Business Process
 title: On-Demand Pipeline Run
-description: API-triggered full pipeline run and read-only preview — supplements the daily scheduled export without replacing it. Plus a synchronous, API-key-friendly way to trigger a named Step 3 preset from an external system.
+description: API-triggered full pipeline run and read-only preview — supplements the daily scheduled export without replacing it. Plus a synchronous, API-key-friendly way to trigger a named CMDB Export Mapping preset from an external system.
 resource: src/Connector.Api/Program.cs
 tags: [process, pipeline, on-demand, preview, operational, api-key]
 timestamp: 2026-09-03T00:00:00Z
@@ -47,15 +47,16 @@ X-Record-Count: 137
 500           — pipeline error
 ```
 
-`{name}` is a preset saved from Step 3's "Save As…" (`PUT /api/export-mapping/presets/{name}`) —
-the same mapper as Run Now, just saved under a name. Design once in Step 3, save as a preset, and
-any authenticated caller — human or machine — triggers it by name.
+`{name}` is a preset saved from the CMDB Export Mapping screen's "Save As…"
+(`PUT /api/export-mapping/presets/{name}`) — the same mapper as Run Now, just saved under a name.
+Design once in CMDB Export Mapping, save as a preset, and any authenticated caller — human or
+machine — triggers it by name.
 
 Authenticate, `POST .../run/{name}`, and the response body *is* the artifact — no polling, no
 staging folder, no Four-Eyes Release. Unlike `POST /api/pipeline/run`, this creates no `ExportRun`
 and isn't subject to four-eyes: it models an external system pulling data on demand, not the
 regulated CI-to-vendor pipeline (same reasoning as
-[Export Definition API](/api/export-definition-api.md)'s `/run`, reusing Step 3's mapping
+[Export Definition API](/api/export-definition-api.md)'s `/run`, reusing the CMDB Export Mapping
 directly instead of a named-definition tree). Every call writes one audit log entry
 (`export_preset_run`/`export_preset_run_failed`), so a failed run is never silent.
 
