@@ -11,6 +11,7 @@ async function buildRouter() {
     routes: [
       { path: '/export-definitions', name: 'export-definitions', component: ExportDefinitionsView },
       { path: '/export-definitions/:id', name: 'export-definition-edit', component: { template: '<div/>' } },
+      { path: '/export-schema', name: 'export-schema', component: { template: '<div/>' } },
     ],
   })
   await r.push('/export-definitions')
@@ -50,14 +51,14 @@ describe('ExportDefinitionsView', () => {
     vi.spyOn(exportDefinitionsApi, 'listExportDefinitions').mockRejectedValueOnce(new Error('network'))
     const w = mount(ExportDefinitionsView, { global: { plugins: [await buildRouter()] } })
     await flushPromises()
-    expect(w.text()).toContain('Could not load export definitions')
+    expect(w.text()).toContain('Could not load export jobs')
   })
 
   it('shows an empty-state message when there are no definitions', async () => {
     vi.spyOn(exportDefinitionsApi, 'listExportDefinitions').mockResolvedValueOnce([])
     const w = mount(ExportDefinitionsView, { global: { plugins: [await buildRouter()] } })
     await flushPromises()
-    expect(w.text()).toContain('No export definitions yet.')
+    expect(w.text()).toContain('No export jobs yet.')
   })
 
   it('lists definitions with an edit link', async () => {

@@ -21,7 +21,7 @@ function logout() {
 const steps = [
   { name: 'connect', label: 'Connect', num: 1 },
   { name: 'source-schema', label: 'Source Schema', num: 2 },
-  { name: 'export-schema', label: 'Export Schema', num: 3 },
+  { name: 'export-schema', label: 'CMDB Export Mapping', num: 3 },
   { name: 'exports', label: 'Export', num: 4 },
 ]
 

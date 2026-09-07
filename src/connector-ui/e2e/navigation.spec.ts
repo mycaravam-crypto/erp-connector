@@ -17,7 +17,7 @@ test.describe('Navigation', () => {
     await expect(links).toHaveCount(4)
     await expect(links.nth(0)).toContainText('Connect')
     await expect(links.nth(1)).toContainText('Source Schema')
-    await expect(links.nth(2)).toContainText('Export Schema')
+    await expect(links.nth(2)).toContainText('CMDB Export Mapping')
     await expect(links.nth(3)).toContainText('Export')
   })
 
@@ -41,7 +41,7 @@ test.describe('Navigation', () => {
 
   test('navigates to Export Runs', async ({ page }) => {
     await loginAs(page)
-    // Step 4 — Export. Index-based because step 3 "Export Schema" also matches /export/i,
+    // Step 4 — Export. Index-based because step 3 "CMDB Export Mapping" also matches /export/i,
     // and was nth(0) in DOM order — the previous version of this test clicked the wrong link.
     await page.getByRole('navigation').getByRole('link').nth(3).click()
     await expect(page).toHaveURL(/\/exports/)

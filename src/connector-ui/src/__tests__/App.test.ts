@@ -38,7 +38,7 @@ describe('App shell', () => {
 
     const links = w.findAll('nav[aria-label="Workflow steps"] a')
     expect(links).toHaveLength(4)
-    // Connect + Source Schema (idx 0,1) come before Export Schema (idx 2, active)
+    // Connect + Source Schema (idx 0,1) come before CMDB Export Mapping (idx 2, active)
     expect(links[0]!.classes()).not.toContain('bg-nav-hover')
     expect(links[2]!.classes()).toContain('bg-nav-hover')
   })
@@ -48,7 +48,7 @@ describe('App shell', () => {
     await flushPromises()
 
     const links = w.findAll('nav[aria-label="Workflow steps"] a')
-    // Connect, Source Schema, Export Schema are all before Export (active) -> completed
+    // Connect, Source Schema, CMDB Export Mapping are all before Export (active) -> completed
     expect(links[0]!.find('svg').exists()).toBe(true)
     expect(links[0]!.text()).not.toContain('1')
     // The active step itself still shows its number
@@ -85,7 +85,7 @@ describe('App shell', () => {
     const secondary = w.find('nav[aria-label="Secondary"]')
     expect(secondary.exists()).toBe(true)
     expect(secondary.text()).toContain('ICD Schema')
-    expect(secondary.text()).toContain('Export Definitions')
+    expect(secondary.text()).toContain('Export Jobs')
     expect(secondary.text()).toContain('Settings')
     expect(secondary.text()).toContain('Audit Log')
   })

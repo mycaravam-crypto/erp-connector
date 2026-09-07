@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
-import { useRouter, onBeforeRouteLeave } from 'vue-router'
+import { useRouter, onBeforeRouteLeave, RouterLink } from 'vue-router'
 import { getSourceSchema, type SourceTable, type SourceColumn } from '@/api/connection'
 import {
   getExportMapping,
@@ -21,7 +21,7 @@ import JsonExportOptionsPanel from '@/components/JsonExportOptionsPanel.vue'
 import { type SuggestedRelation } from '@/components/SuggestedRelations.vue'
 import { findSuggestedRelations } from '@/lib/suggestedRelations'
 import PreviewTable from '@/components/PreviewTable.vue'
-import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
 import Button from '@/components/ui/Button.vue'
 import Alert from '@/components/ui/Alert.vue'
@@ -425,15 +425,23 @@ onMounted(load)
   <div class="max-w-4xl">
     <div class="flex items-center gap-3 mb-2">
       <span class="bg-brand text-white px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide shrink-0">Step 3</span>
-      <h1 class="m-0 text-xl font-semibold text-text-primary flex-1">Export Schema Mapper</h1>
+      <h1 class="m-0 text-xl font-semibold text-text-primary flex-1">CMDB Export Mapping</h1>
       <Button variant="secondary" :disabled="loading" @click="load">Refresh</Button>
     </div>
 
-    <p class="text-text-secondary text-sm mt-2 mb-6 leading-relaxed">
-      Select a source table, choose which columns to include and rename them for the target system
-      (e.g. the target CMDB), then build the Nested JSON Structure — objects and arrays sourced
-      from related tables — and configure its envelope. Related Table Joins remain available as an
-      advanced option for flat xlsx/csv exports. Changes are saved before the export runs.
+    <p class="text-text-secondary text-sm mt-2 mb-1 leading-relaxed">
+      Configure the field mapping used by the managed CMDB export. Select a source table, choose
+      which columns to include and rename them for the target system, then build the Nested JSON
+      Structure — objects and arrays sourced from related tables — and configure its envelope.
+      Related Table Joins remain available as an advanced option for flat xlsx/csv exports. Changes
+      are saved before the export runs.
+    </p>
+
+    <p class="text-text-secondary text-sm mt-0 mb-6 leading-relaxed">
+      For additional or independently scheduled exports, use
+      <RouterLink :to="{ name: 'export-definitions' }" class="text-brand hover:underline inline-flex items-center gap-1">
+        Export Jobs<Icon :icon="ArrowRight" :size="16" />
+      </RouterLink>.
     </p>
 
     <p v-if="loading" class="text-text-secondary">Loading…</p>

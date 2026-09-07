@@ -35,7 +35,7 @@ async function load() {
       }),
     )
   } catch {
-    loadError.value = 'Could not load export definitions. Is the backend service running?'
+    loadError.value = 'Could not load export jobs. Is the backend service running?'
   } finally {
     loading.value = false
   }
@@ -101,7 +101,7 @@ async function confirmDelete(def: ExportDefinitionSummary) {
 <template>
   <div class="max-w-5xl">
     <div class="flex items-center justify-between gap-3 mb-2">
-      <h1 class="m-0 text-xl font-semibold text-text-primary">Export Definitions</h1>
+      <h1 class="m-0 text-xl font-semibold text-text-primary">Export Jobs</h1>
       <div class="flex items-center gap-2">
         <RouterLink
           :to="{ name: 'export-definition-edit', params: { id: 'new' } }"
@@ -114,9 +114,11 @@ async function confirmDelete(def: ExportDefinitionSummary) {
     </div>
 
     <p class="text-text-secondary text-sm mt-2 mb-5 leading-relaxed">
-      Saved, independently triggerable export configs. Definitions here were migrated automatically
-      from the legacy mapping screen the first time it had a config to convert — edit one to point it
-      at the right tables/columns for your actual source database.
+      Create additional independent exports with their own fields, structure, format and schedule —
+      separate from the connector's <RouterLink :to="{ name: 'export-schema' }" class="text-brand hover:underline">managed CMDB export</RouterLink>.
+      Jobs here were migrated automatically from the legacy mapping screen the first time it had a
+      config to convert — edit one to point it at the right tables/columns for your actual source
+      database.
     </p>
 
     <div v-if="loading && definitions.length === 0" class="text-text-secondary text-sm mt-4">Loading…</div>
@@ -124,7 +126,7 @@ async function confirmDelete(def: ExportDefinitionSummary) {
     <Alert v-else-if="loadError" variant="danger" class="mt-4">{{ loadError }}</Alert>
 
     <div v-else-if="definitions.length === 0" class="text-text-secondary text-sm mt-4">
-      No export definitions yet.
+      No export jobs yet.
     </div>
 
     <table v-else class="w-full text-sm border-collapse">
