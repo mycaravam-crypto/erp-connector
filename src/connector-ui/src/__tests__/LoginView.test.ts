@@ -8,8 +8,9 @@ function buildRouter() {
   const r = createRouter({
     history: createMemoryHistory(),
     routes: [
-      { path: '/login',   name: 'login',   component: LoginView },
-      { path: '/connect', name: 'connect', component: { template: '<div/>' } },
+      { path: '/login',     name: 'login',     component: LoginView },
+      { path: '/connect',   name: 'connect',   component: { template: '<div/>' } },
+      { path: '/',          name: 'dashboard', component: { template: '<div/>' } },
     ],
   })
   r.push('/login')
@@ -53,7 +54,7 @@ describe('LoginView', () => {
     expect(authApi.login).toHaveBeenCalledWith('alice', 'secret')
   })
 
-  it('redirects to /connect (Step 1) on successful login', async () => {
+  it('redirects to the dashboard on successful login', async () => {
     vi.spyOn(authApi, 'login').mockResolvedValueOnce({ ok: true })
     const router = buildRouter()
     const w = mount(LoginView, { global: { plugins: [router] } })
@@ -61,7 +62,7 @@ describe('LoginView', () => {
     await w.find('#password').setValue('secret')
     await w.find('button').trigger('click')
     await flushPromises()
-    expect(router.currentRoute.value.name).toBe('connect')
+    expect(router.currentRoute.value.name).toBe('dashboard')
   })
 
   it('shows error message on login failure', async () => {

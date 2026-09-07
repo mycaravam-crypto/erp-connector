@@ -8,6 +8,7 @@ async function buildRouter(initialPath: string) {
   const r = createRouter({
     history: createMemoryHistory(),
     routes: [
+      { path: '/', name: 'dashboard', component: { template: '<div/>' } },
       { path: '/connect', name: 'connect', component: { template: '<div/>' } },
       { path: '/source-schema', name: 'source-schema', component: { template: '<div/>' } },
       { path: '/export-schema', name: 'export-schema', component: { template: '<div/>' } },
@@ -37,7 +38,7 @@ describe('App shell', () => {
     await flushPromises()
 
     const links = w.findAll('nav[aria-label="Connector"] a')
-    expect(links).toHaveLength(4)
+    expect(links).toHaveLength(6)
     // Connect + Source Schema (idx 0,1) come before CMDB Export Mapping (idx 2, active)
     expect(links[0]!.classes()).not.toContain('bg-nav-hover')
     expect(links[2]!.classes()).toContain('bg-nav-hover')
@@ -55,6 +56,21 @@ describe('App shell', () => {
     // Managed Export itself is not a numbered/completable step — it's the active operational link
     expect(links[3]!.text()).toContain('Managed Export')
     expect(links[3]!.classes()).toContain('bg-nav-hover')
+    // Export Jobs and Import Definitions are top-level pills alongside it, both inactive here
+    expect(links[4]!.text()).toContain('Export Jobs')
+    expect(links[5]!.text()).toContain('Import Definitions')
+    expect(links[4]!.classes()).not.toContain('bg-nav-hover')
+    expect(links[5]!.classes()).not.toContain('bg-nav-hover')
+  })
+
+  it('highlights the Export Jobs pill when on that area and still shows setup steps as completed', async () => {
+    const w = mount(App, { global: { plugins: [await buildRouter('/export-definitions')] } })
+    await flushPromises()
+
+    const links = w.findAll('nav[aria-label="Connector"] a')
+    expect(links[0]!.find('svg').exists()).toBe(true)
+    expect(links[4]!.text()).toContain('Export Jobs')
+    expect(links[4]!.classes()).toContain('bg-nav-hover')
   })
 
   it('treats a route matching a step path prefix (export-detail) as the exports step being active', async () => {
@@ -87,9 +103,10 @@ describe('App shell', () => {
     const secondary = w.find('nav[aria-label="Secondary"]')
     expect(secondary.exists()).toBe(true)
     expect(secondary.text()).toContain('ICD Schema')
-    expect(secondary.text()).toContain('Export Jobs')
     expect(secondary.text()).toContain('Settings')
     expect(secondary.text()).toContain('Audit Log')
+    // Export Jobs/Import Definitions moved to the top-level Connector nav, not the account menu
+    expect(secondary.text()).not.toContain('Export Jobs')
   })
 
   it('does not render the connector nav when logged out', async () => {
