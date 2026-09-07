@@ -14,14 +14,14 @@ defineProps<{
 
 <template>
   <div class="flex flex-wrap gap-2 mb-4 text-xs">
-    <span class="px-2 py-1 rounded-full bg-slate-100 text-slate-700">{{ matchedCount }} matched</span>
-    <span class="px-2 py-1 rounded-full bg-green-100 text-green-800">{{ changedCount }} changed</span>
-    <span class="px-2 py-1 rounded-full bg-slate-100 text-slate-600">{{ unchangedCount }} unchanged</span>
-    <span class="px-2 py-1 rounded-full bg-amber-100 text-amber-800">{{ rejectedCount }} rejected</span>
-    <span class="px-2 py-1 rounded-full bg-orange-100 text-orange-800">{{ conflictCount }} conflicted</span>
-    <span class="px-2 py-1 rounded-full bg-red-100 text-red-800">{{ invalidCount }} invalid</span>
+    <span class="px-2 py-1 rounded-full bg-surface-elevated text-text-secondary">{{ matchedCount }} matched</span>
+    <span class="px-2 py-1 rounded-full bg-success-bg text-success">{{ changedCount }} changed</span>
+    <span class="px-2 py-1 rounded-full bg-surface-elevated text-text-muted">{{ unchangedCount }} unchanged</span>
+    <span class="px-2 py-1 rounded-full bg-warning-bg text-warning">{{ rejectedCount }} rejected</span>
+    <span class="px-2 py-1 rounded-full bg-warning-bg text-warning">{{ conflictCount }} conflicted</span>
+    <span class="px-2 py-1 rounded-full bg-danger-bg text-danger">{{ invalidCount }} invalid</span>
   </div>
-  <p v-if="conflictCount > 0" class="text-xs text-orange-800 mt-0 mb-3">
+  <p v-if="conflictCount > 0" class="text-xs text-warning mt-0 mb-3">
     Conflicted rows were excluded because the ERP value moved since this run was staged — they were
     never overwritten (Open Decision #12).
   </p>

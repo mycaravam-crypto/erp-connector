@@ -18,7 +18,7 @@ const formats = [
       <button
         v-for="fmt in formats"
         :key="fmt.id"
-        :class="['format-btn flex-1 flex flex-col gap-1 px-4 py-3 border-2 rounded-lg bg-surface cursor-pointer text-left transition-colors', modelValue === fmt.id ? 'border-slate-900 bg-surface-elevated' : 'border-border hover:border-border-strong']"
+        :class="['format-btn flex-1 flex flex-col gap-1 px-4 py-3 border-2 rounded-lg bg-surface cursor-pointer text-left transition-colors', modelValue === fmt.id ? 'border-brand bg-surface-elevated' : 'border-border hover:border-border-strong']"
         @click="emit('update:modelValue', fmt.id)"
       >
         <span class="text-sm font-semibold text-text-primary">{{ fmt.label }}</span>

@@ -24,51 +24,51 @@ defineEmits<{
     <div
       v-for="node in nodes"
       :key="node.targetKey"
-      class="border border-slate-200 rounded-md px-3 py-2 bg-white"
+      class="border border-border rounded-md px-3 py-2 bg-surface"
       :style="{ marginLeft: `${depth * 1.25}rem` }"
     >
       <div class="flex items-center gap-2 mb-2">
         <input type="checkbox" v-model="node.enabled" class="cursor-pointer" @change="$emit('dirty')" />
-        <code class="text-sm font-bold text-slate-900">{{ node.targetKey }}</code>
-        <span class="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">{{ node.kind }}</span>
+        <code class="text-sm font-bold text-text-primary">{{ node.targetKey }}</code>
+        <span class="text-xs bg-surface-elevated text-text-secondary px-1.5 py-0.5 rounded-full">{{ node.kind }}</span>
       </div>
 
       <div v-if="node.kind === 'scalar-field'" class="flex items-center gap-2 text-sm">
-        <label class="text-slate-500 w-28 shrink-0">Source column</label>
+        <label class="text-text-secondary w-28 shrink-0">Source column</label>
         <input
           type="text"
           v-model="node.sourceField"
           placeholder="table.column or column"
-          class="flex-1 px-2 py-1 border border-slate-300 rounded text-sm text-slate-900 font-mono outline-none focus:border-slate-900"
+          class="flex-1 px-2 py-1 border border-border-strong rounded text-sm text-text-primary font-mono outline-none focus:border-brand"
           @input="$emit('dirty')"
         />
       </div>
 
       <div v-else class="flex flex-col gap-1.5 text-sm">
         <div class="flex items-center gap-2">
-          <label class="text-slate-500 w-28 shrink-0">Related table</label>
+          <label class="text-text-secondary w-28 shrink-0">Related table</label>
           <input
             type="text"
             v-model="node.relatedTable"
-            class="flex-1 px-2 py-1 border border-slate-300 rounded text-sm text-slate-900 font-mono outline-none focus:border-slate-900"
+            class="flex-1 px-2 py-1 border border-border-strong rounded text-sm text-text-primary font-mono outline-none focus:border-brand"
             @input="$emit('dirty')"
           />
         </div>
         <div class="flex items-center gap-2">
-          <label class="text-slate-500 w-28 shrink-0">Join key</label>
+          <label class="text-text-secondary w-28 shrink-0">Join key</label>
           <input
             type="text"
             v-model="node.joinKey"
-            class="flex-1 px-2 py-1 border border-slate-300 rounded text-sm text-slate-900 font-mono outline-none focus:border-slate-900"
+            class="flex-1 px-2 py-1 border border-border-strong rounded text-sm text-text-primary font-mono outline-none focus:border-brand"
             @input="$emit('dirty')"
           />
         </div>
         <div class="flex items-center gap-2">
-          <label class="text-slate-500 w-28 shrink-0">Source join key</label>
+          <label class="text-text-secondary w-28 shrink-0">Source join key</label>
           <input
             type="text"
             v-model="node.sourceJoinKey"
-            class="flex-1 px-2 py-1 border border-slate-300 rounded text-sm text-slate-900 font-mono outline-none focus:border-slate-900"
+            class="flex-1 px-2 py-1 border border-border-strong rounded text-sm text-text-primary font-mono outline-none focus:border-brand"
             @input="$emit('dirty')"
           />
         </div>

@@ -11,14 +11,14 @@ const options: { value: ThemePreference; label: string }[] = [
 </script>
 
 <template>
-  <div class="inline-flex items-center rounded-md border border-slate-600 p-0.5" aria-label="Theme">
+  <div class="inline-flex items-center rounded-md border border-nav-border p-0.5" aria-label="Theme">
     <button
       v-for="opt in options"
       :key="opt.value"
       type="button"
       :aria-pressed="preference === opt.value"
-      class="px-2 py-0.5 rounded text-[0.72rem] text-slate-400 cursor-pointer transition-colors"
-      :class="preference === opt.value ? '!bg-slate-700 !text-slate-100' : 'hover:text-slate-200'"
+      class="px-2 py-0.5 rounded text-[0.72rem] text-nav-text cursor-pointer transition-colors"
+      :class="preference === opt.value ? '!bg-nav-hover !text-nav-text-strong' : 'hover:text-nav-text-strong'"
       @click="setPreference(opt.value)"
     >
       {{ opt.label }}
