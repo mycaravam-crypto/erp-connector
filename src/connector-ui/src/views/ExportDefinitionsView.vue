@@ -16,6 +16,7 @@ import Alert from '@/components/ui/Alert.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import ConfirmAction from '@/components/ui/ConfirmAction.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 const definitions = ref<ExportDefinitionSummary[]>([])
 const loading = ref(true)
@@ -104,6 +105,24 @@ async function confirmDelete(def: ExportDefinitionSummary) {
 <template>
   <div class="max-w-5xl">
     <PageHeader title="Export Jobs" eyebrow="Exports · Independent Jobs">
+      <template #help>
+        <HelpTooltip label="About Export Jobs" title="What's an Export Job?">
+          <p>
+            A self-contained export you configure yourself: pick a table, choose which columns and
+            related data to include, a file format, and an optional schedule — separate from the
+            connector's one managed CMDB export.
+          </p>
+          <p>
+            <strong>Example:</strong> a weekly CSV of your <code>purchaseorder</code> table for a
+            finance team's reporting tool, running every Monday at 06:00 UTC, independent of anything
+            else the connector does.
+          </p>
+          <p>
+            Use <strong>Test</strong> in the row actions to run the query once against your live
+            connection without saving anything, to check it actually works.
+          </p>
+        </HelpTooltip>
+      </template>
       <template #actions>
         <RouterLink
           :to="{ name: 'export-definition-edit', params: { id: 'new' } }"
@@ -139,7 +158,19 @@ async function confirmDelete(def: ExportDefinitionSummary) {
           <th class="px-3 py-2 font-semibold">Format</th>
           <th class="px-3 py-2 font-semibold">Enabled</th>
           <th class="px-3 py-2 font-semibold">Schedule</th>
-          <th class="px-3 py-2 font-semibold">Last run</th>
+          <th class="px-3 py-2 font-semibold">
+            <span class="inline-flex items-center gap-1">
+              Last run
+              <HelpTooltip label="What do the run statuses mean?" title="Run statuses">
+                <ul>
+                  <li><strong>Success</strong> — the export ran and produced a file.</li>
+                  <li><strong>Failed</strong> — the query or write failed; open the job and check Test.</li>
+                  <li><strong>Skipped</strong> — deliberately not run for that cycle.</li>
+                </ul>
+                <p>Blank means this job has never run.</p>
+              </HelpTooltip>
+            </span>
+          </th>
           <th class="px-3 py-2 font-semibold"></th>
         </tr>
       </thead>

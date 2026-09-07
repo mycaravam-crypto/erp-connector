@@ -8,6 +8,7 @@ import type { ImportPlan } from '@/api/importDefinitions'
 import ImportPlanDiffTable from '@/components/ImportPlanDiffTable.vue'
 import Badge from '@/components/ui/Badge.vue'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 const inboundJson = defineModel<string>('inboundJson', { default: '' })
 
@@ -21,7 +22,21 @@ defineEmits<{ refresh: [] }>()
 
 <template>
   <div>
-    <SectionHeader title="Preview" class="mb-1" />
+    <SectionHeader title="Preview" class="mb-1">
+      <template #help>
+        <HelpTooltip label="What does Preview do?" title="A safe dry run">
+          <p>
+            Runs your sample JSON through this definition's real logic — matching, correlation, the
+            allowed-columns check — without writing anything to the ERP or recording a run.
+          </p>
+          <p>
+            <strong>Changed</strong> means that row would actually be written to on a real run;
+            <strong>Rejected</strong> means its correlation key matched no row; <strong>Invalid</strong>
+            means the record itself was malformed.
+          </p>
+        </HelpTooltip>
+      </template>
+    </SectionHeader>
     <p class="text-xs text-text-secondary m-0 mb-2">
       Paste a sample <code>ImportEnvelope</code> JSON (schemaVersion + records[]) to see what this
       definition would do to it — nothing is written, and no run is recorded.

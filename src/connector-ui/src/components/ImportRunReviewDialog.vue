@@ -9,6 +9,7 @@ import StatusBadge from '@/components/StatusBadge.vue'
 import ImportPlanDiffTable from '@/components/ImportPlanDiffTable.vue'
 import ImportRunCountSummary from '@/components/ImportRunCountSummary.vue'
 import ImportRunOutcome from '@/components/ImportRunOutcome.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 // The Phase 17 Slice 6 review/diff view (import-definitions.md §5): reuses ReleaseDialog.vue's
 // Operator/Approver form pattern, extended with the full Open Decision #11 count breakdown and a
@@ -121,15 +122,34 @@ async function reject() {
         :invalid-count="detail.invalidCount"
       />
 
-      <h3 class="text-sm font-semibold text-text-primary mb-2">Field-level diff — matched/changed rows</h3>
+      <span class="inline-flex items-center gap-1.5 mb-2">
+        <h3 class="text-sm font-semibold text-text-primary m-0">Field-level diff — matched/changed rows</h3>
+        <HelpTooltip label="How to read this table" title="Field-level diff">
+          <p>
+            One row per column that would actually change, grouped by which ERP row (correlation
+            value) it belongs to. <strong>Old value</strong> is what's in the ERP right now;
+            <strong>New value</strong> is what releasing this run would write.
+          </p>
+          <p>Unchanged and rejected rows aren't shown here — only what would actually be written.</p>
+        </HelpTooltip>
+      </span>
       <div class="mb-4">
         <ImportPlanDiffTable :operations="detail.operations" />
       </div>
 
       <template v-if="isPending">
-        <p class="text-text-secondary text-sm m-0 mb-3">
-          Releasing as <strong class="text-text-primary">{{ currentUser }}</strong>. Approver must be a
-          different registered user. Rejecting declines the run without writing anything to the ERP.
+        <p class="text-text-secondary text-sm m-0 mb-3 inline-flex items-start gap-1.5">
+          <span>
+            Releasing as <strong class="text-text-primary">{{ currentUser }}</strong>. Approver must be a
+            different registered user. Rejecting declines the run without writing anything to the ERP.
+          </span>
+          <HelpTooltip label="Why does this need two people?" title="Four-eyes control">
+            <p>
+              A "four-eyes" step means one person can't unilaterally push inbound data into the ERP —
+              a second, different person has to review the diff above and approve it first. This
+              matches the same operator/approver control used for the managed export's release step.
+            </p>
+          </HelpTooltip>
         </p>
         <Input
           v-model="approver"

@@ -2,6 +2,7 @@
 import type { SourceColumn, SourceTable } from '@/api/connection'
 import type { MappingRelation } from '@/api/mapping'
 import RelationCard from '@/components/RelationCard.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 defineProps<{
   relations: MappingRelation[]
@@ -19,7 +20,21 @@ const emit = defineEmits<{
 <template>
   <div class="mb-7">
     <div class="flex items-center justify-between mb-2">
-      <h2 class="text-base font-semibold text-text-primary m-0">Related Table Joins</h2>
+      <span class="inline-flex items-center gap-1.5">
+        <h2 class="text-base font-semibold text-text-primary m-0">Related Table Joins</h2>
+        <HelpTooltip label="How do relations flatten data?" title="Squashing a 1:N join into one flat column">
+          <p>
+            Only meaningful for flat output (xlsx/csv), where there's no such thing as a nested
+            list — so a related table's many rows have to be squashed into a single cell.
+          </p>
+          <p>
+            <strong>Example:</strong> a customer with three phone numbers, joined with
+            <strong>String Join</strong> and delimiter <code>, </code>, produces one column:
+            <code>555-0100, 555-0101, 555-0102</code>. Building JSON output instead? Use a
+            <strong>Nested Group</strong> above so each phone number stays a separate array entry.
+          </p>
+        </HelpTooltip>
+      </span>
       <button
         class="add-btn px-3 py-1.5 border border-border-strong rounded-md bg-surface text-sm text-text-secondary cursor-pointer whitespace-nowrap hover:bg-surface-elevated"
         @click="emit('add')"

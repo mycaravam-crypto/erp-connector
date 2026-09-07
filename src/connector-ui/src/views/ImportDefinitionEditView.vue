@@ -29,6 +29,7 @@ import ImportRunReviewDialog from '@/components/ImportRunReviewDialog.vue'
 import { ChevronLeft } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
 import Button from '@/components/ui/Button.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -256,7 +257,21 @@ function onReviewResolved() {
 
         <ImportAllowedColumnsEditor :columns="definition.allowedWritableColumns" :used-columns="usedColumns" />
 
-        <h2 class="text-base font-semibold text-text-primary mb-2.5">Fields</h2>
+        <span class="inline-flex items-center gap-1.5 mb-2.5">
+          <h2 class="text-base font-semibold text-text-primary m-0">Fields</h2>
+          <HelpTooltip label="How does the field tree work?" title="Which fields can be written back">
+            <p>
+              Each row is one column an inbound record is allowed to write. A field here must also
+              appear in the <strong>Allowed Writable Columns</strong> list above, or saving is rejected —
+              two separate places have to agree before anything can be written.
+            </p>
+            <p>
+              <strong>Example:</strong> add a field for <code>status</code> so a vendor's confirmation
+              JSON can update that column; leave out columns like <code>price</code> that inbound
+              records should never be able to touch.
+            </p>
+          </HelpTooltip>
+        </span>
         <p class="text-text-secondary text-sm mb-3 leading-relaxed">
           Add the root's correlation-key field (mapped to the root match column above) plus every
           confirmation/status field the vendor may write back. Picking a related table fills in every one of

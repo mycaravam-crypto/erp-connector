@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 // export-definitions-2.0.md §6: "UI offers presets (Manual/Hourly/Daily/Weekly) plus an advanced
 // free-text cron field." modelValue is the raw ExportDefinition.Schedule (a 5-field cron string, or
@@ -33,7 +34,24 @@ function onPresetChanged(e: Event) {
 
 <template>
   <div class="flex items-center gap-2">
-    <label class="text-sm text-text-secondary w-28 shrink-0">Schedule</label>
+    <label class="text-sm text-text-secondary w-28 shrink-0 inline-flex items-center gap-1">
+      Schedule
+      <HelpTooltip label="How does scheduling work?" title="Schedule">
+        <p>
+          When this export runs automatically, on its own — separate from every other export job.
+          "Manual only" means it never runs by itself; trigger it yourself instead.
+        </p>
+        <p>
+          <strong>Custom cron</strong> uses the standard 5-field format
+          (<code>minute hour day month weekday</code>), always in UTC.
+        </p>
+        <ul>
+          <li><code>0 * * * *</code> — every hour, on the hour</li>
+          <li><code>0 6 * * *</code> — every day at 06:00 UTC</li>
+          <li><code>0 */4 * * *</code> — every 4 hours</li>
+        </ul>
+      </HelpTooltip>
+    </label>
     <select
       :value="selectedPreset"
       aria-label="Schedule preset"

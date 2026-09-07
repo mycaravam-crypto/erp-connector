@@ -25,6 +25,7 @@ import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
 import Button from '@/components/ui/Button.vue'
 import Alert from '@/components/ui/Alert.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 const router = useRouter()
 
@@ -424,7 +425,17 @@ onMounted(load)
 <template>
   <div class="max-w-4xl">
     <div class="flex items-center gap-3 mb-2">
-      <h1 class="m-0 text-xl font-semibold text-text-primary flex-1">CMDB Export Mapping</h1>
+      <span class="flex items-center gap-1.5 flex-1">
+        <h1 class="m-0 text-xl font-semibold text-text-primary">CMDB Export Mapping</h1>
+        <HelpTooltip label="What is this page for?" title="Configuring the one managed CMDB export">
+          <p>
+            This is the field configuration for the connector's single managed export — pick a source
+            table, choose and rename its columns, and (for JSON) build a nested structure from related
+            tables. It's saved here, then run and released from the <strong>Managed Export</strong> page.
+          </p>
+          <p>Need a separate, independently-scheduled export instead? Use Export Jobs, linked below.</p>
+        </HelpTooltip>
+      </span>
       <Button variant="secondary" :disabled="loading" @click="load">Refresh</Button>
     </div>
 
@@ -452,7 +463,21 @@ onMounted(load)
 
       <!-- Primary table selector -->
       <div class="mb-7">
-        <h2 class="text-base font-semibold text-text-primary mb-2.5">Primary Source Table</h2>
+        <span class="inline-flex items-center gap-1.5 mb-2.5">
+          <h2 class="text-base font-semibold text-text-primary m-0">Primary Source Table</h2>
+          <HelpTooltip label="What's a primary key, and why does it matter?" title="Primary Source Table">
+            <p>
+              The table this export starts from — one row here becomes one exported record. The PK
+              (primary key) shown next to each option is the column that uniquely identifies a row in
+              that table; it's used to reliably join related tables and to detect row identity.
+            </p>
+            <p>
+              <strong>Example:</strong> <code>systemconfiguration (42 cols — PK: id)</code> means each
+              row is uniquely identified by its <code>id</code> column. A table with "no PK" can still
+              be exported, but joins and row identity may be unreliable — double check the result.
+            </p>
+          </HelpTooltip>
+        </span>
         <div class="flex items-center gap-3 flex-wrap">
           <select
             class="table-select px-2.5 py-2 border border-border-strong rounded-md text-sm text-text-primary bg-surface cursor-pointer min-w-56 focus:ring-2 focus:ring-focus focus:border-brand outline-none"
@@ -494,7 +519,21 @@ onMounted(load)
         <!-- Format preview toggle: which format-specific options to show below.
              The actual export format is chosen per run (Export view) or for the
              schedule (Settings) — not here. -->
-        <ExportFormatPicker :model-value="previewFormat" @update:model-value="setPreviewFormat" />
+        <ExportFormatPicker :model-value="previewFormat" @update:model-value="setPreviewFormat">
+          <template #help>
+            <HelpTooltip label="Does this pick the real export format?" title="This is only a preview toggle">
+              <p>
+                This does <strong>not</strong> set the format the export actually runs in — it just
+                switches which format-specific options are shown below (e.g. Related Table Joins for
+                xlsx/csv vs. the Nested JSON Structure above for JSON).
+              </p>
+              <p>
+                The real format is chosen separately, each time you export, on the
+                <strong>Managed Export</strong> page.
+              </p>
+            </HelpTooltip>
+          </template>
+        </ExportFormatPicker>
 
         <!-- Silent data-loss warning: relations don't carry over into nested JSON output. -->
         <Alert v-if="relationsDroppedForJson" variant="warning" class="mb-7">

@@ -5,6 +5,7 @@ import { releaseExport } from '@/api/exports'
 import Button from '@/components/ui/Button.vue'
 import Modal from '@/components/ui/Modal.vue'
 import Input from '@/components/ui/Input.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 const props = defineProps<{ seqNo: number }>()
 const emit = defineEmits<{ (e: 'released'): void }>()
@@ -60,8 +61,17 @@ async function submit() {
     <Button @click="openDialog">Release Run</Button>
 
     <Modal v-model:open="open" :title="`Four-Eyes Release — Run #${seqNo}`">
-      <p class="text-text-secondary text-sm m-0 mb-4">
-        Releasing as <strong class="text-text-primary">{{ currentUser }}</strong>. Approver must be a different registered user.
+      <p class="text-text-secondary text-sm m-0 mb-4 inline-flex items-start gap-1.5">
+        <span>
+          Releasing as <strong class="text-text-primary">{{ currentUser }}</strong>. Approver must be a different registered user.
+        </span>
+        <HelpTooltip label="Why do I need an approver?" title="Four-eyes control">
+          <p>
+            A second, different person has to confirm the release before it's final — the same person
+            who triggered the export can't approve their own run. Enter that colleague's username
+            here; they don't need to be present, but they are accountable for the confirmation.
+          </p>
+        </HelpTooltip>
       </p>
 
       <Input

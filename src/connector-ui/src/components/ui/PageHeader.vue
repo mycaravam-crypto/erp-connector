@@ -9,7 +9,10 @@ withDefaults(defineProps<{ title: string; eyebrow?: string }>(), {})
   <div class="flex items-center justify-between gap-3 mb-2 flex-wrap">
     <div>
       <p v-if="eyebrow" class="text-text-secondary text-xs font-semibold uppercase tracking-wide m-0 mb-1">{{ eyebrow }}</p>
-      <h1 class="m-0 text-page-title font-semibold text-text-primary">{{ title }}</h1>
+      <span class="inline-flex items-center gap-1.5">
+        <h1 class="m-0 text-page-title font-semibold text-text-primary">{{ title }}</h1>
+        <slot name="help" />
+      </span>
     </div>
     <div v-if="$slots.actions" class="flex items-center gap-2 shrink-0">
       <slot name="actions" />

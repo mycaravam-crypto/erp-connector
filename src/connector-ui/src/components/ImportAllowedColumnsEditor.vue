@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { X } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 // This is the primary safety boundary of the whole import feature (import-definitions.md §1, Open
 // Decision #9): a saved mapping can never write outside this explicit allowlist, checked against the
@@ -37,7 +38,21 @@ const missing = computed(() => props.usedColumns.filter((c) => !props.columns.in
 
 <template>
   <div class="mb-6 border-2 border-warning bg-warning-bg rounded-lg px-4 py-3">
-    <SectionHeader title="Allowed Writable Columns" class="mb-1" />
+    <SectionHeader title="Allowed Writable Columns" class="mb-1">
+      <template #help>
+        <HelpTooltip label="Why does this list exist?" title="A safety net, separate from the field tree">
+          <p>
+            This is a hard allowlist checked at save time — independent of the field tree below, so a
+            mistake in the tree can never silently widen what this import is allowed to touch.
+          </p>
+          <p>
+            <strong>Example:</strong> even if the tree maps a field to <code>price</code>, saving fails
+            unless <code>price</code> is also listed here. Add each column you genuinely want inbound
+            data to be able to overwrite, e.g. <code>status</code>, <code>notes</code>.
+          </p>
+        </HelpTooltip>
+      </template>
+    </SectionHeader>
     <p class="text-sm text-text-secondary mt-0 mb-3 leading-relaxed">
       The only columns this definition may ever write. A tree field targeting a column not listed here
       is rejected at save time, even if it looks correctly wired up in the tree above.

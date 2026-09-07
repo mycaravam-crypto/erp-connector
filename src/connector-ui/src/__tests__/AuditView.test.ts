@@ -52,7 +52,7 @@ describe('AuditView', () => {
     const spy = vi.spyOn(auditApi, 'getAuditLog').mockResolvedValue(ENTRIES)
     const w = mount(AuditView)
     await flushPromises()
-    await w.find('button').trigger('click')
+    await w.findAll('button').find((b) => b.text().includes('Refresh'))!.trigger('click')
     await flushPromises()
     expect(spy).toHaveBeenCalledTimes(2)
   })

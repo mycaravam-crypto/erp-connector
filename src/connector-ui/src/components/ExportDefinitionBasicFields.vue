@@ -4,6 +4,7 @@ import type { SourceTable } from '@/api/connection'
 import type { ExportDefinition } from '@/api/exportDefinitions'
 import ExportFormatPicker from '@/components/ExportFormatPicker.vue'
 import ExportScheduleField from '@/components/ExportScheduleField.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 const props = defineProps<{
   definition: ExportDefinition
@@ -65,7 +66,21 @@ const correlationKeySourceFieldInput = nullableTextInput('correlationKeySourceFi
       />
     </div>
     <div class="flex items-center gap-2">
-      <label class="text-sm text-text-secondary w-28 shrink-0">Root table</label>
+      <label class="text-sm text-text-secondary w-28 shrink-0 inline-flex items-center gap-1">
+        Root table
+        <HelpTooltip label="What's a root table?" title="Root table">
+          <p>
+            The main table this export starts from — one row here becomes one record in the output
+            file. Every field and related entity you add below is reached from this table.
+          </p>
+          <p>
+            <strong>Example:</strong> pick <code>purchaseorder</code> to export one row per purchase
+            order; add a related entity for <code>purchaseorderline</code> to nest each order's line
+            items inside it.
+          </p>
+          <p>Once you've added fields, this locks — clear them first to switch tables.</p>
+        </HelpTooltip>
+      </label>
       <select
         v-if="availableTables.length > 0"
         v-model="definition.rootTable"
@@ -106,7 +121,24 @@ const correlationKeySourceFieldInput = nullableTextInput('correlationKeySourceFi
        IntegrationKey is what makes JsonExportFormatWriter emit a provenance block an ImportDefinition can
        later be suggested from (§3.4); until it's set, this export is invisible to that feature entirely. -->
   <div class="flex flex-col gap-3 mt-5 pt-5 border-t border-border-strong">
-    <h3 class="m-0 text-sm font-semibold text-text-primary">Integration tagging (optional)</h3>
+    <span class="inline-flex items-center gap-1.5">
+      <h3 class="m-0 text-sm font-semibold text-text-primary">Integration tagging (optional)</h3>
+      <HelpTooltip label="What is integration tagging for?" title="Pairing an export with an import automatically">
+        <p>
+          Tags this export's JSON output with a name + version so a matching Import Job can be
+          created from it in one click, instead of building the field mapping by hand on the import
+          side.
+        </p>
+        <p>
+          <strong>Example:</strong> set integration key <code>ci-confirmation</code>, contract version
+          <code>1</code>. Every JSON file this export produces now carries
+          <code>{"integrationKey": "ci-confirmation", "contractVersion": 1}</code> in its provenance
+          block. On the Import Jobs side, "Create from export" reads that block and offers to build a
+          matching import job automatically.
+        </p>
+        <p>Only affects the JSON output format — leave both fields blank if you don't need this.</p>
+      </HelpTooltip>
+    </span>
     <p class="text-xs text-text-secondary m-0">
       Tag this export's JSON output with a stable, versioned identifier so a matching
       <code>ImportDefinition</code> can later be created from it. Only takes effect for the JSON output
@@ -135,7 +167,21 @@ const correlationKeySourceFieldInput = nullableTextInput('correlationKeySourceFi
       <span class="text-xs text-text-muted">set together with the integration key, or leave both blank</span>
     </div>
     <div class="flex items-center gap-2">
-      <label class="text-sm text-text-secondary w-36 shrink-0">Correlation key field</label>
+      <label class="text-sm text-text-secondary w-36 shrink-0 inline-flex items-center gap-1">
+        Correlation key field
+        <HelpTooltip label="What is a correlation key?" title="Correlation key field">
+          <p>
+            The export key (from the field tree above) that a later inbound reply will use to find
+            its way back to the right row — think of it as the "order number" printed on both the
+            outgoing shipment and the return receipt.
+          </p>
+          <p>
+            <strong>Example:</strong> if this export includes a field with export key <code>guid</code>,
+            set correlation key to <code>guid</code>. A paired Import Job's <em>Root match column</em>
+            then matches inbound records back to the ERP row using that same value.
+          </p>
+        </HelpTooltip>
+      </label>
       <input
         type="text"
         v-model="correlationKeySourceFieldInput"
