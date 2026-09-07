@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import type { SourceTable } from '@/api/connection'
 import type { MappingNestedGroup } from '@/api/mapping'
 import NestedGroupEditor from '@/components/NestedGroupEditor.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 const props = defineProps<{
   groups: MappingNestedGroup[]
@@ -44,7 +45,23 @@ const shapePreview = computed(() => {
 <template>
   <div class="mb-7">
     <div class="flex items-center justify-between mb-2">
-      <h2 class="text-base font-semibold text-text-primary m-0">Nested JSON Structure</h2>
+      <span class="inline-flex items-center gap-1.5">
+        <h2 class="text-base font-semibold text-text-primary m-0">Nested JSON Structure</h2>
+        <HelpTooltip label="How do nested groups work?" title="Embedding related data in the JSON output">
+          <p>
+            A nested group pulls in a related table as either a single embedded object
+            (<strong>1:1</strong>, e.g. one manufacturer per item) or a list of objects
+            (<strong>1:N</strong>, e.g. many addresses per customer) — right inside the exported record,
+            instead of a separate flat column.
+          </p>
+          <p>
+            <strong>Example:</strong> a group targeting key <code>manufacturer</code> (kind: object)
+            over the <code>manufacturer</code> table produces
+            <code>{ "manufacturer": { "name": "...", "country": "..." } }</code> in each exported record.
+          </p>
+          <p>Only applies to the JSON output format — xlsx/csv ignore nested groups entirely.</p>
+        </HelpTooltip>
+      </span>
       <button
         class="add-nested-group-btn px-3 py-1.5 border border-border-strong rounded-md bg-surface text-sm text-text-secondary cursor-pointer whitespace-nowrap hover:bg-surface-elevated"
         @click="emit('add')"

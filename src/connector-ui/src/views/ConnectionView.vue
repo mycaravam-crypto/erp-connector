@@ -8,6 +8,7 @@ import Icon from '@/components/ui/Icon.vue'
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
 import Alert from '@/components/ui/Alert.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -89,6 +90,18 @@ function proceed() {
     <div class="flex items-center gap-3 mb-2">
       <span class="bg-brand text-white px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide shrink-0">Step 1</span>
       <h1 class="m-0 text-xl font-semibold text-text-primary">Connect to Source Database</h1>
+      <HelpTooltip label="About the database connection" title="What am I connecting to?">
+        <p>
+          This is the PostgreSQL database behind your ERP system — the connector reads tables and
+          rows from it, and (for import jobs) writes confirmation data back into it.
+        </p>
+        <p>
+          <strong>Example:</strong> <code>host=erp-db.internal port=5432 database=erp_prod</code>.
+          Use a dedicated, read-mostly account rather than a superuser — the connector only ever
+          needs the tables you explicitly map, and import jobs are further limited to their own
+          allowed-columns list.
+        </p>
+      </HelpTooltip>
     </div>
 
     <p class="text-text-secondary text-sm mt-2 mb-4 leading-relaxed">

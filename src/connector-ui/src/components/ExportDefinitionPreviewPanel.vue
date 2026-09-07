@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
+
 // Runs POST /api/export-definitions/{id}/preview — the *same* query path Run Now uses
 // (export-definitions-2.0.md §7), just capped and untracked. Records are arbitrary nested JSON
 // (every ExportNode shape, regardless of the definition's own OutputFormat, since the format writer
@@ -17,6 +19,13 @@ defineEmits<{ refresh: [] }>()
   <div>
     <div class="flex items-center gap-3 mb-1">
       <h2 class="m-0 text-base font-semibold text-text-primary">Preview</h2>
+      <HelpTooltip label="What does Preview do?" title="A safe dry run">
+        <p>
+          Runs the same query as <strong>Run Now</strong>, capped to a small number of records, and
+          shows you the resulting JSON shape — without saving anything to run history.
+        </p>
+        <p>Use it to sanity-check field mappings and nesting before running for real.</p>
+      </HelpTooltip>
       <span v-if="recordCount !== null" class="text-xs text-text-secondary">{{ recordCount }} record(s) (capped)</span>
       <button
         class="ml-auto px-2.5 py-1 border border-border-strong rounded-md bg-surface text-xs text-text-secondary cursor-pointer disabled:opacity-50 hover:enabled:bg-surface-elevated"

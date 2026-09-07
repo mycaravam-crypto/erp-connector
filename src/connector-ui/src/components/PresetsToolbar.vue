@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { getPresets, savePreset, deletePreset, type ExportMappingConfig } from '@/api/mapping'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 const props = defineProps<{
   canSave: boolean
@@ -91,7 +92,23 @@ async function confirmDelete() {
 <template>
   <div class="mb-5">
     <div class="flex items-center gap-2 flex-wrap">
-      <SectionHeader title="Presets" class="shrink-0" />
+      <SectionHeader title="Presets" class="shrink-0">
+        <template #help>
+          <HelpTooltip label="What are presets?" title="Reusable mapping snapshots">
+            <p>
+              A preset is a saved snapshot of the whole mapping below — columns, related joins, nested
+              groups, and the JSON envelope — that you can name and reload later, or apply as a starting
+              point for a different table.
+            </p>
+            <p>
+              <strong>Example:</strong> save your current setup as <code>Standard CI Export</code>, try
+              out changes, then use <strong>Load</strong> to instantly restore it if the changes didn't
+              work out. Applying a preset replaces the current mapping in the editor — <strong>Save
+              Mapping</strong> still has to be clicked to persist it.
+            </p>
+          </HelpTooltip>
+        </template>
+      </SectionHeader>
       <select
         class="preset-select flex-1 min-w-48 px-2.5 py-2 border border-border-strong rounded-md text-sm text-text-primary bg-surface cursor-pointer"
         v-model="selected"

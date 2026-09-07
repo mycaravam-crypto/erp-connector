@@ -8,6 +8,7 @@ import { Plug, ArrowRight } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
 import Card from '@/components/ui/Card.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 // The landing page once a connection is configured (router guard sends first-run visitors to /connect
 // instead) — an orientation point for the areas that used to be reachable only from the account menu,
@@ -43,7 +44,21 @@ const links = [
 
 <template>
   <div class="max-w-5xl">
-    <PageHeader title="Dashboard" />
+    <PageHeader title="Dashboard">
+      <template #help>
+        <HelpTooltip label="About this dashboard" title="What is this page?">
+          <p>
+            This is the connector's home base — an overview of your database connection and a
+            shortcut to every other area, so you don't have to remember which menu something lives
+            under.
+          </p>
+          <p>
+            <strong>Example:</strong> if the "Export Jobs" tile shows <code>2 / 3 enabled</code>,
+            it means 3 export jobs exist but only 2 are currently scheduled to run automatically.
+          </p>
+        </HelpTooltip>
+      </template>
+    </PageHeader>
 
     <Card class="mb-5">
       <div class="flex items-center gap-3">
@@ -77,7 +92,21 @@ const links = [
       </Card>
     </div>
 
-    <p class="text-text-secondary text-xs font-semibold uppercase tracking-wide m-0 mb-2">Go to</p>
+    <p class="text-text-secondary text-xs font-semibold uppercase tracking-wide m-0 mb-2 flex items-center gap-1.5">
+      Go to
+      <HelpTooltip label="What's the difference between these?" title="Managed export vs. Export Jobs — which do I want?">
+        <p>
+          <strong>CMDB Export Mapping</strong> and <strong>Managed Export</strong> are one linked pair: the
+          mapping is the field configuration, Managed Export is where you run it and get a signed-off
+          ("four-eyes") release for the vendor. There's only ever one of these.
+        </p>
+        <p>
+          <strong>Export Jobs</strong> are separate, independent exports you create yourself — each with
+          its own table, fields, format and schedule. Use these for anything beyond the one managed
+          CMDB feed, e.g. a nightly export of a different table for another system.
+        </p>
+      </HelpTooltip>
+    </p>
     <div class="grid grid-cols-2 gap-3">
       <RouterLink
         v-for="link in links"

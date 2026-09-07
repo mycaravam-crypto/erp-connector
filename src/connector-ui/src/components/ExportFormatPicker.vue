@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
+
 defineProps<{
   modelValue: 'xlsx' | 'csv' | 'json'
 }>()
@@ -13,7 +15,16 @@ const formats = [
 
 <template>
   <div class="mb-7">
-    <h2 class="text-base font-semibold text-text-primary mb-2.5">Export Format</h2>
+    <span class="inline-flex items-center gap-1.5 mb-2.5">
+      <h2 class="text-base font-semibold text-text-primary m-0">Export Format</h2>
+      <slot name="help">
+        <HelpTooltip label="Which format should I pick?" title="Choosing an output format">
+          <p>Pick <strong>Excel</strong> if the vendor's Transform Map requires it — it's the only format that carries the metadata row that tool expects.</p>
+          <p>Pick <strong>CSV</strong> for the widest compatibility with spreadsheets and generic tools.</p>
+          <p>Pick <strong>JSON</strong> when the receiving system is an API, or when you need nested objects/arrays (via Nested Groups) rather than flat columns.</p>
+        </HelpTooltip>
+      </slot>
+    </span>
     <div class="flex gap-3">
       <button
         v-for="fmt in formats"

@@ -15,6 +15,7 @@ import Alert from '@/components/ui/Alert.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import ConfirmAction from '@/components/ui/ConfirmAction.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 const definitions = ref<ImportDefinitionSummary[]>([])
 const loading = ref(true)
@@ -82,6 +83,21 @@ async function confirmDelete(def: ImportDefinitionSummary) {
 <template>
   <div class="max-w-5xl">
     <PageHeader title="Import Jobs" eyebrow="Imports · Independent Jobs">
+      <template #help>
+        <HelpTooltip label="About Import Jobs" title="What's an Import Job?">
+          <p>
+            A mapping that takes inbound JSON from a vendor and writes it back into a table in your
+            ERP database — matching each incoming record to an existing row, then updating only the
+            columns you've explicitly allowed.
+          </p>
+          <p>
+            <strong>Example:</strong> the vendor confirms a purchase order was received by dropping a
+            JSON file into the <code>inbound/</code> folder; an enabled job whose <code>definition</code>
+            name matches picks it up automatically and updates the <code>status</code> column on the
+            matching row — no manual trigger needed.
+          </p>
+        </HelpTooltip>
+      </template>
       <template #actions>
         <RouterLink
           :to="{ name: 'import-definition-edit', params: { id: 'new' } }"
@@ -115,7 +131,18 @@ async function confirmDelete(def: ImportDefinitionSummary) {
         <tr class="text-left text-text-secondary border-b border-border">
           <th class="px-3 py-2 font-semibold">Name</th>
           <th class="px-3 py-2 font-semibold">Root table</th>
-          <th class="px-3 py-2 font-semibold">If unmatched</th>
+          <th class="px-3 py-2 font-semibold">
+            <span class="inline-flex items-center gap-1">
+              If unmatched
+              <HelpTooltip label="What does Reject vs. Quarantine mean?" title="When an inbound record's correlation key matches no row">
+                <ul>
+                  <li><strong>Reject</strong> — the record is dropped; nothing is written or held for review.</li>
+                  <li><strong>Quarantine</strong> — the record is held for manual review instead of being discarded, in case it was a timing issue (e.g. the row hasn't been created in the ERP yet).</li>
+                </ul>
+                <p>Either way, an unmatched record is never used to auto-create a new row.</p>
+              </HelpTooltip>
+            </span>
+          </th>
           <th class="px-3 py-2 font-semibold">Enabled</th>
           <th class="px-3 py-2 font-semibold">Last run</th>
           <th class="px-3 py-2 font-semibold"></th>

@@ -6,6 +6,7 @@ import SourceColumnsTable from '@/components/SourceColumnsTable.vue'
 import { Plug, ChevronRight, ChevronDown, ChevronLeft } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
 import Button from '@/components/ui/Button.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 const router = useRouter()
 
@@ -52,7 +53,19 @@ function toggleTable(name: string) {
   <div class="max-w-3xl">
     <div class="flex items-center gap-3 mb-2">
       <span class="bg-brand text-white px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide shrink-0">Step 2</span>
-      <h1 class="m-0 text-xl font-semibold text-text-primary flex-1">Source Schema</h1>
+      <h1 class="m-0 text-xl font-semibold text-text-primary">Source Schema</h1>
+      <HelpTooltip label="About the source schema" title="What am I looking at?">
+        <p>
+          A read-only map of every table and column the connector can see in your ERP database —
+          useful for finding the exact table/column names to use when building an export or import
+          mapping.
+        </p>
+        <p>
+          <strong>Example:</strong> before building an export, expand <code>systemconfiguration</code>
+          here to check the real column name is <code>serial_number</code>, not <code>serialNumber</code>.
+        </p>
+      </HelpTooltip>
+      <span class="flex-1" />
       <Button variant="secondary" :disabled="loading" @click="load">Refresh</Button>
     </div>
 

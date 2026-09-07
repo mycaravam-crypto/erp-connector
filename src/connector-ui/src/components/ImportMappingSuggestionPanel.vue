@@ -7,6 +7,7 @@
 import { ref } from 'vue'
 import { suggestImportMappingFromExport, type ImportMappingSuggestion } from '@/api/importDefinitions'
 import Button from '@/components/ui/Button.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 const emit = defineEmits<{
   accept: [suggestion: ImportMappingSuggestion]
@@ -37,7 +38,17 @@ async function check() {
 
 <template>
   <div class="border border-border-strong rounded-lg p-4 mb-6 bg-surface-elevated">
-    <h2 class="m-0 text-base font-semibold text-text-primary mb-1">Start from</h2>
+    <span class="inline-flex items-center gap-1.5 mb-1">
+      <h2 class="m-0 text-base font-semibold text-text-primary">Start from</h2>
+      <HelpTooltip label="How does this work?" title="Auto-detecting a matching export">
+        <p>
+          Take one real JSON file produced by an export that has <strong>Integration tagging</strong>
+          set up, and paste it here. If its <code>provenance</code> block matches a known export, this
+          builds the whole field tree for you instead of starting from an empty one.
+        </p>
+        <p>No match, or don't have a sample? Use <strong>Start blank</strong> instead — nothing is lost.</p>
+      </HelpTooltip>
+    </span>
     <p class="text-xs text-text-secondary m-0 mb-3">
       Paste a sample inbound <code>ImportEnvelope</code> carrying a <code>provenance</code> block to check
       whether it matches a known export's tagged output — or skip this and start with a blank tree.

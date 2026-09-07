@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { FieldMapping } from '@/api/exportDefinitions'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 // Inline editor for one scalar-field node's FieldMapping (export-definitions-2.0.md §5): rename is
 // the node's own TargetKey input (owned by the caller), so this only covers the four FieldMapping
@@ -32,7 +33,17 @@ function onTransformChanged() {
 <template>
   <div class="flex gap-2.5 flex-wrap mt-1.5 pl-4 border-l-2 border-border">
     <div class="flex flex-col gap-1 min-w-36">
-      <label class="text-[0.65rem] font-semibold text-text-muted uppercase tracking-wide">Transform</label>
+      <label class="text-[0.65rem] font-semibold text-text-muted uppercase tracking-wide inline-flex items-center gap-1">
+        Transform
+        <HelpTooltip label="What do transforms do?" title="Reshaping a value on the way out">
+          <p>Applies a small conversion to this field's value before it's written to the output — no source data is changed.</p>
+          <ul>
+            <li><strong>Date format</strong> — reformats a date, e.g. <code>yyyy-MM-dd</code> → <code>2026-09-07</code>.</li>
+            <li><strong>Constant</strong> — ignores the source value entirely and always outputs the value you type.</li>
+          </ul>
+          <p><strong>Default (if null)</strong> substitutes a value only when the source column is null.</p>
+        </HelpTooltip>
+      </label>
       <select
         v-model="mapping.transform"
         class="px-2 py-1 border border-border-strong rounded text-sm text-text-primary bg-surface"

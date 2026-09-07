@@ -7,6 +7,7 @@ import Input from '@/components/ui/Input.vue'
 import Select from '@/components/ui/Select.vue'
 import Button from '@/components/ui/Button.vue'
 import Alert from '@/components/ui/Alert.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 const props = defineProps<{ config: SchedulerConfig }>()
 
@@ -46,7 +47,19 @@ async function save() {
 
 <template>
   <section class="mt-6">
-    <h2 class="text-base font-semibold text-text-primary mb-1">Export Scheduler</h2>
+    <span class="inline-flex items-center gap-1.5 mb-1">
+      <h2 class="text-base font-semibold text-text-primary m-0">Export Scheduler</h2>
+      <HelpTooltip label="Which export does this control?" title="This is the managed CMDB export's schedule only">
+        <p>
+          This controls when the one managed CMDB export runs automatically — it has no effect on
+          any Export Job, each of which has its own independent schedule set on its own edit page.
+        </p>
+        <p>
+          <strong>Example:</strong> setting the daily run time to <code>06:00</code> means the CMDB
+          export fires once every day at 06:00 UTC; it does not change when your other export jobs run.
+        </p>
+      </HelpTooltip>
+    </span>
     <p class="text-text-secondary text-sm mb-4 leading-relaxed">
       The scheduled export runs once daily at the configured UTC time.
       Changes take effect on the next export cycle — no restart required.

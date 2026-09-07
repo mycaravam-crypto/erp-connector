@@ -11,6 +11,7 @@ import { Check, X } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
 import Button from '@/components/ui/Button.vue'
 import Alert from '@/components/ui/Alert.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 const FORMAT_KEY = 'connector_export_format'
 const selectedFormat = ref<'xlsx' | 'csv' | 'json'>(
@@ -104,7 +105,22 @@ onMounted(() => {
 <template>
   <div class="max-w-5xl">
     <p class="text-text-secondary text-xs font-semibold uppercase tracking-wide m-0 mb-1">Connector · Managed Export</p>
-    <h1 class="m-0 text-xl font-semibold text-text-primary mb-2">Managed Export</h1>
+    <span class="inline-flex items-center gap-1.5 mb-2">
+      <h1 class="m-0 text-xl font-semibold text-text-primary">Managed Export</h1>
+      <HelpTooltip label="What is the four-eyes release?" title="Why every run needs a second person">
+        <p>
+          Triggering an export doesn't send it anywhere by itself — every run needs a
+          <strong>four-eyes release</strong>: a second, different registered user has to confirm it
+          before it counts as final. This is a two-person control so no single person can quietly
+          produce and ship a file alone.
+        </p>
+        <p>
+          <strong>Example:</strong> you (as <code>alice</code>) trigger the export; it appears
+          "Pending" below. A colleague, <code>bob</code>, opens that run and clicks
+          <strong>Release Run</strong> to approve it — <code>alice</code> can't approve her own run.
+        </p>
+      </HelpTooltip>
+    </span>
 
     <p class="text-text-secondary text-sm mt-2 mb-5 leading-relaxed">
       The standard export configured for this connector, using the CMDB Export Mapping above.
@@ -116,7 +132,14 @@ onMounted(() => {
     <div class="border border-border rounded-lg overflow-hidden mb-8">
       <div class="flex items-center justify-between gap-6 px-6 py-5">
         <div class="flex-1">
-          <h2 class="m-0 text-base font-semibold text-text-primary mb-2.5">Export Format</h2>
+          <span class="inline-flex items-center gap-1.5 mb-2.5">
+            <h2 class="m-0 text-base font-semibold text-text-primary">Export Format</h2>
+            <HelpTooltip label="Which format should I pick?" title="Choosing an output format">
+              <p>Pick <strong>Excel</strong> if the vendor's Transform Map requires it.</p>
+              <p>Pick <strong>CSV</strong> for the widest compatibility with spreadsheets and generic tools.</p>
+              <p>Pick <strong>JSON</strong> for API-based delivery, or to get the Nested JSON Structure and custom envelope configured on the CMDB Export Mapping page.</p>
+            </HelpTooltip>
+          </span>
           <div class="flex gap-2">
             <button
               v-for="fmt in [

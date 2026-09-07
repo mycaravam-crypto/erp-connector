@@ -2,6 +2,7 @@
 import type { ExportJsonWrapperConfig } from '@/api/mapping'
 import { X } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 const wrapper = defineModel<ExportJsonWrapperConfig | null>({ required: true })
 const emit = defineEmits<{ dirty: [] }>()
@@ -29,7 +30,22 @@ function removeMetadataField(idx: number) {
 
 <template>
   <div class="mb-7">
-    <h2 class="text-base font-semibold text-text-primary mb-1">JSON Envelope</h2>
+    <span class="inline-flex items-center gap-1.5 mb-1">
+      <h2 class="text-base font-semibold text-text-primary m-0">JSON Envelope</h2>
+      <HelpTooltip label="What is the envelope?" title="The wrapper around your records array">
+        <p>
+          The outermost shape of the JSON file — the keys that wrap your list of records and any
+          top-level metadata. Customizing it reshapes the output to match a specific target system's
+          expected format, without changing which fields each record contains.
+        </p>
+        <p>
+          <strong>Example:</strong> the default output looks like
+          <code>{ "schema_version": "1", "extracted_at": "...", "records": [...] }</code>. Setting
+          Root Key to <code>data</code> and Items Key to <code>items</code> instead produces
+          <code>{ "data": { "items": [...], "metadata": {...} } }</code>.
+        </p>
+      </HelpTooltip>
+    </span>
     <p class="text-sm text-text-secondary mb-3 leading-snug">
       Applies to JSON export only. By default the export uses <code>{ schema_version, extracted_at, records }</code>.
       Customize it to match a target system's expected shape.

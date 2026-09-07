@@ -11,6 +11,7 @@ import { Check, ChevronLeft } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
 import Button from '@/components/ui/Button.vue'
 import Alert from '@/components/ui/Alert.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -54,6 +55,15 @@ function formatDate(iso: string | null | undefined): string {
       <div class="flex items-center gap-3 mb-4">
         <h1 class="m-0 text-xl font-semibold text-text-primary">Export Run #{{ run.sequenceNo }}</h1>
         <StatusBadge :status="run.status" />
+        <HelpTooltip label="What does this status mean?" title="An export run's lifecycle">
+          <ul>
+            <li><strong>Pending</strong> — created, waiting for a four-eyes release before it's final.</li>
+            <li><strong>Released</strong> — approved by a second person; ready to hand to the vendor.</li>
+            <li><strong>Skipped</strong> — deliberately marked as never going to be released.</li>
+            <li><strong>Failed</strong> — the export itself errored out before it could be reviewed.</li>
+          </ul>
+          <p>The sequence number is a strictly increasing counter — a gap in it usually means a run was skipped or failed, flagged by the warning above when it happens.</p>
+        </HelpTooltip>
       </div>
 
       <!-- Sequence gap warning -->

@@ -7,7 +7,10 @@ withDefaults(defineProps<{ title: string }>(), {})
 
 <template>
   <div class="flex items-center justify-between gap-2 flex-wrap">
-    <h2 class="m-0 text-section-heading font-semibold text-text-primary">{{ title }}</h2>
+    <span class="inline-flex items-center gap-1.5">
+      <h2 class="m-0 text-section-heading font-semibold text-text-primary">{{ title }}</h2>
+      <slot name="help" />
+    </span>
     <div v-if="$slots.actions" class="flex items-center gap-2 shrink-0">
       <slot name="actions" />
     </div>

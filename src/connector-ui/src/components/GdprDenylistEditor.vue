@@ -6,6 +6,7 @@ import Icon from '@/components/ui/Icon.vue'
 import Input from '@/components/ui/Input.vue'
 import Button from '@/components/ui/Button.vue'
 import Alert from '@/components/ui/Alert.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 const props = defineProps<{ initialFields: string[] }>()
 
@@ -51,7 +52,22 @@ async function save() {
 
 <template>
   <section class="mt-10">
-    <h2 class="text-base font-semibold text-text-primary mb-1">GDPR Denied Fields</h2>
+    <span class="inline-flex items-center gap-1.5 mb-1">
+      <h2 class="text-base font-semibold text-text-primary m-0">GDPR Denied Fields</h2>
+      <HelpTooltip label="What does this list do?" title="A hard block on personal data leaving via export">
+        <p>
+          Plain English: whatever field name you add here is stripped out of <strong>every</strong>
+          export the connector produces — the managed CMDB export and every Export Job — no matter how
+          it was mapped or renamed. It's an extra, global safety net on top of each export's own field
+          selection, for data protection rules (GDPR Art. 5(1)(c): don't export personal data you
+          don't need).
+        </p>
+        <p>
+          <strong>Example:</strong> add <code>technician_name</code> to stop any export from ever
+          including that column, even if someone later adds it to a mapping by mistake.
+        </p>
+      </HelpTooltip>
+    </span>
     <p class="text-text-secondary text-sm mb-4 leading-relaxed">
       These fields are stripped from all exports at query time (GDPR Art. 5(1)(c)).
       Changes take effect immediately.

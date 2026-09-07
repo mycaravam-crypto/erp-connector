@@ -4,6 +4,7 @@ import { getAuditLog, type AuditEntry } from '@/api/audit'
 import Button from '@/components/ui/Button.vue'
 import Alert from '@/components/ui/Alert.vue'
 import AuditLogTable from '@/components/AuditLogTable.vue'
+import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 const entries = ref<AuditEntry[]>([])
 const loading = ref(true)
@@ -27,7 +28,20 @@ onMounted(load)
 <template>
   <div class="max-w-4xl">
     <div class="flex items-center justify-between gap-3 mb-4">
-      <h1 class="m-0 text-xl font-semibold text-text-primary">Audit Log</h1>
+      <span class="inline-flex items-center gap-1.5">
+        <h1 class="m-0 text-xl font-semibold text-text-primary">Audit Log</h1>
+        <HelpTooltip label="What gets logged here?" title="What's in the audit log">
+          <p>
+            A record of who did what, and when — every save, release, delivery, skip, and rejection
+            across exports and imports, kept for compliance and for tracing back "why does this row
+            look like this."
+          </p>
+          <p>
+            <strong>Example:</strong> if a purchase order's status looks wrong, scan this list for its
+            import run's entry to see exactly who released it, who approved it, and what value it wrote.
+          </p>
+        </HelpTooltip>
+      </span>
       <Button variant="secondary" :loading="loading" @click="load">
         {{ loading ? 'Loading…' : 'Refresh' }}
       </Button>
