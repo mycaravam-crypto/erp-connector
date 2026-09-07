@@ -43,6 +43,7 @@ const correlationKeySourceFieldInput = nullableTextInput('correlationKeySourceFi
 </script>
 
 <template>
+  <h2 class="text-base font-semibold text-text-primary mb-2.5">General</h2>
   <div class="flex flex-col gap-3 mb-5">
     <div class="flex items-center gap-2">
       <label class="text-sm text-text-secondary w-28 shrink-0">Name</label>
@@ -91,9 +92,14 @@ const correlationKeySourceFieldInput = nullableTextInput('correlationKeySourceFi
       <input type="checkbox" v-model="definition.isEnabled" class="cursor-pointer" />
       <span class="text-xs text-text-secondary">Scheduled runs only fire for enabled definitions.</span>
     </div>
+  </div>
+
+  <h2 class="text-base font-semibold text-text-primary mb-2.5">Schedule</h2>
+  <div class="mb-5">
     <ExportScheduleField v-model="definition.schedule" />
   </div>
 
+  <h2 class="text-base font-semibold text-text-primary mb-2.5">Output</h2>
   <ExportFormatPicker v-model="definition.outputFormat as 'xlsx' | 'csv' | 'json'" />
 
   <!-- knowledge/pipeline/import-mapping-presets.md §3.1/§3.2 — optional provenance tagging. Setting

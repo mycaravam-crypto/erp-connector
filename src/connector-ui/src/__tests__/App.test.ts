@@ -36,30 +36,32 @@ describe('App shell', () => {
     const w = mount(App, { global: { plugins: [await buildRouter('/export-schema')] } })
     await flushPromises()
 
-    const links = w.findAll('nav[aria-label="Workflow steps"] a')
+    const links = w.findAll('nav[aria-label="Connector"] a')
     expect(links).toHaveLength(4)
     // Connect + Source Schema (idx 0,1) come before CMDB Export Mapping (idx 2, active)
     expect(links[0]!.classes()).not.toContain('bg-nav-hover')
     expect(links[2]!.classes()).toContain('bg-nav-hover')
   })
 
-  it('shows a checkmark for completed steps instead of the step number', async () => {
+  it('shows a checkmark for every setup step and highlights Managed Export once the connector is operating', async () => {
     const w = mount(App, { global: { plugins: [await buildRouter('/exports')] } })
     await flushPromises()
 
-    const links = w.findAll('nav[aria-label="Workflow steps"] a')
-    // Connect, Source Schema, CMDB Export Mapping are all before Export (active) -> completed
+    const links = w.findAll('nav[aria-label="Connector"] a')
+    // Connect, Source Schema, CMDB Export Mapping are all implicitly done once Managed Export is active
     expect(links[0]!.find('svg').exists()).toBe(true)
-    expect(links[0]!.text()).not.toContain('1')
-    // The active step itself still shows its number
-    expect(links[3]!.text()).toContain('4')
+    expect(links[1]!.find('svg').exists()).toBe(true)
+    expect(links[2]!.find('svg').exists()).toBe(true)
+    // Managed Export itself is not a numbered/completable step — it's the active operational link
+    expect(links[3]!.text()).toContain('Managed Export')
+    expect(links[3]!.classes()).toContain('bg-nav-hover')
   })
 
   it('treats a route matching a step path prefix (export-detail) as the exports step being active', async () => {
     const w = mount(App, { global: { plugins: [await buildRouter('/exports/7')] } })
     await flushPromises()
 
-    const links = w.findAll('nav[aria-label="Workflow steps"] a')
+    const links = w.findAll('nav[aria-label="Connector"] a')
     expect(links[3]!.classes()).toContain('bg-nav-hover')
   })
 
@@ -67,7 +69,7 @@ describe('App shell', () => {
     const w = mount(App, { global: { plugins: [await buildRouter('/settings')] } })
     await flushPromises()
 
-    const links = w.findAll('nav[aria-label="Workflow steps"] a')
+    const links = w.findAll('nav[aria-label="Connector"] a')
     for (const link of links) {
       expect(link.classes()).not.toContain('bg-nav-hover')
       expect(link.find('svg').exists()).toBe(false)
@@ -90,11 +92,11 @@ describe('App shell', () => {
     expect(secondary.text()).toContain('Audit Log')
   })
 
-  it('does not render the workflow nav when logged out', async () => {
+  it('does not render the connector nav when logged out', async () => {
     vi.spyOn(authApi, 'isLoggedIn').mockReturnValue(false)
     const w = mount(App, { global: { plugins: [await buildRouter('/login')] } })
     await flushPromises()
 
-    expect(w.find('nav[aria-label="Workflow steps"]').exists()).toBe(false)
+    expect(w.find('nav[aria-label="Connector"]').exists()).toBe(false)
   })
 })

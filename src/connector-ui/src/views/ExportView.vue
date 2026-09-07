@@ -103,12 +103,11 @@ onMounted(() => {
 
 <template>
   <div class="max-w-5xl">
-    <div class="flex items-center gap-3 mb-2">
-      <span class="bg-brand text-white px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide">Step 4</span>
-      <h1 class="m-0 text-xl font-semibold text-text-primary">Export</h1>
-    </div>
+    <p class="text-text-secondary text-xs font-semibold uppercase tracking-wide m-0 mb-1">Connector · Managed Export</p>
+    <h1 class="m-0 text-xl font-semibold text-text-primary mb-2">Managed Export</h1>
 
     <p class="text-text-secondary text-sm mt-2 mb-5 leading-relaxed">
+      The standard export configured for this connector, using the CMDB Export Mapping above.
       Choose your export format, preview the data, then trigger the export. Each export run
       is logged below and requires a four-eyes release before it is considered final.
     </p>

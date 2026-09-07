@@ -110,7 +110,7 @@ describe('ExportDefinitionEditView', () => {
     vi.spyOn(exportDefinitionsApi, 'getExportDefinition').mockResolvedValueOnce(null)
     const w = mount(ExportDefinitionEditView, { global: { plugins: [await buildRouter()] } })
     await flushPromises()
-    expect(w.text()).toContain('Export definition not found.')
+    expect(w.text()).toContain('Export job not found.')
   })
 
   it('renders the root table and existing field from the loaded definition', async () => {
@@ -259,7 +259,7 @@ describe('ExportDefinitionEditView', () => {
       await flushPromises()
 
       expect(getSpy).not.toHaveBeenCalled()
-      expect(w.text()).toContain('New Export Definition')
+      expect(w.text()).toContain('New Export Job')
       expect(w.findAll('button').some((b) => b.text() === 'Create')).toBe(true)
     })
 

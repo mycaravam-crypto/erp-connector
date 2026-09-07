@@ -189,11 +189,11 @@ async function refreshRuns() {
     </Button>
 
     <p v-if="loading" class="text-text-secondary">Loading…</p>
-    <p v-else-if="notFound" class="text-danger">Export definition not found.</p>
+    <p v-else-if="notFound" class="text-danger">Export job not found.</p>
     <p v-else-if="loadError" class="text-danger">{{ loadError }}</p>
 
     <template v-else-if="definition">
-      <h1 class="m-0 text-xl font-semibold text-text-primary mb-1">{{ isSaved ? definition.name || '(untitled)' : 'New Export Definition' }}</h1>
+      <h1 class="m-0 text-xl font-semibold text-text-primary mb-1">{{ isSaved ? definition.name || '(untitled)' : 'New Export Job' }}</h1>
       <p v-if="isSaved" class="text-text-secondary text-sm mt-1 mb-5">
         Config version {{ definition.configVersion }} · created by {{ definition.createdBy }}
       </p>
@@ -205,10 +205,11 @@ async function refreshRuns() {
         @root-table-changed="onRootTableChanged"
       />
 
-      <h2 class="text-base font-semibold text-text-primary mb-2.5">Fields</h2>
+      <h2 class="text-base font-semibold text-text-primary mb-2.5">Data Structure &amp; Field Mapping</h2>
       <p class="text-text-secondary text-sm mb-3 leading-relaxed">
-        Add fields and related entities to build the export tree. Picking a related table fills in
-        every one of its columns (unchecked) so you only have to check the ones you want.
+        Add fields and related entities to build the export tree, and rename each one to its target
+        key. Picking a related table fills in every one of its columns (unchecked) so you only have
+        to check the ones you want.
       </p>
       <ExportNodeTreeEditor
         v-if="definition.rootTable"
