@@ -249,6 +249,34 @@ call-site renames), and the 3 new shared files add 109 back, for a net -160 line
 
 `tests/Connector.Core.Tests` (pure unit tests, no DB fixtures) wasn't in scope for this pass.
 
+## 4. ✅ DynamicExportService.cs split by responsibility (GitHub issue #84) — done
+
+At 820 lines / 38.5 KB, `DynamicExportService.cs` mixed the GDPR denylist, the legacy
+`ExportMappingConfig` flat/nested-JSON query builder, the Phase 14 `ExportNode` tree query engine, and
+output-format serialization (CSV/Excel/JSON) in one file. Confirmed the legacy nested-JSON path
+(`BuildNestedGroupExpr`/`ExecuteNestedJsonQueryAsync`/`UsesNestedJson`) is **not** dead code — it's still
+called by `PipelineEndpoints.cs`'s `/api/pipeline/*` endpoints, which `SchemaView.vue`/`ExportView.vue`
+actively use — so this is two live export mechanisms in one file, not one live and one dead.
+
+Split into 5 files by responsibility, kept as one `partial class` (not separate classes) so every
+existing `DynamicExportService.*` call site — 19 files across `Connector.Api`, `Connector.Infrastructure`,
+and both test projects — keeps compiling unchanged:
+
+- `DynamicExportService.cs` — shared primitives: `MaxNestedDepth`, `ExportBuildResult`, `QI`/`SqlLit`
+  (SQL quoting), `BuildConnectionString`.
+- `DynamicExportService.Gdpr.cs` — `GdprDeniedFields`, `GetDeniedFieldsAsync`, `StripGdprFieldsRecursive`.
+- `DynamicExportService.LegacyMapping.cs` — the `ExportMappingConfig`-based flat/nested-JSON query
+  builder (`GetColumnNames`, `UsesNestedJson`, `BuildExportAsync`, `ExecuteQueryAsync`,
+  `BuildNestedGroupExpr`, `ExecuteNestedJsonQueryAsync`).
+- `DynamicExportService.ExportNode.cs` — the Phase 14 `ExportNode` tree engine (query building, field
+  mapping application, column flattening, `BuildExportNodeAsync`).
+- `DynamicExportService.Output.cs` — CSV/JSON/Excel/nested-JSON byte writers, `ContentTypeFor`,
+  `BuildNamedFileName`.
+
+Purely mechanical: every method/field moved verbatim (verified by a sorted-line diff against the
+original — the only differences are new file-header comments), nothing renamed, no new
+interfaces/abstractions added, no call site outside this file touched.
+
 ## Backend tooling note
 
 No `fallow` equivalent for C#. When `dotnet` is available: `dotnet build Connector.sln -c
