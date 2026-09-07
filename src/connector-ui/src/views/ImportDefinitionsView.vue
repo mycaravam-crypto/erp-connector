@@ -36,7 +36,7 @@ async function load() {
       }),
     )
   } catch {
-    loadError.value = 'Could not load import definitions. Is the backend service running?'
+    loadError.value = 'Could not load import jobs. Is the backend service running?'
   } finally {
     loading.value = false
   }
@@ -81,7 +81,7 @@ async function confirmDelete(def: ImportDefinitionSummary) {
 
 <template>
   <div class="max-w-5xl">
-    <PageHeader title="Import Definitions">
+    <PageHeader title="Import Jobs" eyebrow="Imports · Independent Jobs">
       <template #actions>
         <RouterLink
           :to="{ name: 'import-definition-edit', params: { id: 'new' } }"
@@ -94,8 +94,8 @@ async function confirmDelete(def: ImportDefinitionSummary) {
     </PageHeader>
 
     <p class="text-text-secondary text-sm mt-2 mb-5 leading-relaxed">
-      Saved, inbound mappings for vendor JSON written back into the ERP. The <code>inbound/</code> folder
-      watcher stages a run against whichever enabled definition matches a dropped file's own
+      Independent, inbound mappings for vendor JSON written back into the ERP. The <code>inbound/</code> folder
+      watcher stages a run against whichever enabled job matches a dropped file's own
       <code>definition</code> field — no manual trigger needed.
     </p>
 
@@ -105,7 +105,7 @@ async function confirmDelete(def: ImportDefinitionSummary) {
 
     <EmptyState
       v-else-if="definitions.length === 0"
-      title="No import definitions yet"
+      title="No import jobs yet"
       description="Create one to start mapping inbound vendor JSON back into the ERP."
       class="mt-4"
     />

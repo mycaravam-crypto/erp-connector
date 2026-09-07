@@ -20,11 +20,11 @@ const setupSteps = [
 
 // Operational areas — reachable once setup is done, not part of the setup sequence itself. Each is a
 // separate saved-jobs area (its own schedule, its own runs), so each gets its own top-level pill rather
-// than nesting Export Jobs/Import Definitions inside the account menu where they were easy to miss.
+// than nesting Export Jobs/Import Jobs inside the account menu where they were easy to miss.
 const operationsLinks = [
   { to: { name: 'exports' }, label: 'Managed Export', activeNames: new Set(['exports', 'export-detail']) },
   { to: { name: 'export-definitions' }, label: 'Export Jobs', activeNames: new Set(['export-definitions', 'export-definition-edit']) },
-  { to: { name: 'import-definitions' }, label: 'Import Definitions', activeNames: new Set(['import-definitions', 'import-definition-edit']) },
+  { to: { name: 'import-definitions' }, label: 'Import Jobs', activeNames: new Set(['import-definitions', 'import-definition-edit']) },
 ]
 const OPERATIONS_ROUTES = new Set(operationsLinks.flatMap((l) => [...l.activeNames]))
 const operationsActive = computed(() => OPERATIONS_ROUTES.has(String(route.name)))

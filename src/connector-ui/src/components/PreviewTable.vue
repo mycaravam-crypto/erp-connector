@@ -52,7 +52,7 @@ const state = computed<PreviewState>(() => {
 
     <div v-else-if="state === 'preview-error'" class="bg-danger-bg border border-danger rounded-md px-4 py-3">
       <p class="m-0 mb-1 text-sm text-danger font-semibold">{{ preview!.error }}</p>
-      <p class="m-0 text-xs text-danger">Check your connection (Step 1) and make sure at least one column is enabled in Step 3.</p>
+      <p class="m-0 text-xs text-danger">Check your connection and make sure at least one column is enabled in the CMDB Export Mapping.</p>
     </div>
 
     <NestedPreviewList

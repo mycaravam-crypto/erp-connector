@@ -118,9 +118,6 @@ async function confirmDelete(def: ExportDefinitionSummary) {
     <p class="text-text-secondary text-sm mt-2 mb-5 leading-relaxed">
       Create additional independent exports with their own fields, structure, format and schedule —
       separate from the connector's <RouterLink :to="{ name: 'export-schema' }" class="text-brand hover:underline">managed CMDB export</RouterLink>.
-      Jobs here were migrated automatically from the legacy mapping screen the first time it had a
-      config to convert — edit one to point it at the right tables/columns for your actual source
-      database.
     </p>
 
     <div v-if="loading && definitions.length === 0" class="text-text-secondary text-sm mt-4">Loading…</div>
