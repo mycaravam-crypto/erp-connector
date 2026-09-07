@@ -56,7 +56,7 @@ describe('ImportDefinitionsView', () => {
     vi.spyOn(importDefinitionsApi, 'listImportDefinitions').mockResolvedValueOnce([])
     const w = mount(ImportDefinitionsView, { global: { plugins: [await buildRouter()] } })
     await flushPromises()
-    expect(w.text()).toContain('No import definitions yet.')
+    expect(w.text()).toContain('No import definitions yet')
   })
 
   it('lists definitions with an edit link', async () => {

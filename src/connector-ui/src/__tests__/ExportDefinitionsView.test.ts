@@ -58,7 +58,7 @@ describe('ExportDefinitionsView', () => {
     vi.spyOn(exportDefinitionsApi, 'listExportDefinitions').mockResolvedValueOnce([])
     const w = mount(ExportDefinitionsView, { global: { plugins: [await buildRouter()] } })
     await flushPromises()
-    expect(w.text()).toContain('No export jobs yet.')
+    expect(w.text()).toContain('No export jobs yet')
   })
 
   it('lists definitions with an edit link', async () => {

@@ -6,6 +6,8 @@
 // sample ImportEnvelope JSON here to sanity-check the tree before a real vendor file ever arrives.
 import type { ImportPlan } from '@/api/importDefinitions'
 import ImportPlanDiffTable from '@/components/ImportPlanDiffTable.vue'
+import Badge from '@/components/ui/Badge.vue'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
 
 const inboundJson = defineModel<string>('inboundJson', { default: '' })
 
@@ -19,9 +21,7 @@ defineEmits<{ refresh: [] }>()
 
 <template>
   <div>
-    <div class="flex items-center gap-3 mb-1">
-      <h2 class="m-0 text-base font-semibold text-text-primary">Preview</h2>
-    </div>
+    <SectionHeader title="Preview" class="mb-1" />
     <p class="text-xs text-text-secondary m-0 mb-2">
       Paste a sample <code>ImportEnvelope</code> JSON (schemaVersion + records[]) to see what this
       definition would do to it — nothing is written, and no run is recorded.
@@ -44,12 +44,12 @@ defineEmits<{ refresh: [] }>()
     <p v-if="error" class="text-danger text-sm">{{ error }}</p>
 
     <template v-else-if="plan">
-      <div class="flex flex-wrap gap-2 mb-3 text-xs">
-        <span class="px-2 py-1 rounded-full bg-surface-elevated text-text-secondary">{{ plan.recordCount }} record(s)</span>
-        <span class="px-2 py-1 rounded-full bg-success-bg text-success">{{ plan.changedCount }} changed</span>
-        <span class="px-2 py-1 rounded-full bg-surface-elevated text-text-muted">{{ plan.unchangedCount }} unchanged</span>
-        <span class="px-2 py-1 rounded-full bg-warning-bg text-warning">{{ plan.rejectedCount }} rejected</span>
-        <span class="px-2 py-1 rounded-full bg-danger-bg text-danger">{{ plan.invalidCount }} invalid</span>
+      <div class="flex flex-wrap gap-2 mb-3">
+        <Badge variant="neutral">{{ plan.recordCount }} record(s)</Badge>
+        <Badge variant="success">{{ plan.changedCount }} changed</Badge>
+        <Badge variant="neutral">{{ plan.unchangedCount }} unchanged</Badge>
+        <Badge variant="warning">{{ plan.rejectedCount }} rejected</Badge>
+        <Badge variant="danger">{{ plan.invalidCount }} invalid</Badge>
       </div>
 
       <ImportPlanDiffTable :operations="plan.operations" />

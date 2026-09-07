@@ -12,6 +12,9 @@ import {
 import StatusBadge from '@/components/StatusBadge.vue'
 import Button from '@/components/ui/Button.vue'
 import Alert from '@/components/ui/Alert.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import ConfirmAction from '@/components/ui/ConfirmAction.vue'
 
 const definitions = ref<ImportDefinitionSummary[]>([])
 const loading = ref(true)
@@ -78,9 +81,8 @@ async function confirmDelete(def: ImportDefinitionSummary) {
 
 <template>
   <div class="max-w-5xl">
-    <div class="flex items-center justify-between gap-3 mb-2">
-      <h1 class="m-0 text-xl font-semibold text-text-primary">Import Definitions</h1>
-      <div class="flex items-center gap-2">
+    <PageHeader title="Import Definitions">
+      <template #actions>
         <RouterLink
           :to="{ name: 'import-definition-edit', params: { id: 'new' } }"
           class="px-4 py-1.5 border-0 rounded-md bg-brand text-white text-sm font-semibold no-underline hover:bg-brand-hover"
@@ -88,8 +90,8 @@ async function confirmDelete(def: ImportDefinitionSummary) {
         <Button variant="secondary" :loading="loading" @click="load">
           {{ loading ? 'Loading…' : 'Refresh' }}
         </Button>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <p class="text-text-secondary text-sm mt-2 mb-5 leading-relaxed">
       Saved, inbound mappings for vendor JSON written back into the ERP. The <code>inbound/</code> folder
@@ -101,9 +103,12 @@ async function confirmDelete(def: ImportDefinitionSummary) {
 
     <Alert v-else-if="loadError" variant="danger" class="mt-4">{{ loadError }}</Alert>
 
-    <div v-else-if="definitions.length === 0" class="text-text-secondary text-sm mt-4">
-      No import definitions yet.
-    </div>
+    <EmptyState
+      v-else-if="definitions.length === 0"
+      title="No import definitions yet"
+      description="Create one to start mapping inbound vendor JSON back into the ERP."
+      class="mt-4"
+    />
 
     <table v-else class="w-full text-sm border-collapse">
       <thead>
@@ -147,25 +152,22 @@ async function confirmDelete(def: ImportDefinitionSummary) {
                 :disabled="duplicatingId === def.id"
                 @click="duplicate(def)"
               >{{ duplicatingId === def.id ? 'Duplicating…' : 'Duplicate' }}</button>
-              <template v-if="confirmingDeleteId === def.id">
-                <button
-                  type="button"
-                  class="text-danger text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline disabled:opacity-50"
-                  :disabled="deletingId === def.id"
-                  @click="confirmDelete(def)"
-                >Confirm</button>
-                <button
-                  type="button"
-                  class="text-text-secondary text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline"
-                  @click="confirmingDeleteId = null"
-                >Cancel</button>
-              </template>
-              <button
-                v-else
-                type="button"
-                class="text-danger text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline"
-                @click="confirmingDeleteId = def.id"
-              >Delete</button>
+              <ConfirmAction
+                variant="link"
+                :confirming="confirmingDeleteId === def.id"
+                :busy="deletingId === def.id"
+                :confirm-label="deletingId === def.id ? 'Deleting…' : 'Confirm'"
+                @update:confirming="(v) => (confirmingDeleteId = v ? def.id : null)"
+                @confirm="confirmDelete(def)"
+              >
+                <template #trigger="{ open }">
+                  <button
+                    type="button"
+                    class="text-danger text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline"
+                    @click="open"
+                  >Delete</button>
+                </template>
+              </ConfirmAction>
             </div>
           </td>
         </tr>

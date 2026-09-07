@@ -13,6 +13,9 @@ import {
 import StatusBadge from '@/components/StatusBadge.vue'
 import Button from '@/components/ui/Button.vue'
 import Alert from '@/components/ui/Alert.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import ConfirmAction from '@/components/ui/ConfirmAction.vue'
 
 const definitions = ref<ExportDefinitionSummary[]>([])
 const loading = ref(true)
@@ -100,12 +103,8 @@ async function confirmDelete(def: ExportDefinitionSummary) {
 
 <template>
   <div class="max-w-5xl">
-    <div class="flex items-center justify-between gap-3 mb-2">
-      <div>
-        <p class="text-text-secondary text-xs font-semibold uppercase tracking-wide m-0 mb-1">Exports · Independent Jobs</p>
-        <h1 class="m-0 text-xl font-semibold text-text-primary">Export Jobs</h1>
-      </div>
-      <div class="flex items-center gap-2">
+    <PageHeader title="Export Jobs" eyebrow="Exports · Independent Jobs">
+      <template #actions>
         <RouterLink
           :to="{ name: 'export-definition-edit', params: { id: 'new' } }"
           class="px-4 py-1.5 border-0 rounded-md bg-brand text-white text-sm font-semibold no-underline hover:bg-brand-hover"
@@ -113,8 +112,8 @@ async function confirmDelete(def: ExportDefinitionSummary) {
         <Button variant="secondary" :loading="loading" @click="load">
           {{ loading ? 'Loading…' : 'Refresh' }}
         </Button>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <p class="text-text-secondary text-sm mt-2 mb-5 leading-relaxed">
       Create additional independent exports with their own fields, structure, format and schedule —
@@ -128,9 +127,12 @@ async function confirmDelete(def: ExportDefinitionSummary) {
 
     <Alert v-else-if="loadError" variant="danger" class="mt-4">{{ loadError }}</Alert>
 
-    <div v-else-if="definitions.length === 0" class="text-text-secondary text-sm mt-4">
-      No export jobs yet.
-    </div>
+    <EmptyState
+      v-else-if="definitions.length === 0"
+      title="No export jobs yet"
+      description="Create one to start exporting records from a table on their own schedule."
+      class="mt-4"
+    />
 
     <table v-else class="w-full text-sm border-collapse">
       <thead>
@@ -183,25 +185,22 @@ async function confirmDelete(def: ExportDefinitionSummary) {
                   :disabled="duplicatingId === def.id"
                   @click="duplicate(def)"
                 >{{ duplicatingId === def.id ? 'Duplicating…' : 'Duplicate' }}</button>
-                <template v-if="confirmingDeleteId === def.id">
-                  <button
-                    type="button"
-                    class="text-danger text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline disabled:opacity-50"
-                    :disabled="deletingId === def.id"
-                    @click="confirmDelete(def)"
-                  >Confirm</button>
-                  <button
-                    type="button"
-                    class="text-text-secondary text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline"
-                    @click="confirmingDeleteId = null"
-                  >Cancel</button>
-                </template>
-                <button
-                  v-else
-                  type="button"
-                  class="text-danger text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline"
-                  @click="confirmingDeleteId = def.id"
-                >Delete</button>
+                <ConfirmAction
+                  variant="link"
+                  :confirming="confirmingDeleteId === def.id"
+                  :busy="deletingId === def.id"
+                  :confirm-label="deletingId === def.id ? 'Deleting…' : 'Confirm'"
+                  @update:confirming="(v) => (confirmingDeleteId = v ? def.id : null)"
+                  @confirm="confirmDelete(def)"
+                >
+                  <template #trigger="{ open }">
+                    <button
+                      type="button"
+                      class="text-danger text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline"
+                      @click="open"
+                    >Delete</button>
+                  </template>
+                </ConfirmAction>
               </div>
             </td>
           </tr>

@@ -81,6 +81,17 @@
   --transition-duration-base: 200ms;
   --transition-duration-slow: 300ms;
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Typography scale. Named alongside (not replacing) Tailwind's default
+     text-xs/sm/base/lg/xl sizes, so existing usage is untouched — these
+     give the new PageHeader/SectionHeader primitives one documented size
+     to converge on instead of each view picking its own text-xl/text-base.
+     Only tokens with a consuming utility class live here — see the CSS
+     styling audit's dead-token-surface check. */
+  --text-page-title: 1.25rem;
+  --text-page-title--line-height: 1.75rem;
+  --text-section-heading: 1rem;
+  --text-section-heading--line-height: 1.5rem;
 }
 
 :root {
