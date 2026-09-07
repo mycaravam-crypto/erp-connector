@@ -99,7 +99,7 @@ describe('DashboardView', () => {
     const w = mount(DashboardView, { global: { plugins: [await buildRouter()] } })
     await flushPromises()
     expect(w.text()).toContain('Export Jobs')
-    expect(w.text()).toContain('Import Definitions')
+    expect(w.text()).toContain('Import Jobs')
     expect(w.text()).toContain('Source Schema')
   })
 })

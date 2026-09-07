@@ -11,7 +11,7 @@ const route = useRoute()
 const open = ref(false)
 const rootEl = ref<HTMLElement | null>(null)
 
-// Export Jobs and Import Definitions moved to top-level nav pills in App.vue — this menu now holds only
+// Export Jobs and Import Jobs moved to top-level nav pills in App.vue — this menu now holds only
 // the connector-configuration screens that don't need to be always-visible.
 const links = [
   { name: 'icd-schema', label: 'ICD Schema' },

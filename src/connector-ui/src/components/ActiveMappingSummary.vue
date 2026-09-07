@@ -24,8 +24,8 @@ const enabledRelationFields = computed(() =>
       <h2 class="m-0 text-base font-semibold text-text-primary">Active Mapping</h2>
       <span v-if="mapping" class="inline-block px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide bg-success-bg text-success">Live Postgres</span>
       <span v-else class="inline-block px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide bg-surface-elevated text-text-secondary">Not configured</span>
-      <RouterLink v-if="mapping" :to="{ name: 'export-schema' }" class="ml-auto px-2.5 py-1 border border-border-strong rounded-md bg-surface text-xs text-text-secondary no-underline hover:bg-surface-elevated">Edit in Step 3 →</RouterLink>
-      <RouterLink v-else :to="{ name: 'export-schema' }" class="ml-auto px-2.5 py-1 border border-border-strong rounded-md bg-surface text-xs text-text-secondary no-underline hover:bg-surface-elevated">Configure in Step 3 →</RouterLink>
+      <RouterLink v-if="mapping" :to="{ name: 'export-schema' }" class="ml-auto px-2.5 py-1 border border-border-strong rounded-md bg-surface text-xs text-text-secondary no-underline hover:bg-surface-elevated">Edit CMDB Export Mapping →</RouterLink>
+      <RouterLink v-else :to="{ name: 'export-schema' }" class="ml-auto px-2.5 py-1 border border-border-strong rounded-md bg-surface text-xs text-text-secondary no-underline hover:bg-surface-elevated">Configure CMDB Export Mapping →</RouterLink>
     </div>
 
     <div v-if="mapping">
@@ -56,7 +56,7 @@ const enabledRelationFields = computed(() =>
       </div>
     </div>
     <p v-else class="text-sm text-text-secondary m-0">
-      No export mapping saved yet. Configure one in Step 3 before running an export.
+      No export mapping saved yet. Configure the CMDB Export Mapping before running an export.
     </p>
   </div>
 </template>

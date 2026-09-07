@@ -35,7 +35,7 @@ const links = [
   { to: { name: 'export-schema' }, title: 'CMDB Export Mapping', description: 'The managed export field mapping to the CMDB.' },
   { to: { name: 'exports' }, title: 'Managed Export', description: 'Run and review the managed CMDB export.' },
   { to: { name: 'export-definitions' }, title: 'Export Jobs', description: 'Independent export jobs with their own schedule.' },
-  { to: { name: 'import-definitions' }, title: 'Import Definitions', description: 'Saved mappings for inbound vendor JSON.' },
+  { to: { name: 'import-definitions' }, title: 'Import Jobs', description: 'Independent inbound data imports.' },
   { to: { name: 'source-schema' }, title: 'Source Schema', description: 'Browse the connected ERP database schema.' },
   { to: { name: 'icd-schema' }, title: 'ICD Schema', description: 'The interface control document field list.' },
 ] as const
@@ -70,7 +70,7 @@ const links = [
         </p>
       </Card>
       <Card>
-        <p class="m-0 text-xs font-semibold uppercase tracking-wide text-text-secondary mb-1">Import Definitions</p>
+        <p class="m-0 text-xs font-semibold uppercase tracking-wide text-text-secondary mb-1">Import Jobs</p>
         <p class="m-0 text-2xl font-semibold text-text-primary">
           {{ enabledImportDefinitionCount ?? '—' }}<span v-if="importDefinitionCount !== null" class="text-base font-normal text-text-muted"> / {{ importDefinitionCount }} enabled</span>
         </p>

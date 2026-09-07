@@ -424,7 +424,6 @@ onMounted(load)
 <template>
   <div class="max-w-4xl">
     <div class="flex items-center gap-3 mb-2">
-      <span class="bg-brand text-white px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide shrink-0">Step 3</span>
       <h1 class="m-0 text-xl font-semibold text-text-primary flex-1">CMDB Export Mapping</h1>
       <Button variant="secondary" :disabled="loading" @click="load">Refresh</Button>
     </div>

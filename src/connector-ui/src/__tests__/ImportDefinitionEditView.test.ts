@@ -108,7 +108,7 @@ describe('ImportDefinitionEditView', () => {
     vi.spyOn(importDefinitionsApi, 'getImportDefinition').mockResolvedValueOnce(null)
     const w = mount(ImportDefinitionEditView, { global: { plugins: [await buildRouter()] } })
     await flushPromises()
-    expect(w.text()).toContain('Import definition not found.')
+    expect(w.text()).toContain('Import job not found.')
   })
 
   it('renders the root table, match column, and allowed columns from the loaded definition', async () => {
@@ -335,7 +335,7 @@ describe('ImportDefinitionEditView', () => {
       await flushPromises()
 
       expect(getSpy).not.toHaveBeenCalled()
-      expect(w.text()).toContain('New Import Definition')
+      expect(w.text()).toContain('New Import Job')
       expect(w.text()).toContain('Start from')
       expect(w.findAll('button').some((b) => b.text() === 'Create')).toBe(false)
 

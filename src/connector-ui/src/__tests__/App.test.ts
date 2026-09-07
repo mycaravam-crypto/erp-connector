@@ -56,9 +56,9 @@ describe('App shell', () => {
     // Managed Export itself is not a numbered/completable step — it's the active operational link
     expect(links[3]!.text()).toContain('Managed Export')
     expect(links[3]!.classes()).toContain('bg-nav-hover')
-    // Export Jobs and Import Definitions are top-level pills alongside it, both inactive here
+    // Export Jobs and Import Jobs are top-level pills alongside it, both inactive here
     expect(links[4]!.text()).toContain('Export Jobs')
-    expect(links[5]!.text()).toContain('Import Definitions')
+    expect(links[5]!.text()).toContain('Import Jobs')
     expect(links[4]!.classes()).not.toContain('bg-nav-hover')
     expect(links[5]!.classes()).not.toContain('bg-nav-hover')
   })
@@ -105,7 +105,7 @@ describe('App shell', () => {
     expect(secondary.text()).toContain('ICD Schema')
     expect(secondary.text()).toContain('Settings')
     expect(secondary.text()).toContain('Audit Log')
-    // Export Jobs/Import Definitions moved to the top-level Connector nav, not the account menu
+    // Export Jobs/Import Jobs moved to the top-level Connector nav, not the account menu
     expect(secondary.text()).not.toContain('Export Jobs')
   })
 

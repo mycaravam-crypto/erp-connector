@@ -49,14 +49,14 @@ describe('ImportDefinitionsView', () => {
     vi.spyOn(importDefinitionsApi, 'listImportDefinitions').mockRejectedValueOnce(new Error('network'))
     const w = mount(ImportDefinitionsView, { global: { plugins: [await buildRouter()] } })
     await flushPromises()
-    expect(w.text()).toContain('Could not load import definitions')
+    expect(w.text()).toContain('Could not load import jobs')
   })
 
   it('shows an empty-state message when there are no definitions', async () => {
     vi.spyOn(importDefinitionsApi, 'listImportDefinitions').mockResolvedValueOnce([])
     const w = mount(ImportDefinitionsView, { global: { plugins: [await buildRouter()] } })
     await flushPromises()
-    expect(w.text()).toContain('No import definitions yet')
+    expect(w.text()).toContain('No import jobs yet')
   })
 
   it('lists definitions with an edit link', async () => {

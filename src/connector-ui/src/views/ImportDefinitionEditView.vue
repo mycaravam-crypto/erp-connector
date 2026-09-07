@@ -231,11 +231,11 @@ function onReviewResolved() {
     </Button>
 
     <p v-if="loading" class="text-text-secondary">Loading…</p>
-    <p v-else-if="notFound" class="text-danger">Import definition not found.</p>
+    <p v-else-if="notFound" class="text-danger">Import job not found.</p>
     <p v-else-if="loadError" class="text-danger">{{ loadError }}</p>
 
     <template v-else-if="definition">
-      <h1 class="m-0 text-xl font-semibold text-text-primary mb-1">{{ isSaved ? definition.name || '(untitled)' : 'New Import Definition' }}</h1>
+      <h1 class="m-0 text-xl font-semibold text-text-primary mb-1">{{ isSaved ? definition.name || '(untitled)' : 'New Import Job' }}</h1>
       <p v-if="isSaved" class="text-text-secondary text-sm mt-1 mb-5">
         Config version {{ definition.configVersion }} · created by {{ definition.createdBy }}
       </p>

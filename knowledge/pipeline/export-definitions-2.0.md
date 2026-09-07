@@ -246,9 +246,9 @@ connection-provider abstraction only if per-export connection sourcing becomes a
    scheduling convention.
 2. **Legacy mapping cutover** — **Resolved: `ExportMappingEndpoints` `PUT` (mapping and presets)
    stays fully read/write, unconditionally.** A read-only lock once the migrator ran shipped
-   first, then was reversed: it broke the still-supported "configure via Step 3, save, trigger via
-   `POST /api/pipeline/run`" workflow, which never needed ExportDefinitions and got silently
-   locked out the moment the migrator saw a legacy config. ExportDefinitions remains a separate,
+   first, then was reversed: it broke the still-supported "configure via CMDB Export Mapping, save,
+   trigger via `POST /api/pipeline/run`" workflow, which never needed ExportDefinitions and got
+   silently locked out the moment the migrator saw a legacy config. ExportDefinitions remains a separate,
    opt-in feature — it doesn't gate or supersede the legacy single-mapping flow.
 3. **Test-run cap** — **Resolved: 50 rows, fixed** (not user-configurable) for this phase.
 
