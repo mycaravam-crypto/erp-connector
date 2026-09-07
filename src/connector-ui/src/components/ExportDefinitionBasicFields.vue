@@ -50,7 +50,7 @@ const correlationKeySourceFieldInput = nullableTextInput('correlationKeySourceFi
         type="text"
         v-model="definition.name"
         aria-label="Name"
-        class="flex-1 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary outline-none focus:border-brand"
+        class="flex-1 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary bg-surface outline-none focus:border-brand"
       />
     </div>
     <div class="flex items-center gap-2">
@@ -60,7 +60,7 @@ const correlationKeySourceFieldInput = nullableTextInput('correlationKeySourceFi
         v-model="definition.description"
         placeholder="optional"
         aria-label="Description"
-        class="flex-1 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary outline-none focus:border-brand"
+        class="flex-1 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary bg-surface outline-none focus:border-brand"
       />
     </div>
     <div class="flex items-center gap-2">
@@ -82,7 +82,7 @@ const correlationKeySourceFieldInput = nullableTextInput('correlationKeySourceFi
         v-model="definition.rootTable"
         placeholder="e.g. systemconfiguration"
         aria-label="Root table"
-        class="flex-1 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary font-mono outline-none focus:border-brand"
+        class="flex-1 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary font-mono bg-surface outline-none focus:border-brand"
       />
       <span v-if="rootTableLocked" class="text-xs text-text-muted">clear all fields to change</span>
     </div>
@@ -113,7 +113,7 @@ const correlationKeySourceFieldInput = nullableTextInput('correlationKeySourceFi
         v-model="integrationKeyInput"
         placeholder="e.g. ci-confirmation"
         aria-label="Integration key"
-        class="flex-1 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary font-mono outline-none focus:border-brand"
+        class="flex-1 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary font-mono bg-surface outline-none focus:border-brand"
       />
     </div>
     <div class="flex items-center gap-2">
@@ -124,7 +124,7 @@ const correlationKeySourceFieldInput = nullableTextInput('correlationKeySourceFi
         v-model.number="contractVersionInput"
         placeholder="1"
         aria-label="Contract version"
-        class="w-24 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary outline-none focus:border-brand"
+        class="w-24 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary bg-surface outline-none focus:border-brand"
       />
       <span class="text-xs text-text-muted">set together with the integration key, or leave both blank</span>
     </div>
@@ -135,7 +135,7 @@ const correlationKeySourceFieldInput = nullableTextInput('correlationKeySourceFi
         v-model="correlationKeySourceFieldInput"
         placeholder="e.g. guid"
         aria-label="Correlation key field"
-        class="flex-1 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary font-mono outline-none focus:border-brand"
+        class="flex-1 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary font-mono bg-surface outline-none focus:border-brand"
       />
       <span class="text-xs text-text-muted">the root field name an inbound reply matches back against</span>
     </div>
