@@ -18,7 +18,7 @@ test.describe('Navigation', () => {
     await expect(links.nth(0)).toContainText('Connect')
     await expect(links.nth(1)).toContainText('Source Schema')
     await expect(links.nth(2)).toContainText('CMDB Export Mapping')
-    await expect(links.nth(3)).toContainText('Export')
+    await expect(links.nth(3)).toContainText('Managed Export')
   })
 
   test('unknown route shows 404 page', async ({ page }) => {
@@ -41,8 +41,8 @@ test.describe('Navigation', () => {
 
   test('navigates to Export Runs', async ({ page }) => {
     await loginAs(page)
-    // Step 4 — Export. Index-based because step 3 "CMDB Export Mapping" also matches /export/i,
-    // and was nth(0) in DOM order — the previous version of this test clicked the wrong link.
+    // Managed Export. Index-based because "CMDB Export Mapping" also matches /export/i and comes
+    // first in DOM order — the previous version of this test clicked the wrong link.
     await page.getByRole('navigation').getByRole('link').nth(3).click()
     await expect(page).toHaveURL(/\/exports/)
   })

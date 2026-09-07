@@ -101,7 +101,10 @@ async function confirmDelete(def: ExportDefinitionSummary) {
 <template>
   <div class="max-w-5xl">
     <div class="flex items-center justify-between gap-3 mb-2">
-      <h1 class="m-0 text-xl font-semibold text-text-primary">Export Jobs</h1>
+      <div>
+        <p class="text-text-secondary text-xs font-semibold uppercase tracking-wide m-0 mb-1">Exports · Independent Jobs</p>
+        <h1 class="m-0 text-xl font-semibold text-text-primary">Export Jobs</h1>
+      </div>
       <div class="flex items-center gap-2">
         <RouterLink
           :to="{ name: 'export-definition-edit', params: { id: 'new' } }"
