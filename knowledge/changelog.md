@@ -6,7 +6,28 @@ tags: [changelog, roadmap, history]
 timestamp: 2026-09-03T00:00:00Z
 ---
 
-Last updated: 2026-09-06
+Last updated: 2026-09-07
+
+---
+
+## Phase 19 — Connector Setup / Operations UI terminology cleanup ✅
+
+Finished separating the UI's three usage contexts called for in the Connector Setup/Managed
+Export/independent-Jobs UX split: Connector Setup (Connect, Source Schema, CMDB Export Mapping),
+the regulated Managed Export (unchanged Four-Eyes Approval and release process), and independent
+Export Jobs/Import Jobs. Presentation-layer only — `ExportDefinition`/`ImportDefinition`,
+`/api/export-definitions`, `/api/import-definitions` and the rest of the domain model/API are
+untouched.
+
+| Item | Notes |
+|---|---|
+| Removed the last "Step 3" badge | `SchemaView.vue`'s CMDB Export Mapping screen no longer looks like an in-progress wizard step; `PreviewTable.vue`'s error copy and `ActiveMappingSummary.vue`'s CTA links dropped their "Step 1"/"Step 3" references too |
+| Dropped the permanent legacy-migration blurb | `ExportDefinitionsView.vue` no longer permanently tells every visitor that jobs were "migrated automatically from the legacy mapping screen" — that's a one-time system event, not a durable UI concept |
+| "Import Definitions" renamed to "Import Jobs" | Nav pill, dashboard card/link, list page title/eyebrow/empty-state, and the "New Import Definition"/"Import definition not found" edit-view copy — matches the "Export Jobs" naming already in place |
+| Docs reconciled | [On-Demand Pipeline Run](/api/on-demand-run.md) and [Export Definitions 2.0](/pipeline/export-definitions-2.0.md)'s "Step 3" references updated to "CMDB Export Mapping" — they pointed at a screen landmark that no longer exists. This changelog's own past Step 3/4 mentions are left as a historical record of what the UI looked like at the time |
+
+**Verification:** full frontend suite (`npm test`, 406/406 passing), `vue-tsc --build` clean,
+`fallow audit` clean on every changed file.
 
 ---
 
