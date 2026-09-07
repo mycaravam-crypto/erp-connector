@@ -17,13 +17,17 @@ const inboundJson = ref('')
 const checking = ref(false)
 const checked = ref(false)
 const suggestion = ref<ImportMappingSuggestion | null>(null)
+const missReason = ref<string | null>(null)
 
 async function check() {
   checking.value = true
   checked.value = false
   suggestion.value = null
+  missReason.value = null
   try {
-    suggestion.value = await suggestImportMappingFromExport(inboundJson.value)
+    const result = await suggestImportMappingFromExport(inboundJson.value)
+    suggestion.value = result.suggestion
+    missReason.value = result.reason
   } finally {
     checking.value = false
     checked.value = true
@@ -44,7 +48,7 @@ async function check() {
       rows="5"
       placeholder='{"schemaVersion": "1", "provenance": {"integrationKey": "...", "contractVersion": 1}, "records": [...]}'
       aria-label="Sample inbound JSON"
-      class="w-full px-3 py-2 border border-border-strong rounded-md text-xs font-mono text-text-primary outline-none focus:border-brand mb-2"
+      class="w-full px-3 py-2 border border-border-strong rounded-md text-xs font-mono text-text-primary bg-surface outline-none focus:border-brand mb-2"
     ></textarea>
 
     <div class="flex items-center gap-2 flex-wrap">
@@ -64,7 +68,7 @@ async function check() {
       <Button @click="emit('accept', suggestion)">Create from export</Button>
     </div>
     <p v-else-if="checked" class="mt-3 text-sm text-text-secondary">
-      No matching export found for this sample — start blank instead, or check a different sample.
+      {{ missReason ?? 'No matching export found for this sample — start blank instead, or check a different sample.' }}
     </p>
   </div>
 </template>

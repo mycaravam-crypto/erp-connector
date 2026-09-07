@@ -299,12 +299,13 @@ static partial class ImportDefinitionEndpoints
 
         // Slice 4 (knowledge/pipeline/import-mapping-presets.md §3.4/§4): the "Create from export"
         // suggestion the New Import Definition flow offers. Takes the same sample ImportEnvelope JSON the
-        // preview panel already accepts and looks for an enabled ExportDefinition whose provenance pair
-        // matches it. No persistence, no ERP connection — this only ever reads ExportDefinitions.
-        // Degrades to `null` (200 OK) for anything short of an exact match, per the pure
-        // ImportMappingSuggestion.SuggestFrom's own contract: malformed JSON, no provenance block, no
-        // match, and a matched export missing CorrelationKeySourceField are all "nothing to suggest," never
-        // an error the operator has to dismiss.
+        // preview panel already accepts and looks for an ExportDefinition whose provenance pair matches it.
+        // No persistence, no ERP connection — this only ever reads ExportDefinitions. Always 200 OK — a
+        // miss is a normal lookup outcome, never a 4xx — but unlike Slice 3's pure
+        // ImportMappingSuggestion.SuggestFrom, a miss here always carries a `Reason` explaining which gate
+        // stopped it (malformed/no-provenance sample, no export tagged with that key/version, one tagged
+        // but disabled, or one tagged and enabled but missing CorrelationKeySourceField) instead of a flat
+        // null, so the operator isn't left guessing why a provenance-carrying paste "wasn't recognized."
         app.MapPost(
                 "/api/import-definitions/suggest-from-export",
                 async (ImportMappingSuggestionRequest request, ExportLogDbContext db, CancellationToken ct) =>

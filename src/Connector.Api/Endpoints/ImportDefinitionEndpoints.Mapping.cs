@@ -47,13 +47,14 @@ static partial class ImportDefinitionEndpoints
         );
 
     /// <summary>
-    /// Loads every enabled, provenance-tagged <see cref="ExportDefinitionEntity"/>, extracts the sample's
+    /// Loads every provenance-tagged <see cref="ExportDefinitionEntity"/> — enabled or not, so a disabled
+    /// match can be named specifically rather than folded into "nothing matches" — extracts the sample's
     /// provenance pair and first record's field names from <paramref name="inboundJson"/>, and delegates to
-    /// <see cref="ImportMappingSuggestion.SuggestFrom"/>. `internal` (rather than `private`) so a unit test
-    /// can exercise it directly against the in-memory Sqlite <c>LocalDb</c> fixture — this never opens an
-    /// ERP connection, unlike <see cref="ValidateRequestAsync"/>, so it needs no Postgres testdb.
+    /// <see cref="ImportMappingSuggestion.Evaluate"/>. `internal` (rather than `private`) so a unit test can
+    /// exercise it directly against the in-memory Sqlite <c>LocalDb</c> fixture — this never opens an ERP
+    /// connection, unlike <see cref="ValidateRequestAsync"/>, so it needs no Postgres testdb.
     /// </summary>
-    internal static async Task<ImportMappingSuggestionDto?> BuildSuggestionAsync(
+    internal static async Task<ImportMappingSuggestionCheckResult> BuildSuggestionAsync(
         string inboundJson,
         ExportLogDbContext db,
         CancellationToken ct
@@ -61,9 +62,14 @@ static partial class ImportDefinitionEndpoints
     {
         var sample = TryParseSample(inboundJson);
         if (sample is null)
-            return null;
+            return new ImportMappingSuggestionCheckResult(
+                null,
+                "This sample has no readable provenance.integrationKey. Paste the complete exported JSON "
+                    + "file — including its top-level \"provenance\" block — not just an excerpt or the "
+                    + "records array alone."
+            );
 
-        var candidates = await db.ExportDefinitions.Where(e => e.IsEnabled && e.IntegrationKey != null).ToListAsync(ct);
+        var candidates = await db.ExportDefinitions.Where(e => e.IntegrationKey != null).ToListAsync(ct);
 
         var shapes = new List<(ExportDefinitionEntity Entity, ExportDefinitionShape Shape)>();
         foreach (var entity in candidates)
@@ -86,13 +92,41 @@ static partial class ImportDefinitionEndpoints
             );
         }
 
-        var result = ImportMappingSuggestion.SuggestFrom([.. shapes.Select(s => s.Shape)], sample);
-        if (result is null)
-            return null;
+        var outcome = ImportMappingSuggestion.Evaluate([.. shapes.Select(s => s.Shape)], sample);
 
-        // Guaranteed to exist: `result` is only non-null when SuggestFrom found a shape built from one of
-        // these exact entities, matching the same (IntegrationKey, ContractVersion) pair as `sample`. The
-        // Slice 1 uniqueness constraint means there is never more than one.
+        if (outcome.Result is null)
+        {
+            // The same (IntegrationKey, ContractVersion) pair Evaluate looked for — present whenever the
+            // miss is DefinitionDisabled/MissingCorrelationKeySourceField (Evaluate only returns those once
+            // it has found a claiming shape), absent for NoDefinitionForPair.
+            var pairMatch = shapes.FirstOrDefault(s =>
+                s.Entity.IntegrationKey == sample.IntegrationKey && s.Entity.ContractVersion == sample.ContractVersion
+            );
+
+            var pairMatchName = pairMatch.Entity?.Name ?? "that export";
+            var reason = outcome.Miss switch
+            {
+                ImportMappingSuggestionMiss.NoDefinitionForPair =>
+                    $"No export definition is tagged with integration key \"{sample.IntegrationKey}\" "
+                        + $"v{sample.ContractVersion?.ToString() ?? "?"}. Check the key and contract version "
+                        + "on the export you meant to pair this with.",
+                ImportMappingSuggestionMiss.DefinitionDisabled =>
+                    $"Export \"{pairMatchName}\" is tagged with this integration key and version, but it's "
+                        + "disabled, so it can never be suggested. Enable it to use this pairing.",
+                ImportMappingSuggestionMiss.MissingCorrelationKeySourceField =>
+                    $"Export \"{pairMatchName}\" matches this integration key and version, but has no "
+                        + "Correlation key field set. Add one under that export's \"Integration tagging\" "
+                        + "section, then check this sample again.",
+                _ => "No matching export found for this sample.",
+            };
+            return new ImportMappingSuggestionCheckResult(null, reason);
+        }
+
+        var result = outcome.Result;
+
+        // Guaranteed to exist: `outcome.Result` is only non-null when Evaluate found a shape built from one
+        // of these exact entities, matching the same (IntegrationKey, ContractVersion) pair as `sample`. The
+        // Slice 1 uniqueness constraint means there is never more than one enabled one.
         var matched = shapes.First(s =>
             s.Entity.IsEnabled
             && s.Entity.IntegrationKey == sample.IntegrationKey
@@ -110,7 +144,7 @@ static partial class ImportDefinitionEndpoints
             )
             ?.TargetKey;
 
-        return new ImportMappingSuggestionDto(
+        var dto = new ImportMappingSuggestionDto(
             matched.Entity.Id,
             matched.Entity.Name,
             matched.Entity.IntegrationKey!,
@@ -125,6 +159,7 @@ static partial class ImportDefinitionEndpoints
                 )),
             ]
         );
+        return new ImportMappingSuggestionCheckResult(dto, null);
     }
 
     /// <summary>

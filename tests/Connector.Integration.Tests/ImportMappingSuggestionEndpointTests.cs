@@ -81,12 +81,14 @@ public sealed class ImportMappingSuggestionEndpointTests
         var root = ExportRoot(ExportScalar("guidField", "guid"), ExportScalar("status", "status"));
         var export = await SeedExportAsync(local, "ci-confirmation", 1, root);
 
-        var suggestion = await ImportDefinitionEndpoints.BuildSuggestionAsync(
+        var checkResult = await ImportDefinitionEndpoints.BuildSuggestionAsync(
             SampleEnvelope,
             local.Db,
             CancellationToken.None
         );
 
+        Assert.Null(checkResult.Reason);
+        var suggestion = checkResult.Suggestion;
         Assert.NotNull(suggestion);
         Assert.Equal(export.Id, suggestion.ExportDefinitionId);
         Assert.Equal("CI confirmation export", suggestion.ExportDefinitionName);
@@ -103,51 +105,55 @@ public sealed class ImportMappingSuggestionEndpointTests
     }
 
     [Fact]
-    public async Task NoProvenanceBlock_ReturnsNullSilently()
+    public async Task NoProvenanceBlock_ReturnsNullSuggestionWithExplanation()
     {
         await using var local = await LocalDb.NewAsync();
         await SeedExportAsync(local, "ci-confirmation", 1, ExportRoot(ExportScalar("guid", "guid")));
 
-        var suggestion = await ImportDefinitionEndpoints.BuildSuggestionAsync(
+        var checkResult = await ImportDefinitionEndpoints.BuildSuggestionAsync(
             """{"schemaVersion":"1","records":[{"guid":"abc"}]}""",
             local.Db,
             CancellationToken.None
         );
 
-        Assert.Null(suggestion);
+        Assert.Null(checkResult.Suggestion);
+        Assert.Contains("provenance", checkResult.Reason, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public async Task MalformedJson_ReturnsNullSilentlyRatherThanThrowing()
+    public async Task MalformedJson_ReturnsNullSuggestionRatherThanThrowing()
     {
         await using var local = await LocalDb.NewAsync();
 
-        var suggestion = await ImportDefinitionEndpoints.BuildSuggestionAsync(
+        var checkResult = await ImportDefinitionEndpoints.BuildSuggestionAsync(
             "not json at all {{{",
             local.Db,
             CancellationToken.None
         );
 
-        Assert.Null(suggestion);
+        Assert.Null(checkResult.Suggestion);
+        Assert.NotNull(checkResult.Reason);
     }
 
     [Fact]
-    public async Task NoMatchingExport_ReturnsNull()
+    public async Task NoMatchingExport_NamesTheMissingKeyAndVersion()
     {
         await using var local = await LocalDb.NewAsync();
         await SeedExportAsync(local, "some-other-key", 1, ExportRoot(ExportScalar("guid", "guid")));
 
-        var suggestion = await ImportDefinitionEndpoints.BuildSuggestionAsync(
+        var checkResult = await ImportDefinitionEndpoints.BuildSuggestionAsync(
             SampleEnvelope,
             local.Db,
             CancellationToken.None
         );
 
-        Assert.Null(suggestion);
+        Assert.Null(checkResult.Suggestion);
+        Assert.Contains("ci-confirmation", checkResult.Reason);
+        Assert.Contains("v1", checkResult.Reason);
     }
 
     [Fact]
-    public async Task DisabledExport_IsNeverSuggested()
+    public async Task DisabledExport_IsNeverSuggested_ButNamedInTheReason()
     {
         await using var local = await LocalDb.NewAsync();
         await SeedExportAsync(
@@ -158,17 +164,19 @@ public sealed class ImportMappingSuggestionEndpointTests
             isEnabled: false
         );
 
-        var suggestion = await ImportDefinitionEndpoints.BuildSuggestionAsync(
+        var checkResult = await ImportDefinitionEndpoints.BuildSuggestionAsync(
             SampleEnvelope,
             local.Db,
             CancellationToken.None
         );
 
-        Assert.Null(suggestion);
+        Assert.Null(checkResult.Suggestion);
+        Assert.Contains("CI confirmation export", checkResult.Reason);
+        Assert.Contains("disabled", checkResult.Reason, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public async Task ExportWithNoCorrelationKeySourceField_ReturnsNull()
+    public async Task ExportWithNoCorrelationKeySourceField_NamesTheMissingField()
     {
         await using var local = await LocalDb.NewAsync();
         await SeedExportAsync(
@@ -179,13 +187,15 @@ public sealed class ImportMappingSuggestionEndpointTests
             correlationKeySourceField: null
         );
 
-        var suggestion = await ImportDefinitionEndpoints.BuildSuggestionAsync(
+        var checkResult = await ImportDefinitionEndpoints.BuildSuggestionAsync(
             SampleEnvelope,
             local.Db,
             CancellationToken.None
         );
 
-        Assert.Null(suggestion);
+        Assert.Null(checkResult.Suggestion);
+        Assert.Contains("CI confirmation export", checkResult.Reason);
+        Assert.Contains("Correlation key field", checkResult.Reason);
     }
 
     [Fact]
@@ -199,13 +209,14 @@ public sealed class ImportMappingSuggestionEndpointTests
             ExportRoot(ExportScalar("guidField", "guid"), ExportScalar("status", "status", enabled: false))
         );
 
-        var suggestion = await ImportDefinitionEndpoints.BuildSuggestionAsync(
+        var checkResult = await ImportDefinitionEndpoints.BuildSuggestionAsync(
             SampleEnvelope,
             local.Db,
             CancellationToken.None
         );
 
-        Assert.NotNull(suggestion);
-        Assert.Empty(suggestion.CandidateFields);
+        Assert.Null(checkResult.Reason);
+        Assert.NotNull(checkResult.Suggestion);
+        Assert.Empty(checkResult.Suggestion.CandidateFields);
     }
 }

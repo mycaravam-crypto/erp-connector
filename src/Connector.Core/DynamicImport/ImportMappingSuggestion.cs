@@ -51,6 +51,35 @@ public sealed record ImportMappingSuggestionResult(
 );
 
 /// <summary>
+/// Why <see cref="ImportMappingSuggestion.Evaluate"/> found nothing to suggest — every gate §3.4 step 1
+/// can silently fail on, named so the API layer (which has the entity `Name`s <see cref="Evaluate"/>
+/// itself never sees, per Core's no-Infrastructure-dependency rule) can turn a miss into an operator-facing
+/// explanation instead of a flat "no match." Ordered by how far the sample got.
+/// </summary>
+public enum ImportMappingSuggestionMiss
+{
+    /// <summary>The sample carries no <c>provenance.integrationKey</c> at all.</summary>
+    NoProvenance,
+
+    /// <summary>No candidate — enabled or not — claims this (IntegrationKey, ContractVersion) pair.</summary>
+    NoDefinitionForPair,
+
+    /// <summary>A candidate claims the pair, but every one that does is disabled.</summary>
+    DefinitionDisabled,
+
+    /// <summary>An enabled candidate claims the pair but has no CorrelationKeySourceField set, so there is
+    /// no deterministic RootMatchColumn to prefill.</summary>
+    MissingCorrelationKeySourceField,
+}
+
+/// <summary>Full outcome of <see cref="ImportMappingSuggestion.Evaluate"/>: exactly one of
+/// <see cref="Result"/>/<see cref="Miss"/> is set.</summary>
+public sealed record ImportMappingSuggestionOutcome(
+    ImportMappingSuggestionResult? Result,
+    ImportMappingSuggestionMiss? Miss
+);
+
+/// <summary>
 /// knowledge/pipeline/import-mapping-presets.md §3.4 — a UI-time authoring convenience that suggests a
 /// starting <c>ImportDefinition</c> from a paired, provenance-tagged <c>ExportDefinition</c>. Pure: no I/O,
 /// no side effects, unit-testable in complete isolation — the same posture Phase 17 Slice 2's
@@ -65,27 +94,48 @@ public static class ImportMappingSuggestion
     /// Step 1: finds the (at most one, thanks to the Slice 1 save-time uniqueness constraint) enabled
     /// export among <paramref name="candidates"/> whose (IntegrationKey, ContractVersion) equals
     /// <paramref name="sample"/>'s pair, then builds the suggestion from it (steps 2-4). Returns null,
-    /// silently — never an exception — whenever there is nothing to suggest: the sample carries no
-    /// provenance, no enabled export matches it, or the matched export has no
-    /// <see cref="ExportDefinitionShape.CorrelationKeySourceField"/> set (without one there is no
-    /// deterministic <c>RootMatchColumn</c> to prefill, so no suggestion is meaningful).
+    /// silently — never an exception — whenever there is nothing to suggest. Thin wrapper over
+    /// <see cref="Evaluate"/> that drops the miss reason, kept for the existing unit-test suite and any
+    /// caller that only cares about the hit/miss outcome, not why.
     /// </summary>
     public static ImportMappingSuggestionResult? SuggestFrom(
+        IReadOnlyList<ExportDefinitionShape> candidates,
+        ImportSampleShape sample
+    ) => Evaluate(candidates, sample).Result;
+
+    /// <summary>
+    /// Same lookup as <see cref="SuggestFrom"/>, but on a miss names *which* gate stopped it
+    /// (<see cref="ImportMappingSuggestionMiss"/>) instead of collapsing every reason into a bare null —
+    /// the API layer uses this to turn "no match found" into an operator-facing explanation (a candidate
+    /// exists but is disabled, or exists but has no CorrelationKeySourceField, vs. no candidate at all).
+    /// </summary>
+    public static ImportMappingSuggestionOutcome Evaluate(
         IReadOnlyList<ExportDefinitionShape> candidates,
         ImportSampleShape sample
     )
     {
         if (sample.IntegrationKey is null)
-            return null;
+            return new ImportMappingSuggestionOutcome(null, ImportMappingSuggestionMiss.NoProvenance);
+
+        // Every candidate claiming this pair, enabled or not — lets a disabled match be reported
+        // specifically rather than folded into "nothing claims this pair at all."
+        var pairMatches = candidates
+            .Where(c => c.IntegrationKey == sample.IntegrationKey && c.ContractVersion == sample.ContractVersion)
+            .ToList();
+        if (pairMatches.Count == 0)
+            return new ImportMappingSuggestionOutcome(null, ImportMappingSuggestionMiss.NoDefinitionForPair);
 
         // FirstOrDefault rather than Single: the Slice 1 uniqueness constraint means production data never
-        // has more than one enabled match for a given pair, but this stays safe — never throws — even if a
-        // caller ever hands it a candidate list that violates that invariant.
-        var matched = candidates.FirstOrDefault(c =>
-            c.IsEnabled && c.IntegrationKey == sample.IntegrationKey && c.ContractVersion == sample.ContractVersion
-        );
-        if (matched is null || matched.CorrelationKeySourceField is null)
-            return null;
+        // has more than one *enabled* match for a given pair, but this stays safe — never throws — even if
+        // a caller ever hands it a candidate list that violates that invariant.
+        var matched = pairMatches.FirstOrDefault(c => c.IsEnabled);
+        if (matched is null)
+            return new ImportMappingSuggestionOutcome(null, ImportMappingSuggestionMiss.DefinitionDisabled);
+        if (matched.CorrelationKeySourceField is null)
+            return new ImportMappingSuggestionOutcome(
+                null,
+                ImportMappingSuggestionMiss.MissingCorrelationKeySourceField
+            );
 
         var candidateFields = new List<ImportMappingCandidateField>();
         foreach (var child in matched.RootNode.Children)
@@ -104,6 +154,11 @@ public static class ImportMappingSuggestion
                 candidateFields.Add(new ImportMappingCandidateField(child.TargetKey, child.SourceField));
         }
 
-        return new ImportMappingSuggestionResult(matched.RootTable, matched.CorrelationKeySourceField, candidateFields);
+        var result = new ImportMappingSuggestionResult(
+            matched.RootTable,
+            matched.CorrelationKeySourceField,
+            candidateFields
+        );
+        return new ImportMappingSuggestionOutcome(result, null);
     }
 }
