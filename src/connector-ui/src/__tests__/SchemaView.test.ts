@@ -14,6 +14,7 @@ function buildRouter() {
       { path: '/export-schema', name: 'export-schema', component: SchemaView },
       { path: '/source-schema', name: 'source-schema', component: { template: '<div/>' } },
       { path: '/exports', name: 'exports', component: { template: '<div/>' } },
+      { path: '/export-definitions', name: 'export-definitions', component: { template: '<div/>' } },
     ],
   })
   r.push('/export-schema')
