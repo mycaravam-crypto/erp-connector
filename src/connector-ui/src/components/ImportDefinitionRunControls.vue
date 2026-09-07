@@ -7,6 +7,7 @@ import {
   type ImportDefinition,
 } from '@/api/importDefinitions'
 import Button from '@/components/ui/Button.vue'
+import ConfirmAction from '@/components/ui/ConfirmAction.vue'
 
 // The import-side analogue of ExportDefinitionRunControls.vue — deliberately narrower: there's no
 // "Test against live connection" or "Run Now" here. An import definition has nothing to run on demand —
@@ -91,12 +92,16 @@ async function confirmDelete() {
       <Button variant="secondary" :loading="duplicating" @click="duplicate">{{ duplicating ? 'Duplicating…' : 'Duplicate' }}</Button>
 
       <div class="ml-auto flex items-center gap-2">
-        <template v-if="confirmingDelete">
-          <span class="text-sm text-danger">Delete permanently?</span>
-          <Button variant="danger" :loading="deleting" @click="confirmDelete">{{ deleting ? 'Deleting…' : 'Confirm' }}</Button>
-          <Button variant="secondary" @click="confirmingDelete = false">Cancel</Button>
-        </template>
-        <Button v-else variant="danger" @click="confirmingDelete = true">Delete</Button>
+        <ConfirmAction
+          v-model:confirming="confirmingDelete"
+          :busy="deleting"
+          :confirm-label="deleting ? 'Deleting…' : 'Confirm'"
+          @confirm="confirmDelete"
+        >
+          <template #trigger="{ open }">
+            <Button variant="danger" @click="open">Delete</Button>
+          </template>
+        </ConfirmAction>
       </div>
     </div>
 

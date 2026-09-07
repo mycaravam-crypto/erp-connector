@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { getPresets, savePreset, deletePreset, type ExportMappingConfig } from '@/api/mapping'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
 
 const props = defineProps<{
   canSave: boolean
@@ -90,7 +91,7 @@ async function confirmDelete() {
 <template>
   <div class="mb-5">
     <div class="flex items-center gap-2 flex-wrap">
-      <h2 class="text-base font-semibold text-text-primary shrink-0">Presets</h2>
+      <SectionHeader title="Presets" class="shrink-0" />
       <select
         class="preset-select flex-1 min-w-48 px-2.5 py-2 border border-border-strong rounded-md text-sm text-text-primary bg-surface cursor-pointer"
         v-model="selected"
