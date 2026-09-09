@@ -164,6 +164,20 @@ See [`docker-compose.yml`](docker-compose.yml) and [`Dockerfile`](Dockerfile) fo
 Auth__JwtSecret=<your-secret-min-32-chars> docker-compose up
 ```
 
+### TLS
+
+The shipped `docker-compose.yml` runs the API over plain HTTP on port `8080` — there is no TLS listener or
+certificate configured anywhere in it. **Do not expose that port directly to untrusted networks.** Put a
+TLS-terminating reverse proxy (nginx, Caddy, Traefik, a cloud load balancer, etc.) in front of it and keep
+the API itself reachable only from that proxy — an internal network or loopback, not the public internet.
+Everything served by this API, including the login endpoint, is plaintext until a proxy in front of it adds
+TLS.
+
+Separately, the ERP Postgres connection configured in Step 1 defaults to Npgsql's `Prefer` SSL mode, which
+silently falls back to an unencrypted connection if the target doesn't offer TLS. For a production ERP
+target, set the connection's SSL Mode to `Require` (or `VerifyFull`, once the target's certificate/CA is in
+place) instead of leaving it on the default.
+
 ---
 
 ## Configuration

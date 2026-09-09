@@ -24,6 +24,7 @@ const STORED_CONNECTION: ErpConnectionInfo = {
   port: 5432,
   database: 'erp_prod',
   username: 'readonly',
+  sslMode: null,
 }
 
 const SCHEMA: SourceSchema = {
@@ -45,6 +46,7 @@ describe('ConnectionView', () => {
     expect(w.find('#database').exists()).toBe(true)
     expect(w.find('#username').exists()).toBe(true)
     expect(w.find('#password').exists()).toBe(true)
+    expect(w.find('#ssl-mode').exists()).toBe(true)
   })
 
   it('shows "No connection configured yet" banner when no connection is stored', async () => {
@@ -69,6 +71,13 @@ describe('ConnectionView', () => {
     expect((w.find('#port').element as HTMLInputElement).value).toBe('5432')
     expect((w.find('#database').element as HTMLInputElement).value).toBe('erp_prod')
     expect((w.find('#username').element as HTMLInputElement).value).toBe('readonly')
+  })
+
+  it('pre-fills SSL Mode from stored connection', async () => {
+    vi.spyOn(connectionApi, 'getConnection').mockResolvedValue({ ...STORED_CONNECTION, sslMode: 'VerifyFull' })
+    const w = mount(ConnectionView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+    expect((w.find('#ssl-mode').element as HTMLSelectElement).value).toBe('VerifyFull')
   })
 
   it('host field starts empty when no connection is stored', async () => {
@@ -119,7 +128,25 @@ describe('ConnectionView', () => {
       database: 'mydb',
       username: 'user1',
       password: 's3cr3t',
+      sslMode: '',
     })
+  })
+
+  it('includes the chosen SSL Mode when submitting', async () => {
+    vi.spyOn(connectionApi, 'saveConnection').mockResolvedValue({ schema: SCHEMA })
+    const w = mount(ConnectionView, { global: { plugins: [buildRouter()] } })
+    await flushPromises()
+    await w.find('#host').setValue('myhost')
+    await w.find('#port').setValue('5433')
+    await w.find('#database').setValue('mydb')
+    await w.find('#username').setValue('user1')
+    await w.find('#password').setValue('s3cr3t')
+    await w.find('#ssl-mode').setValue('VerifyFull')
+    await w.find('form').trigger('submit')
+    await flushPromises()
+    expect(connectionApi.saveConnection).toHaveBeenCalledWith(
+      expect.objectContaining({ sslMode: 'VerifyFull' }),
+    )
   })
 
   it('shows success message and connected chip after successful connection test', async () => {

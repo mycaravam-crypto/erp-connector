@@ -36,7 +36,19 @@ static class AuthEndpoints
                         ?? throw new InvalidOperationException("Auth:JwtSecret is not configured.");
                     var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
                     var token = new JwtSecurityToken(
-                        claims: [new Claim(ClaimTypes.Name, req.Username)],
+                        claims:
+                        [
+                            new Claim(ClaimTypes.Name, req.Username),
+                            // Security-review finding SR-16: lets Program.cs's OnTokenValidated handler
+                            // reject this specific token once RevokeAllSessionsAsync moves this user's
+                            // cutover past it — the only way to invalidate an outstanding token before its
+                            // own expiry, since nothing else about the token changes on revocation.
+                            new Claim(
+                                JwtRegisteredClaimNames.Iat,
+                                DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(),
+                                ClaimValueTypes.Integer64
+                            ),
+                        ],
                         expires: DateTime.UtcNow.AddHours(expiry),
                         signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
                     );
@@ -45,6 +57,23 @@ static class AuthEndpoints
                 }
             )
             .RequireRateLimiting(LoginRateLimiterPolicyName);
+
+        // Security-review finding SR-16: self-service "log me out everywhere" — invalidates every JWT
+        // issued to the caller (including, after this response, the very token used to call it) before
+        // its own expiry. Deliberately scoped to the caller's own sessions only; see
+        // SessionRevocationStore's doc comment for why an admin-triggered "revoke someone else's session"
+        // action isn't included here.
+        app.MapPost(
+                "/api/auth/revoke-my-sessions",
+                async (HttpContext httpContext, ExportLogDbContext db, AuditService audit) =>
+                {
+                    var user = httpContext.User.Identity!.Name!;
+                    await db.RevokeAllSessionsAsync(user);
+                    await audit.LogAsync(user, "session_revocation");
+                    return Results.Ok();
+                }
+            )
+            .RequireAuthorization();
 
         // Dev-only: returns a BCrypt hash for a plaintext password (to seed appsettings for production users).
         if (app.Environment.IsDevelopment())

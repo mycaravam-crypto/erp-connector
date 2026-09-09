@@ -40,6 +40,20 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    # Security-review finding SR-03 (suggestion #3): container hardening additive to the Dockerfile's
+    # existing non-root user. A .NET web app needs no Linux capabilities beyond what's already granted by
+    # running unprivileged and binding a port >1024 — cap_drop/no-new-privileges cost this container
+    # nothing. Resource limits are a starting point, not a measured figure: tune memory/cpus for your real
+    # workload (export/import file sizes, concurrent requests) rather than trusting these as-is.
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+          cpus: "2"
 
   # Local/test-only ERP source database — NOT part of the production stack.
   # Real deployments point Step 1 at the vendor's own PostgreSQL instance.

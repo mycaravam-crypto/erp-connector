@@ -7,6 +7,7 @@ import { Check, X, ChevronRight } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
+import Select from '@/components/ui/Select.vue'
 import Alert from '@/components/ui/Alert.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
@@ -19,6 +20,8 @@ const port = ref('5432')
 const database = ref('')
 const username = ref('')
 const password = ref('')
+// Empty string means "use the default" (Prefer) — see SR-03.
+const sslMode = ref('')
 
 const portError = computed(() => {
   const n = Number(port.value)
@@ -38,6 +41,7 @@ onMounted(async () => {
     port.value = String(stored.port)
     database.value = stored.database
     username.value = stored.username
+    sslMode.value = stored.sslMode ?? ''
     connectedLabel.value = `${stored.host}:${stored.port}/${stored.database}`
   }
 })
@@ -58,6 +62,7 @@ async function testConnection() {
       database: database.value,
       username: username.value,
       password: password.value,
+      sslMode: sslMode.value,
     })
     if ('schema' in result) {
       invalidateConnectionCache()
@@ -139,6 +144,20 @@ function proceed() {
         <Input id="username" v-model="username" label="Username" placeholder="readonly_user" class="flex-1" />
         <Input id="password" v-model="password" type="password" label="Password" placeholder="••••••••" class="flex-1" />
       </div>
+
+      <Select
+        id="ssl-mode"
+        v-model="sslMode"
+        label="TLS / SSL Mode"
+        help-text="Prefer (default) uses TLS if the server offers it but silently falls back to an unencrypted connection otherwise. For a production ERP, use Require or, for full certificate verification, VerifyFull."
+      >
+        <option value="">Prefer (default)</option>
+        <option value="Disable">Disable — never use TLS</option>
+        <option value="Allow">Allow — TLS only if the client requests it</option>
+        <option value="Require">Require — TLS mandatory, no certificate verification</option>
+        <option value="VerifyCA">VerifyCA — TLS mandatory, verify the server's CA</option>
+        <option value="VerifyFull">VerifyFull — TLS mandatory, verify CA and hostname</option>
+      </Select>
 
       <div class="flex gap-3 mt-1">
         <Button type="submit" variant="secondary" :loading="testing">

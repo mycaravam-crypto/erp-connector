@@ -53,10 +53,21 @@ public static partial class DynamicExportService
             Database = cfg.Database,
             Username = cfg.Username,
             Password = cfg.Password,
-            SslMode = SslMode.Prefer,
+            SslMode = ParseSslMode(cfg.SslMode),
             Timeout = 5,
             CommandTimeout = 10,
         }.ConnectionString;
+
+    // Security-review finding SR-03: SslMode was previously hardcoded to Prefer everywhere — silently
+    // downgrading to an unencrypted connection whenever the server doesn't offer TLS, with no way for an
+    // operator to require and verify it instead. cfg.SslMode is validated against these same names at save
+    // time (ConnectionEndpoints), but this falls back to the prior Prefer default rather than throwing for
+    // null/empty/unrecognized input, so it can never itself turn a previously-working connection (or a
+    // config saved before this field existed) into a hard failure.
+    private static SslMode ParseSslMode(string? sslMode) =>
+        !string.IsNullOrWhiteSpace(sslMode) && Enum.TryParse<SslMode>(sslMode, ignoreCase: true, out var parsed)
+            ? parsed
+            : SslMode.Prefer;
 
     /// <summary>
     /// Security-review finding SR-05: identifies *which system* a connection points at — host, port, and

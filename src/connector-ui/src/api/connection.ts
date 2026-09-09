@@ -26,6 +26,9 @@ export interface ErpConnectionInfo {
   port: number
   database: string
   username: string
+  /** One of Npgsql's SslMode names (Disable/Allow/Prefer/Require/VerifyCA/VerifyFull), or null/empty to
+   *  use the default (Prefer — falls back to unencrypted if the server doesn't offer TLS). See SR-03. */
+  sslMode: string | null
 }
 
 /** Full config sent to POST /api/connection (password included, stays server-side). */
@@ -72,6 +75,7 @@ export async function saveConnection(
       database: cfg.database,
       username: cfg.username,
       password: cfg.password,
+      sslMode: cfg.sslMode || null,
     }),
   })
   if (res.ok) return { schema: (await res.json()) as SourceSchema }

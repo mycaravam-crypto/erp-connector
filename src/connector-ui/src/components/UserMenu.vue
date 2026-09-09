@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { ChevronDown, LogOut } from 'lucide-vue-next'
+import { ChevronDown, LogOut, ShieldOff } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
 
 defineProps<{ username: string | null }>()
-const emit = defineEmits<{ signOut: [] }>()
+const emit = defineEmits<{ signOut: []; revokeSessions: [] }>()
 
 const route = useRoute()
 const open = ref(false)
@@ -42,6 +42,11 @@ function onKeydown(e: KeyboardEvent) {
 function signOut() {
   close()
   emit('signOut')
+}
+
+function revokeSessions() {
+  close()
+  emit('revokeSessions')
 }
 
 watch(() => route.path, close)
@@ -86,6 +91,16 @@ onBeforeUnmount(() => {
         </RouterLink>
       </nav>
       <span class="block h-px my-1.5 bg-nav-border" aria-hidden="true" />
+      <button
+        type="button"
+        :class="menuLinkClass"
+        class="w-full text-left bg-transparent border-none cursor-pointer"
+        title="Invalidate every other login session for this account, e.g. after a shared or lost device"
+        @click="revokeSessions"
+      >
+        <Icon :icon="ShieldOff" :size="16" class="mr-1.5" />
+        Log out everywhere
+      </button>
       <button
         type="button"
         :class="menuLinkClass"

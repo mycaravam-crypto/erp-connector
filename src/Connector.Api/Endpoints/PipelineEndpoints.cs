@@ -6,7 +6,6 @@ using Connector.Core.Domain;
 using Connector.Core.DynamicExport;
 using Connector.Core.Schema;
 using Connector.Infrastructure;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -152,8 +151,15 @@ static class PipelineEndpoints
         // specifically (see knowledge/processes/four-eyes-release.md), which a generic API-triggered pull
         // is out of scope for — same reasoning ExportDefinitionEndpoints' /run already applies. Every call
         // still writes one audit log entry (success or failure), so triggering is never silent.
-        // Accepts either a normal user JWT or an X-Api-Key header (ApiKeyAuthenticationHandler) — a
-        // dedicated "API user" configured in Auth:ApiKeys does not need to go through interactive login.
+        //
+        // Security-review finding SR-07: this is a deliberate, accepted exception to four-eyes, not an
+        // oversight — but it must only be reachable by a dedicated machine caller, never by any logged-in
+        // human's interactive session. ApiKey-only (X-Api-Key header, see ApiKeyAuthenticationHandler): a
+        // JWT from a normal user login no longer authenticates here, closing the gap where any interactive
+        // user (not just a configured Auth:ApiKeys service account) could pull preset data without review.
+        // The frontend never calls this route (it uses the four-eyes-gated /api/pipeline/run instead), so
+        // this has no UI-facing impact — only external systems already configured with an API key are
+        // affected, and they were always expected to use one.
         app.MapPost(
                 "/api/pipeline/run/{name}",
                 async (
@@ -232,12 +238,7 @@ static class PipelineEndpoints
                 }
             )
             .RequireAuthorization(policy =>
-                policy
-                    .AddAuthenticationSchemes(
-                        JwtBearerDefaults.AuthenticationScheme,
-                        ApiKeyAuthenticationHandler.SchemeName
-                    )
-                    .RequireAuthenticatedUser()
+                policy.AddAuthenticationSchemes(ApiKeyAuthenticationHandler.SchemeName).RequireAuthenticatedUser()
             );
 
         app.MapGet(
