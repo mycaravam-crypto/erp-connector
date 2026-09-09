@@ -28,7 +28,7 @@ describe('AuditView', () => {
     vi.spyOn(auditApi, 'getAuditLog').mockResolvedValueOnce([])
     const w = mount(AuditView)
     await flushPromises()
-    expect(w.text()).toContain('No audit entries yet.')
+    expect(w.text()).toContain('No audit entries yet')
   })
 
   it('renders entry rows with username, action, and detail', async () => {
