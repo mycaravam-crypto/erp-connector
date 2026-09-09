@@ -33,47 +33,39 @@ beforeEach(() => {
 })
 
 describe('App shell', () => {
-  it('marks the step matching the current route as active and earlier steps as completed', async () => {
+  it('marks the pill matching the current route as active, others inactive', async () => {
     const w = mount(App, { global: { plugins: [await buildRouter('/export-schema')] } })
     await flushPromises()
 
     const links = w.findAll('nav[aria-label="Connector"] a')
     expect(links).toHaveLength(6)
-    // Connect + Source Schema (idx 0,1) come before CMDB Export Mapping (idx 2, active)
     expect(links[0]!.classes()).not.toContain('bg-nav-hover')
     expect(links[2]!.classes()).toContain('bg-nav-hover')
   })
 
-  it('shows a checkmark for every setup step and highlights Managed Export once the connector is operating', async () => {
+  it('highlights Managed Export when on that area, Export Jobs/Import Jobs alongside it inactive', async () => {
     const w = mount(App, { global: { plugins: [await buildRouter('/exports')] } })
     await flushPromises()
 
     const links = w.findAll('nav[aria-label="Connector"] a')
-    // Connect, Source Schema, CMDB Export Mapping are all implicitly done once Managed Export is active
-    expect(links[0]!.find('svg').exists()).toBe(true)
-    expect(links[1]!.find('svg').exists()).toBe(true)
-    expect(links[2]!.find('svg').exists()).toBe(true)
-    // Managed Export itself is not a numbered/completable step — it's the active operational link
     expect(links[3]!.text()).toContain('Managed Export')
     expect(links[3]!.classes()).toContain('bg-nav-hover')
-    // Export Jobs and Import Jobs are top-level pills alongside it, both inactive here
     expect(links[4]!.text()).toContain('Export Jobs')
     expect(links[5]!.text()).toContain('Import Jobs')
     expect(links[4]!.classes()).not.toContain('bg-nav-hover')
     expect(links[5]!.classes()).not.toContain('bg-nav-hover')
   })
 
-  it('highlights the Export Jobs pill when on that area and still shows setup steps as completed', async () => {
+  it('highlights the Export Jobs pill when on that area', async () => {
     const w = mount(App, { global: { plugins: [await buildRouter('/export-definitions')] } })
     await flushPromises()
 
     const links = w.findAll('nav[aria-label="Connector"] a')
-    expect(links[0]!.find('svg').exists()).toBe(true)
     expect(links[4]!.text()).toContain('Export Jobs')
     expect(links[4]!.classes()).toContain('bg-nav-hover')
   })
 
-  it('treats a route matching a step path prefix (export-detail) as the exports step being active', async () => {
+  it('treats the export-detail route as the Managed Export pill being active', async () => {
     const w = mount(App, { global: { plugins: [await buildRouter('/exports/7')] } })
     await flushPromises()
 
@@ -81,14 +73,13 @@ describe('App shell', () => {
     expect(links[3]!.classes()).toContain('bg-nav-hover')
   })
 
-  it('shows no active/completed step on a secondary page', async () => {
+  it('shows no active pill on a secondary page', async () => {
     const w = mount(App, { global: { plugins: [await buildRouter('/settings')] } })
     await flushPromises()
 
     const links = w.findAll('nav[aria-label="Connector"] a')
     for (const link of links) {
       expect(link.classes()).not.toContain('bg-nav-hover')
-      expect(link.find('svg').exists()).toBe(false)
     }
   })
 
