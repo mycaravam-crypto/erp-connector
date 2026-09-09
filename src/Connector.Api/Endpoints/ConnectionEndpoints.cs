@@ -1,3 +1,4 @@
+using System.Net;
 using Connector.Core.DynamicExport;
 using Connector.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +8,40 @@ namespace Connector.Api.Endpoints;
 
 static class ConnectionEndpoints
 {
+    // The ERP connection target is deliberately admin-configurable to an arbitrary host on the operator's
+    // own network — that's the whole point of this endpoint — so this is not a general private-network
+    // block (that would break every real deployment, where the ERP database lives on a private IP). It
+    // blocks only the link-local range that hosts cloud-provider instance-metadata services
+    // (169.254.169.254 on AWS/GCP/Azure/DigitalOcean and IPv6 link-local equivalents), the classic
+    // SSRF-to-credential-theft target, which is never a legitimate ERP database address.
+    private static readonly IPNetwork[] BlockedNetworks =
+    [
+        IPNetwork.Parse("169.254.0.0/16"),
+        IPNetwork.Parse("fe80::/10"),
+    ];
+
+    internal static async Task<string?> ValidateHostAsync(string host, CancellationToken ct)
+    {
+        IPAddress[] addresses;
+        try
+        {
+            addresses = IPAddress.TryParse(host, out var ip) ? [ip] : await Dns.GetHostAddressesAsync(host, ct);
+        }
+        catch (Exception ex)
+        {
+            return $"Could not resolve host '{host}': {ex.Message}";
+        }
+
+        foreach (var address in addresses)
+        {
+            var mapped = address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address;
+            if (BlockedNetworks.Any(net => net.Contains(mapped)))
+                return $"Host '{host}' resolves to a blocked address ({mapped}) and cannot be used as an ERP connection target.";
+        }
+
+        return null;
+    }
+
     internal static void MapConnectionEndpoints(this WebApplication app)
     {
         // Returns the stored connection (host/port/db/user only — password never returned).
@@ -34,6 +69,10 @@ static class ConnectionEndpoints
                         || string.IsNullOrWhiteSpace(request.Username)
                     )
                         return Results.BadRequest("Host, Database, and Username are required.");
+
+                    var hostError = await ValidateHostAsync(request.Host, ct);
+                    if (hostError is not null)
+                        return Results.BadRequest(hostError);
 
                     try
                     {

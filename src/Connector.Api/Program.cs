@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using Connector.Api;
 using Connector.Api.Endpoints;
 using Connector.Infrastructure;
@@ -43,6 +44,27 @@ builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth")
 var jwtSecret =
     builder.Configuration["Auth:JwtSecret"] ?? throw new InvalidOperationException("Auth:JwtSecret is not configured.");
 
+// appsettings.json/appsettings.Production.json both ship this literal placeholder — if an operator deploys
+// without setting the Auth__JwtSecret environment variable, the app would otherwise start up fine and sign
+// every JWT with a secret that's public in this repository, letting anyone forge a valid session token.
+// Fail fast instead, in every environment, on either the placeholder or a too-short/weak value.
+const string PlaceholderJwtSecret = "REPLACE_WITH_SECURE_SECRET_MINIMUM_32_CHARS";
+const int MinJwtSecretLength = 32;
+if (jwtSecret == PlaceholderJwtSecret)
+{
+    throw new InvalidOperationException(
+        "Auth:JwtSecret is still set to the placeholder value from appsettings.json. Set the "
+            + "Auth__JwtSecret environment variable to a unique, securely generated random secret before "
+            + "starting the app."
+    );
+}
+if (jwtSecret.Length < MinJwtSecretLength)
+{
+    throw new InvalidOperationException(
+        $"Auth:JwtSecret must be at least {MinJwtSecretLength} characters (got {jwtSecret.Length})."
+    );
+}
+
 builder
     .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(opts =>
@@ -61,6 +83,29 @@ builder
     .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.SchemeName, null);
 
 builder.Services.AddAuthorization();
+
+// Per-client-IP fixed-window throttle on /api/auth/login (AuthEndpoints.LoginRateLimiterPolicyName) —
+// without it there was no defense at all against brute-force/password-spray login attempts.
+builder.Services.AddRateLimiter(opts =>
+{
+    opts.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    opts.AddPolicy(
+        AuthEndpoints.LoginRateLimiterPolicyName,
+        httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                // 20/minute per client IP: well above the handful of logins a normal user or the e2e
+                // suite performs in that window, but a hard ceiling on brute-force/password-spray
+                // throughput (on top of BCrypt's own per-attempt cost).
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 20,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0,
+                }
+            )
+    );
+});
 
 // Dev vs Production API key source, resolved now (before Build()) so it can go into the container as a
 // singleton for ApiKeyAuthenticationHandler — mirrors the Users list's Dev/Production split below, which
@@ -138,6 +183,7 @@ app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 // ── Database initialisation ───────────────────────────────────────────────────
 
