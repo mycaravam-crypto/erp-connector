@@ -33,8 +33,13 @@ record ExportDetailDto(
     string? SequenceGapWarning
 );
 
-/// <summary>Operator is taken from the JWT; only the approver name is supplied in the body.</summary>
-record ReleaseRequest(string Approver);
+/// <summary>
+/// Operator is taken from the JWT; the approver's own name and password are supplied in the body.
+/// ApproverPassword proves the named approver actually participated in the release — see
+/// <see cref="Connector.Api.Endpoints.FourEyesReview.ValidateApprover"/> — rather than letting the operator
+/// unilaterally release by typing a colleague's username with nothing to back it.
+/// </summary>
+record ReleaseRequest(string Approver, string? ApproverPassword);
 
 /// <summary>Body for POST …/deliver. ImportedRecordCount and Notes are optional confirmation data.</summary>
 record DeliverRequest(int? ImportedRecordCount, string? Notes);

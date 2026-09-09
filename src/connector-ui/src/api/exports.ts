@@ -33,6 +33,7 @@ export interface ExportDetail {
 
 export interface ReleaseRequest {
   approver: string
+  approverPassword: string
 }
 
 export interface DeliverRequest {

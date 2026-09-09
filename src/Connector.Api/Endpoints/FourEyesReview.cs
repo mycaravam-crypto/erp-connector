@@ -13,10 +13,15 @@ internal static class FourEyesReview
     /// <summary>
     /// Returns a client-facing error message if <paramref name="approver"/> fails the four-eyes check against
     /// <paramref name="operatorName"/> and <paramref name="userStore"/>, or <c>null</c> if it passes.
+    /// <paramref name="approverPassword"/> is verified against the approver's own stored hash — without this,
+    /// the operator's session alone could "approve" a release by typing any other registered username, which
+    /// defeats the point of a dual-control check (security audit finding: the approver never actually
+    /// authenticated). Requiring their password here is a lightweight stand-in for a real second login.
     /// </summary>
     public static string? ValidateApprover(
         string operatorName,
         string? approver,
+        string? approverPassword,
         IReadOnlyDictionary<string, string> userStore
     )
     {
@@ -26,8 +31,14 @@ internal static class FourEyesReview
         if (string.Equals(operatorName, approver, StringComparison.OrdinalIgnoreCase))
             return "Operator and approver must be different users (four-eyes principle).";
 
-        if (!userStore.ContainsKey(approver))
+        if (!userStore.TryGetValue(approver, out var approverPasswordHash))
             return $"Unknown approver: '{approver}'. Only registered users can approve a release.";
+
+        if (
+            string.IsNullOrEmpty(approverPassword)
+            || !BCrypt.Net.BCrypt.Verify(approverPassword, approverPasswordHash)
+        )
+            return "Approver password is missing or incorrect.";
 
         return null;
     }

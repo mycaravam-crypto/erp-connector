@@ -21,6 +21,7 @@ const open = defineModel<boolean>('open', { default: false })
 
 const currentUser = computed(() => getUsername() ?? '')
 const approver = ref('')
+const approverPassword = ref('')
 const serverError = ref<string | null>(null)
 
 const loading = ref(false)
@@ -30,7 +31,9 @@ const detail = ref<ImportRunDetail | null>(null)
 const sameUser = computed(
   () => approver.value.trim() !== '' && approver.value.trim().toLowerCase() === currentUser.value.toLowerCase(),
 )
-const valid = computed(() => approver.value.trim() !== '' && !sameUser.value)
+const valid = computed(
+  () => approver.value.trim() !== '' && approverPassword.value !== '' && !sameUser.value,
+)
 const fieldError = computed(() => {
   if (sameUser.value) return 'Operator and approver must be different people.'
   return serverError.value ?? undefined
@@ -55,6 +58,7 @@ async function load() {
 watch(open, (isOpen) => {
   if (isOpen) {
     approver.value = ''
+    approverPassword.value = ''
     serverError.value = null
     detail.value = null
     load()
@@ -67,7 +71,7 @@ async function release() {
   submitting.value = true
   serverError.value = null
   try {
-    const result = await releaseImportRun(detail.value.id, approver.value.trim())
+    const result = await releaseImportRun(detail.value.id, approver.value.trim(), approverPassword.value)
     if (result.ok) {
       open.value = false
       emit('resolved')
@@ -146,8 +150,9 @@ async function reject() {
           <HelpTooltip label="Why does this need two people?" title="Four-eyes control">
             <p>
               A "four-eyes" step means one person can't unilaterally push inbound data into the ERP —
-              a second, different person has to review the diff above and approve it first. This
-              matches the same operator/approver control used for the managed export's release step.
+              a second, different person has to review the diff above and approve it first, entering
+              their own password to confirm they actually did. This matches the same operator/approver
+              control used for the managed export's release step.
             </p>
           </HelpTooltip>
         </p>
@@ -156,7 +161,15 @@ async function reject() {
           label="Approver username"
           placeholder="Approver username"
           autocomplete="off"
+          class="mb-3"
           :error="fieldError"
+        />
+        <Input
+          v-model="approverPassword"
+          type="password"
+          label="Approver password"
+          placeholder="Approver's own password"
+          autocomplete="current-password"
         />
       </template>
       <ImportRunOutcome
