@@ -31,7 +31,7 @@ function linkClass(link: (typeof navLinks)[number]): string {
     : `${navLinkClass} text-nav-text hover:bg-nav-hover hover:text-nav-text-strong`
 }
 
-// Below md, the pill row has nowhere to go — it collapses into this toggle + dropdown panel
+// Below the `nav` breakpoint (see base.css), the pill row has nowhere to go — it collapses into this toggle + dropdown panel
 // instead, mirroring UserMenu's click-outside/Escape/route-change-close behavior so the two
 // header dropdowns behave the same way.
 const open = ref(false)
@@ -77,7 +77,7 @@ onBeforeUnmount(() => {
        panel's containing block resolve to the header instead, which is already `position: sticky`
        and spans the full viewport width. -->
   <div ref="rootEl" class="flex-1 min-w-0">
-    <nav aria-label="Connector" class="hidden md:flex flex-wrap items-center gap-x-1 gap-y-1.5 min-w-0">
+    <nav aria-label="Connector" class="hidden nav:flex flex-wrap items-center gap-x-1 gap-y-1.5 min-w-0">
       <template v-for="(link, idx) in navLinks" :key="link.label">
         <RouterLink :to="link.to" :class="linkClass(link)">
           <span class="w-1.5 h-1.5 rounded-full bg-current opacity-70 shrink-0" aria-hidden="true" />
@@ -92,7 +92,7 @@ onBeforeUnmount(() => {
       aria-haspopup="menu"
       :aria-expanded="open"
       aria-label="Menu"
-      class="md:hidden flex items-center justify-center w-9 h-9 rounded-md text-nav-text bg-transparent border-none cursor-pointer hover:bg-nav-hover hover:text-nav-text-strong transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-nav"
+      class="nav:hidden flex items-center justify-center w-9 h-9 rounded-md text-nav-text bg-transparent border-none cursor-pointer hover:bg-nav-hover hover:text-nav-text-strong transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-nav"
       @click="toggle"
     >
       <Icon :icon="open ? X : Menu" :size="20" />
@@ -101,7 +101,7 @@ onBeforeUnmount(() => {
     <nav
       v-if="open"
       aria-label="Connector"
-      class="md:hidden absolute left-0 right-0 top-full mt-1.5 flex flex-col gap-0.5 p-1.5 rounded-md border border-nav-border bg-nav shadow-lg z-10"
+      class="nav:hidden absolute left-0 right-0 top-full mt-1.5 flex flex-col gap-0.5 p-1.5 rounded-md border border-nav-border bg-nav shadow-lg z-10"
     >
       <template v-for="(link, idx) in navLinks" :key="link.label">
         <RouterLink :to="link.to" :class="linkClass(link)">
