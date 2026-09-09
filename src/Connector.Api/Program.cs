@@ -5,6 +5,7 @@ using Connector.Api.Endpoints;
 using Connector.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
@@ -136,6 +137,17 @@ builder.Services.AddSingleton<FileSystemExportSink>();
 
 builder.Services.Configure<ImportSinkOptions>(builder.Configuration.GetSection("ImportSink"));
 builder.Services.Configure<ImportWorkerOptions>(builder.Configuration.GetSection("ImportWorker"));
+
+// Backs EncryptedStringConverter (ExportLogDbContext.OnModelCreating), which encrypts the AppSetting.Value
+// column at rest — it holds the ERP connection config, password included. Keys are persisted to disk
+// alongside the SQLite database (same volume in docker-compose.yml) so they survive container
+// restarts/redeploys; losing this directory makes every previously-stored setting unrecoverable, same
+// operational tradeoff as losing Auth:JwtSecret.
+var dataProtectionKeysDirectory = builder.Configuration["DataProtection:KeysDirectory"] ?? "dp-keys";
+builder
+    .Services.AddDataProtection()
+    .SetApplicationName("Connector.Api")
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysDirectory));
 
 builder.Services.AddDbContext<ExportLogDbContext>(opt =>
     opt.UseSqlite(builder.Configuration.GetConnectionString("ExportLog"))
