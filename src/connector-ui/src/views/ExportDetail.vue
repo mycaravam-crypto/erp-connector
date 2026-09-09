@@ -42,7 +42,7 @@ function formatDate(iso: string | null | undefined): string {
 </script>
 
 <template>
-  <div>
+  <div class="max-w-5xl">
     <Button variant="ghost" class="mb-4" @click="router.push({ name: 'exports' })">
       <template #icon><Icon :icon="ChevronLeft" :size="16" /></template>
       Back to list

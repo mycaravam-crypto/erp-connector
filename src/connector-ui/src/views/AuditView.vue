@@ -26,7 +26,7 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="max-w-4xl">
+  <div class="max-w-5xl">
     <div class="flex items-center justify-between gap-3 mb-4">
       <span class="inline-flex items-center gap-1.5">
         <h1 class="m-0 text-xl font-semibold text-text-primary">Audit Log</h1>

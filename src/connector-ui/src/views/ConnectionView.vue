@@ -86,7 +86,7 @@ function proceed() {
 </script>
 
 <template>
-  <div class="max-w-xl">
+  <div class="max-w-5xl">
     <div class="flex items-center gap-3 mb-2">
       <h1 class="m-0 text-xl font-semibold text-text-primary">Connect to Source Database</h1>
       <HelpTooltip label="About the database connection" title="What am I connecting to?">

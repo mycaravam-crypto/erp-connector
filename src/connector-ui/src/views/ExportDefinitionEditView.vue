@@ -183,7 +183,7 @@ async function refreshRuns() {
 </script>
 
 <template>
-  <div class="max-w-3xl">
+  <div class="max-w-5xl">
     <Button variant="ghost" class="mb-4" @click="router.push({ name: 'export-definitions' })">
       <template #icon><Icon :icon="ChevronLeft" :size="16" /></template>
       Back to list
