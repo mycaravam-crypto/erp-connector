@@ -423,7 +423,7 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="max-w-4xl">
+  <div class="max-w-5xl">
     <div class="flex items-center gap-3 mb-2">
       <span class="flex items-center gap-1.5 flex-1">
         <h1 class="m-0 text-xl font-semibold text-text-primary">CMDB Export Mapping</h1>
