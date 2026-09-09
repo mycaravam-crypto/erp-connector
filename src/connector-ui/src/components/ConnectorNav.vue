@@ -36,8 +36,13 @@ const currentStepIndex = computed(() =>
   setupSteps.findIndex((s) => route.path === `/${s.name}` || route.path.startsWith(`/${s.name}/`)),
 )
 
+// shrink-0 + whitespace-nowrap: without them, a flex-1 nav squeezes each link below its
+// content's natural width once the row gets tight, wrapping labels like "CMDB Export
+// Mapping" onto a second line and breaking the row's vertical alignment. The <nav> itself
+// wraps as a whole (flex-wrap) once it runs out of width, so whole links drop to a second
+// row instead — every chip always renders as one line.
 const navLinkClass =
-  'flex items-center gap-1.5 px-3 py-1.5 rounded-md no-underline transition-colors duration-fast ' +
+  'flex items-center gap-1.5 px-3 py-1.5 rounded-md no-underline whitespace-nowrap shrink-0 transition-colors duration-fast ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-nav'
 
 function isStepCompleted(idx: number): boolean {
@@ -60,7 +65,7 @@ function operationsLinkClass(link: (typeof operationsLinks)[number]): string {
 </script>
 
 <template>
-  <nav aria-label="Connector" class="flex items-center gap-1 flex-1">
+  <nav aria-label="Connector" class="flex flex-wrap items-center gap-x-1 gap-y-1.5 flex-1 min-w-0">
     <template v-for="(step, idx) in setupSteps" :key="step.name">
       <RouterLink :to="{ name: step.name }" :class="stepLinkClass(idx)">
         <span

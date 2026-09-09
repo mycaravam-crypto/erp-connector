@@ -204,7 +204,9 @@
 }
 
 /* Thin, low-contrast scrollbar — the browser default reads as heavy chrome
-   against the near-black dark surfaces. */
+   against the near-black dark surfaces. Also what makes the top nav's own
+   horizontal overflow (see ConnectorNav.vue) read as an intentional "more
+   tabs than fit" scroller instead of a layout bug. */
 .dark {
   scrollbar-color: rgb(255 255 255 / 20%) transparent;
   scrollbar-width: thin;
