@@ -83,7 +83,8 @@ static class ImportRunEndpoints
                         : Results.Ok(ToDto(run));
                 }
             )
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .RequireRateLimiting(FourEyesReview.ApprovalRateLimiterPolicyName);
 
         app.MapPost(
                 "/api/import-runs/{id:int}/reject",

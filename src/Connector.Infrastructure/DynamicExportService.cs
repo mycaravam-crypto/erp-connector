@@ -25,6 +25,15 @@ public static partial class DynamicExportService
     /// </summary>
     public const int MaxNestedDepth = 16;
 
+    /// <summary>
+    /// Security-review finding SR-13: a real (non-preview) <see cref="ExportNode"/> run previously had no
+    /// upper bound on rows at all — a pathological or accidentally-unfiltered definition could run
+    /// unbounded. Generous on purpose (far beyond any current definition's real result size) so no existing
+    /// export is affected; <see cref="ExecuteExportNodeQueryAsync"/> fails the run loudly if a query would
+    /// exceed it, rather than silently truncating output a caller might mistake for a complete export.
+    /// </summary>
+    public const int MaxExportRowsPerRun = 500_000;
+
     public readonly record struct ExportBuildResult(byte[] Bytes, int RecordCount, string Extension);
 
     public static string BuildConnectionString(ErpConnectionConfig cfg) =>

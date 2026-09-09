@@ -297,7 +297,10 @@ static class ExportDefinitionEndpoints
                     }
                     catch (Exception ex)
                     {
-                        return Results.Problem(detail: $"Preview query failed: {ex.Message}", statusCode: 400);
+                        return Results.Problem(
+                            detail: $"Preview query failed: {ErrorSanitizer.Detail(ex)}",
+                            statusCode: 400
+                        );
                     }
                 }
             )

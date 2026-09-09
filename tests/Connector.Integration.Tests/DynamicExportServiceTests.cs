@@ -162,6 +162,41 @@ public sealed class DynamicExportServiceTests
         Assert.Equal("Smith, John", csv.Rows[0][0]);
     }
 
+    // Security review SR-12: a value starting with =, +, -, @, tab, or CR is evaluated as a formula by
+    // Excel/Sheets/LibreOffice regardless of producer intent. A leading apostrophe is those apps' own
+    // "force text" escape, so it neutralizes the formula while staying otherwise unchanged.
+    [Theory]
+    [InlineData("=SUM(A1:A10)", "'=SUM(A1:A10)")]
+    [InlineData("+1+1", "'+1+1")]
+    [InlineData("@SUM(1)", "'@SUM(1)")]
+    // Documents the accepted trade-off: OWASP's CSV-injection guidance treats a leading "-" as dangerous
+    // too, so a value that just happens to be a negative number is prefixed the same way.
+    [InlineData("-123.45", "'-123.45")]
+    public void BuildCsvBytes_FormulaInjectionPrefix_IsNeutralizedWithLeadingApostrophe(string value, string expected)
+    {
+        var cols = new[] { "value" };
+        var records = new List<Dictionary<string, string>> { new() { ["value"] = value } };
+
+        var csv = ParseCsv(
+            DynamicExportService.BuildCsvBytes(records, cols, ExportSchema.Version, DateTimeOffset.UtcNow)
+        );
+
+        Assert.Equal(expected, csv.Rows[0][0]);
+    }
+
+    [Fact]
+    public void BuildCsvBytes_OrdinaryValue_IsNotPrefixed()
+    {
+        var cols = new[] { "name" };
+        var records = new List<Dictionary<string, string>> { new() { ["name"] = "Server X" } };
+
+        var csv = ParseCsv(
+            DynamicExportService.BuildCsvBytes(records, cols, ExportSchema.Version, DateTimeOffset.UtcNow)
+        );
+
+        Assert.Equal("Server X", csv.Rows[0][0]);
+    }
+
     // ── BuildJsonBytes ────────────────────────────────────────────────────────
 
     [Fact]

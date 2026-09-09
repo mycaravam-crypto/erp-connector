@@ -106,6 +106,23 @@ builder.Services.AddRateLimiter(opts =>
                 }
             )
     );
+
+    // Per-client-IP fixed-window throttle on the four-eyes release endpoints (FourEyesReview.
+    // ApprovalRateLimiterPolicyName) — same brute-force concern as login, since ValidateApprover also
+    // checks a password (the approver's), and a normal release is a rare, deliberate action.
+    opts.AddPolicy(
+        FourEyesReview.ApprovalRateLimiterPolicyName,
+        httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 10,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0,
+                }
+            )
+    );
 });
 
 // Dev vs Production API key source, resolved now (before Build()) so it can go into the container as a

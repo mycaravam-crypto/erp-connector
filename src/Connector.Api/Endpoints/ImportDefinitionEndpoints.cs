@@ -291,7 +291,7 @@ static partial class ImportDefinitionEndpoints
                     }
                     catch (Exception ex)
                     {
-                        return Results.Problem(detail: $"Preview failed: {ex.Message}", statusCode: 400);
+                        return Results.Problem(detail: $"Preview failed: {ErrorSanitizer.Detail(ex)}", statusCode: 400);
                     }
                 }
             )

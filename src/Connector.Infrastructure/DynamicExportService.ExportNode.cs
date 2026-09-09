@@ -82,11 +82,16 @@ public static partial class DynamicExportService
         if (args.Count == 0)
             return results;
 
+        // An explicit caller limit (e.g. a preview) is honored exactly; otherwise the query is still capped
+        // at MaxExportRowsPerRun + 1 server-side so a runaway/unfiltered definition can't read an unbounded
+        // result set — the "+1" is how the post-read count below tells "exactly at the cap" apart from
+        // "more rows exist" without a separate COUNT(*) query.
+        var sqlLimit = Math.Min(limit ?? int.MaxValue, MaxExportRowsPerRun + 1);
+
         var sql = $"SELECT json_build_object({string.Join(", ", args)}) AS row_json FROM {QI(rootTable)} s";
         if (!string.IsNullOrWhiteSpace(root.Filter))
             sql += $" WHERE ({root.Filter})";
-        if (limit.HasValue)
-            sql += $" LIMIT {limit.Value}";
+        sql += $" LIMIT {sqlLimit}";
 
         var effectiveDenylist = gdprDenylist ?? GdprDeniedFields;
 
@@ -107,6 +112,15 @@ public static partial class DynamicExportService
         {
             throw new InvalidOperationException(ObjectNodeCardinalityErrorMessage, pex);
         }
+
+        // Only the implicit (non-preview) ceiling fails the run — an explicit caller limit is what the
+        // caller asked for, not a runaway result, so hitting it exactly is success, not an error.
+        if (!limit.HasValue && results.Count > MaxExportRowsPerRun)
+            throw new InvalidOperationException(
+                $"Export query for '{rootTable}' would return more than {MaxExportRowsPerRun} rows. "
+                    + "Narrow the export's filter, or raise DynamicExportService.MaxExportRowsPerRun if this "
+                    + "much data is genuinely expected."
+            );
 
         return results;
     }

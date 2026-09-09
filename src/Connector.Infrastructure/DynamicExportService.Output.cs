@@ -196,10 +196,18 @@ public static partial class DynamicExportService
         return $"{slug}_{extractedAt:yyyyMMdd'T'HHmmss'Z'}.{extension}";
     }
 
+    // Security-review finding SR-12 (CSV/spreadsheet formula injection, OWASP): a cell opened in Excel/
+    // Sheets/LibreOffice is evaluated as a formula if its first character is one of these, regardless of
+    // what produced the CSV. Prefixing with an apostrophe is those same applications' own "force text"
+    // escape, so it neutralizes the formula without changing what a human sees in the cell.
+    private static readonly char[] FormulaInjectionPrefixes = ['=', '+', '-', '@', '\t', '\r'];
+
     private static string CsvEscape(string? value)
     {
         if (string.IsNullOrEmpty(value))
             return "";
+        if (FormulaInjectionPrefixes.Contains(value[0]))
+            value = "'" + value;
         if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
             return '"' + value.Replace("\"", "\"\"") + '"';
         return value;
