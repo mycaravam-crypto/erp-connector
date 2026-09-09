@@ -78,15 +78,22 @@ public static partial class DynamicExportService
         IReadOnlySet<string>? gdprDenylist = null
     )
     {
+        // Computed up front (not just applied post-query, further down) so a GDPR-denylisted source column
+        // — keyed on SourceName/SourceField, not the export's TargetName/TargetField alias — is excluded
+        // from the SELECT list entirely and never leaves the database. Re-evaluated against the *current*
+        // denylist on every run, so a mapping saved before a field was denylisted is covered too, not just
+        // newly-saved ones (security-review finding SR-08).
+        var effectiveDenylist = gdprDenylist ?? GdprDeniedFields;
+
         var parts = new List<string>();
 
-        foreach (var f in cfg.Fields.Where(x => x.Enabled))
+        foreach (var f in cfg.Fields.Where(x => x.Enabled && !effectiveDenylist.Contains(x.SourceName)))
             parts.Add($"s.{QI(f.SourceName)} AS {QI(f.TargetName)}");
 
         foreach (var r in cfg.Relations.Where(x => x.Enabled))
         {
             var delim = (r.Delimiter ?? ", ").Replace("'", "''");
-            foreach (var f in (r.Fields ?? []).Where(x => x.Enabled))
+            foreach (var f in (r.Fields ?? []).Where(x => x.Enabled && !effectiveDenylist.Contains(x.SourceField)))
             {
                 var agg =
                     r.FlattenStrategy == "string_join"
@@ -130,8 +137,9 @@ public static partial class DynamicExportService
             results.Add(row);
         }
 
-        // Strip any GDPR-denied fields that somehow appeared in the result (defence-in-depth).
-        var effectiveDenylist = gdprDenylist ?? GdprDeniedFields;
+        // Second, independent layer of defence-in-depth on top of the SELECT-list exclusion above — catches
+        // a denied field under a TargetName that happens to match its own denylist entry (or any other
+        // path that isn't the SourceName/SourceField exclusion above).
         foreach (var row in results)
         {
             foreach (var denied in effectiveDenylist)
@@ -149,7 +157,8 @@ public static partial class DynamicExportService
         ExportMappingNestedGroup g,
         string parentAlias,
         ref int aliasCounter,
-        int depth
+        int depth,
+        IReadOnlySet<string> denylist
     )
     {
         if (depth > MaxNestedDepth)
@@ -163,10 +172,14 @@ public static partial class DynamicExportService
         var alias = $"ng{aliasCounter++}";
 
         var args = new List<string>();
-        foreach (var f in g.Fields.Where(x => x.Enabled))
+        // GDPR denylist check keyed on SourceField, not TargetKey — see the matching comment in
+        // DynamicExportService.ExportNode.cs's BuildExportNodeExpr (security-review finding SR-08).
+        foreach (var f in g.Fields.Where(x => x.Enabled && !denylist.Contains(x.SourceField)))
             args.Add($"{SqlLit(f.TargetKey)}, {alias}.{QI(f.SourceField)}");
         foreach (var child in g.Children.Where(x => x.Enabled))
-            args.Add($"{SqlLit(child.TargetKey)}, {BuildNestedGroupExpr(child, alias, ref aliasCounter, depth + 1)}");
+            args.Add(
+                $"{SqlLit(child.TargetKey)}, {BuildNestedGroupExpr(child, alias, ref aliasCounter, depth + 1, denylist)}"
+            );
 
         var objectExpr = $"json_build_object({string.Join(", ", args)})";
         // json_agg() over zero matching rows returns SQL NULL, not '[]' — without the COALESCE, a
@@ -194,13 +207,20 @@ public static partial class DynamicExportService
         IReadOnlySet<string>? gdprDenylist = null
     )
     {
+        // Computed up front — see ExecuteQueryAsync's matching comment (security-review finding SR-08):
+        // excludes a denylisted source column from the SELECT list entirely, re-evaluated against the
+        // *current* denylist on every run.
+        var effectiveDenylist = gdprDenylist ?? GdprDeniedFields;
+
         var args = new List<string>();
-        foreach (var f in cfg.Fields.Where(x => x.Enabled))
+        foreach (var f in cfg.Fields.Where(x => x.Enabled && !effectiveDenylist.Contains(x.SourceName)))
             args.Add($"{SqlLit(f.TargetName)}, s.{QI(f.SourceName)}");
 
         var aliasCounter = 0;
         foreach (var g in (cfg.NestedGroups ?? []).Where(x => x.Enabled))
-            args.Add($"{SqlLit(g.TargetKey)}, {BuildNestedGroupExpr(g, "s", ref aliasCounter, depth: 1)}");
+            args.Add(
+                $"{SqlLit(g.TargetKey)}, {BuildNestedGroupExpr(g, "s", ref aliasCounter, depth: 1, effectiveDenylist)}"
+            );
 
         var results = new List<JsonObject>();
         if (args.Count == 0)
@@ -209,8 +229,6 @@ public static partial class DynamicExportService
         var sql = $"SELECT json_build_object({string.Join(", ", args)}) AS row_json FROM {QI(cfg.SourceTable)} s";
         if (limit.HasValue)
             sql += $" LIMIT {limit.Value}";
-
-        var effectiveDenylist = gdprDenylist ?? GdprDeniedFields;
 
         await using var cmd = new NpgsqlCommand(sql, conn) { CommandTimeout = 30 };
         try
