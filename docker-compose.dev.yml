@@ -65,8 +65,10 @@ services:
       POSTGRES_USER: erp_test
       POSTGRES_PASSWORD: erp_test_pw
       POSTGRES_DB: erp_testdb
+    # Loopback-only — see docker-compose.yml's testdb service for why. The `api` service still
+    # reaches this over the internal compose network (by service name) regardless of this binding.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - ./testdb/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
       - testdb-data:/var/lib/postgresql/data

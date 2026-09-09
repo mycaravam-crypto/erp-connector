@@ -85,6 +85,12 @@ public sealed class ExportLogDbContext(
             e.HasKey(r => r.Id);
             // SequenceNo muss einmalig und lückenlos sein — unique constraint deckt Duplikate ab.
             e.HasIndex(r => r.SequenceNo).IsUnique();
+            // Status doubles as the optimistic-concurrency token: EF includes its as-loaded value in
+            // every UPDATE's WHERE clause, so two concurrent release/skip/deliver calls against the same
+            // row can't both silently win a check-then-act race (security audit finding) — the loser's
+            // SaveChangesAsync throws DbUpdateConcurrencyException instead of overwriting the winner's
+            // write. No schema change: this is purely how EF shapes the UPDATE statement.
+            e.Property(r => r.Status).IsConcurrencyToken();
         });
 
         modelBuilder.Entity<AppSettingEntity>(e =>
@@ -132,6 +138,8 @@ public sealed class ExportLogDbContext(
             // review (Open Decision #13) — enforced at the database level so a race between two worker
             // polls can't both insert it.
             e.HasIndex(r => new { r.ImportDefinitionId, r.Sha256Checksum }).IsUnique();
+            // Same optimistic-concurrency treatment as ExportRunEntity.Status — see that property's comment.
+            e.Property(r => r.Status).IsConcurrencyToken();
         });
     }
 }

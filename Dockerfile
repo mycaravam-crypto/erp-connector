@@ -1,5 +1,10 @@
+# Base images pinned to a digest, not just a mutable tag — a repointed tag (registry compromise
+# or upstream mistake) would otherwise change what gets built with no detection. Update by
+# re-resolving the tag's current digest (e.g. `docker buildx imagetools inspect <image>:<tag>`),
+# not by hand.
+
 # ── Stage 1: Build the Vue UI ─────────────────────────────────────────────────
-FROM node:24-alpine AS ui-build
+FROM node:24-alpine@sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf AS ui-build
 WORKDIR /app/ui
 COPY src/connector-ui/package*.json ./
 RUN npm ci --prefer-offline
@@ -7,7 +12,7 @@ COPY src/connector-ui/ ./
 RUN npm run build-only
 
 # ── Stage 2: Build the .NET API ───────────────────────────────────────────────
-FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS api-build
+FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine@sha256:730abfea9d28f7d643bc29857363b35ddff06d8f22a388d912acfba5bf78fab2 AS api-build
 WORKDIR /app
 COPY Directory.Build.props ./
 COPY src/ ./src/
@@ -20,7 +25,7 @@ RUN dotnet publish src/Connector.Api/Connector.Api.csproj \
     --self-contained false
 
 # ── Stage 3: Runtime image ────────────────────────────────────────────────────
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine@sha256:7e9c4b5dd81f7f319c91f54e490e83d0f6c9a62686d1d1418ce492d6f961828d AS runtime
 WORKDIR /app
 
 # Copy published API
