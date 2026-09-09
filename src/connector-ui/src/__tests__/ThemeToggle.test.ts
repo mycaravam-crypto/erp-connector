@@ -14,11 +14,11 @@ beforeEach(() => {
 })
 
 describe('ThemeToggle', () => {
-  it('renders Light/Auto/Dark options with Auto pressed by default', async () => {
+  it('renders Light/Auto/Dark icon buttons with Auto pressed by default', async () => {
     const ThemeToggle = (await import('@/components/ThemeToggle.vue')).default
     const w = mount(ThemeToggle)
     const buttons = w.findAll('button')
-    expect(buttons.map((b) => b.text())).toEqual(['Light', 'Auto', 'Dark'])
+    expect(buttons.map((b) => b.attributes('aria-label'))).toEqual(['Light', 'Auto', 'Dark'])
     expect(buttons[1]!.attributes('aria-pressed')).toBe('true')
   })
 

@@ -6,8 +6,3 @@ body {
   background-attachment: fixed;
   color: var(--color-text-primary);
 }
-
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-}
