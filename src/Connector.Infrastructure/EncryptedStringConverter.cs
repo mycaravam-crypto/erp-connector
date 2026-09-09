@@ -15,7 +15,10 @@ namespace Connector.Infrastructure;
 /// helpers and the several call sites that read <see cref="ExportLogDbContext.AppSettings"/> directly —
 /// keeps seeing plaintext JSON; only the bytes actually persisted to disk are ciphertext.
 /// </summary>
-internal sealed class EncryptedStringConverter : ValueConverter<string, string>
+// Public rather than internal: ExportLogDbContext's constructor (public) now takes an
+// ILogger<EncryptedStringConverter> parameter (see the SR-11 comment there), and a public member can't
+// expose a less-accessible type.
+public sealed class EncryptedStringConverter : ValueConverter<string, string>
 {
     // Scopes key derivation to this exact column, per Data Protection's purpose-string convention — versioned
     // so a future rekey/format change can introduce "...v2" without touching already-encrypted rows.
