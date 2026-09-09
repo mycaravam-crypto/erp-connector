@@ -28,14 +28,18 @@ public sealed class DynamicExportServiceFlatQueryPostgresTests
 
         var cfg = new ExportMappingConfig(
             "masterdata",
-            Fields: [new ExportMappingField("article_name", "articleName", true)],
+            Fields:
+            [
+                new ExportMappingField("id", "id", true),
+                new ExportMappingField("article_name", "articleName", true),
+            ],
             Relations: []
         );
 
         var results = await DynamicExportService.ExecuteQueryAsync(conn, cfg, CancellationToken.None);
 
-        var row = results.Single(r => r["articleName"] == "Compressor Unit CU-200");
-        Assert.NotNull(row);
+        var row = results.Single(r => r["id"] == AcmeItemId);
+        Assert.Equal("Compressor Unit CU-200", row["articleName"]);
     }
 
     // Security-review finding SR-08: "technician_name" is denylisted by default
