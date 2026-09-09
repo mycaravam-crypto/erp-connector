@@ -12,6 +12,7 @@ import Icon from '@/components/ui/Icon.vue'
 import Button from '@/components/ui/Button.vue'
 import Alert from '@/components/ui/Alert.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
 
 const FORMAT_KEY = 'connector_export_format'
 const selectedFormat = ref<'xlsx' | 'csv' | 'json'>(
@@ -104,23 +105,23 @@ onMounted(() => {
 
 <template>
   <div class="max-w-5xl">
-    <p class="text-text-secondary text-xs font-semibold uppercase tracking-wide m-0 mb-1">Connector · Managed Export</p>
-    <span class="inline-flex items-center gap-1.5 mb-2">
-      <h1 class="m-0 text-xl font-semibold text-text-primary">Managed Export</h1>
-      <HelpTooltip label="What is the four-eyes release?" title="Why every run needs a second person">
-        <p>
-          Triggering an export doesn't send it anywhere by itself — every run needs a
-          <strong>four-eyes release</strong>: a second, different registered user has to confirm it
-          before it counts as final. This is a two-person control so no single person can quietly
-          produce and ship a file alone.
-        </p>
-        <p>
-          <strong>Example:</strong> you (as <code>alice</code>) trigger the export; it appears
-          "Pending" below. A colleague, <code>bob</code>, opens that run and clicks
-          <strong>Release Run</strong> to approve it — <code>alice</code> can't approve her own run.
-        </p>
-      </HelpTooltip>
-    </span>
+    <PageHeader title="Managed Export">
+      <template #help>
+        <HelpTooltip label="What is the four-eyes release?" title="Why every run needs a second person">
+          <p>
+            Triggering an export doesn't send it anywhere by itself — every run needs a
+            <strong>four-eyes release</strong>: a second, different registered user has to confirm it
+            before it counts as final. This is a two-person control so no single person can quietly
+            produce and ship a file alone.
+          </p>
+          <p>
+            <strong>Example:</strong> you (as <code>alice</code>) trigger the export; it appears
+            "Pending" below. A colleague, <code>bob</code>, opens that run and clicks
+            <strong>Release Run</strong> to approve it — <code>alice</code> can't approve her own run.
+          </p>
+        </HelpTooltip>
+      </template>
+    </PageHeader>
 
     <p class="text-text-secondary text-sm mt-2 mb-5 leading-relaxed">
       The standard export configured for this connector, using the CMDB Export Mapping above.
