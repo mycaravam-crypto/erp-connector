@@ -96,6 +96,12 @@
   --text-page-title--line-height: 1.75rem;
   --text-section-heading: 1rem;
   --text-section-heading--line-height: 1.5rem;
+
+  /* Top nav's pill-row-vs-hamburger breakpoint. Not one of Tailwind's default
+     breakpoints (md=768px, lg=1024px) — the six nav pills plus the header's brand
+     mark and account menu need ~1200px before they reliably fit on one line;
+     anything narrower than that still wraps the row even at `lg`. */
+  --breakpoint-nav: 1200px;
 }
 
 :root {
