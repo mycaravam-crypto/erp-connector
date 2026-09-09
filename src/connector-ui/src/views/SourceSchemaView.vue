@@ -52,7 +52,6 @@ function toggleTable(name: string) {
 <template>
   <div class="max-w-3xl">
     <div class="flex items-center gap-3 mb-2">
-      <span class="bg-brand text-white px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide shrink-0">Step 2</span>
       <h1 class="m-0 text-xl font-semibold text-text-primary">Source Schema</h1>
       <HelpTooltip label="About the source schema" title="What am I looking at?">
         <p>

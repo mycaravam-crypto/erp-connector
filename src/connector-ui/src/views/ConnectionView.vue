@@ -88,7 +88,6 @@ function proceed() {
 <template>
   <div class="max-w-xl">
     <div class="flex items-center gap-3 mb-2">
-      <span class="bg-brand text-white px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide shrink-0">Step 1</span>
       <h1 class="m-0 text-xl font-semibold text-text-primary">Connect to Source Database</h1>
       <HelpTooltip label="About the database connection" title="What am I connecting to?">
         <p>
@@ -110,7 +109,7 @@ function proceed() {
     </p>
 
     <Alert v-if="route.query.notice === 'needs-connection'" variant="warning" class="mb-4">
-      A database connection is required before accessing that step.
+      A database connection is required before accessing that page.
       Configure and test your connection below, then proceed.
     </Alert>
 
