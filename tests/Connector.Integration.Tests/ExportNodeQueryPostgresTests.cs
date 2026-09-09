@@ -296,6 +296,65 @@ public sealed class ExportNodeQueryPostgresTests
         Assert.False(row["manufacturer"]!.AsObject().ContainsKey("contact_email"));
     }
 
+    // Security-review finding SR-08: the above test's SourceField and TargetKey happen to be identical
+    // ("contact_email" both ways), so it can't tell a correct SourceField-based exclusion apart from the
+    // TargetKey-matching bug the review found (a definition that renames a denylisted field survived the
+    // old output-key-only strip). These two tests use a TargetKey that deliberately does NOT match the
+    // denylisted SourceField, so they only pass once the denylist is enforced by SourceField.
+    [Fact]
+    public async Task ExecuteExportNodeQueryAsync_GdprDeniedField_ExcludedEvenWhenRenamedAtRoot()
+    {
+        await using var conn = await ErpTestFixture.TryOpenAsync();
+        if (conn is null)
+            return;
+
+        // "technician_name" is denylisted by default (DynamicExportService.GdprDeniedFields); this
+        // definition renames it to a TargetKey that isn't itself denylisted.
+        var root = MakeRoot(ScalarField("id", "id"), ScalarField("assignedTech", "technician_name"));
+
+        var results = await DynamicExportService.ExecuteExportNodeQueryAsync(
+            conn,
+            "systemconfiguration",
+            root,
+            CancellationToken.None
+        );
+
+        var row = results.Single(r => r["id"]!.GetValue<string>() == "44444444-4444-4444-4444-444444444444");
+        Assert.False(row.ContainsKey("assignedTech"));
+    }
+
+    [Fact]
+    public async Task ExecuteExportNodeQueryAsync_GdprDeniedField_ExcludedEvenWhenRenamedAtNestedDepth()
+    {
+        await using var conn = await ErpTestFixture.TryOpenAsync();
+        if (conn is null)
+            return;
+
+        var root = MakeRoot(
+            ScalarField("itemId", "id"),
+            Node(
+                "manufacturer",
+                ExportNodeKind.Object,
+                "manufacturer",
+                "id",
+                "manufacturer_id",
+                children: [ScalarField("vendorEmail", "contact_email")]
+            )
+        );
+        var denylist = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "contact_email" };
+
+        var results = await DynamicExportService.ExecuteExportNodeQueryAsync(
+            conn,
+            "masterdata",
+            root,
+            CancellationToken.None,
+            gdprDenylist: denylist
+        );
+
+        var row = results.Single(r => r["itemId"]!.GetValue<string>() == AcmeItemId);
+        Assert.False(row["manufacturer"]!.AsObject().ContainsKey("vendorEmail"));
+    }
+
     [Fact]
     public async Task ExecuteExportNodeQueryAsync_FilterFragment_ScopesToNodeTable()
     {

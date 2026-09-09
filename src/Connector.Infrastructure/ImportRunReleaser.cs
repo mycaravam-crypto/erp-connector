@@ -114,13 +114,20 @@ public static class ImportRunReleaser
             return;
         }
 
+        // Security-review finding SR-09: the ERP transaction above is already committed and irreversible at
+        // this point, so recording that outcome locally must not be skippable via cancellation — same
+        // reasoning FailAsync already applies to its own post-outcome save. Using `ct` here (as this used
+        // to) risked exactly the divergence the review flagged: a cancellation landing in this narrow
+        // window would leave the run stuck at PendingReview locally despite the ERP write having already
+        // gone through, so a retry would replay the plan against rows that no longer match their expected
+        // old values and misreport a clean release as a conflict.
         run.Status = ImportRunStatus.Released;
         run.OperatedBy = operatorName;
         run.ApprovedBy = approver;
         run.ReleasedAt = DateTimeOffset.UtcNow.ToString("O");
         run.FinishedAt = run.ReleasedAt;
         run.ConflictCount = conflictCount;
-        await db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(CancellationToken.None);
 
         await audit.LogAsync(
             operatorName,

@@ -20,7 +20,13 @@ public static partial class DynamicExportService
     /// <see cref="ExportNodeKind.ScalarField"/> children as plain columns (not just further nesting) and to
     /// scope each node's own <see cref="ExportNode.Filter"/> fragment to its own subquery.
     /// </summary>
-    private static string BuildExportNodeExpr(ExportNode node, string parentAlias, ref int aliasCounter, int depth)
+    private static string BuildExportNodeExpr(
+        ExportNode node,
+        string parentAlias,
+        ref int aliasCounter,
+        int depth,
+        IReadOnlySet<string> denylist
+    )
     {
         if (depth > MaxNestedDepth)
             throw new InvalidOperationException(
@@ -34,11 +40,21 @@ public static partial class DynamicExportService
         var args = new List<string>();
         foreach (var child in node.Children.Where(x => x.Enabled))
         {
+            // GDPR denylist check keyed on SourceField (the actual column), not TargetKey (the export's
+            // chosen output name) — security-review finding SR-08: a field renamed away from its source
+            // name must still be excluded, including a definition saved before this field was denylisted,
+            // since this filter re-applies fresh against the *current* denylist on every run. Excluding it
+            // from the SELECT list entirely (rather than relying only on StripGdprFieldsRecursive's
+            // output-key match below) means the value never leaves the database in the first place.
+            if (child.Kind == ExportNodeKind.ScalarField && denylist.Contains(child.SourceField!))
+                continue;
+
             if (child.Kind == ExportNodeKind.ScalarField)
                 args.Add($"{SqlLit(child.TargetKey)}, {alias}.{QI(child.SourceField!)}::text");
             else
                 args.Add(
-                    $"{SqlLit(child.TargetKey)}, {BuildExportNodeExpr(child, alias, ref aliasCounter, depth + 1)}"
+                    $"{SqlLit(child.TargetKey)}, "
+                        + $"{BuildExportNodeExpr(child, alias, ref aliasCounter, depth + 1, denylist)}"
                 );
         }
 
@@ -56,8 +72,12 @@ public static partial class DynamicExportService
     /// Runs one <see cref="ExportNode"/> tree (rooted at <paramref name="rootTable"/>) as a single query
     /// returning one JSON tree per row — the generic successor to <see cref="ExecuteNestedJsonQueryAsync"/>
     /// that also covers plain scalar columns, so it is the only query path <see cref="BuildExportNodeAsync"/>
-    /// needs regardless of output format. GDPR stripping reuses <see cref="StripGdprFieldsRecursive"/>
-    /// unchanged since it matches by output key name at every depth, same contract as the legacy path.
+    /// needs regardless of output format. GDPR enforcement is two layers: a denylisted <see
+    /// cref="ExportNode.SourceField"/> is excluded from the SELECT list entirely (so it never leaves the
+    /// database, and — since this is re-evaluated against the *current* denylist on every run — a
+    /// definition saved before a field was denylisted is covered too, not just newly-saved ones), plus
+    /// <see cref="StripGdprFieldsRecursive"/>'s output-key match as a second, independent layer of
+    /// defence-in-depth (security-review finding SR-08).
     /// </summary>
     public static async Task<List<JsonObject>> ExecuteExportNodeQueryAsync(
         NpgsqlConnection conn,
@@ -68,14 +88,24 @@ public static partial class DynamicExportService
         IReadOnlySet<string>? gdprDenylist = null
     )
     {
+        var effectiveDenylist = gdprDenylist ?? GdprDeniedFields;
+
         var args = new List<string>();
         var aliasCounter = 0;
         foreach (var child in root.Children.Where(x => x.Enabled))
         {
+            // See the matching comment in BuildExportNodeExpr: excludes a denylisted field at the root
+            // level too, keyed on SourceField rather than TargetKey.
+            if (child.Kind == ExportNodeKind.ScalarField && effectiveDenylist.Contains(child.SourceField!))
+                continue;
+
             if (child.Kind == ExportNodeKind.ScalarField)
                 args.Add($"{SqlLit(child.TargetKey)}, s.{QI(child.SourceField!)}::text");
             else
-                args.Add($"{SqlLit(child.TargetKey)}, {BuildExportNodeExpr(child, "s", ref aliasCounter, depth: 1)}");
+                args.Add(
+                    $"{SqlLit(child.TargetKey)}, "
+                        + $"{BuildExportNodeExpr(child, "s", ref aliasCounter, depth: 1, effectiveDenylist)}"
+                );
         }
 
         var results = new List<JsonObject>();
@@ -92,8 +122,6 @@ public static partial class DynamicExportService
         if (!string.IsNullOrWhiteSpace(root.Filter))
             sql += $" WHERE ({root.Filter})";
         sql += $" LIMIT {sqlLimit}";
-
-        var effectiveDenylist = gdprDenylist ?? GdprDeniedFields;
 
         await using var cmd = new NpgsqlCommand(sql, conn) { CommandTimeout = 30 };
         try

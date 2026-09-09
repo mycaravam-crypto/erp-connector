@@ -249,6 +249,46 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
         Assert.False(row["manufacturer"]!.AsObject().ContainsKey("contact_email"));
     }
 
+    // Security-review finding SR-08: the test above uses the same string for SourceField and TargetKey, so
+    // it can't distinguish correct SourceField-based exclusion from the TargetKey-matching bug the review
+    // found (a mapping that renames a denylisted field survived the old output-key-only strip). This one
+    // uses a TargetKey that deliberately does NOT match the denylisted SourceField.
+    [Fact]
+    public async Task ExecuteNestedJsonQueryAsync_GdprDeniedField_ExcludedEvenWhenRenamed()
+    {
+        await using var conn = await ErpTestFixture.TryOpenAsync();
+        if (conn is null)
+            return;
+
+        var cfg = MakeConfig(
+            fields: [new("id", "itemId", true)],
+            nestedGroups:
+            [
+                new(
+                    "manufacturer",
+                    "manufacturer",
+                    "id",
+                    "manufacturer_id",
+                    true,
+                    "object",
+                    [new("contact_email", "vendorEmail", true)],
+                    []
+                ),
+            ]
+        );
+        var denylist = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "contact_email" };
+
+        var results = await DynamicExportService.ExecuteNestedJsonQueryAsync(
+            conn,
+            cfg,
+            CancellationToken.None,
+            gdprDenylist: denylist
+        );
+
+        var row = results.Single(r => r["itemId"]!.GetValue<string>() == AcmeItemId);
+        Assert.False(row["manufacturer"]!.AsObject().ContainsKey("vendorEmail"));
+    }
+
     [Fact]
     public async Task ExecuteNestedJsonQueryAsync_ObjectKindGroupWithMultipleMatches_ThrowsActionableError()
     {
