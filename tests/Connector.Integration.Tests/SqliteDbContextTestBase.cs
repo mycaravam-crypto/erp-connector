@@ -1,4 +1,5 @@
 using Connector.Infrastructure;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,7 +22,7 @@ public abstract class SqliteDbContextTestBase : IAsyncDisposable
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
         var options = new DbContextOptionsBuilder<ExportLogDbContext>().UseSqlite(_connection).Options;
-        Db = new ExportLogDbContext(options);
+        Db = new ExportLogDbContext(options, new EphemeralDataProtectionProvider());
         Db.Database.EnsureCreated();
     }
 

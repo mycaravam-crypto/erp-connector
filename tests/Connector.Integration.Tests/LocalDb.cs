@@ -1,4 +1,5 @@
 using Connector.Infrastructure;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,7 +25,7 @@ internal sealed record LocalDb(ExportLogDbContext Db, SqliteConnection Connectio
         var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
         var options = new DbContextOptionsBuilder<ExportLogDbContext>().UseSqlite(connection).Options;
-        var db = new ExportLogDbContext(options);
+        var db = new ExportLogDbContext(options, new EphemeralDataProtectionProvider());
         await db.Database.EnsureCreatedAsync();
         await db.SetSettingAsync(SettingsKeys.ErpConnection, ErpTestFixture.Config);
         return new LocalDb(db, connection);

@@ -14,6 +14,9 @@ obj/
 # Staging folder (export files written at runtime)
 src/Connector.Api/staging/
 
+# Data Protection key ring (generated at startup — encrypts AppSetting.Value at rest, see Program.cs)
+dp-keys/
+
 # Test result artefacts
 TestResults/
 *.trx

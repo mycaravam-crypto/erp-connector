@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 
 namespace Connector.Infrastructure;
@@ -50,7 +51,10 @@ public static class AppSettingsStore
 /// Schema is managed via EF Core migrations in Connector.Infrastructure/Migrations/.
 /// Startup calls Database.MigrateAsync() — add new changes via <c>dotnet ef migrations add</c>.
 /// </summary>
-public sealed class ExportLogDbContext(DbContextOptions<ExportLogDbContext> options) : DbContext(options)
+public sealed class ExportLogDbContext(
+    DbContextOptions<ExportLogDbContext> options,
+    IDataProtectionProvider dataProtectionProvider
+) : DbContext(options)
 {
     public DbSet<ExportRunEntity> ExportRuns => Set<ExportRunEntity>();
 
@@ -87,6 +91,10 @@ public sealed class ExportLogDbContext(DbContextOptions<ExportLogDbContext> opti
         {
             e.ToTable("AppSetting");
             e.HasKey(s => s.Key);
+            // Encrypted at rest — see EncryptedStringConverter's doc comment for why (this table holds the
+            // ERP connection password among other settings) and why it's applied to the whole column rather
+            // than special-cased per key.
+            e.Property(s => s.Value).HasConversion(new EncryptedStringConverter(dataProtectionProvider));
         });
 
         modelBuilder.Entity<AuditLogEntry>(e =>
