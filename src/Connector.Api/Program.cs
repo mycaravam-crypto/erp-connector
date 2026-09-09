@@ -90,11 +90,7 @@ builder
             {
                 var username = context.Principal?.Identity?.Name;
                 var iatValue = context.Principal?.FindFirst(JwtRegisteredClaimNames.Iat)?.Value;
-                if (
-                    username is null
-                    || iatValue is null
-                    || !long.TryParse(iatValue, out var iatUnixSeconds)
-                )
+                if (username is null || iatValue is null || !long.TryParse(iatValue, out var iatUnixSeconds))
                     return;
 
                 var db = context.HttpContext.RequestServices.GetRequiredService<ExportLogDbContext>();
