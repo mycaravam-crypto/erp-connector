@@ -143,4 +143,13 @@ public sealed class ImportRunEntity
     /// <summary>Username for a manually triggered run, or a fixed marker (e.g. "watcher") for the
     /// inbound folder-poll trigger (Slice 4).</summary>
     public string TriggeredBy { get; set; } = string.Empty;
+
+    /// <summary>Security-review finding SR-05: the ERP connection's identity (host/port/database — no
+    /// credentials, see <see cref="DynamicExportService.ConnectionFingerprint"/>) at the moment this run
+    /// was staged. <see cref="ImportRunReleaser.ReleaseAsync"/> re-reads the *current* connection setting
+    /// at release time to build the ERP connection it actually writes to; without this, an approval given
+    /// while reviewing a plan built against target A could end up committed against a target B the
+    /// connection setting was changed to in the meantime. Null for runs staged before this fix — release
+    /// skips the check for those rather than failing every already-staged run.</summary>
+    public string? StagedConnectionFingerprint { get; set; }
 }

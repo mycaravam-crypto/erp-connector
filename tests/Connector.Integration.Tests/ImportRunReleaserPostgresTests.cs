@@ -42,7 +42,12 @@ public sealed class ImportRunReleaserPostgresTests
         await cmd.ExecuteNonQueryAsync();
     }
 
-    private static async Task<ImportRunEntity> SeedRunAsync(ExportLogDbContext db, ImportPlan plan, string checksum)
+    private static async Task<ImportRunEntity> SeedRunAsync(
+        ExportLogDbContext db,
+        ImportPlan plan,
+        string checksum,
+        string? stagedConnectionFingerprint = null
+    )
     {
         var definition = new ImportDefinitionEntity
         {
@@ -75,6 +80,7 @@ public sealed class ImportRunReleaserPostgresTests
             RejectedCount = plan.RejectedCount,
             InvalidCount = plan.InvalidCount,
             PlanJson = ImportPlanJson.Serialize(plan),
+            StagedConnectionFingerprint = stagedConnectionFingerprint,
         };
         db.ImportRuns.Add(run);
         await db.SaveChangesAsync();
@@ -247,5 +253,76 @@ public sealed class ImportRunReleaserPostgresTests
 
         var auditEntry = Assert.Single(db.AuditLog.Where(a => a.Action == "import_run_rejected"));
         Assert.Equal("alice", auditEntry.Username);
+    }
+
+    // Security-review finding SR-05: LocalDb.NewAsync() pre-seeds SettingsKeys.ErpConnection with
+    // ErpTestFixture.Config, so a run staged with that same connection's fingerprint must still release —
+    // this proves the equality check itself passes, not just that a null fingerprint skips it (the other
+    // tests in this class all rely on that skip, since they never set StagedConnectionFingerprint).
+    [Fact]
+    public async Task ReleaseAsync_StagedFingerprintMatchesCurrentConnection_Commits()
+    {
+        await using var erp = await ErpTestFixture.TryOpenAsync();
+        if (erp is null)
+            return;
+
+        await using var local = await LocalDb.NewAsync();
+        var db = local.Db;
+        var audit = new AuditService(db, NullLogger<AuditService>.Instance);
+
+        try
+        {
+            var plan = SingleOperationPlan(FixtureA, "status", "active", "confirmed");
+            var run = await SeedRunAsync(
+                db,
+                plan,
+                new string('e', 64),
+                DynamicExportService.ConnectionFingerprint(ErpTestFixture.Config)
+            );
+
+            await ImportRunReleaser.ReleaseAsync(db, run, "alice", "bob", audit, CancellationToken.None);
+
+            Assert.Equal(ImportRunStatus.Released, run.Status);
+            Assert.Equal("confirmed", await ReadStatusAsync(erp, FixtureA));
+        }
+        finally
+        {
+            await ResetStatusAsync(erp, FixtureA);
+        }
+    }
+
+    [Fact]
+    public async Task ReleaseAsync_StagedFingerprintDiffersFromCurrentConnection_FailsWithoutTouchingErp()
+    {
+        await using var erp = await ErpTestFixture.TryOpenAsync();
+        if (erp is null)
+            return;
+
+        await using var local = await LocalDb.NewAsync();
+        var db = local.Db;
+        var audit = new AuditService(db, NullLogger<AuditService>.Instance);
+
+        try
+        {
+            // Simulates the ERP connection setting being changed to a different target after this run
+            // was staged and reviewed.
+            var plan = SingleOperationPlan(FixtureA, "status", "active", "confirmed");
+            var run = await SeedRunAsync(db, plan, new string('f', 64), "swapped-host.example:5432/erp");
+
+            await ImportRunReleaser.ReleaseAsync(db, run, "alice", "bob", audit, CancellationToken.None);
+
+            Assert.Equal(ImportRunStatus.Failed, run.Status);
+            Assert.Contains("connection changed", run.ErrorMessage);
+
+            // Never touched the ERP at all — not even a rolled-back transaction.
+            Assert.Equal("active", await ReadStatusAsync(erp, FixtureA));
+
+            var auditEntry = Assert.Single(db.AuditLog.Where(a => a.Action == "import_run_failed"));
+            Assert.Equal("alice", auditEntry.Username);
+        }
+        finally
+        {
+            await ResetStatusAsync(erp, FixtureA);
+        }
     }
 }

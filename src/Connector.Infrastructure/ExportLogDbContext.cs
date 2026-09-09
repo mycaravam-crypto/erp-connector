@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Connector.Infrastructure;
 
@@ -53,7 +55,12 @@ public static class AppSettingsStore
 /// </summary>
 public sealed class ExportLogDbContext(
     DbContextOptions<ExportLogDbContext> options,
-    IDataProtectionProvider dataProtectionProvider
+    IDataProtectionProvider dataProtectionProvider,
+    // Optional — resolved from DI in production (see Program.cs's AddDbContext<ExportLogDbContext>) but
+    // defaulted rather than required so every test that constructs this context directly with `new` (there's
+    // no DI container in play there) keeps compiling unchanged; SR-11's plaintext-fallback warning just goes
+    // nowhere for those instead of failing to construct.
+    ILogger<EncryptedStringConverter>? encryptedStringConverterLogger = null
 ) : DbContext(options)
 {
     public DbSet<ExportRunEntity> ExportRuns => Set<ExportRunEntity>();
@@ -100,7 +107,13 @@ public sealed class ExportLogDbContext(
             // Encrypted at rest — see EncryptedStringConverter's doc comment for why (this table holds the
             // ERP connection password among other settings) and why it's applied to the whole column rather
             // than special-cased per key.
-            e.Property(s => s.Value).HasConversion(new EncryptedStringConverter(dataProtectionProvider));
+            e.Property(s => s.Value)
+                .HasConversion(
+                    new EncryptedStringConverter(
+                        dataProtectionProvider,
+                        encryptedStringConverterLogger ?? NullLogger<EncryptedStringConverter>.Instance
+                    )
+                );
         });
 
         modelBuilder.Entity<AuditLogEntry>(e =>

@@ -500,6 +500,34 @@ static class ExportDefinitionEndpoints
         RegexOptions.Compiled | RegexOptions.IgnoreCase
     );
 
+    // Security-review finding SR-01: DangerousFilterKeywordRegex enumerates specific dangerous function
+    // names, but \b doesn't stop at '_' (it's a word character), so "pg_sleep_for"/"pg_sleep_until" —
+    // real, callable Postgres functions distinct from "pg_sleep" — sailed straight through, and any other
+    // dangerous function not on the list (present or future) would too. Rather than keep extending an
+    // inherently-incomplete enumeration, this rejects the general shape of a function call — an
+    // identifier immediately followed by '(' — unless that identifier is one of the handful of keywords a
+    // plain comparison/boolean-logic filter (per this class's own SafeFilterCharsRegex comment) actually
+    // needs parens for: AND (...)/OR (...) grouping and IN (...) list membership. No legitimate filter of
+    // that shape ever calls a function, so this can only reject strictly more filters than before, never
+    // accept one DangerousFilterKeywordRegex would have caught.
+    private static readonly Regex FunctionCallCandidateRegex = new(
+        @"([A-Za-z_][A-Za-z0-9_]*)\s*\(",
+        RegexOptions.Compiled
+    );
+
+    private static readonly HashSet<string> FilterParenKeywordAllowlist = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "AND",
+        "OR",
+        "NOT",
+        "IN",
+    };
+
+    private static bool ContainsFunctionCall(string filter) =>
+        FunctionCallCandidateRegex
+            .Matches(filter)
+            .Any(m => !FilterParenKeywordAllowlist.Contains(m.Groups[1].Value));
+
     private static bool IsSafeFilterExpression(string filter) =>
         !filter.Contains("--", StringComparison.Ordinal)
         && !filter.Contains("/*", StringComparison.Ordinal)
@@ -507,7 +535,8 @@ static class ExportDefinitionEndpoints
         && !filter.Contains(';')
         && !filter.Contains("$$", StringComparison.Ordinal)
         && SafeFilterCharsRegex.IsMatch(filter)
-        && !DangerousFilterKeywordRegex.IsMatch(filter);
+        && !DangerousFilterKeywordRegex.IsMatch(filter)
+        && !ContainsFunctionCall(filter);
 
     // Returns the normalized RootNode on success (null on failure) alongside the error, so callers store
     // exactly the tree that was validated instead of re-normalizing (or re-validating null-prone raw

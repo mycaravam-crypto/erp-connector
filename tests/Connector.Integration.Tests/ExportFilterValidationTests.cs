@@ -72,6 +72,11 @@ public sealed class ExportFilterValidationTests
     [InlineData("status = 'active'")]
     [InlineData("amount > 100 AND category = 'x'")]
     [InlineData("created_at >= '2024-01-01' AND created_at < '2025-01-01'")]
+    // SR-01 regression coverage: the general function-call rejection must not reject the parenthesized
+    // boolean-grouping and IN-list syntax that legitimate filters (per SafeFilterCharsRegex's own
+    // comment) actually need — only real function calls.
+    [InlineData("status = 'active' AND (category = 'x' OR category = 'y')")]
+    [InlineData("status IN ('active', 'pending')")]
     [InlineData(null)]
     public async Task Export_SafeRootFilter_Accepted(string? filter)
     {
@@ -96,6 +101,15 @@ public sealed class ExportFilterValidationTests
     [InlineData("pg_sleep(10) IS NULL")]
     [InlineData("1=1; SELECT 1")]
     [InlineData("current_setting('x') = 'y'")]
+    // SR-01: pg_sleep_for/pg_sleep_until are real Postgres functions distinct from pg_sleep, but
+    // \b in DangerousFilterKeywordRegex doesn't stop at '_' — these bypassed the name blacklist
+    // entirely before the general function-call rejection was added.
+    [InlineData("pg_sleep_for('5 seconds') IS NULL")]
+    [InlineData("pg_sleep_until(now() + interval '5 seconds') IS NULL")]
+    [InlineData("query_to_xml('select 1', false, false, '') IS NOT NULL")]
+    // Not on any keyword list at all — the general function-call rejection must catch unknown/future
+    // functions too, not just ones someone thought to enumerate.
+    [InlineData("some_future_dangerous_function(1) = 1")]
     public async Task Export_UnsafeRootFilter_Rejected(string filter)
     {
         await using var local = await LocalDb.NewAsync();
