@@ -172,10 +172,7 @@ public sealed class DynamicExportServiceTests
     // Documents the accepted trade-off: OWASP's CSV-injection guidance treats a leading "-" as dangerous
     // too, so a value that just happens to be a negative number is prefixed the same way.
     [InlineData("-123.45", "'-123.45")]
-    public void BuildCsvBytes_FormulaInjectionPrefix_IsNeutralizedWithLeadingApostrophe(
-        string value,
-        string expected
-    )
+    public void BuildCsvBytes_FormulaInjectionPrefix_IsNeutralizedWithLeadingApostrophe(string value, string expected)
     {
         var cols = new[] { "value" };
         var records = new List<Dictionary<string, string>> { new() { ["value"] = value } };
