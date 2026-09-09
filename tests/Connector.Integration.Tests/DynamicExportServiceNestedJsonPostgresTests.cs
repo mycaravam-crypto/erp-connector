@@ -46,7 +46,19 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
             ]
         );
 
-        var results = await DynamicExportService.ExecuteNestedJsonQueryAsync(conn, cfg, CancellationToken.None);
+        // This test is about nested-object embedding mechanics, not GDPR enforcement (that's the
+        // dedicated _GdprDeniedField_ tests below) — "contact_email" happens to be on the *default*
+        // denylist, so an explicit empty one here keeps the two concerns from coupling by accident
+        // (see security-review finding SR-08: before that fix, this coupling was invisible because
+        // the denylist wrongly matched by output key name, and separately because CI never actually
+        // ran these tests against Postgres at all until #145's fix — this is the first time either
+        // gap would have been caught).
+        var results = await DynamicExportService.ExecuteNestedJsonQueryAsync(
+            conn,
+            cfg,
+            CancellationToken.None,
+            gdprDenylist: new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        );
 
         var row = results.Single(r => r["itemId"]!.GetValue<string>() == AcmeItemId);
         var manufacturer = row["manufacturer"]!.AsObject();
