@@ -10,6 +10,12 @@ namespace Connector.Api.Endpoints;
 /// </summary>
 internal static class FourEyesReview
 {
+    // Registered against AddRateLimiter in Program.cs — per-client-IP fixed window on the release endpoints
+    // that call ValidateApprover (ExportEndpoints, ImportRunEndpoints), so a brute-force attempt against an
+    // approver's password gets throttled the same way /api/auth/login already is (security review SR-10:
+    // this check previously had no rate limit at all).
+    internal const string ApprovalRateLimiterPolicyName = "four-eyes-approval";
+
     /// <summary>
     /// Returns a client-facing error message if <paramref name="approver"/> fails the four-eyes check against
     /// <paramref name="operatorName"/> and <paramref name="userStore"/>, or <c>null</c> if it passes.

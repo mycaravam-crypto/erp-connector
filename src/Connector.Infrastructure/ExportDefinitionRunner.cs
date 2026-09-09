@@ -101,7 +101,7 @@ public static class ExportDefinitionRunner
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            return await Fail(ex.Message);
+            return await Fail(ErrorSanitizer.Detail(ex));
         }
     }
 }

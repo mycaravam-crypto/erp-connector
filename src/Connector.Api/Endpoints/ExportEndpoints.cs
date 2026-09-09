@@ -143,7 +143,8 @@ static class ExportEndpoints
                     return Results.Ok();
                 }
             )
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .RequireRateLimiting(FourEyesReview.ApprovalRateLimiterPolicyName);
 
         app.MapPost(
                 "/api/exports/{seqNo:int}/deliver",

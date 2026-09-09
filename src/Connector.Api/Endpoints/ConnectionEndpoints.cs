@@ -29,7 +29,7 @@ static class ConnectionEndpoints
         }
         catch (Exception ex)
         {
-            return $"Could not resolve host '{host}': {ex.Message}";
+            return $"Could not resolve host '{host}': {ErrorSanitizer.Detail(ex)}";
         }
 
         foreach (var address in addresses)
@@ -83,7 +83,7 @@ static class ConnectionEndpoints
                     }
                     catch (Exception ex)
                     {
-                        return Results.BadRequest($"Connection failed: {ex.Message}");
+                        return Results.BadRequest($"Connection failed: {ErrorSanitizer.Detail(ex)}");
                     }
                 }
             )
@@ -110,7 +110,7 @@ static class ConnectionEndpoints
                     catch (Exception ex)
                     {
                         return Results.Problem(
-                            detail: $"Could not read the schema from {cfg.Host}:{cfg.Port}/{cfg.Database}: {ex.Message}",
+                            detail: $"Could not read the schema from {cfg.Host}:{cfg.Port}/{cfg.Database}: {ErrorSanitizer.Detail(ex)}",
                             statusCode: StatusCodes.Status502BadGateway
                         );
                     }

@@ -131,7 +131,10 @@ static partial class ImportDefinitionEndpoints
         }
         catch (Exception ex)
         {
-            return (null, $"Could not introspect the ERP schema to validate AllowedWritableColumns: {ex.Message}");
+            return (
+                null,
+                $"Could not introspect the ERP schema to validate AllowedWritableColumns: {ErrorSanitizer.Detail(ex)}"
+            );
         }
 
         var schemaByTable = schema.ToDictionary(t => t.Name, StringComparer.OrdinalIgnoreCase);

@@ -110,7 +110,7 @@ public static class ImportRunReleaser
             // The `await using` declarations above dispose conn/tx while unwinding out of the try block,
             // before this catch body runs — an uncommitted transaction rolls back on Dispose, so the ERP is
             // left exactly as it was before this call.
-            await FailAsync(ex.Message);
+            await FailAsync(ErrorSanitizer.Detail(ex));
             return;
         }
 

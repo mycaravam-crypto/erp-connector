@@ -139,7 +139,7 @@ static class PipelineEndpoints
                         logger.LogError(ex, "On-demand export #{Seq} failed", sequenceNo);
                         run.Status = ExportRunStatus.Failed;
                         await db.SaveChangesAsync(CancellationToken.None);
-                        return Results.Problem(ex.Message, statusCode: 500);
+                        return Results.Problem(ErrorSanitizer.Detail(ex), statusCode: 500);
                     }
                 }
             )
@@ -227,7 +227,7 @@ static class PipelineEndpoints
                     catch (Exception ex) when (ex is not OperationCanceledException)
                     {
                         await audit.LogAsync(user, "export_preset_run_failed", $"preset={name}: {ex.Message}");
-                        return Results.Problem(ex.Message, statusCode: 500);
+                        return Results.Problem(ErrorSanitizer.Detail(ex), statusCode: 500);
                     }
                 }
             )
@@ -334,7 +334,7 @@ static class PipelineEndpoints
                     }
                     catch (Exception ex)
                     {
-                        return Results.Ok(EmptyResult($"Preview query failed: {ex.Message}"));
+                        return Results.Ok(EmptyResult($"Preview query failed: {ErrorSanitizer.Detail(ex)}"));
                     }
                 }
             )
