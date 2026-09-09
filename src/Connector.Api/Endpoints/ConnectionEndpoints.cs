@@ -36,7 +36,8 @@ static class ConnectionEndpoints
         {
             var mapped = address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address;
             if (BlockedNetworks.Any(net => net.Contains(mapped)))
-                return $"Host '{host}' resolves to a blocked address ({mapped}) and cannot be used as an ERP connection target.";
+                return $"Host '{host}' resolves to a blocked address ({mapped}) "
+                    + "and cannot be used as an ERP connection target.";
         }
 
         return null;

@@ -24,7 +24,8 @@ static class AuthEndpoints
                 async (LoginRequest req, AuditService audit) =>
                 {
                     string? hash = null;
-                    var known = !string.IsNullOrWhiteSpace(req.Username) && userStore.TryGetValue(req.Username, out hash);
+                    var known =
+                        !string.IsNullOrWhiteSpace(req.Username) && userStore.TryGetValue(req.Username, out hash);
                     var passwordOk = BCrypt.Net.BCrypt.Verify(req.Password ?? "", hash ?? DummyHashForTimingSafety);
                     if (!known || !passwordOk)
                         return Results.Unauthorized();
