@@ -10,8 +10,40 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    # Security-review finding SR-15: every Postgres-backed integration test previously no-op'd
+    # (rather than failing) when it couldn't reach a database — which every test in this job did,
+    # since none was ever started here. That made "green CI" not real evidence for any of them,
+    # including the fixes in #148/#149 that added coverage on the assumption these tests actually
+    # run. This service, plus the schema-load step below, gives them a real erp_testdb to hit —
+    # same image/credentials/schema as the local `docker-compose --profile test up -d testdb`
+    # fixture (see testdb/init.sql), just started as a GitHub Actions service instead. The
+    # ErpTestFixture no-op path itself is untouched: it still matters for a contributor running
+    # `dotnet test` locally without that compose profile up.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: erp_test
+          POSTGRES_PASSWORD: erp_test_pw
+          POSTGRES_DB: erp_testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U erp_test -d erp_testdb"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install postgresql-client
+        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends postgresql-client
+
+      - name: Load ERP test fixture schema
+        env:
+          PGPASSWORD: erp_test_pw
+        run: psql -h localhost -U erp_test -d erp_testdb -f testdb/init.sql
 
       - name: Setup .NET
         uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
