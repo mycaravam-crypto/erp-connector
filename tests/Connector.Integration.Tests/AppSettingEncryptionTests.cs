@@ -122,7 +122,15 @@ public sealed class AppSettingEncryptionTests
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
-        var options = new DbContextOptionsBuilder<ExportLogDbContext>().UseSqlite(connection).Options;
+        // EF Core caches its compiled model (and the ValueConverter closures baked into it) per context
+        // type by default — reused across every ExportLogDbContext instance in the process regardless of
+        // constructor args. Since EncryptedStringConverter closes over this specific `logger`, this test
+        // needs EF's own documented escape hatch for stateful value converters, or it'd silently observe
+        // whichever logger some *other*, earlier-constructed ExportLogDbContext happened to pass in.
+        var options = new DbContextOptionsBuilder<ExportLogDbContext>()
+            .UseSqlite(connection)
+            .EnableServiceProviderCaching(false)
+            .Options;
         var logger = new CapturingLogger();
         await using var db = new ExportLogDbContext(options, new EphemeralDataProtectionProvider(), logger);
         await db.Database.EnsureCreatedAsync();
@@ -141,7 +149,11 @@ public sealed class AppSettingEncryptionTests
         var dataProtectionProvider = new EphemeralDataProtectionProvider();
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
-        var options = new DbContextOptionsBuilder<ExportLogDbContext>().UseSqlite(connection).Options;
+        // See PreEncryptionPlaintextRow_LogsWarningOnEachRead's comment on EnableServiceProviderCaching.
+        var options = new DbContextOptionsBuilder<ExportLogDbContext>()
+            .UseSqlite(connection)
+            .EnableServiceProviderCaching(false)
+            .Options;
         var writerLogger = new CapturingLogger();
         var readerLogger = new CapturingLogger();
 
