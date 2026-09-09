@@ -320,12 +320,14 @@ describe('ImportDefinitionEditView', () => {
     expect(w.text()).toContain('confirmed')
     expect(w.text()).toContain('1 changed')
 
-    await w.find('[role="dialog"] input').setValue('bob')
+    const dialogInputs = w.findAll('[role="dialog"] input')
+    await dialogInputs[0].setValue('bob')
+    await dialogInputs[1].setValue('bob123')
     const confirmBtn = w.findAll('button').find((b) => b.text().includes('Confirm Release'))!
     await confirmBtn.trigger('click')
     await flushPromises()
 
-    expect(releaseSpy).toHaveBeenCalledWith(9, 'bob')
+    expect(releaseSpy).toHaveBeenCalledWith(9, 'bob', 'bob123')
   })
 
   describe('create mode (id = "new")', () => {

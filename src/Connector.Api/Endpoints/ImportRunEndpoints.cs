@@ -52,7 +52,12 @@ static class ImportRunEndpoints
                 {
                     var operatorName = httpContext.User.Identity!.Name!;
 
-                    var approvalError = FourEyesReview.ValidateApprover(operatorName, request.Approver, userStore);
+                    var approvalError = FourEyesReview.ValidateApprover(
+                        operatorName,
+                        request.Approver,
+                        request.ApproverPassword,
+                        userStore
+                    );
                     if (approvalError is not null)
                         return Results.BadRequest(approvalError);
 

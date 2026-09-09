@@ -276,8 +276,12 @@ export async function getImportRun(id: number): Promise<ImportRunDetail | null> 
 }
 
 /** Four-eyes commit: applies every matched/changed row still valid at commit time (Open Decision #12). */
-export async function releaseImportRun(id: number, approver: string): Promise<ApiResult<ImportRun>> {
-  return sendJsonForResult<ImportRun>(`/api/import-runs/${id}/release`, 'POST', { approver })
+export async function releaseImportRun(
+  id: number,
+  approver: string,
+  approverPassword: string,
+): Promise<ApiResult<ImportRun>> {
+  return sendJsonForResult<ImportRun>(`/api/import-runs/${id}/release`, 'POST', { approver, approverPassword })
 }
 
 /** Declines a pending run without writing anything to the ERP — single-person, no Approver needed. */

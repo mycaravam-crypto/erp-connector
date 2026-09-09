@@ -13,6 +13,7 @@ const emit = defineEmits<{ (e: 'released'): void }>()
 const open = ref(false)
 const currentUser = computed(() => getUsername() ?? '')
 const approver = ref('')
+const approverPassword = ref('')
 const submitting = ref(false)
 const serverError = ref<string | null>(null)
 
@@ -22,7 +23,9 @@ const sameUser = computed(
     approver.value.trim().toLowerCase() === currentUser.value.toLowerCase(),
 )
 
-const valid = computed(() => approver.value.trim() !== '' && !sameUser.value)
+const valid = computed(
+  () => approver.value.trim() !== '' && approverPassword.value !== '' && !sameUser.value,
+)
 
 const fieldError = computed(() => {
   if (sameUser.value) return 'Operator and approver must be different people.'
@@ -31,6 +34,7 @@ const fieldError = computed(() => {
 
 function openDialog() {
   approver.value = ''
+  approverPassword.value = ''
   serverError.value = null
   open.value = true
 }
@@ -41,7 +45,10 @@ async function submit() {
   serverError.value = null
 
   try {
-    const result = await releaseExport(props.seqNo, { approver: approver.value.trim() })
+    const result = await releaseExport(props.seqNo, {
+      approver: approver.value.trim(),
+      approverPassword: approverPassword.value,
+    })
     if (result.ok) {
       open.value = false
       emit('released')
@@ -68,8 +75,9 @@ async function submit() {
         <HelpTooltip label="Why do I need an approver?" title="Four-eyes control">
           <p>
             A second, different person has to confirm the release before it's final — the same person
-            who triggered the export can't approve their own run. Enter that colleague's username
-            here; they don't need to be present, but they are accountable for the confirmation.
+            who triggered the export can't approve their own run. The approver must be present to enter
+            their own password here; it proves they actually reviewed and confirmed this release
+            themselves, not just that someone typed their name.
           </p>
         </HelpTooltip>
       </p>
@@ -79,7 +87,15 @@ async function submit() {
         label="Approver username"
         placeholder="Approver username"
         autocomplete="off"
+        class="mb-3"
         :error="fieldError"
+      />
+      <Input
+        v-model="approverPassword"
+        type="password"
+        label="Approver password"
+        placeholder="Approver's own password"
+        autocomplete="current-password"
       />
 
       <template #footer>
