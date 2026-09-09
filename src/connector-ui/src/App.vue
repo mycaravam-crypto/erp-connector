@@ -19,10 +19,10 @@ function logout() {
 </script>
 
 <template>
-  <header class="sticky top-0 z-10 flex items-center justify-between gap-6 px-6 py-2.5 bg-nav/90 backdrop-blur-md text-nav-text border-b border-nav-border shadow-sm">
+  <header class="sticky top-0 z-10 flex items-center justify-between gap-3 sm:gap-6 px-4 sm:px-6 py-2.5 bg-nav/90 backdrop-blur-md text-nav-text border-b border-nav-border shadow-sm">
     <RouterLink :to="loggedIn ? { name: 'dashboard' } : { name: 'login' }" class="flex items-center gap-2 shrink-0 no-underline">
       <img :src="logo" alt="" class="w-6 h-6 rounded-md" />
-      <span class="font-bold text-sm tracking-wide text-white">X5 Connector</span>
+      <span class="hidden sm:inline font-bold text-sm tracking-wide text-white">X5 Connector</span>
     </RouterLink>
 
     <ConnectorNav v-if="loggedIn" />
