@@ -89,7 +89,9 @@ describe('App shell', () => {
 
     expect(w.find('nav[aria-label="Secondary"]').exists()).toBe(false)
 
-    await w.find('button[aria-haspopup="menu"]').trigger('click')
+    // ConnectorNav's mobile hamburger toggle also carries aria-haspopup="menu", so target the
+    // account menu's button by its accessible name (the username) instead of the generic selector.
+    await w.findAll('button[aria-haspopup="menu"]').find((b) => b.text().includes('alice'))!.trigger('click')
 
     const secondary = w.find('nav[aria-label="Secondary"]')
     expect(secondary.exists()).toBe(true)
