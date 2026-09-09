@@ -473,10 +473,38 @@ static class ExportDefinitionEndpoints
     // Valid SQL identifier: letters/digits/underscore, not starting with a digit — mirrors
     // ExportMappingEndpoints.SqlIdentifierRegex, applied here to every identifier field of an ExportNode tree
     // (RootTable/RelatedTable/JoinKey/SourceJoinKey/SourceField) before it can reach DynamicExportService's
-    // QI()-based query builder. Deliberately NOT applied to Filter: that field is a WHERE-clause fragment by
-    // design (export-definitions-2.0.md §4), not an identifier, so it only gets the same control-character
-    // check every free-text export key gets.
+    // QI()-based query builder.
     private static readonly Regex SqlIdentifierRegex = new("^[A-Za-z_][A-Za-z0-9_]*$", RegexOptions.Compiled);
+
+    // Filter is a WHERE-clause fragment by design (export-definitions-2.0.md §4), not a single identifier,
+    // so it can't go through SqlIdentifierRegex. It still gets concatenated verbatim into the query
+    // (DynamicExportService.ExecuteExportNodeQueryAsync/BuildExportNodeExpr), so it's restricted to a safe
+    // character set — comparisons/boolean logic against already-validated column names, e.g.
+    // "status = 'active' AND amount > 100" — and screened for statement-injection primitives (stacked
+    // queries, comments, UNION-based exfiltration, dangerous functions/catalogs). This is defense-in-depth,
+    // not a SQL parser: it does not verify referenced column names exist.
+    private static readonly Regex SafeFilterCharsRegex = new(
+        @"^[A-Za-z0-9_ \t\r\n.,()'=<>!~+\-*/%]*$",
+        RegexOptions.Compiled
+    );
+
+    private static readonly Regex DangerousFilterKeywordRegex = new(
+        @"\b(select|insert|update|delete|drop|alter|create|truncate|grant|revoke|exec|execute|union|into|"
+            + @"copy|call|do|merge|vacuum|analyze|reindex|cluster|listen|notify|prepare|deallocate|"
+            + @"pg_sleep|pg_read_file|pg_read_binary_file|pg_ls_dir|pg_terminate_backend|pg_cancel_backend|"
+            + @"dblink|lo_import|lo_export|information_schema|pg_catalog|pg_shadow|pg_authid|"
+            + @"current_setting|set_config|xp_cmdshell)\b",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase
+    );
+
+    private static bool IsSafeFilterExpression(string filter) =>
+        !filter.Contains("--", StringComparison.Ordinal)
+        && !filter.Contains("/*", StringComparison.Ordinal)
+        && !filter.Contains("*/", StringComparison.Ordinal)
+        && !filter.Contains(';')
+        && !filter.Contains("$$", StringComparison.Ordinal)
+        && SafeFilterCharsRegex.IsMatch(filter)
+        && !DangerousFilterKeywordRegex.IsMatch(filter);
 
     // Returns the normalized RootNode on success (null on failure) alongside the error, so callers store
     // exactly the tree that was validated instead of re-normalizing (or re-validating null-prone raw
@@ -543,6 +571,9 @@ static class ExportDefinitionEndpoints
         if (root.Kind != ExportNodeKind.Root)
             return (null, $"RootNode.Kind must be \"{ExportNodeKind.Root}\" (got \"{root.Kind}\").");
 
+        if (!string.IsNullOrWhiteSpace(root.Filter) && !IsSafeFilterExpression(root.Filter))
+            return (null, "RootNode.Filter contains characters or keywords that are not allowed.");
+
         var denylist = await DynamicExportService.GetDeniedFieldsAsync(db);
         var topLevelKeys = new HashSet<string>(StringComparer.Ordinal);
         foreach (var child in root.Children.Where(c => c.Enabled))
@@ -591,6 +622,8 @@ static class ExportDefinitionEndpoints
                     return $"Node '{path}': JoinKey is required and must be a valid identifier.";
                 if (string.IsNullOrWhiteSpace(node.SourceJoinKey) || !SqlIdentifierRegex.IsMatch(node.SourceJoinKey))
                     return $"Node '{path}': SourceJoinKey is required and must be a valid identifier.";
+                if (!string.IsNullOrWhiteSpace(node.Filter) && !IsSafeFilterExpression(node.Filter))
+                    return $"Node '{path}': Filter contains characters or keywords that are not allowed.";
 
                 var enabledChildren = node.Children.Where(c => c.Enabled).ToList();
                 if (enabledChildren.Count == 0)
