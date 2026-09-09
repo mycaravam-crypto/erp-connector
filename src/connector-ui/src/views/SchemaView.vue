@@ -26,6 +26,7 @@ import Icon from '@/components/ui/Icon.vue'
 import Button from '@/components/ui/Button.vue'
 import Alert from '@/components/ui/Alert.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
 
 const router = useRouter()
 
@@ -424,9 +425,8 @@ onMounted(load)
 
 <template>
   <div class="max-w-5xl">
-    <div class="flex items-center gap-3 mb-2">
-      <span class="flex items-center gap-1.5 flex-1">
-        <h1 class="m-0 text-xl font-semibold text-text-primary">CMDB Export Mapping</h1>
+    <PageHeader title="CMDB Export Mapping">
+      <template #help>
         <HelpTooltip label="What is this page for?" title="Configuring the one managed CMDB export">
           <p>
             This is the field configuration for the connector's single managed export — pick a source
@@ -435,9 +435,11 @@ onMounted(load)
           </p>
           <p>Need a separate, independently-scheduled export instead? Use Export Jobs, linked below.</p>
         </HelpTooltip>
-      </span>
-      <Button variant="secondary" :disabled="loading" @click="load">Refresh</Button>
-    </div>
+      </template>
+      <template #actions>
+        <Button variant="secondary" :disabled="loading" @click="load">Refresh</Button>
+      </template>
+    </PageHeader>
 
     <p class="text-text-secondary text-sm mt-2 mb-1 leading-relaxed">
       Configure the field mapping used by the managed CMDB export. Select a source table, choose

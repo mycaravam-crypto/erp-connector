@@ -5,6 +5,7 @@ import Button from '@/components/ui/Button.vue'
 import Alert from '@/components/ui/Alert.vue'
 import AuditLogTable from '@/components/AuditLogTable.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
 
 const entries = ref<AuditEntry[]>([])
 const loading = ref(true)
@@ -27,9 +28,8 @@ onMounted(load)
 
 <template>
   <div class="max-w-5xl">
-    <div class="flex items-center justify-between gap-3 mb-4">
-      <span class="inline-flex items-center gap-1.5">
-        <h1 class="m-0 text-xl font-semibold text-text-primary">Audit Log</h1>
+    <PageHeader title="Audit Log">
+      <template #help>
         <HelpTooltip label="What gets logged here?" title="What's in the audit log">
           <p>
             A record of who did what, and when — every save, release, delivery, skip, and rejection
@@ -41,11 +41,13 @@ onMounted(load)
             import run's entry to see exactly who released it, who approved it, and what value it wrote.
           </p>
         </HelpTooltip>
-      </span>
-      <Button variant="secondary" :loading="loading" @click="load">
-        {{ loading ? 'Loading…' : 'Refresh' }}
-      </Button>
-    </div>
+      </template>
+      <template #actions>
+        <Button variant="secondary" :loading="loading" @click="load">
+          {{ loading ? 'Loading…' : 'Refresh' }}
+        </Button>
+      </template>
+    </PageHeader>
 
     <div v-if="loading && entries.length === 0" class="text-text-secondary text-sm mt-4">Loading…</div>
 
