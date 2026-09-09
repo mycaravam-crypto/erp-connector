@@ -57,11 +57,16 @@ public sealed class ExportNodeQueryPostgresTests
             )
         );
 
+        // This test is about nested-object embedding mechanics, not GDPR enforcement (that's the
+        // dedicated _GdprDeniedField_ tests below) — "contact_email" happens to be on the *default*
+        // denylist, so an explicit empty one here keeps the two concerns from coupling by accident
+        // (see security-review finding SR-08).
         var results = await DynamicExportService.ExecuteExportNodeQueryAsync(
             conn,
             "masterdata",
             root,
-            CancellationToken.None
+            CancellationToken.None,
+            gdprDenylist: new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         );
 
         var row = results.Single(r => r["itemId"]!.GetValue<string>() == AcmeItemId);
