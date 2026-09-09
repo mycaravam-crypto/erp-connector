@@ -46,8 +46,12 @@ services:
       POSTGRES_USER: erp_test
       POSTGRES_PASSWORD: erp_test_pw
       POSTGRES_DB: erp_testdb
+    # Loopback-only: this is a local fixture with a fixed, published test password (see
+    # testdb/init.sql), never meant to be reachable from anywhere but this host. Host-side tools
+    # (dotnet test, dev.sh) still reach it at localhost:5432 exactly as before; only exposure to
+    # other machines on the network changes.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - ./testdb/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:

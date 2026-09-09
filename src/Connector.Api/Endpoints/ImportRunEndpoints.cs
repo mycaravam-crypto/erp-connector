@@ -67,7 +67,16 @@ static class ImportRunEndpoints
                     if (run.Status != ImportRunStatus.PendingReview)
                         return Results.Conflict($"Import run #{id} is already {run.Status}.");
 
-                    await ImportRunReleaser.ReleaseAsync(db, run, operatorName, request.Approver, audit, ct);
+                    try
+                    {
+                        await ImportRunReleaser.ReleaseAsync(db, run, operatorName, request.Approver, audit, ct);
+                    }
+                    catch (DbUpdateConcurrencyException)
+                    {
+                        return Results.Conflict(
+                            $"Import run #{id} was changed by another request — reload and try again."
+                        );
+                    }
 
                     return run.Status == ImportRunStatus.Failed
                         ? Results.Problem(detail: run.ErrorMessage, statusCode: 500)
@@ -92,7 +101,16 @@ static class ImportRunEndpoints
                     if (run.Status != ImportRunStatus.PendingReview)
                         return Results.Conflict($"Import run #{id} is already {run.Status}.");
 
-                    await ImportRunReleaser.RejectAsync(db, run, httpContext.User.Identity!.Name!, audit, ct);
+                    try
+                    {
+                        await ImportRunReleaser.RejectAsync(db, run, httpContext.User.Identity!.Name!, audit, ct);
+                    }
+                    catch (DbUpdateConcurrencyException)
+                    {
+                        return Results.Conflict(
+                            $"Import run #{id} was changed by another request — reload and try again."
+                        );
+                    }
                     return Results.Ok(ToDto(run));
                 }
             )

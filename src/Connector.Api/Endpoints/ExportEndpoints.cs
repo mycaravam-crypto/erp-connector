@@ -127,7 +127,17 @@ static class ExportEndpoints
                     run.OperatedBy = operatorName;
                     run.ApprovedBy = request.Approver;
                     run.ReleasedAt = DateTimeOffset.UtcNow.ToString("O");
-                    await db.SaveChangesAsync();
+                    try
+                    {
+                        await db.SaveChangesAsync();
+                    }
+                    catch (DbUpdateConcurrencyException)
+                    {
+                        return Results.Conflict(
+                            $"Run #{seqNo} was changed by another request (already released, skipped, or "
+                                + "failed) — reload and try again."
+                        );
+                    }
 
                     await audit.LogAsync(operatorName, "export_released", $"#{seqNo} approved by {request.Approver}");
                     return Results.Ok();
@@ -160,7 +170,14 @@ static class ExportEndpoints
                     run.DeliveredBy = user;
                     run.ImportedRecordCount = request.ImportedRecordCount;
                     run.DeliveryNotes = request.Notes;
-                    await db.SaveChangesAsync();
+                    try
+                    {
+                        await db.SaveChangesAsync();
+                    }
+                    catch (DbUpdateConcurrencyException)
+                    {
+                        return Results.Conflict($"Run #{seqNo} was changed by another request — reload and try again.");
+                    }
 
                     await audit.LogAsync(user, "export_delivered", $"#{seqNo}");
                     return Results.Ok();
@@ -185,7 +202,14 @@ static class ExportEndpoints
                         return Results.Conflict($"Run #{seqNo} has status '{run.Status}' and cannot be skipped.");
 
                     run.Status = ExportRunStatus.Skipped;
-                    await db.SaveChangesAsync();
+                    try
+                    {
+                        await db.SaveChangesAsync();
+                    }
+                    catch (DbUpdateConcurrencyException)
+                    {
+                        return Results.Conflict($"Run #{seqNo} was changed by another request — reload and try again.");
+                    }
 
                     var user = httpContext.User.Identity!.Name!;
                     var detail = string.IsNullOrWhiteSpace(request.Reason)
