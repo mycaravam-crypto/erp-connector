@@ -5,6 +5,7 @@ import Alert from '@/components/ui/Alert.vue'
 import IcdActiveColumnsTable from '@/components/IcdActiveColumnsTable.vue'
 import IcdExcludedFieldsList from '@/components/IcdExcludedFieldsList.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
 
 const schema = ref<SchemaDefinition | null>(null)
 const loading = ref(true)
@@ -42,27 +43,27 @@ onMounted(async () => {
 
 <template>
   <div class="max-w-5xl">
-    <div class="flex items-center gap-3 mb-5">
-      <h1 class="m-0 text-xl font-semibold text-text-primary">ICD Export Schema</h1>
-      <HelpTooltip label="What is an ICD?" title="ICD = Interface Control Document">
-        <p>
-          It's the jointly-agreed contract that says exactly which columns cross the wire to the
-          vendor, under what names — nothing more, nothing less. Think of it as a signed-off "menu"
-          both sides agreed on, so neither side can quietly add or remove a field without the other
-          noticing.
-        </p>
-        <p>
-          This page is <strong>read-only</strong> — changing what's exported means going through the
-          joint change process referenced above, not editing here.
-        </p>
-      </HelpTooltip>
-      <span
-        v-if="schema"
-        class="inline-flex items-center gap-1 bg-brand/10 text-brand text-xs font-bold px-2.5 py-1 rounded-full"
-      >
-        v{{ schema.version }}
-      </span>
-    </div>
+    <PageHeader title="ICD Export Schema">
+      <template #help>
+        <HelpTooltip label="What is an ICD?" title="ICD = Interface Control Document">
+          <p>
+            It's the jointly-agreed contract that says exactly which columns cross the wire to the
+            vendor, under what names — nothing more, nothing less. Think of it as a signed-off "menu"
+            both sides agreed on, so neither side can quietly add or remove a field without the other
+            noticing.
+          </p>
+          <p>
+            This page is <strong>read-only</strong> — changing what's exported means going through the
+            joint change process referenced above, not editing here.
+          </p>
+        </HelpTooltip>
+      </template>
+      <template v-if="schema" #actions>
+        <span class="inline-flex items-center gap-1 bg-brand/10 text-brand text-xs font-bold px-2.5 py-1 rounded-full">
+          v{{ schema.version }}
+        </span>
+      </template>
+    </PageHeader>
 
     <p class="text-sm text-text-secondary mb-6">
       Read-only view of the agreed ICD export schema — the column contract between this connector

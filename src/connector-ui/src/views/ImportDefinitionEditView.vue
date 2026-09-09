@@ -30,6 +30,7 @@ import { ChevronLeft } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
 import Button from '@/components/ui/Button.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -236,7 +237,7 @@ function onReviewResolved() {
     <p v-else-if="loadError" class="text-danger">{{ loadError }}</p>
 
     <template v-else-if="definition">
-      <h1 class="m-0 text-xl font-semibold text-text-primary mb-1">{{ isSaved ? definition.name || '(untitled)' : 'New Import Job' }}</h1>
+      <PageHeader :title="isSaved ? definition.name || '(untitled)' : 'New Import Job'" />
       <p v-if="isSaved" class="text-text-secondary text-sm mt-1 mb-5">
         Config version {{ definition.configVersion }} · created by {{ definition.createdBy }}
       </p>

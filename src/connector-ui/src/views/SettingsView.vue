@@ -5,6 +5,7 @@ import Alert from '@/components/ui/Alert.vue'
 import SchedulerSettingsForm from '@/components/SchedulerSettingsForm.vue'
 import GdprDenylistEditor from '@/components/GdprDenylistEditor.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
 
 const loading = ref(true)
 const loadError = ref<string | null>(null)
@@ -27,17 +28,18 @@ onMounted(async () => {
 
 <template>
   <div class="max-w-5xl">
-    <div class="flex items-center gap-3 mb-2">
-      <h1 class="m-0 text-xl font-semibold text-text-primary">Settings</h1>
-      <HelpTooltip label="What's on this page?" title="Two connector-wide settings">
-        <p>
-          <strong>Export Scheduler</strong> controls when the one managed CMDB export runs
-          automatically. <strong>GDPR Denied Fields</strong> is a global list of field names blocked
-          from every export, regardless of how any individual export is mapped.
-        </p>
-        <p>Export Jobs and Import Jobs have their own settings on their own edit pages, not here.</p>
-      </HelpTooltip>
-    </div>
+    <PageHeader title="Settings">
+      <template #help>
+        <HelpTooltip label="What's on this page?" title="Two connector-wide settings">
+          <p>
+            <strong>Export Scheduler</strong> controls when the one managed CMDB export runs
+            automatically. <strong>GDPR Denied Fields</strong> is a global list of field names blocked
+            from every export, regardless of how any individual export is mapped.
+          </p>
+          <p>Export Jobs and Import Jobs have their own settings on their own edit pages, not here.</p>
+        </HelpTooltip>
+      </template>
+    </PageHeader>
 
     <div v-if="loading" class="text-text-secondary text-sm mt-4">Loading…</div>
 
