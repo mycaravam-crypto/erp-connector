@@ -34,10 +34,7 @@ internal static class FourEyesReview
         if (!userStore.TryGetValue(approver, out var approverPasswordHash))
             return $"Unknown approver: '{approver}'. Only registered users can approve a release.";
 
-        if (
-            string.IsNullOrEmpty(approverPassword)
-            || !BCrypt.Net.BCrypt.Verify(approverPassword, approverPasswordHash)
-        )
+        if (string.IsNullOrEmpty(approverPassword) || !BCrypt.Net.BCrypt.Verify(approverPassword, approverPasswordHash))
             return "Approver password is missing or incorrect.";
 
         return null;
