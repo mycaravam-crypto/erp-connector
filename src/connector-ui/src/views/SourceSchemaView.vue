@@ -8,6 +8,7 @@ import Icon from '@/components/ui/Icon.vue'
 import Button from '@/components/ui/Button.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import Alert from '@/components/ui/Alert.vue'
 
 const router = useRouter()
 
@@ -77,7 +78,7 @@ function toggleTable(name: string) {
     </p>
 
     <p v-if="loading" class="text-text-secondary">Reading schema…</p>
-    <p v-else-if="error" class="text-danger">{{ error }}</p>
+    <Alert v-else-if="error" variant="danger">{{ error }}</Alert>
 
     <template v-else-if="schema">
       <div class="flex items-center gap-2 px-3.5 py-2.5 bg-surface-elevated border border-border rounded-md text-sm text-text-secondary mb-5">

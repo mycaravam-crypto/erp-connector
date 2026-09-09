@@ -457,7 +457,7 @@ onMounted(load)
     </p>
 
     <p v-if="loading" class="text-text-secondary">Loading…</p>
-    <p v-else-if="error" class="text-danger">{{ error }}</p>
+    <Alert v-else-if="error" variant="danger">{{ error }}</Alert>
 
     <template v-else-if="sourceSchema">
       <!-- Presets toolbar -->

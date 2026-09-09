@@ -6,6 +6,7 @@ import Alert from '@/components/ui/Alert.vue'
 import AuditLogTable from '@/components/AuditLogTable.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 
 const entries = ref<AuditEntry[]>([])
 const loading = ref(true)
@@ -53,9 +54,7 @@ onMounted(load)
 
     <Alert v-else-if="loadError" variant="danger" class="mt-4">{{ loadError }}</Alert>
 
-    <div v-else-if="entries.length === 0" class="text-text-secondary text-sm mt-4">
-      No audit entries yet.
-    </div>
+    <EmptyState v-else-if="entries.length === 0" title="No audit entries yet" class="mt-4" />
 
     <AuditLogTable v-else :entries="entries" />
   </div>
