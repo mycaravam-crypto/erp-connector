@@ -38,7 +38,13 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Install postgresql-client
-        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends postgresql-client
+        # `|| true` on the update: the runner image ships a pre-configured Google Chrome apt source
+        # unrelated to anything this job installs, and its index periodically fails with a hash-sum
+        # mismatch (an upstream/CDN sync issue, not this repo's), which makes `apt-get update` exit
+        # non-zero even when every source we actually need (Ubuntu's own) updated fine. Tolerating that
+        # here doesn't mask a real failure: if postgresql-client's own source is actually broken, the
+        # install step below still fails loudly on its own.
+        run: sudo apt-get update || true; sudo apt-get install --yes --no-install-recommends postgresql-client
 
       - name: Load ERP test fixture schema
         env:
