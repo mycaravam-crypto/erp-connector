@@ -176,9 +176,7 @@ static class ExportEndpoints
                     }
                     catch (DbUpdateConcurrencyException)
                     {
-                        return Results.Conflict(
-                            $"Run #{seqNo} was changed by another request — reload and try again."
-                        );
+                        return Results.Conflict($"Run #{seqNo} was changed by another request — reload and try again.");
                     }
 
                     await audit.LogAsync(user, "export_delivered", $"#{seqNo}");
@@ -210,9 +208,7 @@ static class ExportEndpoints
                     }
                     catch (DbUpdateConcurrencyException)
                     {
-                        return Results.Conflict(
-                            $"Run #{seqNo} was changed by another request — reload and try again."
-                        );
+                        return Results.Conflict($"Run #{seqNo} was changed by another request — reload and try again.");
                     }
 
                     var user = httpContext.User.Identity!.Name!;
