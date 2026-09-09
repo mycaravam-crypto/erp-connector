@@ -76,6 +76,10 @@
   --shadow-md: var(--x-elevation-md);
   --shadow-lg: var(--x-elevation-lg);
 
+  /* tinted glow used behind primary buttons/hovered surfaces — subtle in
+     light mode, more visible against the near-black dark background */
+  --shadow-glow: 0 8px 20px var(--x-glow);
+
   /* motion */
   --transition-duration-fast: 150ms;
   --transition-duration-base: 200ms;
@@ -123,6 +127,12 @@
   --x-elevation-sm: 0 1px 2px 0 rgb(15 23 42 / 6%), 0 1px 3px 0 rgb(15 23 42 / 8%);
   --x-elevation-md: 0 4px 6px -1px rgb(15 23 42 / 8%), 0 2px 4px -2px rgb(15 23 42 / 6%);
   --x-elevation-lg: 0 10px 15px -3px rgb(15 23 42 / 10%), 0 4px 6px -4px rgb(15 23 42 / 8%);
+
+  --x-glow: rgb(79 70 229 / 16%);
+  --x-selection: rgb(79 70 229 / 18%);
+  --x-glass-bg: rgb(255 255 255 / 70%);
+  --x-glow-bg-1: radial-gradient(circle at 12% -8%, rgb(99 102 241 / 8%), transparent 32rem);
+  --x-glow-bg-2: radial-gradient(circle at 92% 6%, rgb(56 189 248 / 6%), transparent 28rem);
 }
 
 /*
@@ -131,15 +141,19 @@
  * elevated) steps up in lightness so cards/dialogs read as "closer".
  */
 .dark {
-  --x-bg: #0b1120;
-  --x-surface: #0f172a;
-  --x-surface-elevated: #1e293b;
-  --x-border: #334155;
-  --x-border-strong: #475569;
+  /* Near-black base with each raised layer stepping up in lightness, and
+     hairline (translucent-white) borders instead of solid slate — the
+     "glass panel on a dark canvas" look, rather than an inverted light
+     theme. */
+  --x-bg: #090b12;
+  --x-surface: #11141c;
+  --x-surface-elevated: #171b25;
+  --x-border: rgb(255 255 255 / 8%);
+  --x-border-strong: rgb(255 255 255 / 16%);
 
-  --x-text-primary: #f1f5f9;
+  --x-text-primary: #f6f7fb;
   --x-text-secondary: #cbd5e1;
-  --x-text-muted: #94a3b8;
+  --x-text-muted: #8b93a7;
 
   --x-brand: #4f46e5;
   --x-brand-from: #6366f1;
@@ -154,11 +168,17 @@
   --x-info: #60a5fa;
   --x-info-bg: rgb(96 165 250 / 14%);
 
-  --x-focus: #818cf8;
+  --x-focus: #a78bfa;
 
   --x-elevation-sm: 0 1px 2px 0 rgb(0 0 0 / 30%);
-  --x-elevation-md: 0 4px 6px -1px rgb(0 0 0 / 40%), 0 2px 4px -2px rgb(0 0 0 / 30%);
-  --x-elevation-lg: 0 10px 15px -3px rgb(0 0 0 / 50%), 0 4px 6px -4px rgb(0 0 0 / 40%);
+  --x-elevation-md: 0 4px 6px -1px rgb(0 0 0 / 45%), 0 2px 4px -2px rgb(0 0 0 / 35%);
+  --x-elevation-lg: 0 20px 40px -12px rgb(0 0 0 / 55%), 0 8px 16px -8px rgb(0 0 0 / 40%);
+
+  --x-glow: rgb(139 92 246 / 35%);
+  --x-selection: rgb(167 139 250 / 30%);
+  --x-glass-bg: linear-gradient(180deg, rgb(23 27 37 / 85%), rgb(11 14 22 / 90%));
+  --x-glow-bg-1: radial-gradient(circle at 12% -8%, rgb(124 58 237 / 18%), transparent 32rem);
+  --x-glow-bg-2: radial-gradient(circle at 92% 6%, rgb(56 189 248 / 9%), transparent 28rem);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -168,4 +188,37 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+::selection {
+  background: var(--x-selection);
+}
+
+/* Frosted panel treatment for chrome that should read as "floating" above
+   the page (nav bar, dialogs) rather than a flat card — blur is layered
+   over a themed tint so it still has enough contrast without it. */
+.glass {
+  background: var(--x-glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Thin, low-contrast scrollbar — the browser default reads as heavy chrome
+   against the near-black dark surfaces. */
+.dark {
+  scrollbar-color: rgb(255 255 255 / 20%) transparent;
+  scrollbar-width: thin;
+}
+.dark ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 14%);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
 }
