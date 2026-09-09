@@ -1,12 +1,18 @@
 <script setup lang="ts">
+import type { Component } from 'vue'
+import { Sun, Monitor, Moon } from 'lucide-vue-next'
+import Icon from '@/components/ui/Icon.vue'
 import { useTheme, type ThemePreference } from '@/composables/useTheme'
 
 const { preference, setPreference } = useTheme()
 
-const options: { value: ThemePreference; label: string }[] = [
-  { value: 'light', label: 'Light' },
-  { value: 'system', label: 'Auto' },
-  { value: 'dark', label: 'Dark' },
+// Icon-only — the text labels ("Light"/"Auto"/"Dark") took up nav space the top bar doesn't
+// have to spare. Each button keeps an aria-label/title so the meaning isn't icon-only for
+// screen readers or on hover.
+const options: { value: ThemePreference; label: string; icon: Component }[] = [
+  { value: 'light', label: 'Light', icon: Sun },
+  { value: 'system', label: 'Auto', icon: Monitor },
+  { value: 'dark', label: 'Dark', icon: Moon },
 ]
 </script>
 
@@ -17,11 +23,13 @@ const options: { value: ThemePreference; label: string }[] = [
       :key="opt.value"
       type="button"
       :aria-pressed="preference === opt.value"
-      class="px-2 py-0.5 rounded text-[0.72rem] text-nav-text cursor-pointer transition-colors"
+      :aria-label="opt.label"
+      :title="opt.label"
+      class="flex items-center justify-center p-1.5 rounded text-nav-text cursor-pointer transition-colors"
       :class="preference === opt.value ? '!bg-nav-hover !text-nav-text-strong' : 'hover:text-nav-text-strong'"
       @click="setPreference(opt.value)"
     >
-      {{ opt.label }}
+      <Icon :icon="opt.icon" :size="16" />
     </button>
   </div>
 </template>

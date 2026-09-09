@@ -37,6 +37,8 @@ function logout() {
   </header>
 
   <main class="p-6">
-    <RouterView />
+    <div class="max-w-[1280px] mx-auto">
+      <RouterView />
+    </div>
   </main>
 </template>
