@@ -60,13 +60,13 @@ onBeforeUnmount(() => {
 
 <template>
   <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-    <div class="absolute inset-0 bg-black/50" @click="closeOnBackdrop && close()" />
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeOnBackdrop && close()" />
     <div
       ref="dialogRef"
       role="dialog"
       aria-modal="true"
       :aria-labelledby="title ? titleId : undefined"
-      class="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-lg border border-border bg-surface-elevated shadow-lg"
+      class="glass relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-lg border border-border-strong shadow-lg"
       @keydown="onKeydown"
     >
       <div v-if="title" class="flex items-center justify-between gap-4 border-b border-border px-5 py-4">

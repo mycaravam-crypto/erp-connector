@@ -2,6 +2,8 @@
 
 body {
   background-color: var(--color-bg);
+  background-image: var(--x-glow-bg-1), var(--x-glow-bg-2);
+  background-attachment: fixed;
   color: var(--color-text-primary);
 }
 
