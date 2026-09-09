@@ -1,4 +1,5 @@
 using Connector.Core.DynamicExport;
+using Npgsql;
 
 namespace Connector.Infrastructure;
 
@@ -36,8 +37,36 @@ public static partial class DynamicExportService
 
     public readonly record struct ExportBuildResult(byte[] Bytes, int RecordCount, string Extension);
 
+    // Security-review finding SR-02: this previously interpolated Host/Database/Username/Password
+    // straight into the connection-string text. A Password (or Username/Database) value containing
+    // ";Host=evil;..." would append/override keys in the string Npgsql actually parses, letting a
+    // caller redirect the connection despite ValidateHostAsync only checking the Host field.
+    // NpgsqlConnectionStringBuilder sets each value as a typed property instead, so no field value can
+    // ever be interpreted as connection-string syntax. No TrustServerCertificate: Npgsql 10 removed the
+    // behavior it used to control (SslMode=Prefer already governs cert handling), and the property is
+    // now an obsolete no-op.
     public static string BuildConnectionString(ErpConnectionConfig cfg) =>
-        $"Host={cfg.Host};Port={cfg.Port};Database={cfg.Database};Username={cfg.Username};Password={cfg.Password};SSL Mode=Prefer;Trust Server Certificate=true;Timeout=5;Command Timeout=10";
+        new NpgsqlConnectionStringBuilder
+        {
+            Host = cfg.Host,
+            Port = cfg.Port,
+            Database = cfg.Database,
+            Username = cfg.Username,
+            Password = cfg.Password,
+            SslMode = SslMode.Prefer,
+            Timeout = 5,
+            CommandTimeout = 10,
+        }.ConnectionString;
+
+    /// <summary>
+    /// Security-review finding SR-05: identifies *which system* a connection points at — host, port, and
+    /// database — deliberately excluding Username/Password so a pure credential rotation against the same
+    /// logical target (a password change, a different service account for the same database) never counts
+    /// as a target change. Used to pin the connection an import run was staged against and verify it still
+    /// matches at release (<see cref="ImportRunEntity.StagedConnectionFingerprint"/>,
+    /// <see cref="ImportRunReleaser.ReleaseAsync"/>).
+    /// </summary>
+    public static string ConnectionFingerprint(ErpConnectionConfig cfg) => $"{cfg.Host}:{cfg.Port}/{cfg.Database}";
 
     // Safe SQL identifier quoting — wraps in double quotes and escapes embedded double quotes.
     public static string QI(string identifier) => "\"" + identifier.Replace("\"", "\"\"") + "\"";

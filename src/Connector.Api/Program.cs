@@ -156,8 +156,10 @@ builder.Services.Configure<ImportSinkOptions>(builder.Configuration.GetSection("
 builder.Services.Configure<ImportWorkerOptions>(builder.Configuration.GetSection("ImportWorker"));
 
 // Backs EncryptedStringConverter (ExportLogDbContext.OnModelCreating), which encrypts the AppSetting.Value
-// column at rest — it holds the ERP connection config, password included. Keys are persisted to disk
-// alongside the SQLite database (same volume in docker-compose.yml) so they survive container
+// column at rest — it holds the ERP connection config, password included. Keys are persisted to disk on
+// their own volume, separate from the SQLite database (see docker-compose.yml's connector-dpkeys volume
+// and appsettings.Production.json's DataProtection comment — SR-11: co-locating them meant a single
+// volume backup/snapshot yielded both the ciphertext and the key to decrypt it), so they survive container
 // restarts/redeploys; losing this directory makes every previously-stored setting unrecoverable, same
 // operational tradeoff as losing Auth:JwtSecret.
 var dataProtectionKeysDirectory = builder.Configuration["DataProtection:KeysDirectory"] ?? "dp-keys";

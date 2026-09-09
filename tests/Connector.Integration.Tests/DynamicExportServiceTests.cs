@@ -86,6 +86,73 @@ public sealed class DynamicExportServiceTests
         Assert.Empty(DynamicExportService.GetColumnNames(cfg));
     }
 
+    // ── BuildConnectionString ────────────────────────────────────────────────
+
+    // Security-review finding SR-02: a connection-string-injection payload smuggled through Password (or
+    // any other field) must never be able to append/override keys like Host in the string Npgsql actually
+    // parses. NpgsqlConnectionStringBuilder treats the whole value as the literal password, not as syntax.
+    [Fact]
+    public void BuildConnectionString_PasswordWithInjectionPayload_DoesNotOverrideHost()
+    {
+        var cfg = new ErpConnectionConfig(
+            "trusted-host.example",
+            5432,
+            "erp",
+            "erp_user",
+            "s3cret;Host=evil.example;Port=1234"
+        );
+
+        var connectionString = DynamicExportService.BuildConnectionString(cfg);
+        var parsed = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
+
+        Assert.Equal("trusted-host.example", parsed.Host);
+        Assert.Equal(5432, parsed.Port);
+        Assert.Equal("s3cret;Host=evil.example;Port=1234", parsed.Password);
+    }
+
+    [Fact]
+    public void BuildConnectionString_UsernameWithInjectionPayload_DoesNotOverrideDatabase()
+    {
+        var cfg = new ErpConnectionConfig("trusted-host.example", 5432, "erp", "erp_user;Database=other_db", "pw");
+
+        var connectionString = DynamicExportService.BuildConnectionString(cfg);
+        var parsed = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
+
+        Assert.Equal("erp", parsed.Database);
+        Assert.Equal("erp_user;Database=other_db", parsed.Username);
+    }
+
+    // ── ConnectionFingerprint ─────────────────────────────────────────────────
+
+    // Security-review finding SR-05: the fingerprint pins *which system* a connection is (host/port/db),
+    // so a plan staged against one target can be verified against the same target at release time.
+    [Fact]
+    public void ConnectionFingerprint_SameHostPortDatabase_IsStableAcrossDifferentCredentials()
+    {
+        var stagedAt = new ErpConnectionConfig("erp.example", 5432, "erp", "reader", "pw1");
+        var releasedAt = new ErpConnectionConfig("erp.example", 5432, "erp", "writer", "pw2");
+
+        Assert.Equal(
+            DynamicExportService.ConnectionFingerprint(stagedAt),
+            DynamicExportService.ConnectionFingerprint(releasedAt)
+        );
+    }
+
+    [Theory]
+    [InlineData("evil.example", 5432, "erp")]
+    [InlineData("erp.example", 1234, "erp")]
+    [InlineData("erp.example", 5432, "other_db")]
+    public void ConnectionFingerprint_DifferentTarget_DiffersFromOriginal(string host, int port, string database)
+    {
+        var stagedAt = new ErpConnectionConfig("erp.example", 5432, "erp", "reader", "pw");
+        var swapped = new ErpConnectionConfig(host, port, database, "reader", "pw");
+
+        Assert.NotEqual(
+            DynamicExportService.ConnectionFingerprint(stagedAt),
+            DynamicExportService.ConnectionFingerprint(swapped)
+        );
+    }
+
     // ── BuildCsvBytes ─────────────────────────────────────────────────────────
 
     [Fact]

@@ -291,6 +291,7 @@ public sealed class ImportWorker(
             RejectedCount = plan.RejectedCount,
             InvalidCount = plan.InvalidCount,
             PlanJson = ImportPlanJson.Serialize(plan),
+            StagedConnectionFingerprint = DynamicExportService.ConnectionFingerprint(connCfg),
         };
 
         try

@@ -171,6 +171,12 @@ public sealed class ImportWorkerPostgresTests
             Assert.Contains("systemconfiguration", run.DefinitionSnapshotJson);
             Assert.NotNull(run.PlanJson);
             Assert.Null(run.FinishedAt);
+            // SR-05: staging must pin the connection identity it ran against so a later release can
+            // verify it's still committing to the same target.
+            Assert.Equal(
+                DynamicExportService.ConnectionFingerprint(ErpTestFixture.Config),
+                run.StagedConnectionFingerprint
+            );
 
             Assert.False(File.Exists(Path.Combine(inboundDir.FullName, "vendor-drop-1.json")));
             Assert.False(File.Exists(Path.Combine(inboundDir.FullName, "vendor-drop-1.manifest.json")));

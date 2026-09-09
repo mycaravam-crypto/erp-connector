@@ -67,6 +67,21 @@ public static class ImportRunReleaser
             return;
         }
 
+        // Security-review finding SR-05: the plan/policy/schema context was reviewed against whatever
+        // connection was configured at staging time, but this method always writes to the *current*
+        // connection setting. If that setting changed since staging, an approval given for target A could
+        // otherwise get committed against target B. StagedConnectionFingerprint is null for runs staged
+        // before this fix — those keep the prior (unverified) behavior rather than failing outright.
+        var currentFingerprint = DynamicExportService.ConnectionFingerprint(connCfg);
+        if (run.StagedConnectionFingerprint is not null && run.StagedConnectionFingerprint != currentFingerprint)
+        {
+            await FailAsync(
+                $"ERP connection changed since this run was staged (was '{run.StagedConnectionFingerprint}', "
+                    + $"now '{currentFingerprint}'). Re-stage this file against the current connection before release."
+            );
+            return;
+        }
+
         int conflictCount;
         try
         {

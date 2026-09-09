@@ -4,6 +4,7 @@ using Connector.Infrastructure;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Connector.Integration.Tests;
 
@@ -17,6 +18,30 @@ namespace Connector.Integration.Tests;
 /// </summary>
 public sealed class AppSettingEncryptionTests
 {
+    // Captures Warning-level log calls so SR-11's "plaintext fallback must be observable" fix has
+    // something to assert against, without pulling in a fake-logger test package for one call site.
+    private sealed class CapturingLogger : ILogger<EncryptedStringConverter>
+    {
+        public List<string> Warnings { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter
+        )
+        {
+            if (logLevel == LogLevel.Warning)
+                Warnings.Add(formatter(state, exception));
+        }
+    }
+
     private static async Task<string> ReadRawColumnValueAsync(SqliteConnection connection, string key)
     {
         await using var cmd = connection.CreateCommand();
@@ -87,5 +112,61 @@ public sealed class AppSettingEncryptionTests
 
         var roundTripped = await db.GetSettingAsync<ErpConnectionConfig>(SettingsKeys.ErpConnection);
         Assert.Equal(ErpTestFixture.Config, roundTripped);
+    }
+
+    // Security-review finding SR-11: the plaintext fallback above must never again go unnoticed — a row
+    // still hitting it long after the encryption migration shipped is a signal an operator needs, not a
+    // silently-accepted no-op.
+    [Fact]
+    public async Task PreEncryptionPlaintextRow_LogsWarningOnEachRead()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        // EF Core caches its compiled model (and the ValueConverter closures baked into it) per context
+        // type by default — reused across every ExportLogDbContext instance in the process regardless of
+        // constructor args. Since EncryptedStringConverter closes over this specific `logger`, this test
+        // needs EF's own documented escape hatch for stateful value converters, or it'd silently observe
+        // whichever logger some *other*, earlier-constructed ExportLogDbContext happened to pass in.
+        var options = new DbContextOptionsBuilder<ExportLogDbContext>()
+            .UseSqlite(connection)
+            .EnableServiceProviderCaching(false)
+            .Options;
+        var logger = new CapturingLogger();
+        await using var db = new ExportLogDbContext(options, new EphemeralDataProtectionProvider(), logger);
+        await db.Database.EnsureCreatedAsync();
+
+        var plainJson = JsonSerializer.Serialize(ErpTestFixture.Config);
+        await WriteRawColumnValueAsync(connection, SettingsKeys.ErpConnection, plainJson);
+
+        await db.GetSettingAsync<ErpConnectionConfig>(SettingsKeys.ErpConnection);
+
+        Assert.Contains(logger.Warnings, w => w.Contains("plaintext", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task ProperlyEncryptedRow_LogsNoWarningOnRead()
+    {
+        var dataProtectionProvider = new EphemeralDataProtectionProvider();
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        // See PreEncryptionPlaintextRow_LogsWarningOnEachRead's comment on EnableServiceProviderCaching.
+        var options = new DbContextOptionsBuilder<ExportLogDbContext>()
+            .UseSqlite(connection)
+            .EnableServiceProviderCaching(false)
+            .Options;
+        var writerLogger = new CapturingLogger();
+        var readerLogger = new CapturingLogger();
+
+        await using (var writer = new ExportLogDbContext(options, dataProtectionProvider, writerLogger))
+        {
+            await writer.Database.EnsureCreatedAsync();
+            await writer.SetSettingAsync(SettingsKeys.ErpConnection, ErpTestFixture.Config);
+        }
+        Assert.Empty(writerLogger.Warnings);
+
+        await using var reader = new ExportLogDbContext(options, dataProtectionProvider, readerLogger);
+        await reader.GetSettingAsync<ErpConnectionConfig>(SettingsKeys.ErpConnection);
+
+        Assert.Empty(readerLogger.Warnings);
     }
 }

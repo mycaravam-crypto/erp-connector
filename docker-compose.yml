@@ -26,6 +26,11 @@ services:
       # AllowedOrigins__0: "https://your-domain.com"
     volumes:
       - connector-db:/data/db
+      # Security-review finding SR-11: previously shared connector-db with export_log.db (the encrypted
+      # AppSetting.Value column's ciphertext). A backup/snapshot of a single volume must not hand over both
+      # the ciphertext and the key needed to decrypt it — see appsettings.Production.json's DataProtection
+      # comment.
+      - connector-dpkeys:/data/dpkeys
       - connector-staging:/data/staging
       - connector-inbound:/data/inbound
     restart: unless-stopped
@@ -62,5 +67,6 @@ services:
 
 volumes:
   connector-db:
+  connector-dpkeys:
   connector-staging:
   connector-inbound:
