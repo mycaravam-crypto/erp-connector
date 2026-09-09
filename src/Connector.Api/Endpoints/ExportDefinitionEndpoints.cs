@@ -524,9 +524,7 @@ static class ExportDefinitionEndpoints
     };
 
     private static bool ContainsFunctionCall(string filter) =>
-        FunctionCallCandidateRegex
-            .Matches(filter)
-            .Any(m => !FilterParenKeywordAllowlist.Contains(m.Groups[1].Value));
+        FunctionCallCandidateRegex.Matches(filter).Any(m => !FilterParenKeywordAllowlist.Contains(m.Groups[1].Value));
 
     private static bool IsSafeFilterExpression(string filter) =>
         !filter.Contains("--", StringComparison.Ordinal)

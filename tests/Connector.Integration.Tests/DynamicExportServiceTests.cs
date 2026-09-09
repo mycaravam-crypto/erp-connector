@@ -113,13 +113,7 @@ public sealed class DynamicExportServiceTests
     [Fact]
     public void BuildConnectionString_UsernameWithInjectionPayload_DoesNotOverrideDatabase()
     {
-        var cfg = new ErpConnectionConfig(
-            "trusted-host.example",
-            5432,
-            "erp",
-            "erp_user;Database=other_db",
-            "pw"
-        );
+        var cfg = new ErpConnectionConfig("trusted-host.example", 5432, "erp", "erp_user;Database=other_db", "pw");
 
         var connectionString = DynamicExportService.BuildConnectionString(cfg);
         var parsed = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
