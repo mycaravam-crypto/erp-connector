@@ -51,7 +51,7 @@ public sealed class EncryptedStringConverter : ValueConverter<string, string>
         {
             return protector.Unprotect(value);
         }
-        catch (CryptographicException)
+        catch (CryptographicException ex)
         {
             // Security-review finding SR-11: this used to fail silently, forever — indistinguishable from
             // the one-time pre-encryption migration case this fallback exists for. A hit here means this
@@ -62,6 +62,7 @@ public sealed class EncryptedStringConverter : ValueConverter<string, string>
             // after this fix ships is expected (each row stops firing once AppSettingsStore.SetSettingAsync
             // re-saves it); one still firing well after that is the signal an operator needs to investigate.
             logger.LogWarning(
+                ex,
                 "An AppSetting.Value column was read as plaintext instead of a Data Protection payload — "
                     + "either a pre-encryption row awaiting its next save, or encryption was bypassed. "
                     + "Investigate if this persists."

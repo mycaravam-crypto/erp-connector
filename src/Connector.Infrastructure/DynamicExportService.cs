@@ -42,7 +42,9 @@ public static partial class DynamicExportService
     // ";Host=evil;..." would append/override keys in the string Npgsql actually parses, letting a
     // caller redirect the connection despite ValidateHostAsync only checking the Host field.
     // NpgsqlConnectionStringBuilder sets each value as a typed property instead, so no field value can
-    // ever be interpreted as connection-string syntax.
+    // ever be interpreted as connection-string syntax. No TrustServerCertificate: Npgsql 10 removed the
+    // behavior it used to control (SslMode=Prefer already governs cert handling), and the property is
+    // now an obsolete no-op.
     public static string BuildConnectionString(ErpConnectionConfig cfg) =>
         new NpgsqlConnectionStringBuilder
         {
@@ -52,7 +54,6 @@ public static partial class DynamicExportService
             Username = cfg.Username,
             Password = cfg.Password,
             SslMode = SslMode.Prefer,
-            TrustServerCertificate = true,
             Timeout = 5,
             CommandTimeout = 10,
         }.ConnectionString;
