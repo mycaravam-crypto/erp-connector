@@ -31,6 +31,15 @@ export function clearSession(): void {
   sessionStorage.removeItem(USER_KEY)
 }
 
+/**
+ * Security-review finding SR-16: invalidates every JWT issued to the current user, including the one this
+ * request itself used — the caller must treat the local session as dead and re-login afterward regardless
+ * of whether this call succeeds or fails, since a network error here shouldn't block signing out locally.
+ */
+export async function revokeAllSessions(): Promise<void> {
+  await fetch('/api/auth/revoke-my-sessions', { method: 'POST', headers: authHeaders() }).catch(() => {})
+}
+
 export async function login(
   username: string,
   password: string,

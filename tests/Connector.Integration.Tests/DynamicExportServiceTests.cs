@@ -122,6 +122,30 @@ public sealed class DynamicExportServiceTests
         Assert.Equal("erp_user;Database=other_db", parsed.Username);
     }
 
+    // Security-review finding SR-03: SslMode was previously hardcoded to Prefer everywhere. This proves
+    // an explicit choice is actually honored, and that an unset/unrecognized value falls back to the
+    // prior Prefer default rather than throwing (so a config saved before this field existed, or corrupted
+    // input, can never itself turn a working connection into a hard failure).
+    [Theory]
+    [InlineData("Require", Npgsql.SslMode.Require)]
+    [InlineData("VerifyFull", Npgsql.SslMode.VerifyFull)]
+    [InlineData("verifyfull", Npgsql.SslMode.VerifyFull)]
+    [InlineData(null, Npgsql.SslMode.Prefer)]
+    [InlineData("", Npgsql.SslMode.Prefer)]
+    [InlineData("not-a-real-mode", Npgsql.SslMode.Prefer)]
+    public void BuildConnectionString_SslMode_HonorsExplicitChoiceOrFallsBackToPrefer(
+        string? sslMode,
+        Npgsql.SslMode expected
+    )
+    {
+        var cfg = new ErpConnectionConfig("host.example", 5432, "erp", "user", "pw", sslMode);
+
+        var connectionString = DynamicExportService.BuildConnectionString(cfg);
+        var parsed = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
+
+        Assert.Equal(expected, parsed.SslMode);
+    }
+
     // ── ConnectionFingerprint ─────────────────────────────────────────────────
 
     // Security-review finding SR-05: the fingerprint pins *which system* a connection is (host/port/db),

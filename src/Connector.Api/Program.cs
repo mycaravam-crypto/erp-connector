@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using System.Threading.RateLimiting;
 using Connector.Api;
@@ -69,6 +70,7 @@ if (jwtSecret.Length < MinJwtSecretLength)
 builder
     .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(opts =>
+    {
         opts.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = false,
@@ -76,8 +78,36 @@ builder
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
-        }
-    )
+        };
+        // Security-review finding SR-16: a signature- and expiry-valid JWT could still be one this user
+        // has explicitly revoked (POST /api/auth/revoke-my-sessions) — check its issued-at claim against
+        // that user's stored revocation cutover on every request. A token minted before this claim existed
+        // (already outstanding when this shipped) has no "iat" claim at all; that's treated as "nothing to
+        // check," not a failure, so this can't itself log out every already-logged-in session on deploy.
+        opts.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var username = context.Principal?.Identity?.Name;
+                var iatValue = context.Principal?.FindFirst(JwtRegisteredClaimNames.Iat)?.Value;
+                if (
+                    username is null
+                    || iatValue is null
+                    || !long.TryParse(iatValue, out var iatUnixSeconds)
+                )
+                    return;
+
+                var db = context.HttpContext.RequestServices.GetRequiredService<ExportLogDbContext>();
+                var revokedBefore = await db.GetRevokedBeforeAsync(username);
+                if (revokedBefore is null)
+                    return;
+
+                var issuedAt = DateTimeOffset.FromUnixTimeSeconds(iatUnixSeconds);
+                if (issuedAt < revokedBefore.Value)
+                    context.Fail("Token has been revoked.");
+            },
+        };
+    })
     // Second, opt-in scheme for machine-to-machine callers (X-Api-Key header) — only endpoints that
     // explicitly list "ApiKey" alongside the default JWT scheme via RequireAuthorization(policy => ...)
     // accept it; every other endpoint is unaffected and still requires a JWT.

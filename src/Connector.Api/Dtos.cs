@@ -94,7 +94,7 @@ record PreviewResult(
 );
 
 /// <summary>Public view of the stored connection — no password field.</summary>
-record ErpConnectionInfo(string Host, int Port, string Database, string Username);
+record ErpConnectionInfo(string Host, int Port, string Database, string Username, string? SslMode);
 
 /// <summary>Body for POST /api/exports/{seqNo}/skip. Reason is stored in the audit log.</summary>
 record SkipRequest(string? Reason);

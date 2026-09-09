@@ -78,4 +78,15 @@ describe('UserMenu', () => {
     expect(w.emitted('signOut')).toHaveLength(1)
     expect(w.find('nav[aria-label="Secondary"]').exists()).toBe(false)
   })
+
+  it('emits revokeSessions and closes when "Log out everywhere" is clicked', async () => {
+    const w = mount(UserMenu, { props: { username: 'alice' }, global: { plugins: [await buildRouter()] } })
+    await w.find('button[aria-haspopup="menu"]').trigger('click')
+
+    const revokeButton = w.findAll('button').find((b) => b.text().includes('Log out everywhere'))
+    await revokeButton!.trigger('click')
+
+    expect(w.emitted('revokeSessions')).toHaveLength(1)
+    expect(w.find('nav[aria-label="Secondary"]').exists()).toBe(false)
+  })
 })

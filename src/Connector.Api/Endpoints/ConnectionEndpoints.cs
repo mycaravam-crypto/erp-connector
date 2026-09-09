@@ -20,6 +20,13 @@ static class ConnectionEndpoints
         IPNetwork.Parse("fe80::/10"),
     ];
 
+    // Security-review finding SR-03: SslMode was previously hardcoded to Prefer, which silently downgrades
+    // to an unencrypted connection whenever the server doesn't offer TLS. Validated here against Npgsql's
+    // own enum names rather than a hand-maintained list, so save-time validation and
+    // DynamicExportService.ParseSslMode can never quietly drift apart on what's "valid."
+    internal static bool IsValidSslMode(string? sslMode) =>
+        string.IsNullOrWhiteSpace(sslMode) || Enum.TryParse<SslMode>(sslMode, ignoreCase: true, out _);
+
     internal static async Task<string?> ValidateHostAsync(string host, CancellationToken ct)
     {
         IPAddress[] addresses;
@@ -54,7 +61,9 @@ static class ConnectionEndpoints
                     if (cfg is null)
                         return Results.NotFound();
 
-                    return Results.Ok(new ErpConnectionInfo(cfg.Host, cfg.Port, cfg.Database, cfg.Username));
+                    return Results.Ok(
+                        new ErpConnectionInfo(cfg.Host, cfg.Port, cfg.Database, cfg.Username, cfg.SslMode)
+                    );
                 }
             )
             .RequireAuthorization();
@@ -70,6 +79,11 @@ static class ConnectionEndpoints
                         || string.IsNullOrWhiteSpace(request.Username)
                     )
                         return Results.BadRequest("Host, Database, and Username are required.");
+
+                    if (!IsValidSslMode(request.SslMode))
+                        return Results.BadRequest(
+                            "SslMode must be one of: Disable, Allow, Prefer, Require, VerifyCA, VerifyFull."
+                        );
 
                     var hostError = await ValidateHostAsync(request.Host, ct);
                     if (hostError is not null)

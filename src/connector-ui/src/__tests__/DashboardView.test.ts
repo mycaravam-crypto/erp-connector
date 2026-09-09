@@ -68,6 +68,7 @@ describe('DashboardView', () => {
       port: 5432,
       database: 'erp',
       username: 'svc',
+      sslMode: null,
     })
     const w = mount(DashboardView, { global: { plugins: [await buildRouter()] } })
     await flushPromises()

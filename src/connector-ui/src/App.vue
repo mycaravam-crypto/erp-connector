@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { RouterView, RouterLink, useRouter, useRoute } from 'vue-router'
-import { getUsername, clearSession, isLoggedIn } from '@/api/auth'
+import { getUsername, clearSession, isLoggedIn, revokeAllSessions } from '@/api/auth'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import UserMenu from '@/components/UserMenu.vue'
 import ConnectorNav from '@/components/ConnectorNav.vue'
@@ -13,6 +13,14 @@ const loggedIn = computed(() => { void route.path; return isLoggedIn() })
 const username = computed(() => { void route.path; return getUsername() })
 
 function logout() {
+  clearSession()
+  router.push({ name: 'login' })
+}
+
+// SR-16: the revoke call also invalidates the token this request itself would use, so the local session
+// is cleared unconditionally afterward — an already-dead token isn't worth keeping around either way.
+async function revokeSessions() {
+  await revokeAllSessions()
   clearSession()
   router.push({ name: 'login' })
 }
@@ -31,7 +39,7 @@ function logout() {
       <ThemeToggle />
       <template v-if="loggedIn">
         <span class="w-px self-stretch bg-nav-border" aria-hidden="true" />
-        <UserMenu :username="username" @sign-out="logout" />
+        <UserMenu :username="username" @sign-out="logout" @revoke-sessions="revokeSessions" />
       </template>
     </div>
   </header>

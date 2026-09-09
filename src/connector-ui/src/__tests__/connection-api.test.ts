@@ -9,7 +9,7 @@ const SCHEMA = {
   ],
 }
 
-const CONN_INFO = { host: 'localhost', port: 5432, database: 'erp', username: 'ro' }
+const CONN_INFO = { host: 'localhost', port: 5432, database: 'erp', username: 'ro', sslMode: null }
 
 function mockFetch(body: unknown, status = 200) {
   return vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
@@ -51,10 +51,32 @@ describe('saveConnection', () => {
 
   it('sends all fields including password in the body', async () => {
     mockFetch(SCHEMA)
-    await saveConnection({ host: 'db.local', port: 5433, database: 'prod', username: 'reader', password: 'pw' })
+    await saveConnection({
+      host: 'db.local',
+      port: 5433,
+      database: 'prod',
+      username: 'reader',
+      password: 'pw',
+      sslMode: null,
+    })
     const call = vi.mocked(fetch).mock.calls[0]
     const body = JSON.parse(call[1]?.body as string)
-    expect(body).toEqual({ host: 'db.local', port: 5433, database: 'prod', username: 'reader', password: 'pw' })
+    expect(body).toEqual({
+      host: 'db.local',
+      port: 5433,
+      database: 'prod',
+      username: 'reader',
+      password: 'pw',
+      sslMode: null,
+    })
+  })
+
+  it('sends the chosen sslMode in the body', async () => {
+    mockFetch(SCHEMA)
+    await saveConnection({ ...CONN_INFO, password: 'pw', sslMode: 'VerifyFull' })
+    const call = vi.mocked(fetch).mock.calls[0]
+    const body = JSON.parse(call[1]?.body as string)
+    expect(body.sslMode).toBe('VerifyFull')
   })
 
   it('returns { error, status } on 400 with the server message', async () => {
