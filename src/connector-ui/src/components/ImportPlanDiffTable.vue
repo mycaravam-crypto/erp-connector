@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ImportPlanOperation } from '@/api/importDefinitions'
+import ImportDiffValue from '@/components/ImportDiffValue.vue'
 
 // Shared by ImportDefinitionPreviewPanel.vue (a sample-file preview) and ImportRunReviewDialog.vue (a
 // staged run's four-eyes review) — both need the same "one row's changed fields, grouped by
@@ -32,16 +33,23 @@ const groupedByRow = computed(() => {
           <th class="px-2 py-1.5 font-semibold border-b border-border">Row</th>
           <th class="px-2 py-1.5 font-semibold border-b border-border">Column</th>
           <th class="px-2 py-1.5 font-semibold border-b border-border">Old value</th>
+          <th class="px-2 py-1.5 font-semibold border-b border-border" aria-hidden="true"></th>
           <th class="px-2 py-1.5 font-semibold border-b border-border">New value</th>
         </tr>
       </thead>
       <tbody>
-        <template v-for="group in groupedByRow" :key="group.correlationValue">
-          <tr v-for="(op, idx) in group.operations" :key="idx" class="border-b border-border last:border-0">
-            <td class="px-2 py-1.5 font-mono text-text-secondary whitespace-nowrap">{{ idx === 0 ? group.correlationValue : '' }}</td>
-            <td class="px-2 py-1.5 font-mono text-text-primary whitespace-nowrap">{{ op.column }}</td>
-            <td class="px-2 py-1.5 font-mono text-text-secondary">{{ op.expectedOldValue ?? '—' }}</td>
-            <td class="px-2 py-1.5 font-mono text-text-primary">{{ op.newValue ?? '—' }}</td>
+        <template v-for="(group, gIdx) in groupedByRow" :key="group.correlationValue">
+          <tr
+            v-for="(op, idx) in group.operations"
+            :key="idx"
+            class="border-b border-border last:border-0"
+            :class="gIdx % 2 === 1 ? 'bg-surface-elevated/40' : ''"
+          >
+            <td class="px-2 py-1.5 font-mono text-text-secondary whitespace-nowrap align-top">{{ idx === 0 ? group.correlationValue : '' }}</td>
+            <td class="px-2 py-1.5 font-mono text-text-primary whitespace-nowrap align-top">{{ op.column }}</td>
+            <td class="px-2 py-1.5 font-mono align-top"><ImportDiffValue :value="op.expectedOldValue" variant="old" /></td>
+            <td class="px-1 py-1.5 text-text-muted align-top" aria-hidden="true">→</td>
+            <td class="px-2 py-1.5 font-mono align-top"><ImportDiffValue :value="op.newValue" variant="new" /></td>
           </tr>
         </template>
       </tbody>
