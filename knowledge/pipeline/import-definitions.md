@@ -356,6 +356,13 @@ and are binding on every slice from Slice 2 onward.
     value is rejected outright (§3 step 2) — the parser never shape-guesses a version. The exact
     field names still depend on the vendor ICD (as with Open Decision #5), but the *envelope shape*
     and the version-first validation order are settled now.
+
+    **Known confusion:** an *exported* job file (`JsonExportFormatWriter`'s own output — `schema_version`
+    snake_case, `extracted_at`, optional `provenance`, `records`) is not an `ImportEnvelope` and cannot be
+    edited and pasted back in as one, even though both shapes carry `provenance`/`records` — they're
+    unrelated formats that happen to share vocabulary. `ImportNodeWalker.ParseRecords` detects this specific
+    case (`schema_version` present, `schemaVersion` absent) and throws a message naming it explicitly rather
+    than the generic "(missing)" — see `ImportNodeWalkerPostgresTests.WalkAsync_ExportFileSchemaVersionInsteadOfEnvelope_ThrowsExplanatoryValidationException`.
 15. **Remove `OnMissingChild = insert` from v1, enforced, not just unexercised** — **Resolved: the
     Slice 5 save-time validator rejects any definition setting it.** §1 already scoped v1 to
     root-only confirmation fields and noted v1 "won't exercise" child inserts, but the type still
