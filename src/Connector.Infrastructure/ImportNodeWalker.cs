@@ -233,10 +233,29 @@ public static class ImportNodeWalker
             ? JsonValueToString(versionNode)
             : null;
         if (!string.Equals(schemaVersion, SupportedSchemaVersion, StringComparison.Ordinal))
+        {
+            // A common confusion (see import-definitions.md §6 Open Decision #14): a file carrying
+            // "schema_version" (snake_case, no "schemaVersion" at all) is the *export* side's own output
+            // format (DynamicExportService.Output.cs's JsonExportFormatWriter) — an unrelated file/format
+            // version, not the ImportEnvelope's schemaVersion. Re-editing and re-pasting an exported job is
+            // not a supported round trip; give a message that names the actual mismatch instead of just
+            // "(missing)", which reads as if the file were simply incomplete.
+            if (schemaVersion is null && envelope.ContainsKey("schema_version"))
+                throw new ImportValidationException(
+                    "Inbound file has \"schema_version\" but no \"schemaVersion\" — this looks like an "
+                        + "exported data file (the connector's own export output), not a vendor ImportEnvelope. "
+                        + "The export file's schema_version describes that export format and is unrelated to "
+                        + $"the ImportEnvelope's schemaVersion, which this walker only understands as "
+                        + $"'{SupportedSchemaVersion}' (Open Decision #14). An exported job cannot be edited and "
+                        + "re-imported as-is; the inbound file must be a real ImportEnvelope: "
+                        + $"{{\"schemaVersion\": \"{SupportedSchemaVersion}\", \"records\": [...]}}."
+                );
+
             throw new ImportValidationException(
                 $"Inbound file has schemaVersion '{schemaVersion ?? "(missing)"}' — this walker only "
                     + $"understands '{SupportedSchemaVersion}' (Open Decision #14)."
             );
+        }
 
         if (!envelope.TryGetPropertyValue("records", out var recs) || recs is not JsonArray recsArr)
             throw new ImportValidationException("ImportEnvelope is missing its top-level \"records\" array.");

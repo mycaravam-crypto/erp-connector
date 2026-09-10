@@ -200,6 +200,33 @@ public sealed class ImportNodeWalkerPostgresTests
         );
     }
 
+    // A pasted-in exported job file (schema_version snake_case, no schemaVersion) is a distinct, common
+    // confusion from a merely-missing schemaVersion — it gets its own, more specific message (see
+    // ParseRecords' doc comment on the branch this exercises).
+    [Fact]
+    public async Task WalkAsync_ExportFileSchemaVersionInsteadOfEnvelope_ThrowsExplanatoryValidationException()
+    {
+        await using var conn = await ErpTestFixture.TryOpenAsync();
+        if (conn is null)
+            return;
+
+        var root = SystemConfigurationRoot();
+        var definition = MakeDefinition("systemconfiguration", "id", ["status"]);
+        var json = $$"""
+            {
+                "schema_version": "2.0",
+                "extracted_at": "2026-09-10T09:14:45.7780464+00:00",
+                "provenance": { "integrationKey": "ci-conf", "contractVersion": 11, "configVersion": 10 },
+                "records": [{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "confirmed" }]
+            }
+            """;
+
+        var ex = await Assert.ThrowsAsync<ImportValidationException>(() =>
+            ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None)
+        );
+        Assert.Contains("exported data file", ex.Message);
+    }
+
     [Fact]
     public async Task WalkAsync_UnrecognizedSchemaVersion_ThrowsValidationException()
     {
