@@ -9,8 +9,9 @@ import type { ImportNode, ImportPlan } from '@/api/importDefinitions'
 import { detectExportFile, hasIntegrationKeyProvenance, toImportEnvelope } from '@/lib/exportedFileDetection'
 import { findUnmappedRootFields } from '@/lib/importPreviewHints'
 import ImportPlanDiffTable from '@/components/ImportPlanDiffTable.vue'
+import ImportUnmappedFieldsWarning from '@/components/ImportUnmappedFieldsWarning.vue'
+import ImportPlanSummaryBadges from '@/components/ImportPlanSummaryBadges.vue'
 import Alert from '@/components/ui/Alert.vue'
-import Badge from '@/components/ui/Badge.vue'
 import Button from '@/components/ui/Button.vue'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
@@ -107,12 +108,7 @@ function createFromExport() {
       </div>
     </Alert>
 
-    <Alert v-else-if="unmappedFields.length > 0" variant="warning" class="mb-3">
-      {{ unmappedFields.length === 1 ? 'This field is' : 'These fields are' }} not mapped as writable
-      columns on this definition, so edits to {{ unmappedFields.length === 1 ? 'it' : 'them' }} in your
-      sample will never show up below:
-      <template v-for="(field, i) in unmappedFields" :key="field"><code>{{ field }}</code><span v-if="i < unmappedFields.length - 1">, </span></template>.
-    </Alert>
+    <ImportUnmappedFieldsWarning v-else :fields="unmappedFields" />
 
     <button
       class="px-2.5 py-1 border border-border-strong rounded-md bg-surface text-xs text-text-secondary cursor-pointer disabled:opacity-50 hover:enabled:bg-surface-elevated mb-3"
@@ -123,18 +119,7 @@ function createFromExport() {
     <p v-if="error" class="text-danger text-sm">{{ error }}</p>
 
     <template v-else-if="plan">
-      <div v-if="isStale" class="flex items-center gap-1.5 mb-2 text-xs text-warning">
-        <span aria-hidden="true">⚠</span>
-        <span>Sample changed since this result — click Preview to refresh it.</span>
-      </div>
-      <div class="flex flex-wrap gap-2 mb-3 transition-opacity" :class="isStale ? 'opacity-50' : ''">
-        <Badge variant="neutral">{{ plan.recordCount }} record(s)</Badge>
-        <Badge variant="success" title="Fields whose sample value differs from the current database value">{{ plan.changedCount }} changed</Badge>
-        <Badge variant="neutral" title="Matched rows where every mapped field already equals the database">{{ plan.unchangedCount }} unchanged</Badge>
-        <Badge variant="warning" title="Correlation key matched no row in the database">{{ plan.rejectedCount }} rejected</Badge>
-        <Badge variant="danger" title="Record itself was malformed (not a JSON object, or no correlation value)">{{ plan.invalidCount }} invalid</Badge>
-      </div>
-
+      <ImportPlanSummaryBadges :plan="plan" :is-stale="isStale" />
       <ImportPlanDiffTable :operations="plan.operations" />
     </template>
   </div>

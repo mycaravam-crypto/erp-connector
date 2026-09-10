@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ImportPlanOperation } from '@/api/importDefinitions'
+import ImportDiffValue from '@/components/ImportDiffValue.vue'
 
 // Shared by ImportDefinitionPreviewPanel.vue (a sample-file preview) and ImportRunReviewDialog.vue (a
 // staged run's four-eyes review) — both need the same "one row's changed fields, grouped by
@@ -46,15 +47,9 @@ const groupedByRow = computed(() => {
           >
             <td class="px-2 py-1.5 font-mono text-text-secondary whitespace-nowrap align-top">{{ idx === 0 ? group.correlationValue : '' }}</td>
             <td class="px-2 py-1.5 font-mono text-text-primary whitespace-nowrap align-top">{{ op.column }}</td>
-            <td class="px-2 py-1.5 font-mono align-top">
-              <span v-if="op.expectedOldValue === null" class="italic text-text-muted">(empty)</span>
-              <span v-else class="line-through text-text-secondary">{{ op.expectedOldValue }}</span>
-            </td>
+            <td class="px-2 py-1.5 font-mono align-top"><ImportDiffValue :value="op.expectedOldValue" variant="old" /></td>
             <td class="px-1 py-1.5 text-text-muted align-top" aria-hidden="true">→</td>
-            <td class="px-2 py-1.5 font-mono align-top">
-              <span v-if="op.newValue === null" class="italic text-text-muted">(empty)</span>
-              <span v-else class="text-success font-semibold">{{ op.newValue }}</span>
-            </td>
+            <td class="px-2 py-1.5 font-mono align-top"><ImportDiffValue :value="op.newValue" variant="new" /></td>
           </tr>
         </template>
       </tbody>
