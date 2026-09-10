@@ -18,6 +18,7 @@ import {
   columnsAsDisabledScalarFields,
   collectWritableTargets,
 } from '@/lib/importNodeBuilders'
+import { EXPORT_SAMPLE_HANDOFF_KEY } from '@/lib/exportedFileDetection'
 import ImportDefinitionBasicFields from '@/components/ImportDefinitionBasicFields.vue'
 import ImportAllowedColumnsEditor from '@/components/ImportAllowedColumnsEditor.vue'
 import ImportDefinitionRunControls from '@/components/ImportDefinitionRunControls.vue'
@@ -195,6 +196,16 @@ async function runPreview() {
   }
 }
 
+// Handoff for ImportDefinitionPreviewPanel.vue's "Create Import Definition from this export" action:
+// stash the already-reshaped ImportEnvelope so the New Import Definition flow's suggestion panel can pick
+// it up on mount (see ImportMappingSuggestionPanel.vue), then navigate there. sessionStorage rather than a
+// route query param — the sample can be arbitrarily large — and it's read-and-cleared once, so it never
+// leaks into an unrelated later visit.
+function onCreateFromExport(envelopeJson: string) {
+  sessionStorage.setItem(EXPORT_SAMPLE_HANDOFF_KEY, envelopeJson)
+  router.push({ name: 'import-definition-edit', params: { id: 'new' } })
+}
+
 const runsLoading = ref(false)
 const runsError = ref<string | null>(null)
 const runs = ref<ImportDefinitionRun[]>([])
@@ -302,6 +313,7 @@ function onReviewResolved() {
               :loading="previewLoading"
               :error="previewError"
               @refresh="runPreview"
+              @create-from-export="onCreateFromExport"
             />
           </div>
 

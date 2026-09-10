@@ -95,6 +95,7 @@ beforeEach(() => {
   vi.restoreAllMocks()
   vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValue(SCHEMA)
   vi.spyOn(importDefinitionsApi, 'listImportDefinitionRuns').mockResolvedValue([])
+  sessionStorage.clear()
 })
 
 describe('ImportDefinitionEditView', () => {
@@ -202,6 +203,60 @@ describe('ImportDefinitionEditView', () => {
     expect(importDefinitionsApi.previewImportDefinition).toHaveBeenCalledWith(1, '{"schemaVersion":1,"records":[]}')
     expect(w.text()).toContain('confirmed')
     expect(w.text()).toContain('1 changed')
+  })
+
+  it('offers to convert a pasted exported job file into an ImportEnvelope', async () => {
+    vi.spyOn(importDefinitionsApi, 'getImportDefinition').mockResolvedValueOnce(DEFINITION)
+    const w = mount(ImportDefinitionEditView, { global: { plugins: [await buildRouter()] } })
+    await flushPromises()
+
+    const textarea = w.find('textarea[aria-label="Sample inbound JSON"]')
+    await textarea.setValue(
+      JSON.stringify({
+        schema_version: '2.0',
+        extracted_at: '2026-09-10T09:14:45+00:00',
+        records: [{ id: '1', status: 'confirmed' }],
+      }),
+    )
+
+    expect(w.text()).toContain('This looks like an exported job file')
+    const convertBtn = w.findAll('button').find((b) => b.text() === 'Convert to ImportEnvelope')!
+    await convertBtn.trigger('click')
+
+    const rewritten = JSON.parse((textarea.element as HTMLTextAreaElement).value)
+    expect(rewritten).toEqual({ schemaVersion: '1', records: [{ id: '1', status: 'confirmed' }] })
+    expect(w.text()).not.toContain('This looks like an exported job file')
+  })
+
+  it('hands a provenance-tagged exported sample off to the New Import Definition flow', async () => {
+    vi.spyOn(importDefinitionsApi, 'getImportDefinition').mockResolvedValueOnce(DEFINITION)
+    vi.spyOn(importDefinitionsApi, 'suggestImportMappingFromExport').mockResolvedValue({
+      suggestion: null,
+      reason: null,
+    })
+    const router = await buildRouter()
+    const w = mount(ImportDefinitionEditView, { global: { plugins: [router] } })
+    await flushPromises()
+
+    const sample = {
+      schema_version: '2.0',
+      provenance: { integrationKey: 'ci-conf', contractVersion: 11, configVersion: 10 },
+      records: [{ id: '1', status: 'confirmed' }],
+    }
+    await w.find('textarea[aria-label="Sample inbound JSON"]').setValue(JSON.stringify(sample))
+
+    const createBtn = w.findAll('button').find((b) => b.text() === 'Create Import Definition from this export')!
+    await createBtn.trigger('click')
+
+    // Written synchronously by the click handler, before the New Import Definition flow's suggestion
+    // panel — mounted by the same navigation — reads and clears it (see the "picks up an exported
+    // sample" test below for that side of the handoff).
+    const handoffRaw = sessionStorage.getItem('erp-connector:import-mapping-suggestion-prefill')!
+    expect(JSON.parse(handoffRaw)).toEqual({ schemaVersion: '1', records: sample.records, provenance: sample.provenance })
+
+    await flushPromises()
+    expect(router.currentRoute.value.params.id).toBe('new')
+    expect(importDefinitionsApi.suggestImportMappingFromExport).toHaveBeenCalledWith(handoffRaw)
   })
 
   it('renders the run history from the backend', async () => {
@@ -411,6 +466,43 @@ describe('ImportDefinitionEditView', () => {
 
       expect(w.text()).toContain('Correlation key field set')
       expect(w.text()).not.toContain('No matching export found for this sample')
+    })
+
+    it('picks up an exported sample handed off from an existing definition\'s Preview panel and auto-checks it', async () => {
+      sessionStorage.setItem(
+        'erp-connector:import-mapping-suggestion-prefill',
+        JSON.stringify({
+          schemaVersion: '1',
+          provenance: { integrationKey: 'ci-conf', contractVersion: 11 },
+          records: [{ id: '1', status: 'confirmed' }],
+        }),
+      )
+      const suggestSpy = vi.spyOn(importDefinitionsApi, 'suggestImportMappingFromExport').mockResolvedValueOnce({
+        suggestion: {
+          exportDefinitionId: 7,
+          exportDefinitionName: 'CI confirmation export',
+          integrationKey: 'ci-conf',
+          contractVersion: 11,
+          rootTable: 'masterdata',
+          rootMatchColumn: 'guid',
+          rootMatchSourceKey: 'guidField',
+          candidateFields: [],
+        },
+        reason: null,
+      })
+
+      const w = mount(ImportDefinitionEditView, { global: { plugins: [await buildRouter('new')] } })
+      await flushPromises()
+
+      expect(suggestSpy).toHaveBeenCalledWith(
+        JSON.stringify({
+          schemaVersion: '1',
+          provenance: { integrationKey: 'ci-conf', contractVersion: 11 },
+          records: [{ id: '1', status: 'confirmed' }],
+        }),
+      )
+      expect(w.text()).toContain('CI confirmation export')
+      expect(sessionStorage.getItem('erp-connector:import-mapping-suggestion-prefill')).toBeNull()
     })
   })
 })

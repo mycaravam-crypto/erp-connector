@@ -400,6 +400,24 @@ sub-issue per slice (#74–78).
       exists. The wire response changed shape from a bare nullable `ImportMappingSuggestionDto` to
       `ImportMappingSuggestionCheckResult { Suggestion, Reason }` — still always 200 OK, a miss is a normal
       lookup outcome, never a 4xx.
+      **Post-shipment addition (reimporting an edited export):** an operator who exports a job, edits a
+      field, and pastes the result into `ImportDefinitionPreviewPanel.vue`'s Preview (against an *already
+      saved* `ImportDefinition`) got a raw schemaVersion-missing error, with no path forward, because the
+      export's own `{schema_version, extracted_at, provenance, records}` output isn't an `ImportEnvelope`
+      (§0's correction still holds — this stays a UI-time convenience, not a real round trip: the export's
+      full field set is still bounded by `AllowedWritableColumns`, and nothing here bypasses it). Two
+      client-only additions, both pure reshaping of already-pasted JSON — no new endpoint, no change to
+      `ImportNodeWalker`/`AllowedWritableColumns`/four-eyes:
+      - `lib/exportedFileDetection.ts`'s `detectExportFile`/`toImportEnvelope` let
+        `ImportDefinitionPreviewPanel.vue` recognize that shape (mirroring the `schema_version`/
+        `schemaVersion` branch `ImportNodeWalker.ParseRecords` already added server-side) and rewrap it —
+        same `records`, same `provenance` if present (the walker already ignores `provenance` entirely, see
+        the Slice 3 regression test) — as a minimal `ImportEnvelope` in place, so Preview can run normally.
+      - When the detected sample's `provenance.integrationKey` is set, the panel also offers "Create Import
+        Definition from this export," handing the reshaped sample to *this* panel
+        (`ImportMappingSuggestionPanel.vue`) across the route navigation via a one-shot sessionStorage key
+        (`EXPORT_SAMPLE_HANDOFF_KEY`) — read, cleared, and auto-checked on mount — rather than duplicating
+        the suggestion lookup UI a second time. Reuses the existing `suggest-from-export` endpoint verbatim.
 - [x] **Slice 5 — Docs.** This status flip and checklist close-out; [`knowledge/pipeline/index.md`](/pipeline/index.md)'s
       "Proposed — not started" entry replaced with a **Phase 18** shipped-phase section; a new Phase 18
       entry in [`knowledge/changelog.md`](/changelog.md) in the same per-slice-table format Phases 14/17
