@@ -4,8 +4,9 @@
 // reusing ImportDefinitionPreviewPanel.vue's paste-a-sample affordance verbatim — that panel drives
 // POST .../{id}/preview against an *already-saved* definition's live ERP connection, which doesn't exist
 // yet here. This mirrors its paste-JSON UX instead, wired to the suggestion lookup rather than a plan diff.
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { suggestImportMappingFromExport, type ImportMappingSuggestion } from '@/api/importDefinitions'
+import { EXPORT_SAMPLE_HANDOFF_KEY } from '@/lib/exportedFileDetection'
 import Button from '@/components/ui/Button.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
@@ -19,6 +20,18 @@ const checking = ref(false)
 const checked = ref(false)
 const suggestion = ref<ImportMappingSuggestion | null>(null)
 const missReason = ref<string | null>(null)
+
+// Picks up a sample handed off from an existing definition's Preview panel ("Create Import Definition
+// from this export" — see ImportDefinitionPreviewPanel.vue/ImportDefinitionEditView.vue's
+// onCreateFromExport) and runs the same check a manual paste would. Removed immediately so a later,
+// unrelated visit to this flow never sees a stale prefill.
+onMounted(() => {
+  const handoff = sessionStorage.getItem(EXPORT_SAMPLE_HANDOFF_KEY)
+  if (!handoff) return
+  sessionStorage.removeItem(EXPORT_SAMPLE_HANDOFF_KEY)
+  inboundJson.value = handoff
+  check()
+})
 
 async function check() {
   checking.value = true
