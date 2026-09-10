@@ -4,9 +4,10 @@
 // the export side's preview (which just re-runs the live query), the import side has nothing to run
 // against without a file: Slice 4's inbound/ folder watcher is the real trigger, so an operator pastes a
 // sample ImportEnvelope JSON here to sanity-check the tree before a real vendor file ever arrives.
-import { computed } from 'vue'
-import type { ImportPlan } from '@/api/importDefinitions'
+import { computed, ref } from 'vue'
+import type { ImportNode, ImportPlan } from '@/api/importDefinitions'
 import { detectExportFile, hasIntegrationKeyProvenance, toImportEnvelope } from '@/lib/exportedFileDetection'
+import { findUnmappedRootFields } from '@/lib/importPreviewHints'
 import ImportPlanDiffTable from '@/components/ImportPlanDiffTable.vue'
 import Alert from '@/components/ui/Alert.vue'
 import Badge from '@/components/ui/Badge.vue'
@@ -16,10 +17,13 @@ import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 const inboundJson = defineModel<string>('inboundJson', { default: '' })
 
-defineProps<{
+const props = defineProps<{
   plan: ImportPlan | null
   loading: boolean
   error: string | null
+  // Optional: the saved definition's field tree, used only for the client-side "unmapped field" hint
+  // below — never sent anywhere, never affects what Preview actually runs.
+  rootNode?: ImportNode | null
 }>()
 const emit = defineEmits<{ refresh: []; 'create-from-export': [envelopeJson: string] }>()
 
@@ -27,6 +31,25 @@ const emit = defineEmits<{ refresh: []; 'create-from-export': [envelopeJson: str
 // fix instead of only a rejection once Preview is clicked — the same confusion the backend's
 // ImportNodeWalker.ParseRecords error now names explicitly.
 const detectedExport = computed(() => detectExportFile(inboundJson.value))
+
+// Root-level record keys that don't match any enabled scalar-field's SourceKey on this definition — the
+// walker (ImportNodeWalker.DiffScalarFields) silently ignores these, so an operator editing one of them in
+// their sample would see no change here no matter how many times they click Preview. A best-effort,
+// client-side-only hint: never blocks Preview, never replaces the server's own validation.
+const unmappedFields = computed(() => findUnmappedRootFields(inboundJson.value, props.rootNode ?? null))
+
+// The exact sample text a plan on screen actually reflects. Editing the textarea after Preview has run
+// doesn't recompute anything by itself (Preview is a manual, explicit action) — this powers the "stale"
+// banner below so that gap is visible instead of silently showing an old result for new text.
+const lastPreviewedJson = ref<string | null>(null)
+const isStale = computed(
+  () => props.plan !== null && lastPreviewedJson.value !== null && lastPreviewedJson.value !== inboundJson.value,
+)
+
+function runPreview() {
+  lastPreviewedJson.value = inboundJson.value
+  emit('refresh')
+}
 
 function convertToEnvelope() {
   if (detectedExport.value) inboundJson.value = toImportEnvelope(detectedExport.value)
@@ -47,9 +70,15 @@ function createFromExport() {
             allowed-columns check — without writing anything to the ERP or recording a run.
           </p>
           <p>
-            <strong>Changed</strong> means that row would actually be written to on a real run;
+            <strong>Changed</strong> compares each mapped field to the value <strong>currently in the
+            database</strong> — not to a previous export or an earlier preview. A field can look edited in
+            your sample and still count as unchanged if the database already has that value, and a field
+            that isn't mapped as a writable column below is never compared at all.
+          </p>
+          <p>
             <strong>Rejected</strong> means its correlation key matched no row; <strong>Invalid</strong>
-            means the record itself was malformed.
+            means the record itself was malformed. Preview only runs when you click the button — editing the
+            sample afterwards doesn't refresh it on its own.
           </p>
         </HelpTooltip>
       </template>
@@ -78,21 +107,32 @@ function createFromExport() {
       </div>
     </Alert>
 
+    <Alert v-else-if="unmappedFields.length > 0" variant="warning" class="mb-3">
+      {{ unmappedFields.length === 1 ? 'This field is' : 'These fields are' }} not mapped as writable
+      columns on this definition, so edits to {{ unmappedFields.length === 1 ? 'it' : 'them' }} in your
+      sample will never show up below:
+      <template v-for="(field, i) in unmappedFields" :key="field"><code>{{ field }}</code><span v-if="i < unmappedFields.length - 1">, </span></template>.
+    </Alert>
+
     <button
       class="px-2.5 py-1 border border-border-strong rounded-md bg-surface text-xs text-text-secondary cursor-pointer disabled:opacity-50 hover:enabled:bg-surface-elevated mb-3"
       :disabled="loading || inboundJson.trim() === ''"
-      @click="$emit('refresh')"
+      @click="runPreview"
     >{{ loading ? 'Previewing…' : 'Preview' }}</button>
 
     <p v-if="error" class="text-danger text-sm">{{ error }}</p>
 
     <template v-else-if="plan">
-      <div class="flex flex-wrap gap-2 mb-3">
+      <div v-if="isStale" class="flex items-center gap-1.5 mb-2 text-xs text-warning">
+        <span aria-hidden="true">⚠</span>
+        <span>Sample changed since this result — click Preview to refresh it.</span>
+      </div>
+      <div class="flex flex-wrap gap-2 mb-3 transition-opacity" :class="isStale ? 'opacity-50' : ''">
         <Badge variant="neutral">{{ plan.recordCount }} record(s)</Badge>
-        <Badge variant="success">{{ plan.changedCount }} changed</Badge>
-        <Badge variant="neutral">{{ plan.unchangedCount }} unchanged</Badge>
-        <Badge variant="warning">{{ plan.rejectedCount }} rejected</Badge>
-        <Badge variant="danger">{{ plan.invalidCount }} invalid</Badge>
+        <Badge variant="success" title="Fields whose sample value differs from the current database value">{{ plan.changedCount }} changed</Badge>
+        <Badge variant="neutral" title="Matched rows where every mapped field already equals the database">{{ plan.unchangedCount }} unchanged</Badge>
+        <Badge variant="warning" title="Correlation key matched no row in the database">{{ plan.rejectedCount }} rejected</Badge>
+        <Badge variant="danger" title="Record itself was malformed (not a JSON object, or no correlation value)">{{ plan.invalidCount }} invalid</Badge>
       </div>
 
       <ImportPlanDiffTable :operations="plan.operations" />

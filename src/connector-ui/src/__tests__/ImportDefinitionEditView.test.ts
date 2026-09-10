@@ -205,6 +205,61 @@ describe('ImportDefinitionEditView', () => {
     expect(w.text()).toContain('1 changed')
   })
 
+  it('warns about a sample field that is not mapped as a writable column', async () => {
+    vi.spyOn(importDefinitionsApi, 'getImportDefinition').mockResolvedValueOnce(DEFINITION)
+    const w = mount(ImportDefinitionEditView, { global: { plugins: [await buildRouter()] } })
+    await flushPromises()
+
+    // "priority" isn't a field on DEFINITION's rootNode (only guid/status are), so an edit to it can never
+    // move the changed count — the warning should say so before Preview is even clicked.
+    await w
+      .find('textarea[aria-label="Sample inbound JSON"]')
+      .setValue('{"schemaVersion":"1","records":[{"guid":"abc","status":"confirmed","priority":"high"}]}')
+
+    expect(w.text()).toContain('not mapped as writable')
+    expect(w.text()).toContain('priority')
+  })
+
+  it('flags a preview result as stale once the sample is edited afterwards', async () => {
+    vi.spyOn(importDefinitionsApi, 'getImportDefinition').mockResolvedValueOnce(DEFINITION)
+    vi.spyOn(importDefinitionsApi, 'previewImportDefinition').mockResolvedValueOnce({
+      ok: true,
+      data: {
+        recordCount: 1,
+        matchedCount: 1,
+        changedCount: 1,
+        unchangedCount: 0,
+        rejectedCount: 0,
+        invalidCount: 0,
+        operations: [
+          {
+            correlationValue: 'abc',
+            table: 'masterdata',
+            keyColumn: 'guid',
+            keyValue: 'abc',
+            column: 'status',
+            expectedOldValue: 'pending',
+            newValue: 'confirmed',
+          },
+        ],
+      },
+    })
+    const w = mount(ImportDefinitionEditView, { global: { plugins: [await buildRouter()] } })
+    await flushPromises()
+
+    const textarea = w.find('textarea[aria-label="Sample inbound JSON"]')
+    await textarea.setValue('{"schemaVersion":"1","records":[{"guid":"abc","status":"confirmed"}]}')
+    const previewBtn = w.findAll('button').find((b) => b.text() === 'Preview')!
+    await previewBtn.trigger('click')
+    await flushPromises()
+
+    expect(w.text()).not.toContain('Sample changed since this result')
+
+    await textarea.setValue('{"schemaVersion":"1","records":[{"guid":"abc","status":"rejected"}]}')
+
+    expect(w.text()).toContain('Sample changed since this result')
+  })
+
   it('offers to convert a pasted exported job file into an ImportEnvelope', async () => {
     vi.spyOn(importDefinitionsApi, 'getImportDefinition').mockResolvedValueOnce(DEFINITION)
     const w = mount(ImportDefinitionEditView, { global: { plugins: [await buildRouter()] } })

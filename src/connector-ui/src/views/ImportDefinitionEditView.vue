@@ -312,6 +312,7 @@ function onReviewResolved() {
               :plan="previewPlan"
               :loading="previewLoading"
               :error="previewError"
+              :root-node="definition.rootNode"
               @refresh="runPreview"
               @create-from-export="onCreateFromExport"
             />
