@@ -12,6 +12,7 @@ import {
 import Button from '@/components/ui/Button.vue'
 import ConfirmAction from '@/components/ui/ConfirmAction.vue'
 import { useToasts } from '@/composables/useToasts'
+import { useSaveStatus } from '@/composables/useSaveStatus'
 
 const toasts = useToasts()
 
@@ -23,14 +24,11 @@ const emit = defineEmits<{
   deleted: []
 }>()
 
-const saving = ref(false)
-const saveStatus = ref<'idle' | 'ok' | 'error'>('idle')
-const saveMessage = ref('')
+const { saving, saveStatus, saveMessage, reset: resetSaveStatus } = useSaveStatus()
 
 async function save() {
   saving.value = true
-  saveStatus.value = 'idle'
-  saveMessage.value = ''
+  resetSaveStatus()
   try {
     const d = props.definition
     const result = await updateExportDefinition(d.id, {

@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button.vue'
 import Alert from '@/components/ui/Alert.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import { useToasts } from '@/composables/useToasts'
+import { useSaveStatus } from '@/composables/useSaveStatus'
 
 const toasts = useToasts()
 
@@ -15,9 +16,7 @@ const props = defineProps<{ initialFields: string[] }>()
 
 const deniedFields = ref<string[]>([...props.initialFields])
 const newField = ref('')
-const saving = ref(false)
-const saveStatus = ref<'idle' | 'ok' | 'error'>('idle')
-const saveMessage = ref('')
+const { saving, saveStatus, saveMessage, reset: resetSaveStatus } = useSaveStatus()
 
 function addField() {
   const f = newField.value.trim()
@@ -33,8 +32,7 @@ function removeField(field: string) {
 
 async function save() {
   saving.value = true
-  saveStatus.value = 'idle'
-  saveMessage.value = ''
+  resetSaveStatus()
   try {
     const result = await saveGdprDeniedFields(deniedFields.value)
     if (result.ok) {

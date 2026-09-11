@@ -1,8 +1,8 @@
 import { ref } from 'vue'
 
-export type ToastVariant = 'success' | 'danger' | 'info' | 'warning'
+type ToastVariant = 'success' | 'danger' | 'info' | 'warning'
 
-export interface Toast {
+interface Toast {
   id: number
   message: string
   variant: ToastVariant

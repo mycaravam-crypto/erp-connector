@@ -27,9 +27,8 @@ import ImportNodeTreeEditor from '@/components/ImportNodeTreeEditor.vue'
 import ImportDefinitionPreviewPanel from '@/components/ImportDefinitionPreviewPanel.vue'
 import ImportDefinitionRunsTable from '@/components/ImportDefinitionRunsTable.vue'
 import ImportRunReviewDialog from '@/components/ImportRunReviewDialog.vue'
-import { ChevronLeft } from 'lucide-vue-next'
-import Icon from '@/components/ui/Icon.vue'
 import Button from '@/components/ui/Button.vue'
+import BackLink from '@/components/ui/BackLink.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useToasts } from '@/composables/useToasts'
@@ -244,10 +243,7 @@ function onReviewResolved() {
 
 <template>
   <div class="max-w-5xl">
-    <Button variant="ghost" class="mb-4" @click="router.push({ name: 'import-definitions' })">
-      <template #icon><Icon :icon="ChevronLeft" :size="16" /></template>
-      Back to list
-    </Button>
+    <BackLink :to="{ name: 'import-definitions' }" />
 
     <p v-if="loading" class="text-text-secondary">Loading…</p>
     <p v-else-if="notFound" class="text-danger">Import job not found.</p>

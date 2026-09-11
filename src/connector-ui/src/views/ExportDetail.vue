@@ -1,22 +1,21 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { getExport, type ExportDetail } from '@/api/exports'
 import ReleaseDialog from '@/components/ReleaseDialog.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import RunDetailTable from '@/components/RunDetailTable.vue'
 import SkipRunForm from '@/components/SkipRunForm.vue'
 import DeliverRunForm from '@/components/DeliverRunForm.vue'
-import { Check, ChevronLeft } from 'lucide-vue-next'
+import { Check } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
-import Button from '@/components/ui/Button.vue'
 import Alert from '@/components/ui/Alert.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import BackLink from '@/components/ui/BackLink.vue'
 import { formatDate } from '@/lib/dates'
 
 const route = useRoute()
-const router = useRouter()
 
 const seqNo = computed(() => Number(route.params.seqNo))
 const run = ref<ExportDetail | null>(null)
@@ -40,10 +39,7 @@ onMounted(load)
 
 <template>
   <div class="max-w-5xl">
-    <Button variant="ghost" class="mb-4" @click="router.push({ name: 'exports' })">
-      <template #icon><Icon :icon="ChevronLeft" :size="16" /></template>
-      Back to list
-    </Button>
+    <BackLink :to="{ name: 'exports' }" />
 
     <p v-if="loading" class="text-text-secondary">Loading…</p>
     <p v-else-if="notFound" class="text-danger">Export run not found.</p>
