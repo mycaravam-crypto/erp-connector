@@ -2,6 +2,7 @@
 import type { ExportDefinitionRun } from '@/api/exportDefinitions'
 import StatusBadge from '@/components/StatusBadge.vue'
 import Button from '@/components/ui/Button.vue'
+import { formatDate } from '@/lib/dates'
 
 // The per-definition analogue of ExportRunsTable.vue — deliberately a separate component, not a
 // reuse of that one: ExportDefinitionRunEntity has no SHA-256/staging-file/four-eyes fields (those
@@ -13,11 +14,6 @@ defineProps<{
   error: string | null
 }>()
 defineEmits<{ refresh: [] }>()
-
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  return new Date(iso.includes('Z') ? iso : iso + 'Z').toLocaleString()
-}
 </script>
 
 <template>

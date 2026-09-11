@@ -6,6 +6,7 @@ import StatusBadge from '@/components/StatusBadge.vue'
 import { Check, Copy } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
 import Button from '@/components/ui/Button.vue'
+import { formatDate } from '@/lib/dates'
 
 defineProps<{
   runs: ExportSummary[]
@@ -13,12 +14,6 @@ defineProps<{
   error: string | null
 }>()
 defineEmits<{ (e: 'refresh'): void }>()
-
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const hasTimezone = /(Z|[+-]\d{2}:\d{2})$/.test(iso)
-  return new Date(hasTimezone ? iso : iso + 'Z').toLocaleString()
-}
 
 const copiedSeqNo = ref<number | null>(null)
 async function copySha(seqNo: number, hash: string) {

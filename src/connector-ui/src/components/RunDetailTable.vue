@@ -3,14 +3,9 @@ import { ref } from 'vue'
 import type { ExportDetail } from '@/api/exports'
 import { Check, Copy } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
+import { formatDate } from '@/lib/dates'
 
 defineProps<{ run: ExportDetail }>()
-
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const hasTimezone = /(Z|[+-]\d{2}:\d{2})$/.test(iso)
-  return new Date(hasTimezone ? iso : iso + 'Z').toLocaleString()
-}
 
 const shacopied = ref(false)
 async function copySha(hash: string) {

@@ -1,16 +1,10 @@
 <script setup lang="ts">
 import type { AuditEntry } from '@/api/audit'
+import { formatDate } from '@/lib/dates'
 
 defineProps<{
   entries: AuditEntry[]
 }>()
-
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  // .NET "O" format emits +00:00 offset; only append Z for bare timestamps with no timezone.
-  const hasTimezone = iso.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(iso)
-  return new Date(hasTimezone ? iso : iso + 'Z').toLocaleString()
-}
 </script>
 
 <template>
