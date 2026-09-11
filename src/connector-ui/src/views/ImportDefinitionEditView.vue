@@ -27,11 +27,13 @@ import ImportNodeTreeEditor from '@/components/ImportNodeTreeEditor.vue'
 import ImportDefinitionPreviewPanel from '@/components/ImportDefinitionPreviewPanel.vue'
 import ImportDefinitionRunsTable from '@/components/ImportDefinitionRunsTable.vue'
 import ImportRunReviewDialog from '@/components/ImportRunReviewDialog.vue'
-import { ChevronLeft } from 'lucide-vue-next'
-import Icon from '@/components/ui/Icon.vue'
 import Button from '@/components/ui/Button.vue'
+import BackLink from '@/components/ui/BackLink.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import { useToasts } from '@/composables/useToasts'
+
+const toasts = useToasts()
 
 const route = useRoute()
 const router = useRouter()
@@ -154,12 +156,15 @@ async function create() {
     })
     if (result.ok) {
       definition.value = result.data
+      toasts.success('Import definition created.')
       await router.replace({ name: 'import-definition-edit', params: { id: result.data.id } })
     } else {
       createError.value = result.error
+      toasts.error(createError.value)
     }
   } catch {
     createError.value = 'Could not reach the backend. Is the backend service running?'
+    toasts.error(createError.value)
   } finally {
     creating.value = false
   }
@@ -238,10 +243,7 @@ function onReviewResolved() {
 
 <template>
   <div class="max-w-5xl">
-    <Button variant="ghost" class="mb-4" @click="router.push({ name: 'import-definitions' })">
-      <template #icon><Icon :icon="ChevronLeft" :size="16" /></template>
-      Back to list
-    </Button>
+    <BackLink :to="{ name: 'import-definitions' }" />
 
     <p v-if="loading" class="text-text-secondary">Loading…</p>
     <p v-else-if="notFound" class="text-danger">Import job not found.</p>

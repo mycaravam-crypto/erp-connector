@@ -11,6 +11,10 @@ import {
 } from '@/api/exportDefinitions'
 import Button from '@/components/ui/Button.vue'
 import ConfirmAction from '@/components/ui/ConfirmAction.vue'
+import { useToasts } from '@/composables/useToasts'
+import { useSaveStatus } from '@/composables/useSaveStatus'
+
+const toasts = useToasts()
 
 const props = defineProps<{
   definition: ExportDefinition
@@ -20,14 +24,11 @@ const emit = defineEmits<{
   deleted: []
 }>()
 
-const saving = ref(false)
-const saveStatus = ref<'idle' | 'ok' | 'error'>('idle')
-const saveMessage = ref('')
+const { saving, saveStatus, saveMessage, reset: resetSaveStatus } = useSaveStatus()
 
 async function save() {
   saving.value = true
-  saveStatus.value = 'idle'
-  saveMessage.value = ''
+  resetSaveStatus()
   try {
     const d = props.definition
     const result = await updateExportDefinition(d.id, {
@@ -48,13 +49,16 @@ async function save() {
       Object.assign(props.definition, result.data)
       saveStatus.value = 'ok'
       saveMessage.value = 'Saved.'
+      toasts.success('Export definition saved.')
     } else {
       saveStatus.value = 'error'
       saveMessage.value = result.error
+      toasts.error(saveMessage.value)
     }
   } catch {
     saveStatus.value = 'error'
     saveMessage.value = 'Could not reach the backend. Is the backend service running?'
+    toasts.error(saveMessage.value)
   } finally {
     saving.value = false
   }
@@ -74,11 +78,18 @@ async function runTest() {
     const result = await testExportDefinition(props.definition.id)
     if (result.ok) {
       testResult.value = result.data
+      if (result.data.status === 'Success') {
+        toasts.success(`Test succeeded — ${result.data.recordCount} record(s) read.`)
+      } else {
+        toasts.error(`Test failed: ${result.data.errorMessage}`)
+      }
     } else {
       testError.value = result.error
+      toasts.error(testError.value)
     }
   } catch {
     testError.value = 'Could not reach the backend. Is the backend service running?'
+    toasts.error(testError.value)
   } finally {
     testing.value = false
   }
@@ -97,11 +108,14 @@ async function runNow() {
     if (result.ok) {
       downloadBlob(result.blob, result.fileName)
       runMessage.value = `Downloaded ${result.fileName} — ${result.recordCount} record(s).`
+      toasts.success(runMessage.value)
     } else {
       runError.value = result.error
+      toasts.error(runError.value)
     }
   } catch {
     runError.value = 'Could not reach the backend. Is the backend service running?'
+    toasts.error(runError.value)
   } finally {
     running.value = false
   }
@@ -121,7 +135,12 @@ async function duplicate() {
   duplicating.value = true
   try {
     const result = await duplicateExportDefinition(props.definition.id)
-    if (result.ok) emit('duplicated', result.data)
+    if (result.ok) {
+      toasts.success('Export definition duplicated.')
+      emit('duplicated', result.data)
+    } else {
+      toasts.error(result.error)
+    }
   } finally {
     duplicating.value = false
   }
@@ -132,7 +151,12 @@ const confirmingDelete = ref(false)
 async function confirmDelete() {
   deleting.value = true
   try {
-    if (await deleteExportDefinition(props.definition.id)) emit('deleted')
+    if (await deleteExportDefinition(props.definition.id)) {
+      toasts.success('Export definition deleted.')
+      emit('deleted')
+    } else {
+      toasts.error('Failed to delete export definition.')
+    }
   } finally {
     deleting.value = false
     confirmingDelete.value = false

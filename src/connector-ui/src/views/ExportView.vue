@@ -13,6 +13,9 @@ import Button from '@/components/ui/Button.vue'
 import Alert from '@/components/ui/Alert.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import { useToasts } from '@/composables/useToasts'
+
+const toasts = useToasts()
 
 const FORMAT_KEY = 'connector_export_format'
 const selectedFormat = ref<'xlsx' | 'csv' | 'json'>(
@@ -55,12 +58,15 @@ async function triggerRun() {
     const res = await runNow(selectedFormat.value)
     if (res.ok && res.data) {
       runResult.value = res.data
+      toasts.success(`Export #${res.data.sequenceNo} created — ${res.data.recordCount} records.`)
       await Promise.all([loadPreview(), loadRuns()])
     } else {
       runError.value = res.error ?? 'Unknown error'
+      toasts.error(runError.value)
     }
   } catch {
     runError.value = 'Could not reach the API. Is the backend service running?'
+    toasts.error(runError.value)
   } finally {
     running.value = false
   }

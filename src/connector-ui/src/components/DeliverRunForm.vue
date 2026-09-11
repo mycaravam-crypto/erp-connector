@@ -5,6 +5,9 @@ import Card from '@/components/ui/Card.vue'
 import Input from '@/components/ui/Input.vue'
 import TextField from '@/components/ui/TextField.vue'
 import Button from '@/components/ui/Button.vue'
+import { useToasts } from '@/composables/useToasts'
+
+const toasts = useToasts()
 
 const props = defineProps<{ seqNo: number }>()
 const emit = defineEmits<{ (e: 'delivered'): void }>()
@@ -23,9 +26,11 @@ async function submit() {
   })
   submitting.value = false
   if (result.ok) {
+    toasts.success('Delivery recorded.')
     emit('delivered')
   } else {
     error.value = result.message || `Error ${result.status}`
+    toasts.error(error.value)
   }
 }
 </script>

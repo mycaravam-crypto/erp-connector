@@ -3,6 +3,9 @@ import { ref, computed, onMounted } from 'vue'
 import { getPresets, savePreset, deletePreset, type ExportMappingConfig } from '@/api/mapping'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
+import { useToasts } from '@/composables/useToasts'
+
+const toasts = useToasts()
 
 const props = defineProps<{
   canSave: boolean
@@ -64,8 +67,10 @@ async function confirmSaveAs() {
 
   if (!result.ok) {
     error.value = result.error ?? 'Failed to save preset.'
+    toasts.error(error.value)
     return
   }
+  toasts.success(`Preset "${name}" saved.`)
   await loadPresets()
   selected.value = name
   showSaveInput.value = false
@@ -81,8 +86,10 @@ async function confirmDelete() {
 
   if (!result.ok) {
     error.value = result.error ?? 'Failed to delete preset.'
+    toasts.error(error.value)
     return
   }
+  toasts.success(`Preset "${selected.value}" deleted.`)
   selected.value = ''
   confirmingDelete.value = false
   await loadPresets()

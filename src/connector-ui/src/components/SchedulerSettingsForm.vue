@@ -8,6 +8,10 @@ import Select from '@/components/ui/Select.vue'
 import Button from '@/components/ui/Button.vue'
 import Alert from '@/components/ui/Alert.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
+import { useToasts } from '@/composables/useToasts'
+import { useSaveStatus } from '@/composables/useSaveStatus'
+
+const toasts = useToasts()
 
 const props = defineProps<{ config: SchedulerConfig }>()
 
@@ -15,14 +19,11 @@ const scheduledTime = ref(props.config.scheduledTimeUtc)
 const retentionDays = ref(props.config.retentionDays)
 const format = ref(props.config.format)
 
-const saving = ref(false)
-const saveStatus = ref<'idle' | 'ok' | 'error'>('idle')
-const saveMessage = ref('')
+const { saving, saveStatus, saveMessage, reset: resetSaveStatus } = useSaveStatus()
 
 async function save() {
   saving.value = true
-  saveStatus.value = 'idle'
-  saveMessage.value = ''
+  resetSaveStatus()
   try {
     const result = await saveSchedulerConfig({
       scheduledTimeUtc: scheduledTime.value,
@@ -32,13 +33,16 @@ async function save() {
     if (result.ok) {
       saveStatus.value = 'ok'
       saveMessage.value = 'Settings saved. The new schedule takes effect on the next export cycle.'
+      toasts.success(saveMessage.value)
     } else {
       saveStatus.value = 'error'
       saveMessage.value = result.error ?? 'Unknown error.'
+      toasts.error(saveMessage.value)
     }
   } catch {
     saveStatus.value = 'error'
     saveMessage.value = 'Could not reach the backend. Is the backend service running?'
+    toasts.error(saveMessage.value)
   } finally {
     saving.value = false
   }

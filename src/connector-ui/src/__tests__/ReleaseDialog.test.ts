@@ -3,8 +3,12 @@ import { mount } from '@vue/test-utils'
 import ReleaseDialog from '@/components/ReleaseDialog.vue'
 import * as exportsApi from '@/api/exports'
 import * as authApi from '@/api/auth'
+import { useToasts } from '@/composables/useToasts'
 
-beforeEach(() => vi.restoreAllMocks())
+beforeEach(() => {
+  vi.restoreAllMocks()
+  useToasts().clear()
+})
 
 async function mountAndOpen(seqNo = 3) {
   vi.spyOn(authApi, 'getUsername').mockReturnValue('alice')
@@ -85,5 +89,24 @@ describe('ReleaseDialog', () => {
     await confirmButton(w).trigger('click')
     await w.vm.$nextTick()
     expect(w.text()).toContain('Already released')
+  })
+
+  it('pushes a success toast on release', async () => {
+    vi.spyOn(exportsApi, 'releaseExport').mockResolvedValueOnce({ ok: true, status: 200, message: '' })
+    const w = await mountAndOpen(3)
+    await fillValidForm(w)
+    await confirmButton(w).trigger('click')
+    await w.vm.$nextTick()
+    expect(useToasts().toasts.value.map((t) => t.message)).toContain('Run released.')
+  })
+
+  it('pushes an error toast on failure', async () => {
+    vi.spyOn(exportsApi, 'releaseExport').mockResolvedValueOnce({ ok: false, status: 409, message: 'Already released' })
+    const w = await mountAndOpen(3)
+    await fillValidForm(w)
+    await confirmButton(w).trigger('click')
+    await w.vm.$nextTick()
+    const toast = useToasts().toasts.value.find((t) => t.message === 'Already released')
+    expect(toast?.variant).toBe('danger')
   })
 })

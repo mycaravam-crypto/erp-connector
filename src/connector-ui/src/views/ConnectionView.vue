@@ -11,6 +11,9 @@ import Select from '@/components/ui/Select.vue'
 import Alert from '@/components/ui/Alert.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import { useToasts } from '@/composables/useToasts'
+
+const toasts = useToasts()
 
 const router = useRouter()
 const route = useRoute()
@@ -69,6 +72,7 @@ async function testConnection() {
       connectedLabel.value = result.schema.connectionLabel
       testStatus.value = 'ok'
       testMessage.value = `Connected — found ${result.schema.tables.length} tables in "${result.schema.connectionLabel}".`
+      toasts.success('Connection saved.')
     } else {
       if (result.status === 401) {
         clearSession()
@@ -77,10 +81,12 @@ async function testConnection() {
       }
       testStatus.value = 'error'
       testMessage.value = result.error || 'Connection failed. Check host, port, credentials, and that the database is reachable.'
+      toasts.error(testMessage.value)
     }
   } catch {
     testStatus.value = 'error'
     testMessage.value = 'Could not reach the backend. Is the backend service running?'
+    toasts.error(testMessage.value)
   } finally {
     testing.value = false
   }

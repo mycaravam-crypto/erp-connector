@@ -17,6 +17,9 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import ConfirmAction from '@/components/ui/ConfirmAction.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
+import { useToasts } from '@/composables/useToasts'
+
+const toasts = useToasts()
 
 const definitions = ref<ExportDefinitionSummary[]>([])
 const loading = ref(true)
@@ -52,7 +55,12 @@ async function toggleEnabled(def: ExportDefinitionSummary) {
   togglingId.value = def.id
   try {
     const result = await setExportDefinitionEnabled(def.id, !def.isEnabled)
-    if (result.ok) def.isEnabled = result.data.isEnabled
+    if (result.ok) {
+      def.isEnabled = result.data.isEnabled
+      toasts.success(def.isEnabled ? `${def.name} enabled.` : `${def.name} disabled.`)
+    } else {
+      toasts.error(result.error)
+    }
   } finally {
     togglingId.value = null
   }
@@ -67,12 +75,12 @@ async function runTest(def: ExportDefinitionSummary) {
   testMessage.value = { ...testMessage.value, [def.id]: '' }
   try {
     const result = await testExportDefinition(def.id)
-    testMessage.value = {
-      ...testMessage.value,
-      [def.id]: result.ok
-        ? `Test succeeded — ${result.data.recordCount} record(s).`
-        : `Test failed: ${result.error}`,
-    }
+    const message = result.ok
+      ? `Test succeeded — ${result.data.recordCount} record(s).`
+      : `Test failed: ${result.error}`
+    testMessage.value = { ...testMessage.value, [def.id]: message }
+    if (result.ok) toasts.success(message)
+    else toasts.error(message)
   } finally {
     testingId.value = null
   }
@@ -83,7 +91,12 @@ async function duplicate(def: ExportDefinitionSummary) {
   duplicatingId.value = def.id
   try {
     const result = await duplicateExportDefinition(def.id)
-    if (result.ok) await load()
+    if (result.ok) {
+      toasts.success('Export definition duplicated.')
+      await load()
+    } else {
+      toasts.error(result.error)
+    }
   } finally {
     duplicatingId.value = null
   }
@@ -94,7 +107,12 @@ const deletingId = ref<number | null>(null)
 async function confirmDelete(def: ExportDefinitionSummary) {
   deletingId.value = def.id
   try {
-    if (await deleteExportDefinition(def.id)) await load()
+    if (await deleteExportDefinition(def.id)) {
+      toasts.success('Export definition deleted.')
+      await load()
+    } else {
+      toasts.error('Failed to delete export definition.')
+    }
   } finally {
     deletingId.value = null
     confirmingDeleteId.value = null
