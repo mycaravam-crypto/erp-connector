@@ -4,6 +4,9 @@ import { skipExport } from '@/api/exports'
 import Card from '@/components/ui/Card.vue'
 import Input from '@/components/ui/Input.vue'
 import Button from '@/components/ui/Button.vue'
+import { useToasts } from '@/composables/useToasts'
+
+const toasts = useToasts()
 
 const props = defineProps<{ seqNo: number }>()
 const emit = defineEmits<{ (e: 'skipped'): void }>()
@@ -18,9 +21,11 @@ async function submit() {
   const result = await skipExport(props.seqNo, { reason: reason.value.trim() || null })
   submitting.value = false
   if (result.ok) {
+    toasts.success('Run skipped.')
     emit('skipped')
   } else {
     error.value = result.message || `Error ${result.status}`
+    toasts.error(error.value)
   }
 }
 </script>

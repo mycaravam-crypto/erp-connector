@@ -5,6 +5,7 @@ import ConnectionView from '@/views/ConnectionView.vue'
 import * as connectionApi from '@/api/connection'
 import * as authApi from '@/api/auth'
 import type { ErpConnectionInfo, SourceSchema } from '@/api/connection'
+import { useToasts } from '@/composables/useToasts'
 
 function buildRouter() {
   const r = createRouter({
@@ -35,6 +36,7 @@ const SCHEMA: SourceSchema = {
 beforeEach(() => {
   vi.restoreAllMocks()
   vi.spyOn(connectionApi, 'getConnection').mockResolvedValue(null)
+  useToasts().clear()
 })
 
 describe('ConnectionView', () => {
@@ -162,6 +164,7 @@ describe('ConnectionView', () => {
     await flushPromises()
     expect(w.text()).toContain('Connected')
     expect(w.text()).toContain('2 tables')
+    expect(useToasts().toasts.value.some((t) => t.variant === 'success')).toBe(true)
   })
 
   it('shows error message when saveConnection returns an error', async () => {
@@ -179,6 +182,8 @@ describe('ConnectionView', () => {
     await w.find('form').trigger('submit')
     await flushPromises()
     expect(w.text()).toContain('password authentication failed')
+    const toast = useToasts().toasts.value.find((t) => t.message === 'password authentication failed')
+    expect(toast?.variant).toBe('danger')
   })
 
   it('shows network error message when saveConnection throws', async () => {

@@ -4,6 +4,7 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import ImportDefinitionsView from '@/views/ImportDefinitionsView.vue'
 import * as importDefinitionsApi from '@/api/importDefinitions'
 import type { ImportDefinitionSummary } from '@/api/importDefinitions'
+import { useToasts } from '@/composables/useToasts'
 
 async function buildRouter() {
   const r = createRouter({
@@ -36,6 +37,7 @@ const DEFINITIONS: ImportDefinitionSummary[] = [
 beforeEach(() => {
   vi.restoreAllMocks()
   vi.spyOn(importDefinitionsApi, 'listImportDefinitionRuns').mockResolvedValue([])
+  useToasts().clear()
 })
 
 describe('ImportDefinitionsView', () => {
@@ -115,6 +117,7 @@ describe('ImportDefinitionsView', () => {
     await flushPromises()
 
     expect(enableSpy).toHaveBeenCalledWith(1, true)
+    expect(useToasts().toasts.value.some((t) => t.variant === 'success')).toBe(true)
   })
 
   it('duplicates a definition and reloads the list', async () => {
@@ -131,6 +134,7 @@ describe('ImportDefinitionsView', () => {
 
     expect(duplicateSpy).toHaveBeenCalledWith(1)
     expect(listSpy).toHaveBeenCalledTimes(2)
+    expect(useToasts().toasts.value.some((t) => t.variant === 'success')).toBe(true)
   })
 
   it('deletes a definition after confirmation', async () => {
@@ -148,5 +152,6 @@ describe('ImportDefinitionsView', () => {
 
     expect(deleteSpy).toHaveBeenCalledWith(1)
     expect(listSpy).toHaveBeenCalledTimes(2)
+    expect(useToasts().toasts.value.some((t) => t.variant === 'success')).toBe(true)
   })
 })

@@ -7,6 +7,9 @@ import Input from '@/components/ui/Input.vue'
 import Button from '@/components/ui/Button.vue'
 import Alert from '@/components/ui/Alert.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
+import { useToasts } from '@/composables/useToasts'
+
+const toasts = useToasts()
 
 const props = defineProps<{ initialFields: string[] }>()
 
@@ -37,13 +40,16 @@ async function save() {
     if (result.ok) {
       saveStatus.value = 'ok'
       saveMessage.value = 'GDPR denylist saved. Changes take effect immediately.'
+      toasts.success(saveMessage.value)
     } else {
       saveStatus.value = 'error'
       saveMessage.value = result.error ?? 'Unknown error.'
+      toasts.error(saveMessage.value)
     }
   } catch {
     saveStatus.value = 'error'
     saveMessage.value = 'Could not reach the backend. Is the backend service running?'
+    toasts.error(saveMessage.value)
   } finally {
     saving.value = false
   }

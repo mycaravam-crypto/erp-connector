@@ -6,6 +6,7 @@ import * as connectionApi from '@/api/connection'
 import * as erpApi from '@/api/mapping'
 import * as pipelineApi from '@/api/pipeline'
 import type { SourceSchema } from '@/api/connection'
+import { useToasts } from '@/composables/useToasts'
 
 function buildRouter() {
   const r = createRouter({
@@ -68,6 +69,7 @@ beforeEach(() => {
     records: [],
     source: 'dynamic',
   })
+  useToasts().clear()
 })
 
 describe('SchemaView', () => {
@@ -339,6 +341,7 @@ describe('SchemaView', () => {
     await flushPromises()
 
     expect(w.find('.save-ok').exists()).toBe(true)
+    expect(useToasts().toasts.value.some((t) => t.variant === 'success')).toBe(true)
   })
 
   it('refreshes the live preview after a successful save', async () => {
@@ -398,6 +401,7 @@ describe('SchemaView', () => {
     await flushPromises()
 
     expect(w.find('.save-error').exists()).toBe(true)
+    expect(useToasts().toasts.value.some((t) => t.variant === 'danger')).toBe(true)
     expect(w.find('.save-error').text()).toContain('Bad request')
   })
 
@@ -537,6 +541,7 @@ describe('SchemaView', () => {
     const [name, config] = saveSpy.mock.calls[0]
     expect(name).toBe('New Preset')
     expect(config.sourceTable).toBe('systemconfiguration')
+    expect(useToasts().toasts.value.some((t) => t.variant === 'success')).toBe(true)
   })
 
   it('calls deletePreset and clears selection via inline delete confirm', async () => {
@@ -565,6 +570,7 @@ describe('SchemaView', () => {
 
     expect(deleteSpy).toHaveBeenCalledWith('Old Preset')
     expect((w.find('select.preset-select').element as HTMLSelectElement).value).toBe('')
+    expect(useToasts().toasts.value.some((t) => t.variant === 'success')).toBe(true)
   })
 
   it('shows inline save input after clicking Save As', async () => {

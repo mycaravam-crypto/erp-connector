@@ -10,6 +10,9 @@ import ImportPlanDiffTable from '@/components/ImportPlanDiffTable.vue'
 import ImportRunCountSummary from '@/components/ImportRunCountSummary.vue'
 import ImportRunOutcome from '@/components/ImportRunOutcome.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
+import { useToasts } from '@/composables/useToasts'
+
+const toasts = useToasts()
 
 // The Phase 17 Slice 6 review/diff view (import-definitions.md §5): reuses ReleaseDialog.vue's
 // Operator/Approver form pattern, extended with the full Open Decision #11 count breakdown and a
@@ -74,12 +77,15 @@ async function release() {
     const result = await releaseImportRun(detail.value.id, approver.value.trim(), approverPassword.value)
     if (result.ok) {
       open.value = false
+      toasts.success('Import run released.')
       emit('resolved')
     } else {
       serverError.value = result.error
+      toasts.error(serverError.value)
     }
   } catch {
     serverError.value = 'Could not reach the backend. Is the backend service running?'
+    toasts.error(serverError.value)
   } finally {
     submitting.value = false
   }
@@ -94,12 +100,15 @@ async function reject() {
     const result = await rejectImportRun(detail.value.id)
     if (result.ok) {
       open.value = false
+      toasts.success('Import run rejected.')
       emit('resolved')
     } else {
       serverError.value = result.error
+      toasts.error(serverError.value)
     }
   } catch {
     serverError.value = 'Could not reach the backend. Is the backend service running?'
+    toasts.error(serverError.value)
   } finally {
     rejecting.value = false
   }

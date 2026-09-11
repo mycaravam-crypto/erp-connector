@@ -6,6 +6,9 @@ import Button from '@/components/ui/Button.vue'
 import Modal from '@/components/ui/Modal.vue'
 import Input from '@/components/ui/Input.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
+import { useToasts } from '@/composables/useToasts'
+
+const toasts = useToasts()
 
 const props = defineProps<{ seqNo: number }>()
 const emit = defineEmits<{ (e: 'released'): void }>()
@@ -51,12 +54,15 @@ async function submit() {
     })
     if (result.ok) {
       open.value = false
+      toasts.success('Run released.')
       emit('released')
     } else {
       serverError.value = result.message || `Error ${result.status}`
+      toasts.error(serverError.value)
     }
   } catch {
     serverError.value = 'Could not reach the backend. Is the backend service running?'
+    toasts.error(serverError.value)
   } finally {
     submitting.value = false
   }

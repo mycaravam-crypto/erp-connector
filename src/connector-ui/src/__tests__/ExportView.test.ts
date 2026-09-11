@@ -8,6 +8,7 @@ import * as exportsApi from '@/api/exports'
 import type { ExportMappingConfig } from '@/api/mapping'
 import type { PreviewResult } from '@/api/pipeline'
 import type { ExportSummary } from '@/api/exports'
+import { useToasts } from '@/composables/useToasts'
 
 function buildRouter() {
   const r = createRouter({
@@ -58,6 +59,7 @@ beforeEach(() => {
   vi.spyOn(pipelineApi, 'getPreview').mockResolvedValue(PREVIEW)
   vi.spyOn(exportsApi, 'listExports').mockResolvedValue([])
   vi.spyOn(erpApi, 'getExportMapping').mockResolvedValue(null)
+  useToasts().clear()
 })
 
 describe('ExportView', () => {
@@ -200,6 +202,7 @@ describe('ExportView', () => {
     expect(pipelineApi.runNow).toHaveBeenCalled()
     expect(w.text()).toContain('#7')
     expect(w.text()).toContain('10 records')
+    expect(useToasts().toasts.value.some((t) => t.variant === 'success')).toBe(true)
   })
 
   it('shows error banner when runNow fails', async () => {
@@ -214,6 +217,8 @@ describe('ExportView', () => {
     await flushPromises()
 
     expect(w.text()).toContain('No mapping configured.')
+    const toast = useToasts().toasts.value.find((t) => t.message === 'No mapping configured.')
+    expect(toast?.variant).toBe('danger')
   })
 
   it('does not render the raw ISO extractedAt string in the runs table', async () => {

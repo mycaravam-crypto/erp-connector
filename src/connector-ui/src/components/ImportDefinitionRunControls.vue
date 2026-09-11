@@ -8,6 +8,9 @@ import {
 } from '@/api/importDefinitions'
 import Button from '@/components/ui/Button.vue'
 import ConfirmAction from '@/components/ui/ConfirmAction.vue'
+import { useToasts } from '@/composables/useToasts'
+
+const toasts = useToasts()
 
 // The import-side analogue of ExportDefinitionRunControls.vue — deliberately narrower: there's no
 // "Test against live connection" or "Run Now" here. An import definition has nothing to run on demand —
@@ -49,13 +52,16 @@ async function save() {
       Object.assign(props.definition, result.data)
       saveStatus.value = 'ok'
       saveMessage.value = 'Saved.'
+      toasts.success('Import definition saved.')
     } else {
       saveStatus.value = 'error'
       saveMessage.value = result.error
+      toasts.error(saveMessage.value)
     }
   } catch {
     saveStatus.value = 'error'
     saveMessage.value = 'Could not reach the backend. Is the backend service running?'
+    toasts.error(saveMessage.value)
   } finally {
     saving.value = false
   }
@@ -66,7 +72,12 @@ async function duplicate() {
   duplicating.value = true
   try {
     const result = await duplicateImportDefinition(props.definition.id)
-    if (result.ok) emit('duplicated', result.data)
+    if (result.ok) {
+      toasts.success('Import definition duplicated.')
+      emit('duplicated', result.data)
+    } else {
+      toasts.error(result.error)
+    }
   } finally {
     duplicating.value = false
   }
@@ -77,7 +88,12 @@ const confirmingDelete = ref(false)
 async function confirmDelete() {
   deleting.value = true
   try {
-    if (await deleteImportDefinition(props.definition.id)) emit('deleted')
+    if (await deleteImportDefinition(props.definition.id)) {
+      toasts.success('Import definition deleted.')
+      emit('deleted')
+    } else {
+      toasts.error('Failed to delete import definition.')
+    }
   } finally {
     deleting.value = false
     confirmingDelete.value = false

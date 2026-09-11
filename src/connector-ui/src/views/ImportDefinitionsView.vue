@@ -16,6 +16,9 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import ConfirmAction from '@/components/ui/ConfirmAction.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
+import { useToasts } from '@/composables/useToasts'
+
+const toasts = useToasts()
 
 const definitions = ref<ImportDefinitionSummary[]>([])
 const loading = ref(true)
@@ -50,7 +53,12 @@ async function toggleEnabled(def: ImportDefinitionSummary) {
   togglingId.value = def.id
   try {
     const result = await setImportDefinitionEnabled(def.id, !def.isEnabled)
-    if (result.ok) def.isEnabled = result.data.isEnabled
+    if (result.ok) {
+      def.isEnabled = result.data.isEnabled
+      toasts.success(def.isEnabled ? `${def.name} enabled.` : `${def.name} disabled.`)
+    } else {
+      toasts.error(result.error)
+    }
   } finally {
     togglingId.value = null
   }
@@ -61,7 +69,12 @@ async function duplicate(def: ImportDefinitionSummary) {
   duplicatingId.value = def.id
   try {
     const result = await duplicateImportDefinition(def.id)
-    if (result.ok) await load()
+    if (result.ok) {
+      toasts.success('Import definition duplicated.')
+      await load()
+    } else {
+      toasts.error(result.error)
+    }
   } finally {
     duplicatingId.value = null
   }
@@ -72,7 +85,12 @@ const deletingId = ref<number | null>(null)
 async function confirmDelete(def: ImportDefinitionSummary) {
   deletingId.value = def.id
   try {
-    if (await deleteImportDefinition(def.id)) await load()
+    if (await deleteImportDefinition(def.id)) {
+      toasts.success('Import definition deleted.')
+      await load()
+    } else {
+      toasts.error('Failed to delete import definition.')
+    }
   } finally {
     deletingId.value = null
     confirmingDeleteId.value = null

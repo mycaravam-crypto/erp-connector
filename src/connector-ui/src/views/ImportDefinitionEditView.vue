@@ -32,6 +32,9 @@ import Icon from '@/components/ui/Icon.vue'
 import Button from '@/components/ui/Button.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import { useToasts } from '@/composables/useToasts'
+
+const toasts = useToasts()
 
 const route = useRoute()
 const router = useRouter()
@@ -154,12 +157,15 @@ async function create() {
     })
     if (result.ok) {
       definition.value = result.data
+      toasts.success('Import definition created.')
       await router.replace({ name: 'import-definition-edit', params: { id: result.data.id } })
     } else {
       createError.value = result.error
+      toasts.error(createError.value)
     }
   } catch {
     createError.value = 'Could not reach the backend. Is the backend service running?'
+    toasts.error(createError.value)
   } finally {
     creating.value = false
   }

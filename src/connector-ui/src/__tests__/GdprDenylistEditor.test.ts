@@ -2,8 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import GdprDenylistEditor from '@/components/GdprDenylistEditor.vue'
 import * as schedulerApi from '@/api/scheduler'
+import { useToasts } from '@/composables/useToasts'
 
-beforeEach(() => vi.restoreAllMocks())
+beforeEach(() => {
+  vi.restoreAllMocks()
+  useToasts().clear()
+})
 
 describe('GdprDenylistEditor', () => {
   it('renders the initial denied fields', () => {
@@ -46,6 +50,15 @@ describe('GdprDenylistEditor', () => {
     const saveButton = w.findAll('button').find((b) => b.text().includes('Save GDPR Denylist'))!
     await saveButton.trigger('click')
     expect(spy).toHaveBeenCalledWith(['a'])
+  })
+
+  it('pushes a success toast on save', async () => {
+    vi.spyOn(schedulerApi, 'saveGdprDeniedFields').mockResolvedValueOnce({ ok: true })
+    const w = mount(GdprDenylistEditor, { props: { initialFields: ['a'] } })
+    const saveButton = w.findAll('button').find((b) => b.text().includes('Save GDPR Denylist'))!
+    await saveButton.trigger('click')
+    await w.vm.$nextTick()
+    expect(useToasts().toasts.value.some((t) => t.variant === 'success')).toBe(true)
   })
 
   it('shows an error message when the save fails', async () => {

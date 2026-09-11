@@ -27,6 +27,9 @@ import Button from '@/components/ui/Button.vue'
 import Alert from '@/components/ui/Alert.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import { useToasts } from '@/composables/useToasts'
+
+const toasts = useToasts()
 
 const router = useRouter()
 
@@ -373,11 +376,13 @@ async function saveMapping(): Promise<boolean> {
 
   if (!result.ok) {
     saveError.value = result.error ?? 'Failed to save mapping.'
+    toasts.error(saveError.value)
     return false
   }
 
   saved.value = true
   dirty.value = false
+  toasts.success('Export mapping saved.')
   await loadPreview()
   return true
 }

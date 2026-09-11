@@ -5,6 +5,7 @@ import { getUsername, clearSession, isLoggedIn, revokeAllSessions } from '@/api/
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import UserMenu from '@/components/UserMenu.vue'
 import ConnectorNav from '@/components/ConnectorNav.vue'
+import ToastHost from '@/components/ui/ToastHost.vue'
 import logo from '@/assets/logo.svg'
 
 const router = useRouter()
@@ -49,4 +50,6 @@ async function revokeSessions() {
       <RouterView />
     </div>
   </main>
+
+  <ToastHost />
 </template>
