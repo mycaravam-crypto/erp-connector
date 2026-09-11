@@ -2,6 +2,7 @@
 import type { ImportDefinitionRun } from '@/api/importDefinitions'
 import StatusBadge from '@/components/StatusBadge.vue'
 import Button from '@/components/ui/Button.vue'
+import { formatDate } from '@/lib/dates'
 
 // The import-side analogue of ExportDefinitionRunsTable.vue: same per-definition run-history shape, but
 // carries the full Open Decision #11 count breakdown (matched/changed/unchanged/rejected/conflicted/
@@ -13,11 +14,6 @@ defineProps<{
   error: string | null
 }>()
 const emit = defineEmits<{ refresh: []; review: [runId: number] }>()
-
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  return new Date(iso.includes('Z') ? iso : iso + 'Z').toLocaleString()
-}
 </script>
 
 <template>

@@ -13,6 +13,7 @@ import Button from '@/components/ui/Button.vue'
 import Alert from '@/components/ui/Alert.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import { formatDate } from '@/lib/dates'
 
 const route = useRoute()
 const router = useRouter()
@@ -35,11 +36,6 @@ async function load() {
 }
 
 onMounted(load)
-
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  return new Date(iso.includes('Z') ? iso : iso + 'Z').toLocaleString()
-}
 </script>
 
 <template>
