@@ -1,9 +1,8 @@
 <script setup lang="ts">
-// Runs POST /api/import-definitions/{id}/preview — parses + walks + plans a sample inbound file against
-// this saved definition, with zero persistence (no ImportRunEntity, nothing written to the ERP). Unlike
-// the export side's preview (which just re-runs the live query), the import side has nothing to run
-// against without a file: Slice 4's inbound/ folder watcher is the real trigger, so an operator pastes a
-// sample ImportEnvelope JSON here to sanity-check the tree before a real vendor file ever arrives.
+// Preview runs POST .../preview — parses + walks + plans a sample inbound file against this saved
+// definition with zero persistence (no ImportRunEntity, nothing written to the ERP). Run instead posts to
+// .../runs, which stages a real ImportRunEntity at PendingReview the same way the inbound/ folder watcher
+// would — the parent view owns that call so it can refresh run history / open the review dialog.
 import { computed, ref } from 'vue'
 import type { ImportNode, ImportPlan } from '@/api/importDefinitions'
 import { detectExportFile, hasIntegrationKeyProvenance, toImportEnvelope } from '@/lib/exportedFileDetection'
@@ -22,11 +21,33 @@ const props = defineProps<{
   plan: ImportPlan | null
   loading: boolean
   error: string | null
+  running: boolean
   // Optional: the saved definition's field tree, used only for the client-side "unmapped field" hint
   // below — never sent anywhere, never affects what Preview actually runs.
   rootNode?: ImportNode | null
 }>()
-const emit = defineEmits<{ refresh: []; 'create-from-export': [envelopeJson: string] }>()
+const emit = defineEmits<{
+  refresh: []
+  'create-from-export': [envelopeJson: string]
+  run: [sourceFileName: string | undefined]
+}>()
+
+// The last file picked via "Choose File", so Run can pass its name along as SourceFileName — cosmetic
+// only (shown in run history), so a paste-in-textarea Run just goes through without one.
+const selectedFileName = ref<string | undefined>(undefined)
+const fileInput = ref<HTMLInputElement | null>(null)
+
+async function onFileSelected(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  inboundJson.value = await file.text()
+  selectedFileName.value = file.name
+  if (fileInput.value) fileInput.value.value = ''
+}
+
+function runImport() {
+  emit('run', selectedFileName.value)
+}
 
 // Detects a pasted exported job file (see lib/exportedFileDetection.ts) so it can be offered a one-click
 // fix instead of only a rejection once Preview is clicked — the same confusion the backend's
@@ -63,12 +84,16 @@ function createFromExport() {
 
 <template>
   <div>
-    <SectionHeader title="Preview" class="mb-1">
+    <SectionHeader title="Preview & Run" class="mb-1">
       <template #help>
-        <HelpTooltip label="What does Preview do?" title="A safe dry run">
+        <HelpTooltip label="What's the difference between Preview and Run?" title="A dry run vs. the real thing">
           <p>
-            Runs your sample JSON through this definition's real logic — matching, correlation, the
-            allowed-columns check — without writing anything to the ERP or recording a run.
+            Both run your sample JSON through this definition's real logic — matching, correlation, the
+            allowed-columns check. <strong>Preview</strong> stops there: nothing is written to the ERP, no
+            run is recorded, so it's safe to click repeatedly while you're still shaping a mapping.
+            <strong>Run</strong> instead stages a real <code>PendingReview</code> run, the same as a file
+            dropped in the inbound folder — it shows up in run history below and needs an Approver to
+            release it before anything actually reaches the ERP.
           </p>
           <p>
             <strong>Changed</strong> compares each mapped field to the value <strong>currently in the
@@ -78,16 +103,23 @@ function createFromExport() {
           </p>
           <p>
             <strong>Rejected</strong> means its correlation key matched no row; <strong>Invalid</strong>
-            means the record itself was malformed. Preview only runs when you click the button — editing the
-            sample afterwards doesn't refresh it on its own.
+            means the record itself was malformed. Neither Preview nor Run refreshes on its own — editing
+            the sample afterwards doesn't recompute anything until you click the button again.
           </p>
         </HelpTooltip>
       </template>
     </SectionHeader>
     <p class="text-xs text-text-secondary m-0 mb-2">
-      Paste a sample <code>ImportEnvelope</code> JSON (schemaVersion + records[]) to see what this
-      definition would do to it — nothing is written, and no run is recorded.
+      Paste or select a sample <code>ImportEnvelope</code> JSON (schemaVersion + records[]). <strong>Preview</strong>
+      is a dry run — nothing is written, no run is recorded. <strong>Run</strong> stages it for real, the
+      same as a file dropped in the inbound folder, for an Approver to review and release.
     </p>
+
+    <input ref="fileInput" type="file" accept="application/json,.json" class="hidden" @change="onFileSelected" />
+    <div class="flex items-center gap-2 mb-2">
+      <Button variant="secondary" @click="fileInput?.click()">Choose File…</Button>
+      <span v-if="selectedFileName" class="text-xs text-text-secondary">{{ selectedFileName }}</span>
+    </div>
 
     <textarea
       v-model="inboundJson"
@@ -110,11 +142,16 @@ function createFromExport() {
 
     <ImportUnmappedFieldsWarning v-else :fields="unmappedFields" />
 
-    <button
-      class="px-2.5 py-1 border border-border-strong rounded-md bg-surface text-xs text-text-secondary cursor-pointer disabled:opacity-50 hover:enabled:bg-surface-elevated mb-3"
-      :disabled="loading || inboundJson.trim() === ''"
-      @click="runPreview"
-    >{{ loading ? 'Previewing…' : 'Preview' }}</button>
+    <div class="flex items-center gap-2 mb-3">
+      <button
+        class="px-2.5 py-1 border border-border-strong rounded-md bg-surface text-xs text-text-secondary cursor-pointer disabled:opacity-50 hover:enabled:bg-surface-elevated"
+        :disabled="loading || inboundJson.trim() === ''"
+        @click="runPreview"
+      >{{ loading ? 'Previewing…' : 'Preview' }}</button>
+      <Button :disabled="running || inboundJson.trim() === ''" :loading="running" @click="runImport">
+        {{ running ? 'Running…' : 'Run' }}
+      </Button>
+    </div>
 
     <p v-if="error" class="text-danger text-sm">{{ error }}</p>
 

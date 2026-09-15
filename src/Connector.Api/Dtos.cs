@@ -357,6 +357,12 @@ record ImportMappingSuggestionCheckResult(ImportMappingSuggestionDto? Suggestion
 /// <c>ImportNodeWalker.SupportedSchemaVersion</c>.</summary>
 record ImportDefinitionPreviewRequest(string InboundJson);
 
+/// <summary>Body for POST .../runs: same inbound content as .../preview, but this one persists — an
+/// operator-selected file, staged as a real <c>ImportRunEntity</c> at PendingReview the same way the
+/// inbound/ folder watcher would, without needing a dropped file + manifest. SourceFileName is
+/// cosmetic (shown in run history); falls back to a placeholder when omitted.</summary>
+record ImportDefinitionStageRequest(string InboundJson, string? SourceFileName);
+
 /// <summary>One row returned by GET /api/import-definitions/{id}/runs — the full Open Decision #11 count
 /// breakdown plus the four-eyes fields, mirroring <see cref="ImportRunDto"/> with the run-history fields
 /// <see cref="ExportDefinitionRunDto"/> also carries (StartedAt/FinishedAt/TriggeredBy).</summary>

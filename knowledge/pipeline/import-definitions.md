@@ -84,7 +84,7 @@ vendor ICD requires it (Open Decision #15).
 | Tree model | `ExportNode` (`Connector.Core.DynamicExport`) | `ImportNode` (`Connector.Core.DynamicImport`, new) |
 | Field-level control | `FieldMapping` (transform, default, data type) — reused as-is | same type, reused as-is |
 | Column scope control | GDPR denylist (default-allow-except) | `AllowedWritableColumns` allowlist (default-deny-except) |
-| Trigger | `ExportDefinitionWorker` polls cron | `ImportWorker` polls an `inbound/` folder |
+| Trigger | `ExportDefinitionWorker` polls cron | `ImportWorker` polls an `inbound/` folder, or an operator stages a file manually from the UI (`POST /api/import-definitions/{id}/runs`, Phase 20) |
 | Integrity | SHA-256 manifest + sequence number, `IExportSink` | SHA-256 manifest only for v1 — no sequence/gap detection, see Open Decision #8 |
 | Human approval | Four-eyes release (Operator/Approver, distinct JWT users) | same contract, generalized into a shared helper |
 | Run record | `ExportRunEntity` / `ExportDefinitionRunEntity` | `ImportRunEntity` (new) |

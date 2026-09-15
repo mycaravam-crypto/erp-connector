@@ -14,9 +14,9 @@ import { useSaveStatus } from '@/composables/useSaveStatus'
 const toasts = useToasts()
 
 // The import-side analogue of ExportDefinitionRunControls.vue — deliberately narrower: there's no
-// "Test against live connection" or "Run Now" here. An import definition has nothing to run on demand —
-// staging a real run is Slice 4's inbound/ folder watcher, and previewing against a sample file is
-// ImportDefinitionPreviewPanel.vue's job, not a mutating action this component owns.
+// "Test against live connection" here (an import definition has no query to sanity-check). Staging a
+// real run (manual file select or the inbound/ folder watcher) and previewing a sample file both live on
+// ImportDefinitionPreviewPanel.vue instead, since both act on the same pasted/selected JSON it already owns.
 const props = defineProps<{
   definition: ImportDefinition
 }>()

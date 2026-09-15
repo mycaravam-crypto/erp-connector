@@ -6,6 +6,7 @@ import {
   getImportDefinition,
   createImportDefinition,
   previewImportDefinition,
+  stageImportDefinitionRun,
   listImportDefinitionRuns,
   type ImportDefinition,
   type ImportDefinitionRun,
@@ -182,6 +183,7 @@ const previewInboundJson = ref('')
 const previewLoading = ref(false)
 const previewError = ref<string | null>(null)
 const previewPlan = ref<ImportPlan | null>(null)
+const runningImport = ref(false)
 
 async function runPreview() {
   if (!definition.value) return
@@ -198,6 +200,27 @@ async function runPreview() {
     previewError.value = 'Could not reach the backend. Is the backend service running?'
   } finally {
     previewLoading.value = false
+  }
+}
+
+// Stages the same sample JSON as a real ImportRunEntity (PendingReview) instead of just previewing it —
+// mirrors what the inbound/ folder watcher does for a dropped file, triggered manually from this page.
+async function runImportNow(sourceFileName: string | undefined) {
+  if (!definition.value) return
+  runningImport.value = true
+  try {
+    const result = await stageImportDefinitionRun(definition.value.id, previewInboundJson.value, sourceFileName)
+    if (result.ok) {
+      toasts.success(`Run #${result.data.id} staged — awaiting review.`)
+      await refreshRuns()
+      openReview(result.data.id)
+    } else {
+      toasts.error(result.error)
+    }
+  } catch {
+    toasts.error('Could not reach the backend. Is the backend service running?')
+  } finally {
+    runningImport.value = false
   }
 }
 
@@ -314,8 +337,10 @@ function onReviewResolved() {
               :plan="previewPlan"
               :loading="previewLoading"
               :error="previewError"
+              :running="runningImport"
               :root-node="definition.rootNode"
               @refresh="runPreview"
+              @run="runImportNow"
               @create-from-export="onCreateFromExport"
             />
           </div>
