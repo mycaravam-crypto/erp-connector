@@ -261,6 +261,19 @@ export async function suggestImportMappingFromExport(
   }
 }
 
+/** Stages an operator-selected file as a real run (PendingReview), the same way the inbound/ folder
+ * watcher would — unlike preview, this persists and shows up in run history / the review dialog. */
+export async function stageImportDefinitionRun(
+  id: number,
+  inboundJson: string,
+  sourceFileName?: string,
+): Promise<ApiResult<ImportDefinitionRun>> {
+  return sendJsonForResult<ImportDefinitionRun>(`/api/import-definitions/${id}/runs`, 'POST', {
+    inboundJson,
+    sourceFileName,
+  })
+}
+
 /** Execution history for a definition, most recent first. */
 export async function listImportDefinitionRuns(id: number): Promise<ImportDefinitionRun[]> {
   const res = await fetch(`/api/import-definitions/${id}/runs`, { headers: authHeaders() })

@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Connector.Core.DynamicExport;
 using Connector.Core.DynamicImport;
@@ -345,6 +347,138 @@ static partial class ImportDefinitionEndpoints
                         ))
                         .ToListAsync(ct);
                     return Results.Ok(runs);
+                }
+            )
+            .RequireAuthorization();
+
+        // The UI's manual "Run" action (import-definitions/{id} page): stages an operator-selected file as
+        // a real ImportRunEntity at PendingReview, the same way ImportWorker's inbound/ folder watcher
+        // would — same walk/plan logic as .../preview above, but persisted so it goes through the normal
+        // four-eyes release/reject flow instead of being thrown away. No manifest/checksum file needed:
+        // the checksum is computed from the posted content itself, and (definitionId, checksum) still
+        // dedupes against a re-submit of the same file.
+        app.MapPost(
+                "/api/import-definitions/{id:int}/runs",
+                async (
+                    int id,
+                    ImportDefinitionStageRequest request,
+                    HttpContext httpContext,
+                    ExportLogDbContext db,
+                    AuditService audit,
+                    CancellationToken ct
+                ) =>
+                {
+                    var def = await db.ImportDefinitions.FindAsync([id], ct);
+                    if (def is null)
+                        return Results.NotFound();
+
+                    var root = ImportNodeJson.Deserialize(def.RootNode);
+                    if (root is null)
+                        return Results.Problem(detail: "Stored import tree could not be read.", statusCode: 500);
+
+                    var checksum = Convert
+                        .ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(request.InboundJson)))
+                        .ToLowerInvariant();
+
+                    var existing = await db.ImportRuns.FirstOrDefaultAsync(
+                        r => r.ImportDefinitionId == id && r.Sha256Checksum == checksum,
+                        ct
+                    );
+                    if (existing is not null)
+                        return Results.Conflict(
+                            $"This file was already staged as run #{existing.Id} ({existing.Status})."
+                        );
+
+                    var connRaw = await db.GetSettingRawAsync(SettingsKeys.ErpConnection);
+                    if (connRaw is null)
+                        return Results.Problem(detail: "No database connection configured.", statusCode: 400);
+                    var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connRaw)!;
+
+                    ImportPlan plan;
+                    try
+                    {
+                        await using var conn = new NpgsqlConnection(
+                            DynamicExportService.BuildConnectionString(connCfg)
+                        );
+                        await conn.OpenAsync(ct);
+                        var walkResult = await ImportNodeWalker.WalkAsync(conn, def, root, request.InboundJson, ct);
+                        plan = ImportPlanBuilder.Build(walkResult, def.RootTable, def.RootMatchColumn);
+                    }
+                    catch (ImportValidationException ex)
+                    {
+                        return Results.BadRequest(ex.Message);
+                    }
+                    catch (Exception ex)
+                    {
+                        return Results.Problem(detail: $"Staging failed: {ErrorSanitizer.Detail(ex)}", statusCode: 400);
+                    }
+
+                    var operatorName = httpContext.User.Identity!.Name!;
+                    var run = new ImportRunEntity
+                    {
+                        ImportDefinitionId = def.Id,
+                        ConfigVersion = def.ConfigVersion,
+                        DefinitionSnapshotJson = JsonSerializer.Serialize(def),
+                        SourceFileName = string.IsNullOrWhiteSpace(request.SourceFileName)
+                            ? "manual-upload.json"
+                            : request.SourceFileName,
+                        Sha256Checksum = checksum,
+                        StartedAt = DateTimeOffset.UtcNow.ToString("O"),
+                        Status = ImportRunStatus.PendingReview,
+                        TriggeredBy = operatorName,
+                        RecordCount = plan.RecordCount,
+                        MatchedCount = plan.MatchedCount,
+                        ChangedCount = plan.ChangedCount,
+                        UnchangedCount = plan.UnchangedCount,
+                        RejectedCount = plan.RejectedCount,
+                        InvalidCount = plan.InvalidCount,
+                        PlanJson = ImportPlanJson.Serialize(plan),
+                        StagedConnectionFingerprint = DynamicExportService.ConnectionFingerprint(connCfg),
+                    };
+
+                    try
+                    {
+                        db.ImportRuns.Add(run);
+                        await db.SaveChangesAsync(ct);
+                    }
+                    catch (DbUpdateException)
+                    {
+                        // Same (ImportDefinitionId, Sha256Checksum) race as ImportWorker's own insert guards
+                        // against — a concurrent stage of this exact file between the pre-check above and here.
+                        return Results.Conflict(
+                            "This file was already staged by another request — reload and try again."
+                        );
+                    }
+
+                    await audit.LogAsync(
+                        operatorName,
+                        "import_run_staged",
+                        $"id={run.Id} definition={def.Name} matched={run.MatchedCount} changed={run.ChangedCount} "
+                            + $"unchanged={run.UnchangedCount} rejected={run.RejectedCount} invalid={run.InvalidCount}"
+                    );
+
+                    return Results.Created(
+                        $"/api/import-runs/{run.Id}",
+                        new ImportDefinitionRunDto(
+                            run.Id,
+                            run.ConfigVersion,
+                            run.StartedAt,
+                            run.FinishedAt,
+                            run.Status,
+                            run.RecordCount,
+                            run.MatchedCount,
+                            run.ChangedCount,
+                            run.UnchangedCount,
+                            run.RejectedCount,
+                            run.ConflictCount,
+                            run.InvalidCount,
+                            run.ErrorMessage,
+                            run.TriggeredBy,
+                            run.OperatedBy,
+                            run.ApprovedBy,
+                            run.ReleasedAt
+                        )
+                    );
                 }
             )
             .RequireAuthorization();

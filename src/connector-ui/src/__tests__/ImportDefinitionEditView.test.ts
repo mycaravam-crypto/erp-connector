@@ -205,6 +205,70 @@ describe('ImportDefinitionEditView', () => {
     expect(w.text()).toContain('1 changed')
   })
 
+  it('stages a manually-run sample as a real run and opens it for review', async () => {
+    vi.spyOn(importDefinitionsApi, 'getImportDefinition').mockResolvedValueOnce(DEFINITION)
+    vi.spyOn(importDefinitionsApi, 'stageImportDefinitionRun').mockResolvedValueOnce({
+      ok: true,
+      data: {
+        id: 42,
+        configVersion: 1,
+        startedAt: '2026-09-01T00:00:00Z',
+        finishedAt: null,
+        status: 'PendingReview',
+        recordCount: 1,
+        matchedCount: 1,
+        changedCount: 1,
+        unchangedCount: 0,
+        rejectedCount: 0,
+        conflictCount: 0,
+        invalidCount: 0,
+        errorMessage: null,
+        triggeredBy: 'alice',
+        operatedBy: null,
+        approvedBy: null,
+        releasedAt: null,
+      },
+    })
+    const getRunSpy = vi.spyOn(importDefinitionsApi, 'getImportRun').mockResolvedValueOnce({
+      id: 42,
+      importDefinitionId: 1,
+      importDefinitionName: 'Vendor Confirmations',
+      configVersion: 1,
+      sourceFileName: 'manual-upload.json',
+      startedAt: '2026-09-01T00:00:00Z',
+      finishedAt: null,
+      status: 'PendingReview',
+      recordCount: 1,
+      matchedCount: 1,
+      changedCount: 1,
+      unchangedCount: 0,
+      rejectedCount: 0,
+      conflictCount: 0,
+      invalidCount: 0,
+      errorMessage: null,
+      triggeredBy: 'alice',
+      operatedBy: null,
+      approvedBy: null,
+      releasedAt: null,
+      operations: [],
+    })
+    const w = mount(ImportDefinitionEditView, { global: { plugins: [await buildRouter()] } })
+    await flushPromises()
+
+    await w.find('textarea[aria-label="Sample inbound JSON"]').setValue('{"schemaVersion":1,"records":[]}')
+    const runBtn = w.findAll('button').find((b) => b.text() === 'Run')!
+    await runBtn.trigger('click')
+    await flushPromises()
+
+    expect(importDefinitionsApi.stageImportDefinitionRun).toHaveBeenCalledWith(
+      1,
+      '{"schemaVersion":1,"records":[]}',
+      undefined,
+    )
+    // Runs the review dialog open immediately with the newly-staged run's id.
+    expect(getRunSpy).toHaveBeenCalledWith(42)
+  })
+
   it('warns about a sample field that is not mapped as a writable column', async () => {
     vi.spyOn(importDefinitionsApi, 'getImportDefinition').mockResolvedValueOnce(DEFINITION)
     const w = mount(ImportDefinitionEditView, { global: { plugins: [await buildRouter()] } })

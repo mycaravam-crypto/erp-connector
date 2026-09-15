@@ -56,6 +56,12 @@
         "maxCognitive": 15,
         "maxCrap": 35,
         "reason": "Pre-existing template complexity (10 cyclomatic/11 cognitive/31.6 CRAP, unchanged by this PR) surfaced only because this PR's diff adds a useToasts import and calls to the file's <script> — the flagged <template> block itself is untouched."
+      },
+      {
+        "files": ["src/components/ImportDefinitionPreviewPanel.vue"],
+        "maxCognitive": 15,
+        "maxCrap": 45,
+        "reason": "Phase 20 (manual import run trigger) added a file picker and a second action (Run, alongside the existing Preview) to this panel — two related, independently-disabled actions sharing the same sample-JSON state, the same 'small related actions in one panel' shape the Phase 14/17 tree-editor overrides above already accept rather than splitting into files with no real shared logic to extract."
       }
     ]
   }

@@ -7,8 +7,12 @@ tags: [pipeline, orchestration, background-service, dynamic-import, phase-17]
 timestamp: 2026-09-06T00:00:00Z
 ---
 
-`ImportWorker` is Phase 17 Slice 4: the automatic half of the inbound pipeline — a saved
-`ImportDefinition` otherwise has no way to receive vendor data. It is a **sibling** of
+`ImportWorker` is Phase 17 Slice 4: the automatic half of the inbound pipeline — polling `inbound/`
+so a saved `ImportDefinition` doesn't need a human watching a folder. Phase 20 added the manual
+half: `POST /api/import-definitions/{id}/runs` runs the same walk/plan/stage steps (3, 5, 6 below)
+for an operator-selected file from the UI, skipping only the manifest/checksum-file and
+folder-routing steps this worker needs (1, 2, 4, 7) since the file never touches disk — see [Import
+Definitions §2](/pipeline/import-definitions.md#2-current-state). It is a **sibling** of
 [ExportWorker](/pipeline/export-worker.md)/[ExportDefinitionWorker](/dynamic-export/scheduler.md),
 not a replacement for either — it polls a folder (`inbound/`) instead of writing to one, and
 nothing about the export side changes.
@@ -75,3 +79,4 @@ approved run is [`ImportRunReleaser`](run-history.md)'s job (Slice 3), triggered
 - [ImportNode Tree](import-node.md) — the tree this worker's walk step reads
 - [ExportWorker](/pipeline/export-worker.md) — the outbound sibling this worker's polling model mirrors
 - [Import Definitions §3](/pipeline/import-definitions.md#3-inbound-flow) — the full inbound flow, steps 1-5
+- `ImportDefinitionEndpoints.cs`'s `POST .../runs` — the manual trigger, same walk/plan/stage core minus the file/manifest steps

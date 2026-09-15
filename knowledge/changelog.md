@@ -6,7 +6,26 @@ tags: [changelog, roadmap, history]
 timestamp: 2026-09-03T00:00:00Z
 ---
 
-Last updated: 2026-09-07
+Last updated: 2026-09-15
+
+---
+
+## Phase 20 — Manual import run trigger ✅
+
+Closed the gap `ImportDefinitionRunControls.vue` used to call out explicitly: an import definition
+had nothing to run on demand, only Phase 17 Slice 4's `inbound/` folder watcher and Preview's
+untracked dry run. An operator can now select or paste a sample file on the Import Job page and
+stage it as a real `PendingReview` run without dropping a file + manifest on disk.
+
+| Item | Notes |
+|---|---|
+| `POST /api/import-definitions/{id}/runs` | Reuses `ImportNodeWalker.WalkAsync`/`ImportPlanBuilder.Build` — the same walk-then-build pass `.../preview` and `ImportWorker` already share — then persists an `ImportRunEntity` at `PendingReview` with `TriggeredBy` set to the operator's username. Checksum computed from the posted content itself (no manifest file); `(ImportDefinitionId, Sha256Checksum)` still dedupes a re-submit, returning 409 with the existing run's id/status |
+| `ImportDefinitionPreviewPanel.vue` gained a file picker + **Run** button | Sits next to the existing **Preview** dry run — same textarea, same sample; Preview writes nothing, Run stages it for real and hands off straight into the existing review/release dialog |
+| Docs reconciled | [Import Definitions §2](/pipeline/import-definitions.md#2-current-state)'s Trigger row and [ImportWorker](/dynamic-import/import-worker.md) now name both triggers; the stale "nothing to run on demand" comment in `ImportDefinitionRunControls.vue` is gone |
+
+**Verification:** `npm test` (frontend, including a new manual-run case), `vue-tsc --build` clean;
+backend endpoint smoke-tested against `testdb` — staged, diffed, deduped on re-submit (409), and
+rejected cleanly with no ERP write.
 
 ---
 
