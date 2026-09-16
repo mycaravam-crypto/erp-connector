@@ -1,8 +1,14 @@
 @import './base.css';
 
+/* `--x-custom-bg-image` is set at runtime by useBranding.ts when an operator uploads a custom
+   background; it stays unset (falling back to `none`, an inert layer) otherwise, leaving the
+   default glow gradients untouched. */
 body {
   background-color: var(--color-bg);
-  background-image: var(--x-glow-bg-1), var(--x-glow-bg-2);
+  background-image: var(--x-custom-bg-image, none), var(--x-glow-bg-1), var(--x-glow-bg-2);
+  background-size: cover, auto, auto;
+  background-position: center, 0 0, 0 0;
+  background-repeat: no-repeat, repeat, repeat;
   background-attachment: fixed;
   color: var(--color-text-primary);
 }

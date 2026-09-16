@@ -303,6 +303,7 @@ app.MapPipelineEndpoints();
 app.MapSchemaEndpoints();
 app.MapConnectionEndpoints();
 app.MapSettingsEndpoints();
+app.MapBrandingEndpoints();
 app.MapExportMappingEndpoints();
 app.MapExportDefinitionEndpoints();
 app.MapImportDefinitionEndpoints();

@@ -14,6 +14,7 @@ public static class SettingsKeys
     public const string ExportPresets = "export_presets";
     public const string SchedulerConfig = "scheduler_config";
     public const string GdprDeniedFields = "gdpr_denied_fields";
+    public const string Branding = "branding";
 }
 
 /// <summary>
