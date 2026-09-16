@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { getSchedulerConfig, getGdprDeniedFields, type SchedulerConfig } from '@/api/scheduler'
+import { getBranding, type BrandingConfig } from '@/api/branding'
 import Alert from '@/components/ui/Alert.vue'
 import SchedulerSettingsForm from '@/components/SchedulerSettingsForm.vue'
 import GdprDenylistEditor from '@/components/GdprDenylistEditor.vue'
+import BrandingSettingsForm from '@/components/BrandingSettingsForm.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 
@@ -12,12 +14,18 @@ const loadError = ref<string | null>(null)
 
 const schedulerConfig = ref<SchedulerConfig | null>(null)
 const gdprFields = ref<string[]>([])
+const brandingConfig = ref<BrandingConfig | null>(null)
 
 onMounted(async () => {
   try {
-    const [cfg, gdpr] = await Promise.all([getSchedulerConfig(), getGdprDeniedFields()])
+    const [cfg, gdpr, branding] = await Promise.all([
+      getSchedulerConfig(),
+      getGdprDeniedFields(),
+      getBranding(),
+    ])
     schedulerConfig.value = cfg
     gdprFields.value = gdpr.fields
+    brandingConfig.value = branding
   } catch {
     loadError.value = 'Could not load settings. Is the backend service running?'
   } finally {
@@ -37,6 +45,10 @@ onMounted(async () => {
             from every export, regardless of how any individual export is mapped.
           </p>
           <p>Export Jobs and Import Jobs have their own settings on their own edit pages, not here.</p>
+          <p>
+            <strong>Branding</strong> lets you replace the default name, logo, favicon, and background
+            with your own, applied everywhere in the UI.
+          </p>
         </HelpTooltip>
       </template>
     </PageHeader>
@@ -45,9 +57,10 @@ onMounted(async () => {
 
     <Alert v-else-if="loadError" variant="danger" class="mt-4">{{ loadError }}</Alert>
 
-    <template v-else-if="schedulerConfig">
+    <template v-else-if="schedulerConfig && brandingConfig">
       <SchedulerSettingsForm :config="schedulerConfig" />
       <GdprDenylistEditor :initial-fields="gdprFields" />
+      <BrandingSettingsForm :config="brandingConfig" />
     </template>
   </div>
 </template>

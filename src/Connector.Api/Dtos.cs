@@ -105,6 +105,14 @@ record GdprDenylistRequest(List<string> Fields);
 /// <summary>Single row returned by GET /api/audit.</summary>
 record AuditEntryDto(int Id, string Timestamp, string Username, string Action, string? Detail);
 
+/// <summary>
+/// Body for GET/PUT /api/branding — connector-wide white-label assets. Each image field is a full
+/// "data:image/&lt;type&gt;;base64,…" data URL (validated and size-capped in BrandingEndpoints) or null to
+/// fall back to the built-in default. GET is unauthenticated so the login screen and browser tab can
+/// render custom branding before the user signs in.
+/// </summary>
+record BrandingConfig(string? AppName, string? LogoDataUrl, string? FaviconDataUrl, string? BackgroundImageDataUrl);
+
 /// <summary>Body for POST/PUT /api/export-definitions — everything an operator configures for one saved,
 /// independently triggerable export. RootNode must be a "root"-kind <see cref="Connector.Core.DynamicExport.ExportNode"/>.
 /// IntegrationKey/ContractVersion/CorrelationKeySourceField (knowledge/pipeline/import-mapping-presets.md

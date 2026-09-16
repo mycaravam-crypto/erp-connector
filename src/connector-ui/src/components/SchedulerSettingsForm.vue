@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { saveSchedulerConfig, type SchedulerConfig } from '@/api/scheduler'
-import { Check, X } from 'lucide-vue-next'
-import Icon from '@/components/ui/Icon.vue'
 import Input from '@/components/ui/Input.vue'
 import Select from '@/components/ui/Select.vue'
 import Button from '@/components/ui/Button.vue'
-import Alert from '@/components/ui/Alert.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
+import SaveStatusAlert from '@/components/ui/SaveStatusAlert.vue'
 import { useToasts } from '@/composables/useToasts'
 import { useSaveStatus } from '@/composables/useSaveStatus'
 
@@ -98,13 +96,6 @@ async function save() {
       </div>
     </form>
 
-    <Alert v-if="saveStatus === 'ok'" variant="success" class="mt-4">
-      <template #icon><Icon :icon="Check" :size="16" /></template>
-      {{ saveMessage }}
-    </Alert>
-    <Alert v-else-if="saveStatus === 'error'" variant="danger" class="mt-4">
-      <template #icon><Icon :icon="X" :size="16" /></template>
-      {{ saveMessage }}
-    </Alert>
+    <SaveStatusAlert :status="saveStatus" :message="saveMessage" />
   </section>
 </template>

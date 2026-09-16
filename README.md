@@ -44,6 +44,7 @@ Every run is logged in SQLite. A pending run stays locked until **two different 
 | **Sequence integrity** | Gap detection warns when an earlier run is unresolved before release; Skipped status for permanent failures |
 | **Delivery tracking** | Records imported record count and notes when the physical handover is completed |
 | **Scheduler** | Daily background export at configurable UTC time; retention cleanup at configurable retention period |
+| **Branding** | White-label the UI with a custom app name, logo, favicon, and background image, configurable from Settings — applied everywhere, including the login screen |
 | **Production deployment** | Docker (multi-stage, non-root, health check); Serilog with JSON output in production |
 
 ---
@@ -255,6 +256,8 @@ All endpoints except `/api/health` and `/api/auth/login` require `Authorization:
 | `GET` | `/api/gdpr-denied-fields` | Current GDPR denylist |
 | `PATCH` | `/api/gdpr-denied-fields` | Replace GDPR denylist |
 | `GET` | `/api/audit` | Audit log entries (newest first, default 100) |
+| `GET` | `/api/branding` | Current branding config — app name, logo, favicon, background image (unauthenticated — needed by the login screen) |
+| `PUT` | `/api/branding` | Save branding config — each image field is a base64 data URL, or null to reset to default |
 
 ---
 

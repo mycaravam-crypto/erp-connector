@@ -2,10 +2,12 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { login } from '@/api/auth'
-import logo from '@/assets/logo.svg'
+import { useBranding } from '@/composables/useBranding'
 import Card from '@/components/ui/Card.vue'
 import Input from '@/components/ui/Input.vue'
 import Button from '@/components/ui/Button.vue'
+
+const { appName, logoUrl } = useBranding()
 
 const router = useRouter()
 
@@ -35,8 +37,8 @@ async function submit() {
   <div class="flex justify-center pt-24">
     <Card class="w-full max-w-sm">
       <div class="flex items-center gap-2.5 mb-4">
-        <img :src="logo" alt="" class="w-8 h-8 rounded-lg" />
-        <h1 class="text-lg font-semibold m-0 text-text-primary">X5 Connector</h1>
+        <img :src="logoUrl" alt="" class="w-8 h-8 rounded-lg" />
+        <h1 class="text-lg font-semibold m-0 text-text-primary">{{ appName }}</h1>
       </div>
       <p class="text-text-secondary text-sm m-0 mb-6">Release UI requires authentication.</p>
 
