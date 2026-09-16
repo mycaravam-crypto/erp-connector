@@ -24,28 +24,15 @@ static partial class BrandingEndpoints
 
         app.MapPut(
                 "/api/branding",
-                async (
-                    BrandingConfig dto,
-                    ExportLogDbContext db,
-                    HttpContext httpContext,
-                    AuditService audit
-                ) =>
+                async (BrandingConfig dto, ExportLogDbContext db, HttpContext httpContext, AuditService audit) =>
                 {
                     if (dto.AppName is { Length: > MaxAppNameLength })
-                        return Results.BadRequest(
-                            $"App name must be {MaxAppNameLength} characters or fewer."
-                        );
+                        return Results.BadRequest($"App name must be {MaxAppNameLength} characters or fewer.");
                     if (!IsValidImageDataUrl(dto.LogoDataUrl, MaxLogoBytes, out var logoError))
                         return Results.BadRequest($"Logo image {logoError}.");
                     if (!IsValidImageDataUrl(dto.FaviconDataUrl, MaxFaviconBytes, out var faviconError))
                         return Results.BadRequest($"Favicon image {faviconError}.");
-                    if (
-                        !IsValidImageDataUrl(
-                            dto.BackgroundImageDataUrl,
-                            MaxBackgroundBytes,
-                            out var backgroundError
-                        )
-                    )
+                    if (!IsValidImageDataUrl(dto.BackgroundImageDataUrl, MaxBackgroundBytes, out var backgroundError))
                         return Results.BadRequest($"Background image {backgroundError}.");
 
                     var normalized = new BrandingConfig(
@@ -56,13 +43,14 @@ static partial class BrandingEndpoints
                     );
 
                     await db.SetSettingAsync(SettingsKeys.Branding, normalized);
+                    var appName = normalized.AppName is null ? "default" : normalized.AppName;
+                    var logo = normalized.LogoDataUrl is null ? "unset" : "set";
+                    var favicon = normalized.FaviconDataUrl is null ? "unset" : "set";
+                    var background = normalized.BackgroundImageDataUrl is null ? "unset" : "set";
                     await audit.LogAsync(
                         httpContext.User.Identity!.Name!,
                         "branding_updated",
-                        $"appName={(normalized.AppName is null ? "(default)" : normalized.AppName)} "
-                            + $"logo={(normalized.LogoDataUrl is null ? "unset" : "set")} "
-                            + $"favicon={(normalized.FaviconDataUrl is null ? "unset" : "set")} "
-                            + $"background={(normalized.BackgroundImageDataUrl is null ? "unset" : "set")}"
+                        $"appName={appName} logo={logo} favicon={favicon} background={background}"
                     );
                     return Results.Ok(normalized);
                 }

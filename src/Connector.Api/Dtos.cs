@@ -111,12 +111,7 @@ record AuditEntryDto(int Id, string Timestamp, string Username, string Action, s
 /// fall back to the built-in default. GET is unauthenticated so the login screen and browser tab can
 /// render custom branding before the user signs in.
 /// </summary>
-record BrandingConfig(
-    string? AppName,
-    string? LogoDataUrl,
-    string? FaviconDataUrl,
-    string? BackgroundImageDataUrl
-);
+record BrandingConfig(string? AppName, string? LogoDataUrl, string? FaviconDataUrl, string? BackgroundImageDataUrl);
 
 /// <summary>Body for POST/PUT /api/export-definitions — everything an operator configures for one saved,
 /// independently triggerable export. RootNode must be a "root"-kind <see cref="Connector.Core.DynamicExport.ExportNode"/>.
