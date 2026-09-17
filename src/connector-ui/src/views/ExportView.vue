@@ -110,96 +110,94 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="max-w-5xl">
-    <PageHeader title="Managed Export">
-      <template #help>
-        <HelpTooltip label="What is the four-eyes release?" title="Why every run needs a second person">
-          <p>
-            Triggering an export doesn't send it anywhere by itself — every run needs a
-            <strong>four-eyes release</strong>: a second, different registered user has to confirm it
-            before it counts as final. This is a two-person control so no single person can quietly
-            produce and ship a file alone.
-          </p>
-          <p>
-            <strong>Example:</strong> you (as <code>alice</code>) trigger the export; it appears
-            "Pending" below. A colleague, <code>bob</code>, opens that run and clicks
-            <strong>Release Run</strong> to approve it — <code>alice</code> can't approve her own run.
-          </p>
-        </HelpTooltip>
-      </template>
-    </PageHeader>
+  <PageHeader title="Managed Export">
+    <template #help>
+      <HelpTooltip label="What is the four-eyes release?" title="Why every run needs a second person">
+        <p>
+          Triggering an export doesn't send it anywhere by itself — every run needs a
+          <strong>four-eyes release</strong>: a second, different registered user has to confirm it
+          before it counts as final. This is a two-person control so no single person can quietly
+          produce and ship a file alone.
+        </p>
+        <p>
+          <strong>Example:</strong> you (as <code>alice</code>) trigger the export; it appears
+          "Pending" below. A colleague, <code>bob</code>, opens that run and clicks
+          <strong>Release Run</strong> to approve it — <code>alice</code> can't approve her own run.
+        </p>
+      </HelpTooltip>
+    </template>
+  </PageHeader>
 
-    <p class="text-text-secondary text-sm mt-2 mb-5 leading-relaxed">
-      The standard export configured for this connector, using the CMDB Export Mapping above.
-      Choose your export format, preview the data, then trigger the export. Each export run
-      is logged below and requires a four-eyes release before it is considered final.
-    </p>
+  <p class="text-text-secondary text-sm mt-2 mb-5 leading-relaxed">
+    The standard export configured for this connector, using the CMDB Export Mapping above.
+    Choose your export format, preview the data, then trigger the export. Each export run
+    is logged below and requires a four-eyes release before it is considered final.
+  </p>
 
-    <!-- Format + Run card -->
-    <div class="border border-border rounded-lg overflow-hidden mb-8">
-      <div class="flex items-center justify-between gap-6 px-6 py-5">
-        <div class="flex-1">
-          <span class="inline-flex items-center gap-1.5 mb-2.5">
-            <h2 class="m-0 text-base font-semibold text-text-primary">Export Format</h2>
-            <HelpTooltip label="Which format should I pick?" title="Choosing an output format">
-              <p>Pick <strong>Excel</strong> if the vendor's Transform Map requires it.</p>
-              <p>Pick <strong>CSV</strong> for the widest compatibility with spreadsheets and generic tools.</p>
-              <p>Pick <strong>JSON</strong> for API-based delivery, or to get the Nested JSON Structure and custom envelope configured on the CMDB Export Mapping page.</p>
-            </HelpTooltip>
-          </span>
-          <div class="flex gap-2">
-            <button
-              v-for="fmt in [
-                { id: 'xlsx', label: 'Excel', ext: '.xlsx' },
-                { id: 'csv',  label: 'CSV',   ext: '.csv'  },
-                { id: 'json', label: 'JSON',  ext: '.json' },
-              ]"
-              :key="fmt.id"
-              :class="['flex items-center gap-1.5 px-3 py-1.5 border rounded-md text-sm font-semibold cursor-pointer transition-colors', selectedFormat === fmt.id ? 'border-brand bg-brand text-white' : 'border-border-strong bg-surface text-text-secondary hover:border-brand']"
-              @click="saveFormat(fmt.id as 'xlsx' | 'csv' | 'json')"
-            >
-              {{ fmt.label }}<span class="text-xs opacity-70">{{ fmt.ext }}</span>
-            </button>
-          </div>
-        </div>
-        <Button variant="primary" class="shrink-0 whitespace-nowrap" :loading="running" @click="triggerRun">
-          {{ running ? 'Running…' : `Export as ${selectedFormat.toUpperCase()}` }}
-        </Button>
-      </div>
-
-      <Alert v-if="runResult" variant="success" class="rounded-none border-x-0 border-b-0">
-        <template #icon><Icon :icon="Check" :size="20" /></template>
-        <span class="flex-1">
-          Export <strong>#{{ runResult.sequenceNo }}</strong> created —
-          {{ runResult.recordCount }} records ·
-          <code>{{ runResult.sha256Short }}…</code>
+  <!-- Format + Run card -->
+  <div class="border border-border rounded-lg overflow-hidden mb-8">
+    <div class="flex items-center justify-between gap-6 px-6 py-5">
+      <div class="flex-1">
+        <span class="inline-flex items-center gap-1.5 mb-2.5">
+          <h2 class="m-0 text-base font-semibold text-text-primary">Export Format</h2>
+          <HelpTooltip label="Which format should I pick?" title="Choosing an output format">
+            <p>Pick <strong>Excel</strong> if the vendor's Transform Map requires it.</p>
+            <p>Pick <strong>CSV</strong> for the widest compatibility with spreadsheets and generic tools.</p>
+            <p>Pick <strong>JSON</strong> for API-based delivery, or to get the Nested JSON Structure and custom envelope configured on the CMDB Export Mapping page.</p>
+          </HelpTooltip>
         </span>
-        <RouterLink
-          :to="{ name: 'export-detail', params: { seqNo: runResult.sequenceNo } }"
-          class="text-inherit text-xs font-semibold no-underline border border-current rounded px-2 py-0.5 hover:opacity-75 ml-3"
-        >View → Release</RouterLink>
-      </Alert>
-
-      <Alert v-if="runError" variant="danger" class="rounded-none border-x-0 border-b-0">
-        <template #icon><Icon :icon="X" :size="20" /></template>
-        {{ runError }}
-      </Alert>
+        <div class="flex gap-2">
+          <button
+            v-for="fmt in [
+              { id: 'xlsx', label: 'Excel', ext: '.xlsx' },
+              { id: 'csv',  label: 'CSV',   ext: '.csv'  },
+              { id: 'json', label: 'JSON',  ext: '.json' },
+            ]"
+            :key="fmt.id"
+            :class="['flex items-center gap-1.5 px-3 py-1.5 border rounded-md text-sm font-semibold cursor-pointer transition-colors', selectedFormat === fmt.id ? 'border-brand bg-brand text-white' : 'border-border-strong bg-surface text-text-secondary hover:border-brand']"
+            @click="saveFormat(fmt.id as 'xlsx' | 'csv' | 'json')"
+          >
+            {{ fmt.label }}<span class="text-xs opacity-70">{{ fmt.ext }}</span>
+          </button>
+        </div>
+      </div>
+      <Button variant="primary" class="shrink-0 whitespace-nowrap" :loading="running" @click="triggerRun">
+        {{ running ? 'Running…' : `Export as ${selectedFormat.toUpperCase()}` }}
+      </Button>
     </div>
 
-    <ActiveMappingSummary :mapping="exportMapping" :loading="mappingLoading" />
+    <Alert v-if="runResult" variant="success" class="rounded-none border-x-0 border-b-0">
+      <template #icon><Icon :icon="Check" :size="20" /></template>
+      <span class="flex-1">
+        Export <strong>#{{ runResult.sequenceNo }}</strong> created —
+        {{ runResult.recordCount }} records ·
+        <code>{{ runResult.sha256Short }}…</code>
+      </span>
+      <RouterLink
+        :to="{ name: 'export-detail', params: { seqNo: runResult.sequenceNo } }"
+        class="text-inherit text-xs font-semibold no-underline border border-current rounded px-2 py-0.5 hover:opacity-75 ml-3"
+      >View → Release</RouterLink>
+    </Alert>
 
-    <PreviewTable
-      :preview="preview"
-      :loading="previewLoading"
-      :error="previewError"
-      @refresh="loadPreview"
-    />
-
-    <ExportRunsTable
-      :runs="runs"
-      :loading="runsLoading"
-      :error="runsError"
-      @refresh="loadRuns"
-    />
+    <Alert v-if="runError" variant="danger" class="rounded-none border-x-0 border-b-0">
+      <template #icon><Icon :icon="X" :size="20" /></template>
+      {{ runError }}
+    </Alert>
   </div>
+
+  <ActiveMappingSummary :mapping="exportMapping" :loading="mappingLoading" />
+
+  <PreviewTable
+    :preview="preview"
+    :loading="previewLoading"
+    :error="previewError"
+    @refresh="loadPreview"
+  />
+
+  <ExportRunsTable
+    :runs="runs"
+    :loading="runsLoading"
+    :error="runsError"
+    @refresh="loadRuns"
+  />
 </template>

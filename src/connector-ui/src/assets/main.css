@@ -3,7 +3,20 @@
 /* `--x-custom-bg-image` is set at runtime by useBranding.ts when an operator uploads a custom
    background; it stays unset (falling back to `none`, an inert layer) otherwise, leaving the
    default glow gradients untouched. */
+/* `#app` (not `body`) is the actual flex context for the header/main layout in App.vue — stretching
+   it to the viewport lets `main` grow to fill any leftover height on short pages, instead of the
+   content panel stopping short and leaving a bare strip of background image dangling below it. */
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
 body {
+  /* `background-position: center` centers against body's own box, not the viewport — without a
+     height floor, short pages (e.g. the login screen) shrink that box and the image centers on
+     the visible content instead of the screen. */
+  min-height: 100dvh;
   background-color: var(--color-bg);
   background-image: var(--x-custom-bg-image, none), var(--x-glow-bg-1), var(--x-glow-bg-2);
   background-size: cover, auto, auto;

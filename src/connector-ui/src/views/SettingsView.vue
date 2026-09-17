@@ -35,32 +35,30 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="max-w-5xl">
-    <PageHeader title="Settings">
-      <template #help>
-        <HelpTooltip label="What's on this page?" title="Two connector-wide settings">
-          <p>
-            <strong>Export Scheduler</strong> controls when the one managed CMDB export runs
-            automatically. <strong>GDPR Denied Fields</strong> is a global list of field names blocked
-            from every export, regardless of how any individual export is mapped.
-          </p>
-          <p>Export Jobs and Import Jobs have their own settings on their own edit pages, not here.</p>
-          <p>
-            <strong>Branding</strong> lets you replace the default name, logo, favicon, and background
-            with your own, applied everywhere in the UI.
-          </p>
-        </HelpTooltip>
-      </template>
-    </PageHeader>
-
-    <div v-if="loading" class="text-text-secondary text-sm mt-4">Loading…</div>
-
-    <Alert v-else-if="loadError" variant="danger" class="mt-4">{{ loadError }}</Alert>
-
-    <template v-else-if="schedulerConfig && brandingConfig">
-      <SchedulerSettingsForm :config="schedulerConfig" />
-      <GdprDenylistEditor :initial-fields="gdprFields" />
-      <BrandingSettingsForm :config="brandingConfig" />
+  <PageHeader title="Settings">
+    <template #help>
+      <HelpTooltip label="What's on this page?" title="Two connector-wide settings">
+        <p>
+          <strong>Export Scheduler</strong> controls when the one managed CMDB export runs
+          automatically. <strong>GDPR Denied Fields</strong> is a global list of field names blocked
+          from every export, regardless of how any individual export is mapped.
+        </p>
+        <p>Export Jobs and Import Jobs have their own settings on their own edit pages, not here.</p>
+        <p>
+          <strong>Branding</strong> lets you replace the default name, logo, favicon, and background
+          with your own, applied everywhere in the UI.
+        </p>
+      </HelpTooltip>
     </template>
-  </div>
+  </PageHeader>
+
+  <div v-if="loading" class="text-text-secondary text-sm mt-4">Loading…</div>
+
+  <Alert v-else-if="loadError" variant="danger" class="mt-4">{{ loadError }}</Alert>
+
+  <template v-else-if="schedulerConfig && brandingConfig">
+    <SchedulerSettingsForm :config="schedulerConfig" />
+    <GdprDenylistEditor :initial-fields="gdprFields" />
+    <BrandingSettingsForm :config="brandingConfig" />
+  </template>
 </template>

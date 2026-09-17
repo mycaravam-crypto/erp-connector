@@ -43,83 +43,81 @@ const links = [
 </script>
 
 <template>
-  <div class="max-w-5xl">
-    <PageHeader title="Dashboard">
-      <template #help>
-        <HelpTooltip label="About this dashboard" title="What is this page?">
-          <p>
-            This is the connector's home base — an overview of your database connection and a
-            shortcut to every other area, so you don't have to remember which menu something lives
-            under.
-          </p>
-          <p>
-            <strong>Example:</strong> if the "Export Jobs" tile shows <code>2 / 3 enabled</code>,
-            it means 3 export jobs exist but only 2 are currently scheduled to run automatically.
-          </p>
-        </HelpTooltip>
-      </template>
-    </PageHeader>
-
-    <Card class="mb-5">
-      <div class="flex items-center gap-3">
-        <span class="text-brand shrink-0"><Icon :icon="Plug" :size="24" /></span>
-        <div class="min-w-0">
-          <p class="m-0 text-sm font-semibold text-text-primary">
-            {{ connection ? `Connected to ${connection.database}` : 'No connection configured' }}
-          </p>
-          <p v-if="connection" class="m-0 text-xs text-text-secondary font-mono truncate">
-            {{ connection.username }}@{{ connection.host }}:{{ connection.port }}
-          </p>
-        </div>
-        <RouterLink :to="{ name: 'connect' }" class="ml-auto text-brand text-sm shrink-0 hover:underline">
-          {{ connection ? 'Edit' : 'Connect' }}
-        </RouterLink>
-      </div>
-    </Card>
-
-    <div class="grid grid-cols-2 gap-3 mb-5">
-      <Card>
-        <p class="m-0 text-xs font-semibold uppercase tracking-wide text-text-secondary mb-1">Export Jobs</p>
-        <p class="m-0 text-2xl font-semibold text-text-primary">
-          {{ enabledExportJobCount ?? '—' }}<span v-if="exportJobCount !== null" class="text-base font-normal text-text-muted"> / {{ exportJobCount }} enabled</span>
-        </p>
-      </Card>
-      <Card>
-        <p class="m-0 text-xs font-semibold uppercase tracking-wide text-text-secondary mb-1">Import Jobs</p>
-        <p class="m-0 text-2xl font-semibold text-text-primary">
-          {{ enabledImportDefinitionCount ?? '—' }}<span v-if="importDefinitionCount !== null" class="text-base font-normal text-text-muted"> / {{ importDefinitionCount }} enabled</span>
-        </p>
-      </Card>
-    </div>
-
-    <p class="text-text-secondary text-xs font-semibold uppercase tracking-wide m-0 mb-2 flex items-center gap-1.5">
-      Go to
-      <HelpTooltip label="What's the difference between these?" title="Managed export vs. Export Jobs — which do I want?">
+  <PageHeader title="Dashboard">
+    <template #help>
+      <HelpTooltip label="About this dashboard" title="What is this page?">
         <p>
-          <strong>CMDB Export Mapping</strong> and <strong>Managed Export</strong> are one linked pair: the
-          mapping is the field configuration, Managed Export is where you run it and get a signed-off
-          ("four-eyes") release for the vendor. There's only ever one of these.
+          This is the connector's home base — an overview of your database connection and a
+          shortcut to every other area, so you don't have to remember which menu something lives
+          under.
         </p>
         <p>
-          <strong>Export Jobs</strong> are separate, independent exports you create yourself — each with
-          its own table, fields, format and schedule. Use these for anything beyond the one managed
-          CMDB feed, e.g. a nightly export of a different table for another system.
+          <strong>Example:</strong> if the "Export Jobs" tile shows <code>2 / 3 enabled</code>,
+          it means 3 export jobs exist but only 2 are currently scheduled to run automatically.
         </p>
       </HelpTooltip>
-    </p>
-    <div class="grid grid-cols-2 gap-3">
-      <RouterLink
-        v-for="link in links"
-        :key="link.title"
-        :to="link.to"
-        class="flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3 no-underline hover:bg-surface-elevated"
-      >
-        <div class="min-w-0 flex-1">
-          <p class="m-0 text-sm font-semibold text-text-primary">{{ link.title }}</p>
-          <p class="m-0 text-xs text-text-secondary">{{ link.description }}</p>
-        </div>
-        <Icon :icon="ArrowRight" :size="16" class="text-text-muted shrink-0" />
+    </template>
+  </PageHeader>
+
+  <Card class="mb-5">
+    <div class="flex items-center gap-3">
+      <span class="text-brand shrink-0"><Icon :icon="Plug" :size="24" /></span>
+      <div class="min-w-0">
+        <p class="m-0 text-sm font-semibold text-text-primary">
+          {{ connection ? `Connected to ${connection.database}` : 'No connection configured' }}
+        </p>
+        <p v-if="connection" class="m-0 text-xs text-text-secondary font-mono truncate">
+          {{ connection.username }}@{{ connection.host }}:{{ connection.port }}
+        </p>
+      </div>
+      <RouterLink :to="{ name: 'connect' }" class="ml-auto text-brand text-sm shrink-0 hover:underline">
+        {{ connection ? 'Edit' : 'Connect' }}
       </RouterLink>
     </div>
+  </Card>
+
+  <div class="grid grid-cols-2 gap-3 mb-5">
+    <Card>
+      <p class="m-0 text-xs font-semibold uppercase tracking-wide text-text-secondary mb-1">Export Jobs</p>
+      <p class="m-0 text-2xl font-semibold text-text-primary">
+        {{ enabledExportJobCount ?? '—' }}<span v-if="exportJobCount !== null" class="text-base font-normal text-text-muted"> / {{ exportJobCount }} enabled</span>
+      </p>
+    </Card>
+    <Card>
+      <p class="m-0 text-xs font-semibold uppercase tracking-wide text-text-secondary mb-1">Import Jobs</p>
+      <p class="m-0 text-2xl font-semibold text-text-primary">
+        {{ enabledImportDefinitionCount ?? '—' }}<span v-if="importDefinitionCount !== null" class="text-base font-normal text-text-muted"> / {{ importDefinitionCount }} enabled</span>
+      </p>
+    </Card>
+  </div>
+
+  <p class="text-text-secondary text-xs font-semibold uppercase tracking-wide m-0 mb-2 flex items-center gap-1.5">
+    Go to
+    <HelpTooltip label="What's the difference between these?" title="Managed export vs. Export Jobs — which do I want?">
+      <p>
+        <strong>CMDB Export Mapping</strong> and <strong>Managed Export</strong> are one linked pair: the
+        mapping is the field configuration, Managed Export is where you run it and get a signed-off
+        ("four-eyes") release for the vendor. There's only ever one of these.
+      </p>
+      <p>
+        <strong>Export Jobs</strong> are separate, independent exports you create yourself — each with
+        its own table, fields, format and schedule. Use these for anything beyond the one managed
+        CMDB feed, e.g. a nightly export of a different table for another system.
+      </p>
+    </HelpTooltip>
+  </p>
+  <div class="grid grid-cols-2 gap-3">
+    <RouterLink
+      v-for="link in links"
+      :key="link.title"
+      :to="link.to"
+      class="flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3 no-underline hover:bg-surface-elevated"
+    >
+      <div class="min-w-0 flex-1">
+        <p class="m-0 text-sm font-semibold text-text-primary">{{ link.title }}</p>
+        <p class="m-0 text-xs text-text-secondary">{{ link.description }}</p>
+      </div>
+      <Icon :icon="ArrowRight" :size="16" class="text-text-muted shrink-0" />
+    </RouterLink>
   </div>
 </template>

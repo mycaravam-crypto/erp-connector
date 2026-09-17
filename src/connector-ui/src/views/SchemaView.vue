@@ -429,167 +429,165 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="max-w-5xl">
-    <PageHeader title="CMDB Export Mapping">
-      <template #help>
-        <HelpTooltip label="What is this page for?" title="Configuring the one managed CMDB export">
+  <PageHeader title="CMDB Export Mapping">
+    <template #help>
+      <HelpTooltip label="What is this page for?" title="Configuring the one managed CMDB export">
+        <p>
+          This is the field configuration for the connector's single managed export — pick a source
+          table, choose and rename its columns, and (for JSON) build a nested structure from related
+          tables. It's saved here, then run and released from the <strong>Managed Export</strong> page.
+        </p>
+        <p>Need a separate, independently-scheduled export instead? Use Export Jobs, linked below.</p>
+      </HelpTooltip>
+    </template>
+    <template #actions>
+      <Button variant="secondary" :disabled="loading" @click="load">Refresh</Button>
+    </template>
+  </PageHeader>
+
+  <p class="text-text-secondary text-sm mt-2 mb-1 leading-relaxed">
+    Configure the field mapping used by the managed CMDB export. Select a source table, choose
+    which columns to include and rename them for the target system, then build the Nested JSON
+    Structure — objects and arrays sourced from related tables — and configure its envelope.
+    Related Table Joins remain available as an advanced option for flat xlsx/csv exports. Changes
+    are saved before the export runs.
+  </p>
+
+  <p class="text-text-secondary text-sm mt-0 mb-6 leading-relaxed">
+    For additional or independently scheduled exports, use
+    <RouterLink :to="{ name: 'export-definitions' }" class="text-brand hover:underline inline-flex items-center gap-1">
+      Export Jobs<Icon :icon="ArrowRight" :size="16" />
+    </RouterLink>.
+  </p>
+
+  <p v-if="loading" class="text-text-secondary">Loading…</p>
+  <Alert v-else-if="error" variant="danger">{{ error }}</Alert>
+
+  <template v-else-if="sourceSchema">
+    <!-- Presets toolbar -->
+    <PresetsToolbar :can-save="!!selectedTable" :get-config="buildMappingConfig" @apply="onApplyPreset" />
+
+    <!-- Primary table selector -->
+    <div class="mb-7">
+      <span class="inline-flex items-center gap-1.5 mb-2.5">
+        <h2 class="text-base font-semibold text-text-primary m-0">Primary Source Table</h2>
+        <HelpTooltip label="What's a primary key, and why does it matter?" title="Primary Source Table">
           <p>
-            This is the field configuration for the connector's single managed export — pick a source
-            table, choose and rename its columns, and (for JSON) build a nested structure from related
-            tables. It's saved here, then run and released from the <strong>Managed Export</strong> page.
+            The table this export starts from — one row here becomes one exported record. The PK
+            (primary key) shown next to each option is the column that uniquely identifies a row in
+            that table; it's used to reliably join related tables and to detect row identity.
           </p>
-          <p>Need a separate, independently-scheduled export instead? Use Export Jobs, linked below.</p>
+          <p>
+            <strong>Example:</strong> <code>systemconfiguration (42 cols — PK: id)</code> means each
+            row is uniquely identified by its <code>id</code> column. A table with "no PK" can still
+            be exported, but joins and row identity may be unreliable — double check the result.
+          </p>
         </HelpTooltip>
-      </template>
-      <template #actions>
-        <Button variant="secondary" :disabled="loading" @click="load">Refresh</Button>
-      </template>
-    </PageHeader>
+      </span>
+      <div class="flex items-center gap-3 flex-wrap">
+        <select
+          class="table-select px-2.5 py-2 border border-border-strong rounded-md text-sm text-text-primary bg-surface cursor-pointer min-w-56 focus:ring-2 focus:ring-focus focus:border-brand outline-none"
+          v-model="selectedTable"
+        >
+          <option value="" disabled>— select a table —</option>
+          <option v-for="t in sourceSchema.tables" :key="t.name" :value="t.name">
+            {{ t.name }} ({{ t.columns.length }} cols — {{ tablePkLabel(t) }})
+          </option>
+        </select>
+        <span class="conn-chip text-xs text-text-secondary bg-surface-elevated border border-border px-2.5 py-1 rounded-full">{{ sourceSchema.connectionLabel }}</span>
+      </div>
+      <Alert v-if="selectedTable && selectedTablePkColumns.length === 0" variant="warning" class="mt-2">
+        <strong>"{{ selectedTable }}" has no primary key.</strong>
+        Row identity, relation joins, and the suggested join key default may be unreliable — verify manually.
+      </Alert>
+    </div>
 
-    <p class="text-text-secondary text-sm mt-2 mb-1 leading-relaxed">
-      Configure the field mapping used by the managed CMDB export. Select a source table, choose
-      which columns to include and rename them for the target system, then build the Nested JSON
-      Structure — objects and arrays sourced from related tables — and configure its envelope.
-      Related Table Joins remain available as an advanced option for flat xlsx/csv exports. Changes
-      are saved before the export runs.
-    </p>
+    <!-- Everything below depends on a primary table being selected first. -->
+    <template v-if="selectedTable">
+      <!-- Column mapping -->
+      <ColumnMappingTable
+        :fields="fields"
+        :column-map="selectedTableColumnMap"
+        @dirty="markDirty"
+      />
 
-    <p class="text-text-secondary text-sm mt-0 mb-6 leading-relaxed">
-      For additional or independently scheduled exports, use
-      <RouterLink :to="{ name: 'export-definitions' }" class="text-brand hover:underline inline-flex items-center gap-1">
-        Export Jobs<Icon :icon="ArrowRight" :size="16" />
-      </RouterLink>.
-    </p>
+      <!-- Nested JSON Structure — the primary mapping surface, always rendered and expanded.
+           Switching the preview-format picker below never hides or discards this configuration. -->
+      <JsonExportOptionsPanel
+        :nested-groups="nestedGroups"
+        :available-tables="sourceSchema.tables"
+        v-model:json-wrapper="jsonWrapper"
+        @add="addNestedGroup"
+        @remove="removeNestedGroup"
+        @dirty="markDirty"
+      />
 
-    <p v-if="loading" class="text-text-secondary">Loading…</p>
-    <Alert v-else-if="error" variant="danger">{{ error }}</Alert>
-
-    <template v-else-if="sourceSchema">
-      <!-- Presets toolbar -->
-      <PresetsToolbar :can-save="!!selectedTable" :get-config="buildMappingConfig" @apply="onApplyPreset" />
-
-      <!-- Primary table selector -->
-      <div class="mb-7">
-        <span class="inline-flex items-center gap-1.5 mb-2.5">
-          <h2 class="text-base font-semibold text-text-primary m-0">Primary Source Table</h2>
-          <HelpTooltip label="What's a primary key, and why does it matter?" title="Primary Source Table">
+      <!-- Format preview toggle: which format-specific options to show below.
+           The actual export format is chosen per run (Export view) or for the
+           schedule (Settings) — not here. -->
+      <ExportFormatPicker :model-value="previewFormat" @update:model-value="setPreviewFormat">
+        <template #help>
+          <HelpTooltip label="Does this pick the real export format?" title="This is only a preview toggle">
             <p>
-              The table this export starts from — one row here becomes one exported record. The PK
-              (primary key) shown next to each option is the column that uniquely identifies a row in
-              that table; it's used to reliably join related tables and to detect row identity.
+              This does <strong>not</strong> set the format the export actually runs in — it just
+              switches which format-specific options are shown below (e.g. Related Table Joins for
+              xlsx/csv vs. the Nested JSON Structure above for JSON).
             </p>
             <p>
-              <strong>Example:</strong> <code>systemconfiguration (42 cols — PK: id)</code> means each
-              row is uniquely identified by its <code>id</code> column. A table with "no PK" can still
-              be exported, but joins and row identity may be unreliable — double check the result.
+              The real format is chosen separately, each time you export, on the
+              <strong>Managed Export</strong> page.
             </p>
           </HelpTooltip>
-        </span>
-        <div class="flex items-center gap-3 flex-wrap">
-          <select
-            class="table-select px-2.5 py-2 border border-border-strong rounded-md text-sm text-text-primary bg-surface cursor-pointer min-w-56 focus:ring-2 focus:ring-focus focus:border-brand outline-none"
-            v-model="selectedTable"
-          >
-            <option value="" disabled>— select a table —</option>
-            <option v-for="t in sourceSchema.tables" :key="t.name" :value="t.name">
-              {{ t.name }} ({{ t.columns.length }} cols — {{ tablePkLabel(t) }})
-            </option>
-          </select>
-          <span class="conn-chip text-xs text-text-secondary bg-surface-elevated border border-border px-2.5 py-1 rounded-full">{{ sourceSchema.connectionLabel }}</span>
-        </div>
-        <Alert v-if="selectedTable && selectedTablePkColumns.length === 0" variant="warning" class="mt-2">
-          <strong>"{{ selectedTable }}" has no primary key.</strong>
-          Row identity, relation joins, and the suggested join key default may be unreliable — verify manually.
-        </Alert>
-      </div>
+        </template>
+      </ExportFormatPicker>
 
-      <!-- Everything below depends on a primary table being selected first. -->
-      <template v-if="selectedTable">
-        <!-- Column mapping -->
-        <ColumnMappingTable
-          :fields="fields"
-          :column-map="selectedTableColumnMap"
-          @dirty="markDirty"
-        />
+      <!-- Silent data-loss warning: relations don't carry over into nested JSON output. -->
+      <Alert v-if="relationsDroppedForJson" variant="warning" class="mb-7">
+        <strong>Heads up:</strong> for JSON export, Related Table Joins are ignored once Nested JSON Structure
+        or a custom envelope is used — that data won't appear in the file. Pull it in as a <strong>Nested Group</strong> instead.
+      </Alert>
 
-        <!-- Nested JSON Structure — the primary mapping surface, always rendered and expanded.
-             Switching the preview-format picker below never hides or discards this configuration. -->
-        <JsonExportOptionsPanel
-          :nested-groups="nestedGroups"
-          :available-tables="sourceSchema.tables"
-          v-model:json-wrapper="jsonWrapper"
-          @add="addNestedGroup"
-          @remove="removeNestedGroup"
-          @dirty="markDirty"
-        />
+      <!-- Related Table Joins — advanced/legacy path, collapsed by default. Still needed for
+           flat xlsx/csv exports without a nested JSON structure. -->
+      <RelatedJoinsPanel
+        :relations="relations"
+        :relatable-tables="relatableTables"
+        :selected-table-columns="selectedTableColumns"
+        :selected-table-name="selectedTable"
+        :suggestions="suggestedRelations"
+        @add-suggested="addSuggestedRelation"
+        @add="addRelation"
+        @remove="removeRelation"
+        @dirty="markDirty"
+        @convert-to-nested-group="convertRelationToNestedGroup"
+      />
 
-        <!-- Format preview toggle: which format-specific options to show below.
-             The actual export format is chosen per run (Export view) or for the
-             schedule (Settings) — not here. -->
-        <ExportFormatPicker :model-value="previewFormat" @update:model-value="setPreviewFormat">
-          <template #help>
-            <HelpTooltip label="Does this pick the real export format?" title="This is only a preview toggle">
-              <p>
-                This does <strong>not</strong> set the format the export actually runs in — it just
-                switches which format-specific options are shown below (e.g. Related Table Joins for
-                xlsx/csv vs. the Nested JSON Structure above for JSON).
-              </p>
-              <p>
-                The real format is chosen separately, each time you export, on the
-                <strong>Managed Export</strong> page.
-              </p>
-            </HelpTooltip>
-          </template>
-        </ExportFormatPicker>
-
-        <!-- Silent data-loss warning: relations don't carry over into nested JSON output. -->
-        <Alert v-if="relationsDroppedForJson" variant="warning" class="mb-7">
-          <strong>Heads up:</strong> for JSON export, Related Table Joins are ignored once Nested JSON Structure
-          or a custom envelope is used — that data won't appear in the file. Pull it in as a <strong>Nested Group</strong> instead.
-        </Alert>
-
-        <!-- Related Table Joins — advanced/legacy path, collapsed by default. Still needed for
-             flat xlsx/csv exports without a nested JSON structure. -->
-        <RelatedJoinsPanel
-          :relations="relations"
-          :relatable-tables="relatableTables"
-          :selected-table-columns="selectedTableColumns"
-          :selected-table-name="selectedTable"
-          :suggestions="suggestedRelations"
-          @add-suggested="addSuggestedRelation"
-          @add="addRelation"
-          @remove="removeRelation"
-          @dirty="markDirty"
-          @convert-to-nested-group="convertRelationToNestedGroup"
-        />
-
-        <!-- Live preview of the last saved mapping — same query the real export runs. -->
-        <div class="mb-2">
-          <p v-if="dirty && preview" class="text-xs text-warning mt-0 mb-2">
-            Showing the last saved mapping — Save Mapping to preview your latest edits.
-          </p>
-          <PreviewTable :preview="preview" :loading="previewLoading" :error="previewError" @refresh="loadPreview" />
-        </div>
-      </template>
-
-      <!-- Save status -->
-      <Alert v-if="saveError" variant="danger" class="save-error mb-4">{{ saveError }}</Alert>
-      <Alert v-if="saved && !saveError" variant="success" class="save-ok mb-4">Mapping saved.</Alert>
-
-      <!-- Navigation -->
-      <div class="flex items-center justify-between mt-6 gap-3">
-        <Button variant="ghost" @click="router.push({ name: 'source-schema' })">
-          <template #icon><Icon :icon="ChevronLeft" :size="16" /></template>
-          Back to Source Schema
-        </Button>
-        <div v-if="selectedTable" class="flex gap-2.5">
-          <Button class="btn-save" variant="secondary" :loading="saving" @click="saveMapping">{{ saving ? 'Saving…' : 'Save Mapping' }}</Button>
-          <Button variant="primary" :disabled="saving" @click="proceed">
-            Save & Go to Export
-            <Icon :icon="ChevronRight" :size="16" />
-          </Button>
-        </div>
+      <!-- Live preview of the last saved mapping — same query the real export runs. -->
+      <div class="mb-2">
+        <p v-if="dirty && preview" class="text-xs text-warning mt-0 mb-2">
+          Showing the last saved mapping — Save Mapping to preview your latest edits.
+        </p>
+        <PreviewTable :preview="preview" :loading="previewLoading" :error="previewError" @refresh="loadPreview" />
       </div>
     </template>
-  </div>
+
+    <!-- Save status -->
+    <Alert v-if="saveError" variant="danger" class="save-error mb-4">{{ saveError }}</Alert>
+    <Alert v-if="saved && !saveError" variant="success" class="save-ok mb-4">Mapping saved.</Alert>
+
+    <!-- Navigation -->
+    <div class="flex items-center justify-between mt-6 gap-3">
+      <Button variant="ghost" @click="router.push({ name: 'source-schema' })">
+        <template #icon><Icon :icon="ChevronLeft" :size="16" /></template>
+        Back to Source Schema
+      </Button>
+      <div v-if="selectedTable" class="flex gap-2.5">
+        <Button class="btn-save" variant="secondary" :loading="saving" @click="saveMapping">{{ saving ? 'Saving…' : 'Save Mapping' }}</Button>
+        <Button variant="primary" :disabled="saving" @click="proceed">
+          Save & Go to Export
+          <Icon :icon="ChevronRight" :size="16" />
+        </Button>
+      </div>
+    </div>
+  </template>
 </template>
