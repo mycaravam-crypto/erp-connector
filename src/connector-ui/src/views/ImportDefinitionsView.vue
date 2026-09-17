@@ -99,124 +99,122 @@ async function confirmDelete(def: ImportDefinitionSummary) {
 </script>
 
 <template>
-  <div class="max-w-5xl">
-    <PageHeader title="Import Jobs" eyebrow="Imports · Independent Jobs">
-      <template #help>
-        <HelpTooltip label="About Import Jobs" title="What's an Import Job?">
-          <p>
-            A mapping that takes inbound JSON from a vendor and writes it back into a table in your
-            ERP database — matching each incoming record to an existing row, then updating only the
-            columns you've explicitly allowed.
-          </p>
-          <p>
-            <strong>Example:</strong> the vendor confirms a purchase order was received by dropping a
-            JSON file into the <code>inbound/</code> folder; an enabled job whose <code>definition</code>
-            name matches picks it up automatically and updates the <code>status</code> column on the
-            matching row — no manual trigger needed.
-          </p>
-        </HelpTooltip>
-      </template>
-      <template #actions>
-        <RouterLink
-          :to="{ name: 'import-definition-edit', params: { id: 'new' } }"
-          class="px-4 py-1.5 border-0 rounded-md bg-brand text-white text-sm font-semibold no-underline hover:bg-brand-hover"
-        >+ New</RouterLink>
-        <Button variant="secondary" :loading="loading" @click="load">
-          {{ loading ? 'Loading…' : 'Refresh' }}
-        </Button>
-      </template>
-    </PageHeader>
+  <PageHeader title="Import Jobs" eyebrow="Imports · Independent Jobs">
+    <template #help>
+      <HelpTooltip label="About Import Jobs" title="What's an Import Job?">
+        <p>
+          A mapping that takes inbound JSON from a vendor and writes it back into a table in your
+          ERP database — matching each incoming record to an existing row, then updating only the
+          columns you've explicitly allowed.
+        </p>
+        <p>
+          <strong>Example:</strong> the vendor confirms a purchase order was received by dropping a
+          JSON file into the <code>inbound/</code> folder; an enabled job whose <code>definition</code>
+          name matches picks it up automatically and updates the <code>status</code> column on the
+          matching row — no manual trigger needed.
+        </p>
+      </HelpTooltip>
+    </template>
+    <template #actions>
+      <RouterLink
+        :to="{ name: 'import-definition-edit', params: { id: 'new' } }"
+        class="px-4 py-1.5 border-0 rounded-md bg-brand text-white text-sm font-semibold no-underline hover:bg-brand-hover"
+      >+ New</RouterLink>
+      <Button variant="secondary" :loading="loading" @click="load">
+        {{ loading ? 'Loading…' : 'Refresh' }}
+      </Button>
+    </template>
+  </PageHeader>
 
-    <p class="text-text-secondary text-sm mt-2 mb-5 leading-relaxed">
-      Independent, inbound mappings for vendor JSON written back into the ERP. The <code>inbound/</code> folder
-      watcher stages a run against whichever enabled job matches a dropped file's own
-      <code>definition</code> field — no manual trigger needed.
-    </p>
+  <p class="text-text-secondary text-sm mt-2 mb-5 leading-relaxed">
+    Independent, inbound mappings for vendor JSON written back into the ERP. The <code>inbound/</code> folder
+    watcher stages a run against whichever enabled job matches a dropped file's own
+    <code>definition</code> field — no manual trigger needed.
+  </p>
 
-    <div v-if="loading && definitions.length === 0" class="text-text-secondary text-sm mt-4">Loading…</div>
+  <div v-if="loading && definitions.length === 0" class="text-text-secondary text-sm mt-4">Loading…</div>
 
-    <Alert v-else-if="loadError" variant="danger" class="mt-4">{{ loadError }}</Alert>
+  <Alert v-else-if="loadError" variant="danger" class="mt-4">{{ loadError }}</Alert>
 
-    <EmptyState
-      v-else-if="definitions.length === 0"
-      title="No import jobs yet"
-      description="Create one to start mapping inbound vendor JSON back into the ERP."
-      class="mt-4"
-    />
+  <EmptyState
+    v-else-if="definitions.length === 0"
+    title="No import jobs yet"
+    description="Create one to start mapping inbound vendor JSON back into the ERP."
+    class="mt-4"
+  />
 
-    <table v-else class="w-full text-sm border-collapse">
-      <thead>
-        <tr class="text-left text-text-secondary border-b border-border">
-          <th class="px-3 py-2 font-semibold">Name</th>
-          <th class="px-3 py-2 font-semibold">Root table</th>
-          <th class="px-3 py-2 font-semibold">
-            <span class="inline-flex items-center gap-1">
-              If unmatched
-              <HelpTooltip label="What does Reject vs. Quarantine mean?" title="When an inbound record's correlation key matches no row">
-                <ul>
-                  <li><strong>Reject</strong> — the record is dropped; nothing is written or held for review.</li>
-                  <li><strong>Quarantine</strong> — the record is held for manual review instead of being discarded, in case it was a timing issue (e.g. the row hasn't been created in the ERP yet).</li>
-                </ul>
-                <p>Either way, an unmatched record is never used to auto-create a new row.</p>
-              </HelpTooltip>
-            </span>
-          </th>
-          <th class="px-3 py-2 font-semibold">Enabled</th>
-          <th class="px-3 py-2 font-semibold">Last run</th>
-          <th class="px-3 py-2 font-semibold"></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="def in definitions" :key="def.id" class="border-b border-border hover:bg-surface-elevated">
-          <td class="px-3 py-2 font-medium text-text-primary">{{ def.name }}</td>
-          <td class="px-3 py-2 font-mono text-text-primary">{{ def.rootTable }}</td>
-          <td class="px-3 py-2 text-text-secondary">{{ def.unmatchedRootPolicy }}</td>
-          <td class="px-3 py-2">
-            <input
-              type="checkbox"
-              :checked="def.isEnabled"
-              :disabled="togglingId === def.id"
-              class="cursor-pointer"
-              :aria-label="`Enable ${def.name}`"
-              @change="toggleEnabled(def)"
-            />
-          </td>
-          <td class="px-3 py-2">
-            <StatusBadge v-if="lastRunStatus[def.id]" :status="lastRunStatus[def.id]!" />
-            <span v-else class="text-text-muted text-xs">—</span>
-          </td>
-          <td class="px-3 py-2 text-right whitespace-nowrap">
-            <div class="flex items-center gap-2.5 justify-end">
-              <RouterLink
-                :to="{ name: 'import-definition-edit', params: { id: def.id } }"
-                class="text-brand text-sm hover:underline"
-              >Edit</RouterLink>
-              <button
-                type="button"
-                class="text-text-secondary text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline disabled:opacity-50"
-                :disabled="duplicatingId === def.id"
-                @click="duplicate(def)"
-              >{{ duplicatingId === def.id ? 'Duplicating…' : 'Duplicate' }}</button>
-              <ConfirmAction
-                variant="link"
-                :confirming="confirmingDeleteId === def.id"
-                :busy="deletingId === def.id"
-                :confirm-label="deletingId === def.id ? 'Deleting…' : 'Confirm'"
-                @update:confirming="(v) => (confirmingDeleteId = v ? def.id : null)"
-                @confirm="confirmDelete(def)"
-              >
-                <template #trigger="{ open }">
-                  <button
-                    type="button"
-                    class="text-danger text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline"
-                    @click="open"
-                  >Delete</button>
-                </template>
-              </ConfirmAction>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  <table v-else class="w-full text-sm border-collapse">
+    <thead>
+      <tr class="text-left text-text-secondary border-b border-border">
+        <th class="px-3 py-2 font-semibold">Name</th>
+        <th class="px-3 py-2 font-semibold">Root table</th>
+        <th class="px-3 py-2 font-semibold">
+          <span class="inline-flex items-center gap-1">
+            If unmatched
+            <HelpTooltip label="What does Reject vs. Quarantine mean?" title="When an inbound record's correlation key matches no row">
+              <ul>
+                <li><strong>Reject</strong> — the record is dropped; nothing is written or held for review.</li>
+                <li><strong>Quarantine</strong> — the record is held for manual review instead of being discarded, in case it was a timing issue (e.g. the row hasn't been created in the ERP yet).</li>
+              </ul>
+              <p>Either way, an unmatched record is never used to auto-create a new row.</p>
+            </HelpTooltip>
+          </span>
+        </th>
+        <th class="px-3 py-2 font-semibold">Enabled</th>
+        <th class="px-3 py-2 font-semibold">Last run</th>
+        <th class="px-3 py-2 font-semibold"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr v-for="def in definitions" :key="def.id" class="border-b border-border hover:bg-surface-elevated">
+        <td class="px-3 py-2 font-medium text-text-primary">{{ def.name }}</td>
+        <td class="px-3 py-2 font-mono text-text-primary">{{ def.rootTable }}</td>
+        <td class="px-3 py-2 text-text-secondary">{{ def.unmatchedRootPolicy }}</td>
+        <td class="px-3 py-2">
+          <input
+            type="checkbox"
+            :checked="def.isEnabled"
+            :disabled="togglingId === def.id"
+            class="cursor-pointer"
+            :aria-label="`Enable ${def.name}`"
+            @change="toggleEnabled(def)"
+          />
+        </td>
+        <td class="px-3 py-2">
+          <StatusBadge v-if="lastRunStatus[def.id]" :status="lastRunStatus[def.id]!" />
+          <span v-else class="text-text-muted text-xs">—</span>
+        </td>
+        <td class="px-3 py-2 text-right whitespace-nowrap">
+          <div class="flex items-center gap-2.5 justify-end">
+            <RouterLink
+              :to="{ name: 'import-definition-edit', params: { id: def.id } }"
+              class="text-brand text-sm hover:underline"
+            >Edit</RouterLink>
+            <button
+              type="button"
+              class="text-text-secondary text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline disabled:opacity-50"
+              :disabled="duplicatingId === def.id"
+              @click="duplicate(def)"
+            >{{ duplicatingId === def.id ? 'Duplicating…' : 'Duplicate' }}</button>
+            <ConfirmAction
+              variant="link"
+              :confirming="confirmingDeleteId === def.id"
+              :busy="deletingId === def.id"
+              :confirm-label="deletingId === def.id ? 'Deleting…' : 'Confirm'"
+              @update:confirming="(v) => (confirmingDeleteId = v ? def.id : null)"
+              @confirm="confirmDelete(def)"
+            >
+              <template #trigger="{ open }">
+                <button
+                  type="button"
+                  class="text-danger text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline"
+                  @click="open"
+                >Delete</button>
+              </template>
+            </ConfirmAction>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
 </template>

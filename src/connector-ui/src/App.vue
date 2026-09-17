@@ -47,8 +47,8 @@ async function revokeSessions() {
     </div>
   </header>
 
-  <main class="p-6">
-    <div class="max-w-[1280px] mx-auto">
+  <main class="flex-1 flex flex-col p-4 sm:p-6">
+    <div class="flex-1 w-full max-w-[1280px] mx-auto glass rounded-2xl border border-border shadow-lg p-4 sm:p-6">
       <RouterView />
     </div>
   </main>

@@ -98,91 +98,89 @@ function proceed() {
 </script>
 
 <template>
-  <div class="max-w-5xl">
-    <PageHeader title="Connect to Source Database">
-      <template #help>
-        <HelpTooltip label="About the database connection" title="What am I connecting to?">
-          <p>
-            This is the PostgreSQL database behind your ERP system — the connector reads tables and
-            rows from it, and (for import jobs) writes confirmation data back into it.
-          </p>
-          <p>
-            <strong>Example:</strong> <code>host=erp-db.internal port=5432 database=erp_prod</code>.
-            Use a dedicated, read-mostly account rather than a superuser — the connector only ever
-            needs the tables you explicitly map, and import jobs are further limited to their own
-            allowed-columns list.
-          </p>
-        </HelpTooltip>
-      </template>
-    </PageHeader>
+  <PageHeader title="Connect to Source Database">
+    <template #help>
+      <HelpTooltip label="About the database connection" title="What am I connecting to?">
+        <p>
+          This is the PostgreSQL database behind your ERP system — the connector reads tables and
+          rows from it, and (for import jobs) writes confirmation data back into it.
+        </p>
+        <p>
+          <strong>Example:</strong> <code>host=erp-db.internal port=5432 database=erp_prod</code>.
+          Use a dedicated, read-mostly account rather than a superuser — the connector only ever
+          needs the tables you explicitly map, and import jobs are further limited to their own
+          allowed-columns list.
+        </p>
+      </HelpTooltip>
+    </template>
+  </PageHeader>
 
-    <p class="text-text-secondary text-sm mt-2 mb-4 leading-relaxed">
-      Enter the connection details for the PostgreSQL database you want to read data from.
-      The connector will read the schema and data from this database.
-    </p>
+  <p class="text-text-secondary text-sm mt-2 mb-4 leading-relaxed">
+    Enter the connection details for the PostgreSQL database you want to read data from.
+    The connector will read the schema and data from this database.
+  </p>
 
-    <Alert v-if="route.query.notice === 'needs-connection'" variant="warning" class="mb-4">
-      A database connection is required before accessing that page.
-      Configure and test your connection below, then proceed.
-    </Alert>
+  <Alert v-if="route.query.notice === 'needs-connection'" variant="warning" class="mb-4">
+    A database connection is required before accessing that page.
+    Configure and test your connection below, then proceed.
+  </Alert>
 
-    <Alert v-if="connectedLabel" variant="success" class="mb-6">
-      <strong>Connected:</strong> {{ connectedLabel }}
-    </Alert>
-    <Alert v-else variant="info" class="mb-6">
-      <strong>No connection configured yet.</strong>
-      Enter the PostgreSQL connection details for the source ERP database below
-      and click <em>Test Connection</em> to verify and save.
-      <br />
-      Running the docker-compose dev stack? Use host <code>testdb</code> — the API runs in its
-      own container, so <code>localhost</code> only works when running via <code>./dev.sh</code>.
-    </Alert>
+  <Alert v-if="connectedLabel" variant="success" class="mb-6">
+    <strong>Connected:</strong> {{ connectedLabel }}
+  </Alert>
+  <Alert v-else variant="info" class="mb-6">
+    <strong>No connection configured yet.</strong>
+    Enter the PostgreSQL connection details for the source ERP database below
+    and click <em>Test Connection</em> to verify and save.
+    <br />
+    Running the docker-compose dev stack? Use host <code>testdb</code> — the API runs in its
+    own container, so <code>localhost</code> only works when running via <code>./dev.sh</code>.
+  </Alert>
 
-    <form class="flex flex-col gap-4" @submit.prevent="testConnection">
-      <div class="flex gap-3">
-        <Input id="host" v-model="host" label="Host" placeholder="testdb (docker) / localhost" class="flex-1" />
-        <Input id="port" v-model="port" label="Port" placeholder="5432" :error="portError ?? undefined" class="w-22.5 shrink-0" />
-      </div>
+  <form class="flex flex-col gap-4" @submit.prevent="testConnection">
+    <div class="flex gap-3">
+      <Input id="host" v-model="host" label="Host" placeholder="testdb (docker) / localhost" class="flex-1" />
+      <Input id="port" v-model="port" label="Port" placeholder="5432" :error="portError ?? undefined" class="w-22.5 shrink-0" />
+    </div>
 
-      <Input id="database" v-model="database" label="Database" placeholder="my_erp_database" />
+    <Input id="database" v-model="database" label="Database" placeholder="my_erp_database" />
 
-      <div class="flex gap-3">
-        <Input id="username" v-model="username" label="Username" placeholder="readonly_user" class="flex-1" />
-        <Input id="password" v-model="password" type="password" label="Password" placeholder="••••••••" class="flex-1" />
-      </div>
+    <div class="flex gap-3">
+      <Input id="username" v-model="username" label="Username" placeholder="readonly_user" class="flex-1" />
+      <Input id="password" v-model="password" type="password" label="Password" placeholder="••••••••" class="flex-1" />
+    </div>
 
-      <Select
-        id="ssl-mode"
-        v-model="sslMode"
-        label="TLS / SSL Mode"
-        help-text="Prefer (default) uses TLS if the server offers it but silently falls back to an unencrypted connection otherwise. For a production ERP, use Require or, for full certificate verification, VerifyFull."
-      >
-        <option value="">Prefer (default)</option>
-        <option value="Disable">Disable — never use TLS</option>
-        <option value="Allow">Allow — TLS only if the client requests it</option>
-        <option value="Require">Require — TLS mandatory, no certificate verification</option>
-        <option value="VerifyCA">VerifyCA — TLS mandatory, verify the server's CA</option>
-        <option value="VerifyFull">VerifyFull — TLS mandatory, verify CA and hostname</option>
-      </Select>
+    <Select
+      id="ssl-mode"
+      v-model="sslMode"
+      label="TLS / SSL Mode"
+      help-text="Prefer (default) uses TLS if the server offers it but silently falls back to an unencrypted connection otherwise. For a production ERP, use Require or, for full certificate verification, VerifyFull."
+    >
+      <option value="">Prefer (default)</option>
+      <option value="Disable">Disable — never use TLS</option>
+      <option value="Allow">Allow — TLS only if the client requests it</option>
+      <option value="Require">Require — TLS mandatory, no certificate verification</option>
+      <option value="VerifyCA">VerifyCA — TLS mandatory, verify the server's CA</option>
+      <option value="VerifyFull">VerifyFull — TLS mandatory, verify CA and hostname</option>
+    </Select>
 
-      <div class="flex gap-3 mt-1">
-        <Button type="submit" variant="secondary" :loading="testing">
-          {{ testing ? 'Testing…' : 'Test Connection' }}
-        </Button>
-        <Button type="button" variant="primary" @click="proceed">
-          Proceed to Source Schema
-          <Icon :icon="ChevronRight" :size="16" />
-        </Button>
-      </div>
-    </form>
+    <div class="flex gap-3 mt-1">
+      <Button type="submit" variant="secondary" :loading="testing">
+        {{ testing ? 'Testing…' : 'Test Connection' }}
+      </Button>
+      <Button type="button" variant="primary" @click="proceed">
+        Proceed to Source Schema
+        <Icon :icon="ChevronRight" :size="16" />
+      </Button>
+    </div>
+  </form>
 
-    <Alert v-if="testStatus === 'ok'" variant="success" class="mt-4">
-      <template #icon><Icon :icon="Check" :size="16" /></template>
-      {{ testMessage }}
-    </Alert>
-    <Alert v-else-if="testStatus === 'error'" variant="danger" class="mt-4">
-      <template #icon><Icon :icon="X" :size="16" /></template>
-      {{ testMessage }}
-    </Alert>
-  </div>
+  <Alert v-if="testStatus === 'ok'" variant="success" class="mt-4">
+    <template #icon><Icon :icon="Check" :size="16" /></template>
+    {{ testMessage }}
+  </Alert>
+  <Alert v-else-if="testStatus === 'error'" variant="danger" class="mt-4">
+    <template #icon><Icon :icon="X" :size="16" /></template>
+    {{ testMessage }}
+  </Alert>
 </template>

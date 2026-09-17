@@ -28,34 +28,32 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="max-w-5xl">
-    <PageHeader title="Audit Log">
-      <template #help>
-        <HelpTooltip label="What gets logged here?" title="What's in the audit log">
-          <p>
-            A record of who did what, and when — every save, release, delivery, skip, and rejection
-            across exports and imports, kept for compliance and for tracing back "why does this row
-            look like this."
-          </p>
-          <p>
-            <strong>Example:</strong> if a purchase order's status looks wrong, scan this list for its
-            import run's entry to see exactly who released it, who approved it, and what value it wrote.
-          </p>
-        </HelpTooltip>
-      </template>
-      <template #actions>
-        <Button variant="secondary" :loading="loading" @click="load">
-          {{ loading ? 'Loading…' : 'Refresh' }}
-        </Button>
-      </template>
-    </PageHeader>
+  <PageHeader title="Audit Log">
+    <template #help>
+      <HelpTooltip label="What gets logged here?" title="What's in the audit log">
+        <p>
+          A record of who did what, and when — every save, release, delivery, skip, and rejection
+          across exports and imports, kept for compliance and for tracing back "why does this row
+          look like this."
+        </p>
+        <p>
+          <strong>Example:</strong> if a purchase order's status looks wrong, scan this list for its
+          import run's entry to see exactly who released it, who approved it, and what value it wrote.
+        </p>
+      </HelpTooltip>
+    </template>
+    <template #actions>
+      <Button variant="secondary" :loading="loading" @click="load">
+        {{ loading ? 'Loading…' : 'Refresh' }}
+      </Button>
+    </template>
+  </PageHeader>
 
-    <div v-if="loading && entries.length === 0" class="text-text-secondary text-sm mt-4">Loading…</div>
+  <div v-if="loading && entries.length === 0" class="text-text-secondary text-sm mt-4">Loading…</div>
 
-    <Alert v-else-if="loadError" variant="danger" class="mt-4">{{ loadError }}</Alert>
+  <Alert v-else-if="loadError" variant="danger" class="mt-4">{{ loadError }}</Alert>
 
-    <EmptyState v-else-if="entries.length === 0" title="No audit entries yet" class="mt-4" />
+  <EmptyState v-else-if="entries.length === 0" title="No audit entries yet" class="mt-4" />
 
-    <AuditLogTable v-else :entries="entries" />
-  </div>
+  <AuditLogTable v-else :entries="entries" />
 </template>

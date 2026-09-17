@@ -265,103 +265,101 @@ function onReviewResolved() {
 </script>
 
 <template>
-  <div class="max-w-5xl">
-    <BackLink :to="{ name: 'import-definitions' }" />
+  <BackLink :to="{ name: 'import-definitions' }" />
 
-    <p v-if="loading" class="text-text-secondary">Loading…</p>
-    <p v-else-if="notFound" class="text-danger">Import job not found.</p>
-    <p v-else-if="loadError" class="text-danger">{{ loadError }}</p>
+  <p v-if="loading" class="text-text-secondary">Loading…</p>
+  <p v-else-if="notFound" class="text-danger">Import job not found.</p>
+  <p v-else-if="loadError" class="text-danger">{{ loadError }}</p>
 
-    <template v-else-if="definition">
-      <PageHeader :title="isSaved ? definition.name || '(untitled)' : 'New Import Job'" />
-      <p v-if="isSaved" class="text-text-secondary text-sm mt-1 mb-5">
-        Config version {{ definition.configVersion }} · created by {{ definition.createdBy }}
-      </p>
+  <template v-else-if="definition">
+    <PageHeader :title="isSaved ? definition.name || '(untitled)' : 'New Import Job'" />
+    <p v-if="isSaved" class="text-text-secondary text-sm mt-1 mb-5">
+      Config version {{ definition.configVersion }} · created by {{ definition.createdBy }}
+    </p>
 
-      <ImportMappingSuggestionPanel
-        v-if="isNew && showStartPanel"
-        @accept="onSuggestionAccepted"
-        @start-blank="onStartBlank"
+    <ImportMappingSuggestionPanel
+      v-if="isNew && showStartPanel"
+      @accept="onSuggestionAccepted"
+      @start-blank="onStartBlank"
+    />
+
+    <template v-else>
+      <ImportDefinitionBasicFields
+        :definition="definition"
+        :available-tables="availableTables"
+        :root-table-locked="rootTableLocked"
+        @root-table-changed="onRootTableChanged"
       />
 
-      <template v-else>
-        <ImportDefinitionBasicFields
+      <ImportAllowedColumnsEditor :columns="definition.allowedWritableColumns" :used-columns="usedColumns" />
+
+      <span class="inline-flex items-center gap-1.5 mb-2.5">
+        <h2 class="text-base font-semibold text-text-primary m-0">Fields</h2>
+        <HelpTooltip label="How does the field tree work?" title="Which fields can be written back">
+          <p>
+            Each row is one column an inbound record is allowed to write. A field here must also
+            appear in the <strong>Allowed Writable Columns</strong> list above, or saving is rejected —
+            two separate places have to agree before anything can be written.
+          </p>
+          <p>
+            <strong>Example:</strong> add a field for <code>status</code> so a vendor's confirmation
+            JSON can update that column; leave out columns like <code>price</code> that inbound
+            records should never be able to touch.
+          </p>
+        </HelpTooltip>
+      </span>
+      <p class="text-text-secondary text-sm mb-3 leading-relaxed">
+        Add the root's correlation-key field (mapped to the root match column above) plus every
+        confirmation/status field the vendor may write back. Picking a related table fills in every one of
+        its columns (unchecked) so you only have to check the ones you want.
+      </p>
+      <ImportNodeTreeEditor
+        v-if="definition.rootTable"
+        :nodes="definition.rootNode.children"
+        :context-table="definition.rootTable"
+        :available-tables="availableTables"
+        :depth="0"
+        class="mb-6"
+      />
+      <p v-else class="text-text-muted text-sm mb-6">Select a root table above to start adding fields.</p>
+
+      <template v-if="isSaved">
+        <ImportDefinitionRunControls
           :definition="definition"
-          :available-tables="availableTables"
-          :root-table-locked="rootTableLocked"
-          @root-table-changed="onRootTableChanged"
+          @duplicated="onDuplicated"
+          @deleted="onDeleted"
         />
 
-        <ImportAllowedColumnsEditor :columns="definition.allowedWritableColumns" :used-columns="usedColumns" />
+        <div class="mt-6 mb-6">
+          <ImportDefinitionPreviewPanel
+            v-model:inbound-json="previewInboundJson"
+            :plan="previewPlan"
+            :loading="previewLoading"
+            :error="previewError"
+            :running="runningImport"
+            :root-node="definition.rootNode"
+            @refresh="runPreview"
+            @run="runImportNow"
+            @create-from-export="onCreateFromExport"
+          />
+        </div>
 
-        <span class="inline-flex items-center gap-1.5 mb-2.5">
-          <h2 class="text-base font-semibold text-text-primary m-0">Fields</h2>
-          <HelpTooltip label="How does the field tree work?" title="Which fields can be written back">
-            <p>
-              Each row is one column an inbound record is allowed to write. A field here must also
-              appear in the <strong>Allowed Writable Columns</strong> list above, or saving is rejected —
-              two separate places have to agree before anything can be written.
-            </p>
-            <p>
-              <strong>Example:</strong> add a field for <code>status</code> so a vendor's confirmation
-              JSON can update that column; leave out columns like <code>price</code> that inbound
-              records should never be able to touch.
-            </p>
-          </HelpTooltip>
-        </span>
-        <p class="text-text-secondary text-sm mb-3 leading-relaxed">
-          Add the root's correlation-key field (mapped to the root match column above) plus every
-          confirmation/status field the vendor may write back. Picking a related table fills in every one of
-          its columns (unchecked) so you only have to check the ones you want.
-        </p>
-        <ImportNodeTreeEditor
-          v-if="definition.rootTable"
-          :nodes="definition.rootNode.children"
-          :context-table="definition.rootTable"
-          :available-tables="availableTables"
-          :depth="0"
-          class="mb-6"
+        <ImportDefinitionRunsTable
+          :runs="runs"
+          :loading="runsLoading"
+          :error="runsError"
+          @refresh="refreshRuns"
+          @review="openReview"
         />
-        <p v-else class="text-text-muted text-sm mb-6">Select a root table above to start adding fields.</p>
+        <ImportRunReviewDialog v-model:open="reviewOpen" :run-id="reviewingRunId" @resolved="onReviewResolved" />
+      </template>
 
-        <template v-if="isSaved">
-          <ImportDefinitionRunControls
-            :definition="definition"
-            @duplicated="onDuplicated"
-            @deleted="onDeleted"
-          />
-
-          <div class="mt-6 mb-6">
-            <ImportDefinitionPreviewPanel
-              v-model:inbound-json="previewInboundJson"
-              :plan="previewPlan"
-              :loading="previewLoading"
-              :error="previewError"
-              :running="runningImport"
-              :root-node="definition.rootNode"
-              @refresh="runPreview"
-              @run="runImportNow"
-              @create-from-export="onCreateFromExport"
-            />
-          </div>
-
-          <ImportDefinitionRunsTable
-            :runs="runs"
-            :loading="runsLoading"
-            :error="runsError"
-            @refresh="refreshRuns"
-            @review="openReview"
-          />
-          <ImportRunReviewDialog v-model:open="reviewOpen" :run-id="reviewingRunId" @resolved="onReviewResolved" />
-        </template>
-
-        <template v-else>
-          <Button :disabled="creating || !definition.rootTable" :loading="creating" @click="create">
-            {{ creating ? 'Creating…' : 'Create' }}
-          </Button>
-          <p v-if="createError" class="text-sm text-danger mt-3">{{ createError }}</p>
-        </template>
+      <template v-else>
+        <Button :disabled="creating || !definition.rootTable" :loading="creating" @click="create">
+          {{ creating ? 'Creating…' : 'Create' }}
+        </Button>
+        <p v-if="createError" class="text-sm text-danger mt-3">{{ createError }}</p>
       </template>
     </template>
-  </div>
+  </template>
 </template>

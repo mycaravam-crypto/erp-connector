@@ -147,13 +147,14 @@
  * elevated) steps up in lightness so cards/dialogs read as "closer".
  */
 .dark {
-  /* Near-black base with each raised layer stepping up in lightness, and
-     hairline (translucent-white) borders instead of solid slate — the
-     "glass panel on a dark canvas" look, rather than an inverted light
-     theme. */
-  --x-bg: #090b12;
-  --x-surface: #11141c;
-  --x-surface-elevated: #171b25;
+  /* Base matches the nav rail's own slate scale (--color-nav / -hover / -border) so the page
+     reads as one continuous surface below the header instead of two different dark tones meeting
+     at a seam, with each raised layer stepping up in lightness and hairline (translucent-white)
+     borders instead of solid slate — the "glass panel on a dark canvas" look, rather than an
+     inverted light theme. */
+  --x-bg: var(--color-nav);
+  --x-surface: var(--color-nav-hover);
+  --x-surface-elevated: var(--color-nav-border);
   --x-border: rgb(255 255 255 / 8%);
   --x-border-strong: rgb(255 255 255 / 16%);
 
