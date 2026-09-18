@@ -1,38 +1,38 @@
 namespace Connector.Infrastructure;
 
 /// <summary>
-/// EF Core-Entität für die Export-Log-Tabelle.
-/// Jede Zeile repräsentiert einen abgeschlossenen oder fehlgeschlagenen Export-Run.
+/// EF Core entity for the export log table.
+/// Each row represents a completed or failed export run.
 /// </summary>
 public sealed class ExportRunEntity
 {
     public int Id { get; set; }
 
-    /// <summary>Monotone Sequenznummer — eindeutig und nicht wiederverwendbar.</summary>
+    /// <summary>Monotonic sequence number — unique and never reused.</summary>
     public int SequenceNo { get; set; }
 
-    /// <summary>UTC-Zeitpunkt des ERP-Laufs als ISO-8601-String (SQLite kennt kein DateTimeOffset nativ).</summary>
+    /// <summary>UTC timestamp of the ERP run as an ISO-8601 string (SQLite has no native DateTimeOffset).</summary>
     public string ExtractedAt { get; set; } = string.Empty;
 
-    /// <summary>Anzahl der exportierten CI-Datensätze. 0 bei Status Failed.</summary>
+    /// <summary>Number of exported CI records. 0 when Status is Failed.</summary>
     public int RecordCount { get; set; }
 
-    /// <summary>SHA-256 der Export-Datei, Hex lowercase. Leer bei Status Failed.</summary>
+    /// <summary>SHA-256 of the export file, hex lowercase. Empty when Status is Failed.</summary>
     public string Sha256 { get; set; } = string.Empty;
 
     /// <summary>Pending | Released | Failed</summary>
     public string Status { get; set; } = ExportRunStatus.Pending;
 
-    /// <summary>UTC-Zeitpunkt der Vier-Augen-Freigabe. Null wenn noch nicht freigegeben.</summary>
+    /// <summary>UTC timestamp of the four-eyes release. Null if not yet released.</summary>
     public string? ReleasedAt { get; set; }
 
-    /// <summary>Benutzername des Operators (Ersteller), der den Export ausgelöst hat.</summary>
+    /// <summary>Username of the operator (creator) who triggered the export.</summary>
     public string? OperatedBy { get; set; }
 
-    /// <summary>Benutzername des Approvers (Freigabe). Muss verschieden von OperatedBy sein.</summary>
+    /// <summary>Username of the approver (release). Must differ from OperatedBy.</summary>
     public string? ApprovedBy { get; set; }
 
-    /// <summary>Dateiname der Excel-Datei auf dem Staging-Pfad. Leer bei Status Failed.</summary>
+    /// <summary>File name of the Excel file on the staging path. Empty when Status is Failed.</summary>
     public string DataFileName { get; set; } = string.Empty;
 
     // ── Delivery fields (Phase 6.4) ───────────────────────────────────────────

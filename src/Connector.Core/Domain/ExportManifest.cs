@@ -1,18 +1,18 @@
 namespace Connector.Core.Domain;
 
 /// <summary>
-/// Begleitet jede Export-Datei. Ermöglicht dem Empfänger Integritätsprüfung und Lückenerkennung
-/// auch ohne Rückkanal — die Sequenznummer deckt Gaps auf (z.B. Sprung von #41 auf #43).
+/// Accompanies every export file. Lets the recipient verify integrity and detect gaps even
+/// without a return channel — the sequence number surfaces gaps (e.g. a jump from #41 to #43).
 /// </summary>
 public sealed record ExportManifest(
-    /// <summary>Monoton steigend, beginnend bei 1. Lücken signalisieren verlorene Exporte.</summary>
+    /// <summary>Monotonically increasing, starting at 1. Gaps signal lost exports.</summary>
     int SequenceNumber,
-    /// <summary>Schema-Version im Format MAJOR.MINOR. Breaking Changes erhöhen MAJOR.</summary>
+    /// <summary>Schema version in MAJOR.MINOR format. Breaking changes bump MAJOR.</summary>
     string SchemaVersion,
-    /// <summary>Zeitpunkt des ERP-Laufs (UTC).</summary>
+    /// <summary>Timestamp of the ERP run (UTC).</summary>
     DateTimeOffset ExtractedAt,
-    /// <summary>Anzahl der Datensätze in der Datendatei — muss mit der tatsächlichen Zeilenzahl übereinstimmen.</summary>
+    /// <summary>Number of records in the data file — must match the actual row count.</summary>
     int RecordCount,
-    /// <summary>SHA-256 über die Datendatei (Hex, lowercase). Wird vom Gateway vor USB-Freigabe geprüft.</summary>
+    /// <summary>SHA-256 of the data file (hex, lowercase). Checked by the gateway before USB release.</summary>
     string Sha256Checksum
 );

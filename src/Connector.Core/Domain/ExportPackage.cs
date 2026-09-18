@@ -1,14 +1,14 @@
 namespace Connector.Core.Domain;
 
 /// <summary>
-/// Vollständiges Exportpaket: Datendatei-Bytes + Manifest.
-/// Beide Teile werden atomar auf den Staging-Pfad geschrieben — erst wenn beide
-/// vollständig liegen, gilt der Export als bereit für die Vier-Augen-Freigabe.
+/// Complete export package: data file bytes + manifest.
+/// Both parts are written atomically to the staging path — only once both are fully in place
+/// is the export considered ready for four-eyes release.
 /// </summary>
 public sealed record ExportPackage(
     ExportManifest Manifest,
-    /// <summary>Inhalt der Datendatei (Iteration 1: .xlsx).</summary>
+    /// <summary>Contents of the data file (iteration 1: .xlsx).</summary>
     byte[] DataFileBytes,
-    /// <summary>Dateiname ohne Pfad, z.B. "export_0042_20260628T060000Z.xlsx".</summary>
+    /// <summary>File name without path, e.g. "export_0042_20260628T060000Z.xlsx".</summary>
     string DataFileName
 );
