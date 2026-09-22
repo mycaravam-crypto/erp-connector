@@ -134,7 +134,7 @@ function proceed() {
     and click <em>Test Connection</em> to verify and save.
     <br />
     Running the docker-compose dev stack? Use host <code>testdb</code> — the API runs in its
-    own container, so <code>localhost</code> only works when running via <code>./dev.sh</code>.
+    own container, so <code>localhost</code> is not reachable from there.
   </Alert>
 
   <form class="flex flex-col gap-4" @submit.prevent="testConnection">
