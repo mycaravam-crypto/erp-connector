@@ -6,7 +6,31 @@ tags: [changelog, roadmap, history]
 timestamp: 2026-09-03T00:00:00Z
 ---
 
-Last updated: 2026-09-15
+Last updated: 2026-09-22
+
+---
+
+## Phase 21 — Generic data source abstraction ✅
+
+Arbeitsauftrag 2: introduced `IDataSourceProvider`/`IDataSourceProviderResolver`
+(`Connector.Core.DataSources`) so the application no longer depends directly on PostgreSQL
+connection types — with PostgreSQL behavior unchanged. See
+[Data Source Abstraction](/architecture/data-source-abstraction.md) for the full design.
+
+| Item | Notes |
+|---|---|
+| `IDataSourceProvider`/`IDataSourceProviderResolver` | New interfaces in `Connector.Core` (no `Npgsql` reference, matches Arbeitsauftrag 2's exact signatures) |
+| `PostgreSqlDataSourceProvider` | The one registered implementation; owns `BuildConnectionString`, `information_schema` introspection, and generic SQL execution — all moved here from `DynamicExportService`/`ConnectionEndpoints` |
+| `ErpConnectionConfig` → `DataSourceConfig` | Renamed (`Connector.Core.DynamicExport` → `Connector.Core.DataSources`), gained a `Type` field defaulting to `PostgreSql` for backward-compatible JSON deserialization of already-stored connection settings |
+| `SourceSchemaDto`/`SourceTableDto`/`SourceColumnDto` → `SourceSchema`/`SourceTable`/`SourceColumn` | Moved from `Connector.Api/Dtos.cs` into `Connector.Core.DataSources` — the interface's own schema type, not a parallel API-only shape |
+| `DynamicExportService` | No longer accepts or opens an `NpgsqlConnection` — every query method takes `(IDataSourceProvider, DataSourceConfig)` and builds the same SQL text as before |
+| `MariaDb`/`ServiceNow` | Added to `DataSourceType` as documented, deliberately unimplemented placeholders — resolving either throws `UnsupportedDataSourceException` |
+| Out of scope, unchanged | `ImportNodeWalker`/`ImportRunReleaser` still use `NpgsqlConnection` directly — `ImportRunReleaser`'s four-eyes commit transaction doesn't fit the given single-query `ExecuteAsync` shape; see the architecture doc §5 |
+
+**Verification:** `dotnet build -c Release` (warnings-as-errors) clean, `dotnet csharpier check .`
+clean, full test suite (407 tests, including 12 new provider/resolver tests) green against a real
+PostgreSQL 16 instance matching CI's service container — 0 failed, 0 skipped. Grep-confirmed zero
+`NpgsqlConnection`/`NpgsqlCommand`/`NpgsqlDataReader` references in `DynamicExportService*.cs`.
 
 ---
 

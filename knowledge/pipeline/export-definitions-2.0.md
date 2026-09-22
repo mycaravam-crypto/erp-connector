@@ -212,8 +212,13 @@ concerns. OCP — a new nesting shape or source table needs zero code; a new out
 one thing needing a new class, behind `IExportFormatWriter`. LSP — every format writer accepts
 the same `ExportNode` tree and either honors nesting or documented-flattens it, never throws on a
 shape another accepts. ISP — the UI talks to a narrow `IExportNodeApi` (CRUD + validate +
-preview). DIP — `DynamicExportService` builds a concrete `NpgsqlConnection` directly; introduce a
-connection-provider abstraction only if per-export connection sourcing becomes a real need.
+preview). DIP — resolved (Arbeitsauftrag 2): `DynamicExportService` no longer builds or accepts a
+concrete `NpgsqlConnection` — every query method takes an `IDataSourceProvider`/`DataSourceConfig`
+pair instead, resolved via `IDataSourceProviderResolver`, and executes through
+`IDataSourceProvider.ExecuteAsync` rather than a direct `NpgsqlCommand`. See
+[Data Source Abstraction](/architecture/data-source-abstraction.md) for the full picture, including
+what's deliberately still Postgres-specific (SQL dialect generation itself) and what's still direct
+`NpgsqlConnection` (`ImportRunReleaser`'s four-eyes commit transaction).
 
 ---
 
