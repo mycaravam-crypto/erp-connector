@@ -1,11 +1,11 @@
-# Dynamic Export (Phase 14 — Export Definitions 2.0)
+# Dynamic Export
 
 How a saved, named [ExportDefinition](/api/export-definition-api.md) actually runs: the tree
 shape it's configured from, how a schedule fires it automatically, and how each run is recorded.
 This extends — does not replace — [DynamicExportService](/pipeline/dynamic-export-service.md),
 which still owns the legacy single-mapping pipeline (`/export-schema`, `POST
-/api/pipeline/run`) exactly as before; see [Export Definitions 2.0](/pipeline/export-definitions-2.0.md)
-§11 decision #2 for why that flow was deliberately kept, not superseded.
+/api/pipeline/run`) exactly as before; see [Export Definitions §7](/pipeline/export-definitions-2.0.md#7-design-decisions)
+for why that flow was deliberately kept, not superseded.
 
 * [ExportNode Tree](export-node.md) — the recursive data shape (`scalar-field`/`object`/`array`)
   every definition is built from, and how a `FieldMapping` transforms one scalar value
@@ -16,8 +16,7 @@ which still owns the legacy single-mapping pipeline (`/export-schema`, `POST
 
 # Related
 
-- [Export Definitions 2.0](/pipeline/export-definitions-2.0.md) — the full spec and per-slice
-  implementation status this bundle documents the shipped result of
+- [Export Definitions](/pipeline/export-definitions-2.0.md) — the full design this bundle documents the running result of
 - [Export Definition API](/api/export-definition-api.md) — CRUD/run/test/preview HTTP surface
 - [DynamicExportService](/pipeline/dynamic-export-service.md) — the legacy single-mapping
   pipeline this generalizes, and the query/format-writer engine both paths share

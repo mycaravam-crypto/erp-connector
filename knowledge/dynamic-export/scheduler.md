@@ -3,12 +3,12 @@ type: Background Service
 title: ExportDefinitionWorker (Scheduler)
 description: Polls enabled ExportDefinition rows once a minute and runs any whose cron Schedule is due — a sibling of ExportWorker, not a replacement.
 resource: src/Connector.Infrastructure/ExportDefinitionWorker.cs
-tags: [pipeline, orchestration, scheduling, background-service, dynamic-export, phase-14]
+tags: [pipeline, orchestration, scheduling, background-service, dynamic-export]
 timestamp: 2026-09-03T00:00:00Z
 ---
 
-`ExportDefinitionWorker` is Phase 14 Slice 4: the automatic-execution half of
-[ExportDefinition](/api/export-definition-api.md), which until this shipped could only be
+`ExportDefinitionWorker` is the automatic-execution half of
+[ExportDefinition](/api/export-definition-api.md) — without it, a definition could only be
 triggered manually via `POST /api/export-definitions/{id}/run`. It is a **sibling** of
 [ExportWorker](/pipeline/export-worker.md), not a replacement — the legacy CI-to-vendor
 scheduled pipeline (four-eyes/staging) keeps running exactly as before, on its own
@@ -39,15 +39,13 @@ single values, comma lists, ranges (`a-b`), and steps (`*/n` or `a-b/n`) per fie
 standard cron semantics for day-of-month/day-of-week: when *both* are restricted (neither is
 `*`), a match on *either* is enough.
 
-Per [Export Definitions 2.0 §11 decision #1](/pipeline/export-definitions-2.0.md#11-open-decisions),
-cron granularity is hourly-or-coarser by convention (the UI's Manual/Hourly/Daily/Weekly presets
+Cron granularity is hourly-or-coarser by convention (the UI's Manual/Hourly/Daily/Weekly presets
 only ever produce such expressions), matching this project's existing scheduling convention — but
 the matcher itself doesn't special-case or reject a finer-grained expression typed into the
 advanced free-text field; it just evaluates whatever 5 fields it's given every minute.
 
-A NuGet cron library was deliberately not added — the matching logic is a few dozen lines, and
-pulling in a dependency for it would violate [the project's "minimal code"
-directive](/pipeline/export-definitions-2.0.md#0-engineering-directive-non-negotiable).
+A NuGet cron library was deliberately not added — the matching logic is a few dozen lines, and the
+project prefers generalizing existing code over adding a dependency for something this small.
 
 # Scheduled vs. manual runs
 

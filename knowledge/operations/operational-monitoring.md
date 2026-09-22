@@ -6,8 +6,8 @@ tags: [process, monitoring, health, observability]
 timestamp: 2026-06-29T00:00:00Z
 ---
 
-Three lightweight mechanisms, added in Phase 6, make the daily export cycle safer and observable
-without an external monitoring stack.
+Three lightweight mechanisms make the daily export cycle safer and observable without an external
+monitoring stack.
 
 # Health Check
 
