@@ -11,6 +11,8 @@ never crosses the air gap — its output ends at the staging folder.
 
 Folders are organized by the question you're asking, not just by topic:
 
+* [architecture/](architecture/) — **How is the system put together, independent of any one
+  feature?** Cross-cutting structural decisions like the data source abstraction.
 * [pipeline/](pipeline/) — **How does the export actually run?** The live query/build engine,
   the scheduler, the staging writer, and the Phase 14 spec it grew into.
 * [dynamic-export/](dynamic-export/) — **How does a saved Export Definition run?** The
