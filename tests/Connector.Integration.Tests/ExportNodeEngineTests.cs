@@ -495,6 +495,62 @@ public sealed class ExportNodeEngineTests
         Assert.Equal(withoutProvenance, withProvenance);
     }
 
+    [Fact]
+    public void ExcelExportFormatWriter_Write_FlattensNestedArrayIntoJoinedColumn()
+    {
+        var root = MakeRoot(
+            ScalarField("id", "id"),
+            Node(
+                "addresses",
+                ExportNodeKind.Array,
+                relatedTable: "manufacturer_address",
+                children: [ScalarField("city", "city")]
+            )
+        );
+        var records = new List<JsonObject>
+        {
+            new()
+            {
+                ["id"] = "1",
+                ["addresses"] = new JsonArray(
+                    new JsonObject { ["city"] = "Austin" },
+                    new JsonObject { ["city"] = "Dallas" }
+                ),
+            },
+        };
+
+        var bytes = new ExcelExportFormatWriter().Write(root, records, "v1", DateTimeOffset.UtcNow);
+        var ws = OpenExcelSheet(bytes);
+
+        // Row 1 = metadata, row 2 = column headers, row 3 = first record.
+        Assert.Equal("id", ws.Cell(2, 1).GetString());
+        Assert.Equal("addresses.city", ws.Cell(2, 2).GetString());
+        Assert.Equal("1", ws.Cell(3, 1).GetString());
+        Assert.Equal("Austin, Dallas", ws.Cell(3, 2).GetString());
+    }
+
+    // knowledge/pipeline/import-mapping-presets.md §3.2/§5 Non-Goals: CSV/Excel have no natural home for
+    // structured metadata and stay untouched — a passed-in provenance is silently ignored, never an error.
+    // Unlike the CSV/JSON writers, xlsx isn't byte-for-byte reproducible between two calls (the OOXML
+    // container embeds its own generation timestamp), so this compares cell contents instead of raw bytes.
+    [Fact]
+    public void ExcelExportFormatWriter_Write_IgnoresProvenance()
+    {
+        var root = MakeRoot(ScalarField("id", "id"));
+        var records = new List<JsonObject> { new() { ["id"] = "1" } };
+        var extractedAt = DateTimeOffset.UtcNow;
+        var provenance = new ExportProvenance("ci-confirmation", ContractVersion: 1, ConfigVersion: 7);
+
+        var withoutProvenance = new ExcelExportFormatWriter().Write(root, records, "v1", extractedAt);
+        var withProvenance = new ExcelExportFormatWriter().Write(root, records, "v1", extractedAt, provenance);
+
+        var wsWithout = OpenExcelSheet(withoutProvenance);
+        var wsWith = OpenExcelSheet(withProvenance);
+        Assert.Equal(wsWithout.Cell(2, 1).GetString(), wsWith.Cell(2, 1).GetString());
+        Assert.Equal(wsWithout.Cell(3, 1).GetString(), wsWith.Cell(3, 1).GetString());
+        Assert.Equal(wsWithout.RowsUsed().Count(), wsWith.RowsUsed().Count());
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────────
 
     private static ExportNode MakeRoot(params ExportNode[] children) =>
@@ -514,4 +570,11 @@ public sealed class ExportNodeEngineTests
         ExportNode[] children,
         bool enabled = true
     ) => new(targetKey, kind, null, relatedTable, "id", "id", null, null, children, enabled);
+
+    private static ClosedXML.Excel.IXLWorksheet OpenExcelSheet(byte[] bytes)
+    {
+        using var ms = new MemoryStream(bytes);
+        var wb = new ClosedXML.Excel.XLWorkbook(ms);
+        return wb.Worksheet(1);
+    }
 }
