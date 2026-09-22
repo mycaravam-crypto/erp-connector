@@ -368,7 +368,14 @@ public sealed class ExportNodeEngineTests
         var root = MakeRoot(deep);
 
         var provider = new PostgreSqlDataSourceProvider();
-        var config = new DataSourceConfig("unused", 5432, "unused", "unused", "unused");
+        var config = new DataSourceConfig
+        {
+            Host = "unused",
+            Port = 5432,
+            Database = "unused",
+            Username = "unused",
+            Password = "unused",
+        };
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             DynamicExportService.ExecuteExportNodeQueryAsync(

@@ -14,13 +14,14 @@ internal static class ErpTestFixture
     internal const string ConnectionString =
         "Host=localhost;Port=5432;Database=erp_testdb;Username=erp_test;Password=erp_test_pw;Timeout=2";
 
-    internal static readonly DataSourceConfig Config = new(
-        Host: "localhost",
-        Port: 5432,
-        Database: "erp_testdb",
-        Username: "erp_test",
-        Password: "erp_test_pw"
-    );
+    internal static readonly DataSourceConfig Config = new()
+    {
+        Host = "localhost",
+        Port = 5432,
+        Database = "erp_testdb",
+        Username = "erp_test",
+        Password = "erp_test_pw",
+    };
 
     internal static async Task<NpgsqlConnection?> TryOpenAsync()
     {

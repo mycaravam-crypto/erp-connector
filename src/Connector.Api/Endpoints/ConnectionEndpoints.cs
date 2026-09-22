@@ -27,6 +27,30 @@ static class ConnectionEndpoints
     internal static bool IsValidSslMode(string? sslMode) =>
         string.IsNullOrWhiteSpace(sslMode) || Enum.TryParse<SslMode>(sslMode, ignoreCase: true, out _);
 
+    // Arbeitsauftrag 3: each DataSourceType has its own set of fields it actually needs — a relational
+    // source needs Host/Port/Database, an HTTP API source needs InstanceUrl instead — so "required fields
+    // present" can no longer be one flat check. Also the single place an out-of-range/unrecognized Type
+    // (e.g. a JSON payload with a numeric value outside the enum, or a future member this switch hasn't been
+    // taught yet) is rejected as invalid input rather than silently falling through to a provider that isn't
+    // registered for it (DataSourceProviderResolver.Resolve already throws for that case too, but this gives
+    // the caller a clear 400 instead of the resolver's exception surfacing as a 500-ish failure).
+    internal static string? ValidateRequiredFields(DataSourceConfig config) =>
+        config.Type switch
+        {
+            DataSourceType.PostgreSql or DataSourceType.MariaDb => string.IsNullOrWhiteSpace(config.Host)
+            || config.Port is null
+            || string.IsNullOrWhiteSpace(config.Database)
+            || string.IsNullOrWhiteSpace(config.Username)
+                ? "Host, Port, Database, and Username are required for this data source type."
+                : null,
+            DataSourceType.ServiceNowTableApi or DataSourceType.ServiceNowSqlApi => string.IsNullOrWhiteSpace(
+                config.InstanceUrl
+            ) || string.IsNullOrWhiteSpace(config.Username)
+                ? "InstanceUrl and Username are required for this data source type."
+                : null,
+            _ => $"Unknown data source type '{config.Type}'.",
+        };
+
     internal static async Task<string?> ValidateHostAsync(string host, CancellationToken ct)
     {
         IPAddress[] addresses;
@@ -52,7 +76,8 @@ static class ConnectionEndpoints
 
     internal static void MapConnectionEndpoints(this WebApplication app)
     {
-        // Returns the stored connection (host/port/db/user only — password never returned).
+        // Returns the stored connection — never the password itself, only whether one is set
+        // (HasPassword). See knowledge/architecture/data-source-configuration.md.
         app.MapGet(
                 "/api/connection",
                 async (ExportLogDbContext db) =>
@@ -62,7 +87,16 @@ static class ConnectionEndpoints
                         return Results.NotFound();
 
                     return Results.Ok(
-                        new ErpConnectionInfo(cfg.Host, cfg.Port, cfg.Database, cfg.Username, cfg.SslMode)
+                        new ErpConnectionInfo(
+                            cfg.Type,
+                            cfg.Host,
+                            cfg.Port,
+                            cfg.Database,
+                            cfg.InstanceUrl,
+                            cfg.Username,
+                            cfg.SslMode,
+                            cfg.HasPassword
+                        )
                     );
                 }
             )
@@ -78,21 +112,24 @@ static class ConnectionEndpoints
                     CancellationToken ct
                 ) =>
                 {
-                    if (
-                        string.IsNullOrWhiteSpace(request.Host)
-                        || string.IsNullOrWhiteSpace(request.Database)
-                        || string.IsNullOrWhiteSpace(request.Username)
-                    )
-                        return Results.BadRequest("Host, Database, and Username are required.");
+                    var requiredFieldError = ValidateRequiredFields(request);
+                    if (requiredFieldError is not null)
+                        return Results.BadRequest(requiredFieldError);
 
-                    if (!IsValidSslMode(request.SslMode))
-                        return Results.BadRequest(
-                            "SslMode must be one of: Disable, Allow, Prefer, Require, VerifyCA, VerifyFull."
-                        );
+                    // Host-based SSRF check and SslMode only apply to the relational (Host/Port) sources —
+                    // ServiceNowTableApi/ServiceNowSqlApi use InstanceUrl instead and aren't implemented yet
+                    // (the resolver below throws UnsupportedDataSourceException for them).
+                    if (request.Type is DataSourceType.PostgreSql or DataSourceType.MariaDb)
+                    {
+                        if (!IsValidSslMode(request.SslMode))
+                            return Results.BadRequest(
+                                "SslMode must be one of: Disable, Allow, Prefer, Require, VerifyCA, VerifyFull."
+                            );
 
-                    var hostError = await ValidateHostAsync(request.Host, ct);
-                    if (hostError is not null)
-                        return Results.BadRequest(hostError);
+                        var hostError = await ValidateHostAsync(request.Host!, ct);
+                        if (hostError is not null)
+                            return Results.BadRequest(hostError);
+                    }
 
                     try
                     {

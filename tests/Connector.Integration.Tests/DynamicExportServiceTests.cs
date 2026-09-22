@@ -94,8 +94,15 @@ public sealed class DynamicExportServiceTests
     [Fact]
     public void ConnectionFingerprint_SameHostPortDatabase_IsStableAcrossDifferentCredentials()
     {
-        var stagedAt = new DataSourceConfig("erp.example", 5432, "erp", "reader", "pw1");
-        var releasedAt = new DataSourceConfig("erp.example", 5432, "erp", "writer", "pw2");
+        var stagedAt = new DataSourceConfig
+        {
+            Host = "erp.example",
+            Port = 5432,
+            Database = "erp",
+            Username = "reader",
+            Password = "pw1",
+        };
+        var releasedAt = stagedAt with { Username = "writer", Password = "pw2" };
 
         Assert.Equal(
             DynamicExportService.ConnectionFingerprint(stagedAt),
@@ -109,8 +116,15 @@ public sealed class DynamicExportServiceTests
     [InlineData("erp.example", 5432, "other_db")]
     public void ConnectionFingerprint_DifferentTarget_DiffersFromOriginal(string host, int port, string database)
     {
-        var stagedAt = new DataSourceConfig("erp.example", 5432, "erp", "reader", "pw");
-        var swapped = new DataSourceConfig(host, port, database, "reader", "pw");
+        var stagedAt = new DataSourceConfig
+        {
+            Host = "erp.example",
+            Port = 5432,
+            Database = "erp",
+            Username = "reader",
+            Password = "pw",
+        };
+        var swapped = stagedAt with { Host = host, Port = port, Database = database };
 
         Assert.NotEqual(
             DynamicExportService.ConnectionFingerprint(stagedAt),
