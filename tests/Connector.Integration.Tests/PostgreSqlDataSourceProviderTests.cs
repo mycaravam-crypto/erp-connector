@@ -28,13 +28,14 @@ public sealed class PostgreSqlDataSourceProviderTests
     [Fact]
     public void BuildConnectionString_PasswordWithInjectionPayload_DoesNotOverrideHost()
     {
-        var cfg = new DataSourceConfig(
-            "trusted-host.example",
-            5432,
-            "erp",
-            "erp_user",
-            "s3cret;Host=evil.example;Port=1234"
-        );
+        var cfg = new DataSourceConfig
+        {
+            Host = "trusted-host.example",
+            Port = 5432,
+            Database = "erp",
+            Username = "erp_user",
+            Password = "s3cret;Host=evil.example;Port=1234",
+        };
 
         var connectionString = PostgreSqlDataSourceProvider.BuildConnectionString(cfg);
         var parsed = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
@@ -47,7 +48,14 @@ public sealed class PostgreSqlDataSourceProviderTests
     [Fact]
     public void BuildConnectionString_UsernameWithInjectionPayload_DoesNotOverrideDatabase()
     {
-        var cfg = new DataSourceConfig("trusted-host.example", 5432, "erp", "erp_user;Database=other_db", "pw");
+        var cfg = new DataSourceConfig
+        {
+            Host = "trusted-host.example",
+            Port = 5432,
+            Database = "erp",
+            Username = "erp_user;Database=other_db",
+            Password = "pw",
+        };
 
         var connectionString = PostgreSqlDataSourceProvider.BuildConnectionString(cfg);
         var parsed = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
@@ -72,7 +80,15 @@ public sealed class PostgreSqlDataSourceProviderTests
         Npgsql.SslMode expected
     )
     {
-        var cfg = new DataSourceConfig("host.example", 5432, "erp", "user", "pw", sslMode);
+        var cfg = new DataSourceConfig
+        {
+            Host = "host.example",
+            Port = 5432,
+            Database = "erp",
+            Username = "user",
+            Password = "pw",
+            SslMode = sslMode,
+        };
 
         var connectionString = PostgreSqlDataSourceProvider.BuildConnectionString(cfg);
         var parsed = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);

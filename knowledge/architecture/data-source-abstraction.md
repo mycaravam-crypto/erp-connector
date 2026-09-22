@@ -53,8 +53,8 @@ so adding a second provider later is a DI registration, never a change to the re
 
 | Type | Purpose |
 |---|---|
-| `DataSourceType` | `PostgreSql` (implemented), `MariaDb`/`ServiceNow` (deliberately not — see §5) |
-| `DataSourceConfig` | Connection parameters (Host/Port/Database/Username/Password/SslMode) + `Type`. Renamed from `ErpConnectionConfig` — same shape, same `AppSettings` storage key, same JSON back-compat guarantee (`Type` defaults to `PostgreSql`, so a config saved before this field existed still deserializes correctly). |
+| `DataSourceType` | `PostgreSql` (implemented), `MariaDb`/`ServiceNowTableApi`/`ServiceNowSqlApi` (deliberately not — see §5) |
+| `DataSourceConfig` | Generic connection parameters (`Type` + relational Host/Port/Database or HTTP-API InstanceUrl + Username/Password/SslMode). Renamed from `ErpConnectionConfig` in Arbeitsauftrag 2, generalized from a positional record to an init-only one in Arbeitsauftrag 3 — see [Data Source Configuration](/architecture/data-source-configuration.md) for the current shape and its back-compat contract. Same `AppSettings` storage key throughout. |
 | `SourceSchema`/`SourceTable`/`SourceColumn` | The provider's schema-read result — moved down from `Connector.Api/Dtos.cs`'s `SourceSchemaDto`/`SourceTableDto`/`SourceColumnDto` (same shape, no parallel model, no API change) since it's the interface's own return type, not an API-only shape. |
 | `TestConnectionResult` | `Success`/`Schema`/`Error` — a connection-test failure is reported here, sanitized, never thrown as a raw exception a caller might leak (credentials) by accident. |
 | `SourceQuery` | Provider-native SQL text + optional named parameters + optional command timeout. The provider does not parse or understand this text — see §3. |
@@ -85,7 +85,7 @@ neue Export-Pipeline erstellen" and "Bestehendes Exportverhalten muss unverände
 the SQL dialect itself (so a second provider could generate its own native JSON-aggregation syntax)
 is real future work, not something this change attempts — a second provider today would need
 `ExecuteAsync` to accept Postgres-flavored SQL it can't actually run, which is exactly why
-`MariaDb`/`ServiceNow` stay unimplemented rather than half-implemented.
+`MariaDb`/`ServiceNowTableApi`/`ServiceNowSqlApi` stay unimplemented rather than half-implemented.
 
 ## 4. What calls the abstraction today
 
@@ -124,7 +124,7 @@ connection-string-building logic even though the connections themselves aren't p
 
 ## 6. Extending with a second provider
 
-To add a real (not placeholder) `MariaDb` or `ServiceNow` provider:
+To add a real (not placeholder) `MariaDb` or ServiceNow provider:
 
 1. Implement `IDataSourceProvider` for it. `TestConnectionAsync`/`ReadSchemaAsync` are
    straightforward — connect, introspect, return `SourceSchema`. `ExecuteAsync` is the interesting
@@ -140,8 +140,9 @@ To add a real (not placeholder) `MariaDb` or `ServiceNow` provider:
 ## 7. Tests
 
 - `DataSourceProviderResolverTests` — provider resolution (`PostgreSql` resolves to the registered
-  provider) and the unsupported-provider error scenario (`MariaDb`/`ServiceNow`/no providers at all
-  throw `UnsupportedDataSourceException` carrying the requested type).
+  provider) and the unsupported-provider error scenario (`MariaDb`/`ServiceNowTableApi`/`ServiceNowSqlApi`/an
+  out-of-range numeric type/no providers at all throw `UnsupportedDataSourceException` carrying the
+  requested type).
 - `PostgreSqlDataSourceProviderTests` — `TestConnectionAsync` (success + sanitized failure),
   `ReadSchemaAsync` (tables/PK/FK/generated-column shape), `ExecuteAsync` (flat select, null
   handling, date coercion, `json_build_object` aggregation, SQLSTATE 21000 cardinality-violation

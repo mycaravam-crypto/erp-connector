@@ -5,8 +5,8 @@ namespace Connector.Infrastructure;
 
 /// <summary>
 /// The <see cref="IDataSourceProvider"/> for <see cref="DataSourceType.PostgreSql"/> — the only backend the
-/// connector supports today (Arbeitsauftrag 2 explicitly defers MariaDb/ServiceNow). Owns every piece of
-/// PostgreSQL-specific connection/schema/query logic that used to live directly in
+/// connector supports today (Arbeitsauftrag 2/3 explicitly defer MariaDb/ServiceNowTableApi/ServiceNowSqlApi).
+/// Owns every piece of PostgreSQL-specific connection/schema/query logic that used to live directly in
 /// <c>Connector.Api.Endpoints.ConnectionEndpoints</c> and <c>DynamicExportService</c>: building an Npgsql
 /// connection string, introspecting <c>information_schema</c>, and executing a caller-built SQL query
 /// generically. Registered as a singleton (see <c>Program.cs</c>) — it holds no per-call state; every method
@@ -23,11 +23,15 @@ public sealed class PostgreSqlDataSourceProvider : IDataSourceProvider
     // each value as a typed property instead, so no field value can ever be interpreted as connection-string
     // syntax. No TrustServerCertificate: Npgsql 10 removed the behavior it used to control (SslMode=Prefer
     // already governs cert handling), and the property is now an obsolete no-op.
+    // Port defaults to Postgres's own standard port when unset — DataSourceConfig.Port is nullable (Arbeitsauftrag
+    // 3: not every DataSourceType has a Host/Port at all), but every caller reaching this provider has already
+    // gone through ConnectionEndpoints' required-field validation for PostgreSql/MariaDb, so null here only
+    // ever means "use the default," never "unset by mistake."
     public static string BuildConnectionString(DataSourceConfig config) =>
         new NpgsqlConnectionStringBuilder
         {
             Host = config.Host,
-            Port = config.Port,
+            Port = config.Port ?? 5432,
             Database = config.Database,
             Username = config.Username,
             Password = config.Password,

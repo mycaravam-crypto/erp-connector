@@ -88,7 +88,7 @@ public sealed class AppSettingEncryptionTests
 
         var rawStoredValue = await ReadRawColumnValueAsync(connection, SettingsKeys.ErpConnection);
         Assert.DoesNotContain(ErpTestFixture.Config.Password, rawStoredValue, StringComparison.Ordinal);
-        Assert.DoesNotContain(ErpTestFixture.Config.Host, rawStoredValue, StringComparison.Ordinal);
+        Assert.DoesNotContain(ErpTestFixture.Config.Host!, rawStoredValue, StringComparison.Ordinal);
 
         // Fresh context, same key ring: forces a real decrypt rather than reading back the writer's own
         // still-plaintext tracked entity.

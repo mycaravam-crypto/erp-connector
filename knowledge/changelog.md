@@ -10,6 +10,29 @@ Last updated: 2026-09-22
 
 ---
 
+## Phase 22 — Generalized data source configuration ✅
+
+Arbeitsauftrag 3: generalized `DataSourceConfig` (Phase 21's shape) beyond its PostgreSQL-only
+Host/Port/Database fields so it can describe a non-relational source, without breaking any config
+already stored. See [Data Source Configuration](/architecture/data-source-configuration.md) for the
+full design.
+
+| Item | Notes |
+|---|---|
+| `DataSourceConfig` | Converted from a positional record with required `Host`/`Port`/`Database` to an init-only record with nullable `Host`/`Port`/`Database`, a new optional `InstanceUrl` (HTTP-API sources), and a `HasPassword` computed property. `ToString()` overridden to never print `Password`. |
+| `DataSourceType.ServiceNow` → `ServiceNowTableApi`/`ServiceNowSqlApi` | Split the single placeholder member into ServiceNow's two actual API styles — both still deliberately unimplemented, resolving either throws `UnsupportedDataSourceException` same as `MariaDb` |
+| `ConnectionEndpoints.ValidateRequiredFields` | New per-`DataSourceType` required-field check (`POST /api/connection`) — relational types need Host/Port/Database/Username, HTTP-API types need InstanceUrl/Username, anything else (including an out-of-range numeric value) is rejected as an unknown type |
+| `ErpConnectionInfo` (`GET /api/connection`) | Gained `Type`/`InstanceUrl`/`HasPassword`; still never returns `Password` itself — `HasPassword` is the most any API response may say about it |
+| Back-compat | No EF migration — `AppSetting.Value` is a schemaless encrypted JSON blob, so a config saved before `Type`, or before `InstanceUrl`, keeps deserializing correctly (`Type` still defaults to `PostgreSql`) |
+| Tests | New `DataSourceConfigTests` (JSON back-compat, password-leak, invalid-shape-still-deserializes, out-of-range-type-still-deserializes), `ConnectionEndpointsRequiredFieldValidationTests` (invalid combinations, unknown type), `ConnectionEndpointsHttpTests` (`GET /api/connection` never leaks the password, `POST /api/connection` 400s on bad input); `DataSourceProviderResolverTests` extended for the renamed ServiceNow members plus an out-of-range type; every pre-existing `DataSourceConfig` construction in the test suite updated from positional to object-initializer syntax, no behavior change |
+
+**Verification:** `dotnet build -c Release` (warnings-as-errors) clean, `dotnet csharpier check .`
+clean, full test suite (443 tests: 58 `Connector.Core.Tests` + 385 `Connector.Integration.Tests`)
+green — the Postgres-backed subset no-ops in this environment per the project's standing "no-op if
+`testdb` isn't running" convention, same as every prior Postgres-dependent test here.
+
+---
+
 ## Phase 21 — Generic data source abstraction ✅
 
 Arbeitsauftrag 2: introduced `IDataSourceProvider`/`IDataSourceProviderResolver`

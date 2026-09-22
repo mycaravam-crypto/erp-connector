@@ -199,10 +199,10 @@ builder.Services.AddDbContext<ExportLogDbContext>(opt =>
     opt.UseSqlite(builder.Configuration.GetConnectionString("ExportLog"))
 );
 
-// Data source abstraction (Arbeitsauftrag 2): PostgreSql is the only registered provider today —
+// Data source abstraction (Arbeitsauftrag 2/3): PostgreSql is the only registered provider today —
 // DataSourceProviderResolver.Resolve throws UnsupportedDataSourceException for any other DataSourceType
-// (MariaDb/ServiceNow), which are deliberately unimplemented. Both are singletons: neither holds per-call
-// state, and every provider method opens/disposes its own connection.
+// (MariaDb/ServiceNowTableApi/ServiceNowSqlApi), which are deliberately unimplemented. Both are singletons:
+// neither holds per-call state, and every provider method opens/disposes its own connection.
 builder.Services.AddSingleton<IDataSourceProvider, PostgreSqlDataSourceProvider>();
 builder.Services.AddSingleton<IDataSourceProviderResolver, DataSourceProviderResolver>();
 

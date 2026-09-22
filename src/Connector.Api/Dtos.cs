@@ -78,8 +78,21 @@ record PreviewResult(
     System.Text.Json.Nodes.JsonArray? NestedRecords = null
 );
 
-/// <summary>Public view of the stored connection — no password field.</summary>
-record ErpConnectionInfo(string Host, int Port, string Database, string Username, string? SslMode);
+/// <summary>Public view of the stored connection — no password field, ever. <see cref="HasPassword"/> is the
+/// most any API response is allowed to say about it (Arbeitsauftrag 3). Host/Port/Database are populated for
+/// a relational source (<see cref="DataSourceType.PostgreSql"/>/<see cref="DataSourceType.MariaDb"/>),
+/// InstanceUrl for an HTTP API source (<see cref="DataSourceType.ServiceNowTableApi"/>/
+/// <see cref="DataSourceType.ServiceNowSqlApi"/>) — never both.</summary>
+record ErpConnectionInfo(
+    DataSourceType Type,
+    string? Host,
+    int? Port,
+    string? Database,
+    string? InstanceUrl,
+    string Username,
+    string? SslMode,
+    bool HasPassword
+);
 
 /// <summary>Body for POST /api/exports/{seqNo}/skip. Reason is stored in the audit log.</summary>
 record SkipRequest(string? Reason);
