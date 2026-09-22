@@ -2,7 +2,6 @@ using System.Text.Json;
 using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
 using Connector.Core.Schema;
-using Npgsql;
 
 namespace Connector.Infrastructure;
 
@@ -22,6 +21,7 @@ public static class ExportDefinitionRunner
     )> ExecuteAsync(
         ExportDefinitionEntity def,
         ExportLogDbContext db,
+        IDataSourceProviderResolver resolver,
         string triggeredBy,
         bool isTestRun,
         int? limit,
@@ -74,11 +74,11 @@ public static class ExportDefinitionRunner
                 ? null
                 : new ExportProvenance(def.IntegrationKey, def.ContractVersion!.Value, def.ConfigVersion);
 
-            await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(connCfg));
-            await conn.OpenAsync(ct);
+            var provider = resolver.Resolve(connCfg.Type);
 
             var built = await DynamicExportService.BuildExportNodeAsync(
-                conn,
+                provider,
+                connCfg,
                 def.RootTable,
                 root,
                 def.OutputFormat,

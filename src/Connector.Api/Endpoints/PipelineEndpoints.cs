@@ -8,7 +8,6 @@ using Connector.Core.DynamicExport;
 using Connector.Core.Schema;
 using Connector.Infrastructure;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace Connector.Api.Endpoints;
 
@@ -24,6 +23,7 @@ static class PipelineEndpoints
                     FileSystemExportSink sink,
                     ILogger<Program> logger,
                     AuditService audit,
+                    IDataSourceProviderResolver resolver,
                     HttpContext httpContext,
                     CancellationToken ct
                 ) =>
@@ -73,14 +73,11 @@ static class PipelineEndpoints
                     {
                         var extractedAt = DateTimeOffset.UtcNow;
                         var gdprDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
-
-                        await using var pgConn = new NpgsqlConnection(
-                            DynamicExportService.BuildConnectionString(connCfg)
-                        );
-                        await pgConn.OpenAsync(ct);
+                        var provider = resolver.Resolve(connCfg.Type);
 
                         var built = await DynamicExportService.BuildExportAsync(
-                            pgConn,
+                            provider,
+                            connCfg,
                             config,
                             fmt,
                             ExportSchema.Version,
@@ -168,6 +165,7 @@ static class PipelineEndpoints
                     string? format,
                     ExportLogDbContext db,
                     AuditService audit,
+                    IDataSourceProviderResolver resolver,
                     HttpContext httpContext,
                     CancellationToken ct
                 ) =>
@@ -201,14 +199,11 @@ static class PipelineEndpoints
                     {
                         var extractedAt = DateTimeOffset.UtcNow;
                         var gdprDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
-
-                        await using var pgConn = new NpgsqlConnection(
-                            DynamicExportService.BuildConnectionString(connCfg)
-                        );
-                        await pgConn.OpenAsync(ct);
+                        var provider = resolver.Resolve(connCfg.Type);
 
                         var built = await DynamicExportService.BuildExportAsync(
-                            pgConn,
+                            provider,
+                            connCfg,
                             config,
                             fmt,
                             ExportSchema.Version,
@@ -244,7 +239,7 @@ static class PipelineEndpoints
 
         app.MapGet(
                 "/api/pipeline/preview",
-                async (ExportLogDbContext db, CancellationToken ct) =>
+                async (ExportLogDbContext db, IDataSourceProviderResolver resolver, CancellationToken ct) =>
                 {
                     var mappingRaw = await db.GetSettingRawAsync(SettingsKeys.ExportMapping);
                     if (mappingRaw is null)
@@ -280,15 +275,13 @@ static class PipelineEndpoints
                     try
                     {
                         var gdprDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
-                        await using var conn = new NpgsqlConnection(
-                            DynamicExportService.BuildConnectionString(connCfg)
-                        );
-                        await conn.OpenAsync(ct);
+                        var provider = resolver.Resolve(connCfg.Type);
 
                         if (previewFormat == "json")
                         {
                             var nestedRecords = await DynamicExportService.ExecuteNestedJsonQueryAsync(
-                                conn,
+                                provider,
+                                connCfg,
                                 config,
                                 ct,
                                 limit: 50,
@@ -317,7 +310,8 @@ static class PipelineEndpoints
                                 )
                             );
                         var records = await DynamicExportService.ExecuteQueryAsync(
-                            conn,
+                            provider,
+                            connCfg,
                             config,
                             ct,
                             limit: 50,

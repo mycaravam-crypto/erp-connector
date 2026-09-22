@@ -17,13 +17,14 @@ namespace Connector.Integration.Tests;
 /// </summary>
 public sealed class DynamicExportServiceFlatQueryPostgresTests
 {
+    private static readonly PostgreSqlDataSourceProvider Provider = new();
+
     private const string AcmeItemId = "11111111-1111-1111-1111-111111111111"; // masterdata row → Acme
 
     [Fact]
     public async Task ExecuteQueryAsync_EnabledFields_ReturnsRenamedColumns()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         var cfg = new ExportMappingConfig(
@@ -36,7 +37,12 @@ public sealed class DynamicExportServiceFlatQueryPostgresTests
             Relations: []
         );
 
-        var results = await DynamicExportService.ExecuteQueryAsync(conn, cfg, CancellationToken.None);
+        var results = await DynamicExportService.ExecuteQueryAsync(
+            Provider,
+            ErpTestFixture.Config,
+            cfg,
+            CancellationToken.None
+        );
 
         var row = results.Single(r => r["id"] == AcmeItemId);
         Assert.Equal("Compressor Unit CU-200", row["articleName"]);
@@ -49,8 +55,7 @@ public sealed class DynamicExportServiceFlatQueryPostgresTests
     [Fact]
     public async Task ExecuteQueryAsync_GdprDeniedField_ExcludedEvenWhenRenamed()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         var cfg = new ExportMappingConfig(
@@ -63,7 +68,12 @@ public sealed class DynamicExportServiceFlatQueryPostgresTests
             Relations: []
         );
 
-        var results = await DynamicExportService.ExecuteQueryAsync(conn, cfg, CancellationToken.None);
+        var results = await DynamicExportService.ExecuteQueryAsync(
+            Provider,
+            ErpTestFixture.Config,
+            cfg,
+            CancellationToken.None
+        );
 
         var row = results.Single(r => r["id"] == "44444444-4444-4444-4444-444444444444");
         Assert.False(row.ContainsKey("assignedTech"));

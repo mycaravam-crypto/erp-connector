@@ -6,7 +6,6 @@ using Connector.Core.DynamicExport;
 using Connector.Core.Schema;
 using Connector.Infrastructure;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace Connector.Api.Endpoints;
 
@@ -258,7 +257,7 @@ static class ExportDefinitionEndpoints
 
         app.MapPost(
                 "/api/export-definitions/{id:int}/preview",
-                async (int id, ExportLogDbContext db, CancellationToken ct) =>
+                async (int id, ExportLogDbContext db, IDataSourceProviderResolver resolver, CancellationToken ct) =>
                 {
                     var def = await db.ExportDefinitions.FindAsync([id], ct);
                     if (def is null)
@@ -276,13 +275,11 @@ static class ExportDefinitionEndpoints
                     try
                     {
                         var gdprDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
-                        await using var conn = new NpgsqlConnection(
-                            DynamicExportService.BuildConnectionString(connCfg)
-                        );
-                        await conn.OpenAsync(ct);
+                        var provider = resolver.Resolve(connCfg.Type);
 
                         var records = await DynamicExportService.ExecuteExportNodeQueryAsync(
-                            conn,
+                            provider,
+                            connCfg,
                             def.RootTable,
                             root,
                             ct,
@@ -312,6 +309,7 @@ static class ExportDefinitionEndpoints
                 async (
                     int id,
                     ExportLogDbContext db,
+                    IDataSourceProviderResolver resolver,
                     HttpContext httpContext,
                     AuditService audit,
                     CancellationToken ct
@@ -325,6 +323,7 @@ static class ExportDefinitionEndpoints
                     var (run, built, error) = await ExportDefinitionRunner.ExecuteAsync(
                         def,
                         db,
+                        resolver,
                         triggeredBy: user,
                         isTestRun: false,
                         limit: null,
@@ -366,6 +365,7 @@ static class ExportDefinitionEndpoints
                 async (
                     int id,
                     ExportLogDbContext db,
+                    IDataSourceProviderResolver resolver,
                     HttpContext httpContext,
                     AuditService audit,
                     CancellationToken ct
@@ -379,6 +379,7 @@ static class ExportDefinitionEndpoints
                     var (run, built, error) = await ExportDefinitionRunner.ExecuteAsync(
                         def,
                         db,
+                        resolver,
                         triggeredBy: user,
                         isTestRun: true,
                         limit: TestRunLimit,

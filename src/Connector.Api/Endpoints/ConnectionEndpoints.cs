@@ -1,6 +1,5 @@
 using System.Net;
 using Connector.Core.DataSources;
-using Connector.Core.DynamicExport;
 using Connector.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -72,7 +71,12 @@ static class ConnectionEndpoints
         // Tests the connection, persists it on success, and returns the live source schema.
         app.MapPost(
                 "/api/connection",
-                async (DataSourceConfig request, ExportLogDbContext db, CancellationToken ct) =>
+                async (
+                    DataSourceConfig request,
+                    ExportLogDbContext db,
+                    IDataSourceProviderResolver resolver,
+                    CancellationToken ct
+                ) =>
                 {
                     if (
                         string.IsNullOrWhiteSpace(request.Host)
@@ -92,9 +96,13 @@ static class ConnectionEndpoints
 
                     try
                     {
-                        var schema = await ConnectAndIntrospectAsync(request, ct);
+                        var provider = resolver.Resolve(request.Type);
+                        var result = await provider.TestConnectionAsync(request, ct);
+                        if (!result.Success)
+                            return Results.BadRequest($"Connection failed: {result.Error}");
+
                         await db.SetSettingAsync(SettingsKeys.ErpConnection, request);
-                        return Results.Ok(schema);
+                        return Results.Ok(result.Schema);
                     }
                     catch (Exception ex)
                     {
@@ -112,7 +120,7 @@ static class ConnectionEndpoints
         // "relation ... does not exist" error at preview/export time instead of here.
         app.MapGet(
                 "/api/source-schema",
-                async (ExportLogDbContext db, CancellationToken ct) =>
+                async (ExportLogDbContext db, IDataSourceProviderResolver resolver, CancellationToken ct) =>
                 {
                     var cfg = await db.GetSettingAsync<DataSourceConfig>(SettingsKeys.ErpConnection);
                     if (cfg is null)
@@ -120,7 +128,8 @@ static class ConnectionEndpoints
 
                     try
                     {
-                        return Results.Ok(await ConnectAndIntrospectAsync(cfg, ct));
+                        var provider = resolver.Resolve(cfg.Type);
+                        return Results.Ok(await provider.ReadSchemaAsync(cfg, ct));
                     }
                     catch (Exception ex)
                     {
@@ -132,93 +141,6 @@ static class ConnectionEndpoints
                 }
             )
             .RequireAuthorization();
-    }
-
-    // Opens a connection, introspects the schema, and wraps it in a SourceSchema. Shared by
-    // POST /api/connection (failures surface to the client as 400) and the GET /api/source-schema
-    // fallback (failures are swallowed by the caller, which falls through to the demo schema).
-    private static async Task<SourceSchema> ConnectAndIntrospectAsync(DataSourceConfig cfg, CancellationToken ct)
-    {
-        await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(cfg));
-        await conn.OpenAsync(ct);
-        var tables = await IntrospectSchemaAsync(conn, ct);
-        return new SourceSchema($"{cfg.Host}:{cfg.Port}/{cfg.Database}", tables);
-    }
-
-    // Introspects the public schema of an open Npgsql connection using information_schema views.
-    internal static async Task<SourceTable[]> IntrospectSchemaAsync(
-        NpgsqlConnection conn,
-        CancellationToken ct = default
-    )
-    {
-        var sql = """
-            SELECT
-                c.table_name,
-                c.column_name,
-                c.data_type,
-                c.is_nullable,
-                c.is_identity,
-                c.is_generated,
-                EXISTS (
-                    SELECT 1
-                    FROM information_schema.table_constraints tc
-                    JOIN information_schema.key_column_usage kcu
-                        ON kcu.constraint_name = tc.constraint_name
-                        AND kcu.table_schema  = tc.table_schema
-                        AND kcu.table_name    = tc.table_name
-                        AND kcu.column_name   = c.column_name
-                    WHERE tc.constraint_type = 'PRIMARY KEY'
-                      AND tc.table_schema    = 'public'
-                      AND tc.table_name      = c.table_name
-                ) AS is_pk,
-                fk.foreign_table_name,
-                fk.foreign_column_name
-            FROM information_schema.columns c
-            LEFT JOIN LATERAL (
-                SELECT ccu.table_name AS foreign_table_name, ccu.column_name AS foreign_column_name
-                FROM information_schema.table_constraints tc
-                JOIN information_schema.key_column_usage kcu
-                    ON kcu.constraint_name = tc.constraint_name
-                    AND kcu.table_schema   = tc.table_schema
-                JOIN information_schema.constraint_column_usage ccu
-                    ON ccu.constraint_name = tc.constraint_name
-                    AND ccu.table_schema   = tc.table_schema
-                WHERE tc.constraint_type = 'FOREIGN KEY'
-                  AND tc.table_schema    = 'public'
-                  AND tc.table_name      = c.table_name
-                  AND kcu.column_name    = c.column_name
-                LIMIT 1
-            ) fk ON true
-            WHERE c.table_schema = 'public'
-            ORDER BY c.table_name, c.ordinal_position
-            """;
-
-        await using var cmd = new NpgsqlCommand(sql, conn);
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-
-        var byTable = new Dictionary<string, List<SourceColumn>>();
-        while (await reader.ReadAsync(ct))
-        {
-            var table = reader.GetString(0);
-            if (!byTable.ContainsKey(table))
-                byTable[table] = [];
-            byTable[table]
-                .Add(
-                    new SourceColumn(
-                        Name: reader.GetString(1),
-                        Type: reader.GetString(2),
-                        Nullable: reader.GetString(3) == "YES",
-                        PrimaryKey: reader.GetBoolean(6),
-                        ForeignKeyTable: await reader.IsDBNullAsync(7, ct) ? null : reader.GetString(7),
-                        ForeignKeyColumn: await reader.IsDBNullAsync(8, ct) ? null : reader.GetString(8),
-                        IsIdentity: reader.GetString(4) == "YES",
-                        // "ALWAYS" (GENERATED ALWAYS AS ... STORED) or "NEVER" — never NULL for a real column.
-                        IsGenerated: reader.GetString(5) != "NEVER"
-                    )
-                );
-        }
-
-        return byTable.Select(kv => new SourceTable(kv.Key, "", kv.Value.ToArray())).OrderBy(t => t.Name).ToArray();
     }
 
     // Hardcoded demo schema that mirrors what a real production PostgreSQL ERP database would expose.

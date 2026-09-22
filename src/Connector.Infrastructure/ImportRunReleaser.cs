@@ -86,7 +86,7 @@ public static class ImportRunReleaser
         int conflictCount;
         try
         {
-            await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(connCfg));
+            await using var conn = new NpgsqlConnection(PostgreSqlDataSourceProvider.BuildConnectionString(connCfg));
             await conn.OpenAsync(ct);
             await using var tx = await conn.BeginTransactionAsync(ct);
 

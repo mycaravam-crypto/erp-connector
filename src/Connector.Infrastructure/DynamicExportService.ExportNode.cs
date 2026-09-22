@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
+using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
-using Npgsql;
 
 namespace Connector.Infrastructure;
 
@@ -80,7 +80,8 @@ public static partial class DynamicExportService
     /// defence-in-depth (security-review finding SR-08).
     /// </summary>
     public static async Task<List<JsonObject>> ExecuteExportNodeQueryAsync(
-        NpgsqlConnection conn,
+        IDataSourceProvider provider,
+        DataSourceConfig dsConfig,
         string rootTable,
         ExportNode root,
         CancellationToken ct,
@@ -123,22 +124,23 @@ public static partial class DynamicExportService
             sql += $" WHERE ({root.Filter})";
         sql += $" LIMIT {sqlLimit}";
 
-        await using var cmd = new NpgsqlCommand(sql, conn) { CommandTimeout = 30 };
+        QueryResult queryResult;
         try
         {
-            await using var reader = await cmd.ExecuteReaderAsync(ct);
-            while (await reader.ReadAsync(ct))
-            {
-                var text = await reader.IsDBNullAsync(0, ct) ? "{}" : reader.GetString(0);
-                var node = JsonNode.Parse(text) as JsonObject ?? [];
-                StripGdprFieldsRecursive(node, effectiveDenylist);
-                ApplyExportNodeMappingsRecursive(node, root);
-                results.Add(node);
-            }
+            queryResult = await provider.ExecuteAsync(dsConfig, new SourceQuery(sql, CommandTimeoutSeconds: 30), ct);
         }
-        catch (PostgresException pex) when (pex.SqlState == "21000")
+        catch (DataSourceQueryException dex) when (dex.ErrorCode == "21000")
         {
-            throw new InvalidOperationException(ObjectNodeCardinalityErrorMessage, pex);
+            throw new InvalidOperationException(ObjectNodeCardinalityErrorMessage, dex);
+        }
+
+        foreach (var row in queryResult.Rows)
+        {
+            var text = row.GetValueOrDefault("row_json") ?? "{}";
+            var node = JsonNode.Parse(text) as JsonObject ?? [];
+            StripGdprFieldsRecursive(node, effectiveDenylist);
+            ApplyExportNodeMappingsRecursive(node, root);
+            results.Add(node);
         }
 
         // Only the implicit (non-preview) ceiling fails the run — an explicit caller limit is what the
@@ -331,7 +333,8 @@ public static partial class DynamicExportService
     /// records, which is what makes adding a new format later an OCP-clean addition (knowledge/pipeline/export-definitions-2.0.md §8).
     /// </summary>
     public static async Task<ExportBuildResult> BuildExportNodeAsync(
-        NpgsqlConnection conn,
+        IDataSourceProvider provider,
+        DataSourceConfig dsConfig,
         string rootTable,
         ExportNode root,
         string format,
@@ -343,7 +346,7 @@ public static partial class DynamicExportService
         ExportProvenance? provenance = null
     )
     {
-        var records = await ExecuteExportNodeQueryAsync(conn, rootTable, root, ct, limit, gdprDenylist);
+        var records = await ExecuteExportNodeQueryAsync(provider, dsConfig, rootTable, root, ct, limit, gdprDenylist);
         var writer = ExportFormatWriterFactory.Get(format);
         var bytes = writer.Write(root, records, schemaVersion, extractedAt, provenance);
         return new ExportBuildResult(bytes, records.Count, writer.FileExtension);

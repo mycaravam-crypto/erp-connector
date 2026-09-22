@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
+using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
-using Npgsql;
 
 namespace Connector.Infrastructure;
 
@@ -36,7 +36,8 @@ public static partial class DynamicExportService
     /// flat shape for a nested-group mapping.
     /// </summary>
     public static async Task<ExportBuildResult> BuildExportAsync(
-        NpgsqlConnection conn,
+        IDataSourceProvider provider,
+        DataSourceConfig dsConfig,
         ExportMappingConfig cfg,
         string format,
         string schemaVersion,
@@ -47,13 +48,19 @@ public static partial class DynamicExportService
     {
         if (UsesNestedJson(cfg, format))
         {
-            var nestedRecords = await ExecuteNestedJsonQueryAsync(conn, cfg, ct, gdprDenylist: gdprDenylist);
+            var nestedRecords = await ExecuteNestedJsonQueryAsync(
+                provider,
+                dsConfig,
+                cfg,
+                ct,
+                gdprDenylist: gdprDenylist
+            );
             var nestedBytes = BuildNestedJsonBytes(nestedRecords, cfg.JsonWrapper, schemaVersion, extractedAt);
             return new ExportBuildResult(nestedBytes, nestedRecords.Count, "json");
         }
 
         var cols = GetColumnNames(cfg);
-        var records = await ExecuteQueryAsync(conn, cfg, ct, gdprDenylist: gdprDenylist);
+        var records = await ExecuteQueryAsync(provider, dsConfig, cfg, ct, gdprDenylist: gdprDenylist);
         return format switch
         {
             "csv" => new ExportBuildResult(
@@ -71,7 +78,8 @@ public static partial class DynamicExportService
     }
 
     public static async Task<List<Dictionary<string, string>>> ExecuteQueryAsync(
-        NpgsqlConnection conn,
+        IDataSourceProvider provider,
+        DataSourceConfig dsConfig,
         ExportMappingConfig cfg,
         CancellationToken ct,
         int? limit = null,
@@ -113,29 +121,11 @@ public static partial class DynamicExportService
         if (limit.HasValue)
             sql += $" LIMIT {limit.Value}";
 
-        var results = new List<Dictionary<string, string>>();
-        await using var cmd = new NpgsqlCommand(sql, conn) { CommandTimeout = 30 };
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-
-        while (await reader.ReadAsync(ct))
-        {
-            var row = new Dictionary<string, string>(reader.FieldCount);
-            for (int i = 0; i < reader.FieldCount; i++)
-            {
-                if (await reader.IsDBNullAsync(i, ct))
-                {
-                    row[reader.GetName(i)] = "";
-                    continue;
-                }
-                // Coerce date/timestamp columns to ISO 8601 (YYYY-MM-DD) regardless of locale.
-                var pgType = reader.GetDataTypeName(i);
-                if (pgType is "date" or "timestamp" or "timestamptz")
-                    row[reader.GetName(i)] = reader.GetDateTime(i).ToString("yyyy-MM-dd");
-                else
-                    row[reader.GetName(i)] = reader.GetValue(i)?.ToString() ?? "";
-            }
-            results.Add(row);
-        }
+        // Date/timestamp columns already arrive ISO-8601-coerced (YYYY-MM-DD) from the provider — same rule
+        // the pre-abstraction reader loop applied inline here. A NULL column becomes "" (not the provider's
+        // own null), matching this method's long-standing contract for the legacy flat CSV/Excel/JSON export.
+        var queryResult = await provider.ExecuteAsync(dsConfig, new SourceQuery(sql, CommandTimeoutSeconds: 30), ct);
+        var results = queryResult.Rows.Select(row => row.ToDictionary(kv => kv.Key, kv => kv.Value ?? "")).ToList();
 
         // Second, independent layer of defence-in-depth on top of the SELECT-list exclusion above — catches
         // a denied field under a TargetName that happens to match its own denylist entry (or any other
@@ -200,7 +190,8 @@ public static partial class DynamicExportService
     /// this never calls, and is never called by, <see cref="ExecuteQueryAsync"/>.
     /// </summary>
     public static async Task<List<JsonObject>> ExecuteNestedJsonQueryAsync(
-        NpgsqlConnection conn,
+        IDataSourceProvider provider,
+        DataSourceConfig dsConfig,
         ExportMappingConfig cfg,
         CancellationToken ct,
         int? limit = null,
@@ -230,25 +221,26 @@ public static partial class DynamicExportService
         if (limit.HasValue)
             sql += $" LIMIT {limit.Value}";
 
-        await using var cmd = new NpgsqlCommand(sql, conn) { CommandTimeout = 30 };
+        QueryResult queryResult;
         try
         {
-            await using var reader = await cmd.ExecuteReaderAsync(ct);
-            while (await reader.ReadAsync(ct))
-            {
-                // Npgsql's default json/jsonb -> string mapping (no custom type mapping in this repo)
-                // returns the raw JSON text; parsing it into a mutable JsonObject (rather than treating it
-                // as an opaque string) is what lets it be spliced into the final output tree as real nested
-                // JSON instead of a JSON-encoded string-within-a-string.
-                var text = await reader.IsDBNullAsync(0, ct) ? "{}" : reader.GetString(0);
-                var node = JsonNode.Parse(text) as JsonObject ?? [];
-                StripGdprFieldsRecursive(node, effectiveDenylist);
-                results.Add(node);
-            }
+            queryResult = await provider.ExecuteAsync(dsConfig, new SourceQuery(sql, CommandTimeoutSeconds: 30), ct);
         }
-        catch (PostgresException pex) when (pex.SqlState == "21000")
+        catch (DataSourceQueryException dex) when (dex.ErrorCode == "21000")
         {
-            throw new InvalidOperationException(ObjectGroupCardinalityErrorMessage, pex);
+            throw new InvalidOperationException(ObjectGroupCardinalityErrorMessage, dex);
+        }
+
+        foreach (var row in queryResult.Rows)
+        {
+            // The provider hands back the json/jsonb column's raw JSON text (Npgsql's default mapping, no
+            // custom type mapping in this repo); parsing it into a mutable JsonObject (rather than treating
+            // it as an opaque string) is what lets it be spliced into the final output tree as real nested
+            // JSON instead of a JSON-encoded string-within-a-string.
+            var text = row.GetValueOrDefault("row_json") ?? "{}";
+            var node = JsonNode.Parse(text) as JsonObject ?? [];
+            StripGdprFieldsRecursive(node, effectiveDenylist);
+            results.Add(node);
         }
 
         return results;

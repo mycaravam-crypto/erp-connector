@@ -1,6 +1,8 @@
 using Connector.Api;
 using Connector.Api.Endpoints;
+using Connector.Core.DataSources;
 using Connector.Core.DynamicImport;
+using Connector.Infrastructure;
 
 namespace Connector.Integration.Tests;
 
@@ -20,6 +22,10 @@ namespace Connector.Integration.Tests;
 /// </summary>
 public sealed class ImportDefinitionEndpointsPostgresTests
 {
+    private static readonly IDataSourceProviderResolver Resolver = new DataSourceProviderResolver([
+        new PostgreSqlDataSourceProvider(),
+    ]);
+
     // ── Tree builders (mirrors ImportNodeWalkerPostgresTests' own Scalar/SystemConfigurationRoot) ──────
 
     private static ImportNode Scalar(string sourceKey, string targetColumn) =>
@@ -79,6 +85,7 @@ public sealed class ImportDefinitionEndpointsPostgresTests
         var (resultRoot, error) = await ImportDefinitionEndpoints.ValidateRequestAsync(
             request,
             local.Db,
+            Resolver,
             CancellationToken.None
         );
 
@@ -101,6 +108,7 @@ public sealed class ImportDefinitionEndpointsPostgresTests
         var (resultRoot, error) = await ImportDefinitionEndpoints.ValidateRequestAsync(
             request,
             local.Db,
+            Resolver,
             CancellationToken.None
         );
 
@@ -121,6 +129,7 @@ public sealed class ImportDefinitionEndpointsPostgresTests
         var (resultRoot, error) = await ImportDefinitionEndpoints.ValidateRequestAsync(
             request,
             local.Db,
+            Resolver,
             CancellationToken.None
         );
 
@@ -143,6 +152,7 @@ public sealed class ImportDefinitionEndpointsPostgresTests
         var (resultRoot, error) = await ImportDefinitionEndpoints.ValidateRequestAsync(
             request,
             local.Db,
+            Resolver,
             CancellationToken.None
         );
 
@@ -165,6 +175,7 @@ public sealed class ImportDefinitionEndpointsPostgresTests
         var (resultRoot, error) = await ImportDefinitionEndpoints.ValidateRequestAsync(
             request,
             local.Db,
+            Resolver,
             CancellationToken.None
         );
 
@@ -185,6 +196,7 @@ public sealed class ImportDefinitionEndpointsPostgresTests
         var (resultRoot, error) = await ImportDefinitionEndpoints.ValidateRequestAsync(
             request,
             local.Db,
+            Resolver,
             CancellationToken.None
         );
 
@@ -205,6 +217,7 @@ public sealed class ImportDefinitionEndpointsPostgresTests
         var (resultRoot, error) = await ImportDefinitionEndpoints.ValidateRequestAsync(
             request,
             local.Db,
+            Resolver,
             CancellationToken.None
         );
 
@@ -236,6 +249,7 @@ public sealed class ImportDefinitionEndpointsPostgresTests
         var (resultRoot, error) = await ImportDefinitionEndpoints.ValidateRequestAsync(
             request,
             local.Db,
+            Resolver,
             CancellationToken.None
         );
 

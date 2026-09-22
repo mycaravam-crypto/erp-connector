@@ -5,7 +5,6 @@ using Connector.Core.DynamicExport;
 using Connector.Core.DynamicImport;
 using Connector.Infrastructure;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace Connector.Api.Endpoints;
 
@@ -30,6 +29,7 @@ static partial class ImportDefinitionEndpoints
     internal static async Task<(ImportNode? Root, string? Error)> ValidateRequestAsync(
         ImportDefinitionRequest request,
         ExportLogDbContext db,
+        IDataSourceProviderResolver resolver,
         CancellationToken ct,
         int? excludeId = null
     )
@@ -126,9 +126,8 @@ static partial class ImportDefinitionEndpoints
         SourceTable[] schema;
         try
         {
-            await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(connCfg));
-            await conn.OpenAsync(ct);
-            schema = await ConnectionEndpoints.IntrospectSchemaAsync(conn, ct);
+            var provider = resolver.Resolve(connCfg.Type);
+            schema = (await provider.ReadSchemaAsync(connCfg, ct)).Tables;
         }
         catch (Exception ex)
         {
