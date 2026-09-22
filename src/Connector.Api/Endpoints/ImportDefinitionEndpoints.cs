@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
 using Connector.Core.DynamicImport;
 using Connector.Infrastructure;
@@ -274,7 +275,7 @@ static partial class ImportDefinitionEndpoints
                     var connRaw = await db.GetSettingRawAsync(SettingsKeys.ErpConnection);
                     if (connRaw is null)
                         return Results.Problem(detail: "No database connection configured.", statusCode: 400);
-                    var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connRaw)!;
+                    var connCfg = JsonSerializer.Deserialize<DataSourceConfig>(connRaw)!;
 
                     try
                     {
@@ -392,7 +393,7 @@ static partial class ImportDefinitionEndpoints
                     var connRaw = await db.GetSettingRawAsync(SettingsKeys.ErpConnection);
                     if (connRaw is null)
                         return Results.Problem(detail: "No database connection configured.", statusCode: 400);
-                    var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connRaw)!;
+                    var connCfg = JsonSerializer.Deserialize<DataSourceConfig>(connRaw)!;
 
                     ImportPlan plan;
                     try

@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ClosedXML.Excel;
+using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
 using Connector.Core.Schema;
 using Connector.Infrastructure;
@@ -94,7 +95,7 @@ public sealed class DynamicExportServiceTests
     [Fact]
     public void BuildConnectionString_PasswordWithInjectionPayload_DoesNotOverrideHost()
     {
-        var cfg = new ErpConnectionConfig(
+        var cfg = new DataSourceConfig(
             "trusted-host.example",
             5432,
             "erp",
@@ -113,7 +114,7 @@ public sealed class DynamicExportServiceTests
     [Fact]
     public void BuildConnectionString_UsernameWithInjectionPayload_DoesNotOverrideDatabase()
     {
-        var cfg = new ErpConnectionConfig("trusted-host.example", 5432, "erp", "erp_user;Database=other_db", "pw");
+        var cfg = new DataSourceConfig("trusted-host.example", 5432, "erp", "erp_user;Database=other_db", "pw");
 
         var connectionString = DynamicExportService.BuildConnectionString(cfg);
         var parsed = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
@@ -138,7 +139,7 @@ public sealed class DynamicExportServiceTests
         Npgsql.SslMode expected
     )
     {
-        var cfg = new ErpConnectionConfig("host.example", 5432, "erp", "user", "pw", sslMode);
+        var cfg = new DataSourceConfig("host.example", 5432, "erp", "user", "pw", sslMode);
 
         var connectionString = DynamicExportService.BuildConnectionString(cfg);
         var parsed = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
@@ -153,8 +154,8 @@ public sealed class DynamicExportServiceTests
     [Fact]
     public void ConnectionFingerprint_SameHostPortDatabase_IsStableAcrossDifferentCredentials()
     {
-        var stagedAt = new ErpConnectionConfig("erp.example", 5432, "erp", "reader", "pw1");
-        var releasedAt = new ErpConnectionConfig("erp.example", 5432, "erp", "writer", "pw2");
+        var stagedAt = new DataSourceConfig("erp.example", 5432, "erp", "reader", "pw1");
+        var releasedAt = new DataSourceConfig("erp.example", 5432, "erp", "writer", "pw2");
 
         Assert.Equal(
             DynamicExportService.ConnectionFingerprint(stagedAt),
@@ -168,8 +169,8 @@ public sealed class DynamicExportServiceTests
     [InlineData("erp.example", 5432, "other_db")]
     public void ConnectionFingerprint_DifferentTarget_DiffersFromOriginal(string host, int port, string database)
     {
-        var stagedAt = new ErpConnectionConfig("erp.example", 5432, "erp", "reader", "pw");
-        var swapped = new ErpConnectionConfig(host, port, database, "reader", "pw");
+        var stagedAt = new DataSourceConfig("erp.example", 5432, "erp", "reader", "pw");
+        var swapped = new DataSourceConfig(host, port, database, "reader", "pw");
 
         Assert.NotEqual(
             DynamicExportService.ConnectionFingerprint(stagedAt),

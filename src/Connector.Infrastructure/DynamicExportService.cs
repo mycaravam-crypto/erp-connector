@@ -1,3 +1,4 @@
+using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
 using Npgsql;
 
@@ -45,7 +46,7 @@ public static partial class DynamicExportService
     // ever be interpreted as connection-string syntax. No TrustServerCertificate: Npgsql 10 removed the
     // behavior it used to control (SslMode=Prefer already governs cert handling), and the property is
     // now an obsolete no-op.
-    public static string BuildConnectionString(ErpConnectionConfig cfg) =>
+    public static string BuildConnectionString(DataSourceConfig cfg) =>
         new NpgsqlConnectionStringBuilder
         {
             Host = cfg.Host,
@@ -77,7 +78,7 @@ public static partial class DynamicExportService
     /// matches at release (<see cref="ImportRunEntity.StagedConnectionFingerprint"/>,
     /// <see cref="ImportRunReleaser.ReleaseAsync"/>).
     /// </summary>
-    public static string ConnectionFingerprint(ErpConnectionConfig cfg) => $"{cfg.Host}:{cfg.Port}/{cfg.Database}";
+    public static string ConnectionFingerprint(DataSourceConfig cfg) => $"{cfg.Host}:{cfg.Port}/{cfg.Database}";
 
     // Safe SQL identifier quoting — wraps in double quotes and escapes embedded double quotes.
     public static string QI(string identifier) => "\"" + identifier.Replace("\"", "\"\"") + "\"";

@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Connector.Api;
+using Connector.Core.DataSources;
 using Connector.Core.Domain;
 using Connector.Core.DynamicExport;
 using Connector.Core.Schema;
@@ -66,7 +67,7 @@ static class PipelineEndpoints
                             statusCode: 400
                         );
                     }
-                    var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connRaw)!;
+                    var connCfg = JsonSerializer.Deserialize<DataSourceConfig>(connRaw)!;
 
                     try
                     {
@@ -193,7 +194,7 @@ static class PipelineEndpoints
                             detail: "No database connection configured. Go to Step 1 and save a connection first.",
                             statusCode: 400
                         );
-                    var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connRaw)!;
+                    var connCfg = JsonSerializer.Deserialize<DataSourceConfig>(connRaw)!;
 
                     var user = httpContext.User.Identity!.Name!;
                     try
@@ -268,7 +269,7 @@ static class PipelineEndpoints
                     if (connRaw is null)
                         return Results.Ok(EmptyResult("No database connection configured. Set it up in Step 1."));
 
-                    var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connRaw);
+                    var connCfg = JsonSerializer.Deserialize<DataSourceConfig>(connRaw);
                     if (connCfg is null)
                         return Results.Ok(EmptyResult("Stored connection config could not be read."));
 

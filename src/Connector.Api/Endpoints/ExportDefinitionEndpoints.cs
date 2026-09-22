@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
 using Connector.Core.Schema;
 using Connector.Infrastructure;
@@ -270,7 +271,7 @@ static class ExportDefinitionEndpoints
                     var connRaw = await db.GetSettingRawAsync(SettingsKeys.ErpConnection);
                     if (connRaw is null)
                         return Results.Ok(new ExportDefinitionPreviewDto(0, []));
-                    var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connRaw)!;
+                    var connCfg = JsonSerializer.Deserialize<DataSourceConfig>(connRaw)!;
 
                     try
                     {

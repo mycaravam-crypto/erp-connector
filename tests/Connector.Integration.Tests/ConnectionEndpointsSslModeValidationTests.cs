@@ -6,7 +6,7 @@ namespace Connector.Integration.Tests;
 /// Coverage for <see cref="ConnectionEndpoints.IsValidSslMode"/> (security-review finding SR-03: the ERP
 /// connection's SSL mode was hardcoded to Npgsql's "Prefer" — silently unencrypted whenever the server
 /// doesn't offer TLS — with no way for an operator to require and verify it instead; this validates the
-/// new opt-in <see cref="Connector.Core.DynamicExport.ErpConnectionConfig.SslMode"/> field at save time).
+/// new opt-in <see cref="Connector.Core.DataSources.DataSourceConfig.SslMode"/> field at save time).
 /// </summary>
 public sealed class ConnectionEndpointsSslModeValidationTests
 {

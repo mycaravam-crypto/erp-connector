@@ -1,4 +1,4 @@
-using Connector.Core.DynamicExport;
+using Connector.Core.DataSources;
 using Npgsql;
 
 namespace Connector.Integration.Tests;
@@ -14,7 +14,7 @@ internal static class ErpTestFixture
     internal const string ConnectionString =
         "Host=localhost;Port=5432;Database=erp_testdb;Username=erp_test;Password=erp_test_pw;Timeout=2";
 
-    internal static readonly ErpConnectionConfig Config = new(
+    internal static readonly DataSourceConfig Config = new(
         Host: "localhost",
         Port: 5432,
         Database: "erp_testdb",

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
 using Connector.Infrastructure;
 using Microsoft.AspNetCore.DataProtection;
@@ -92,7 +93,7 @@ public sealed class AppSettingEncryptionTests
         // Fresh context, same key ring: forces a real decrypt rather than reading back the writer's own
         // still-plaintext tracked entity.
         await using var reader = new ExportLogDbContext(options, dataProtectionProvider);
-        var roundTripped = await reader.GetSettingAsync<ErpConnectionConfig>(SettingsKeys.ErpConnection);
+        var roundTripped = await reader.GetSettingAsync<DataSourceConfig>(SettingsKeys.ErpConnection);
         Assert.Equal(ErpTestFixture.Config, roundTripped);
     }
 
@@ -110,7 +111,7 @@ public sealed class AppSettingEncryptionTests
         var plainJson = JsonSerializer.Serialize(ErpTestFixture.Config);
         await WriteRawColumnValueAsync(connection, SettingsKeys.ErpConnection, plainJson);
 
-        var roundTripped = await db.GetSettingAsync<ErpConnectionConfig>(SettingsKeys.ErpConnection);
+        var roundTripped = await db.GetSettingAsync<DataSourceConfig>(SettingsKeys.ErpConnection);
         Assert.Equal(ErpTestFixture.Config, roundTripped);
     }
 
@@ -138,7 +139,7 @@ public sealed class AppSettingEncryptionTests
         var plainJson = JsonSerializer.Serialize(ErpTestFixture.Config);
         await WriteRawColumnValueAsync(connection, SettingsKeys.ErpConnection, plainJson);
 
-        await db.GetSettingAsync<ErpConnectionConfig>(SettingsKeys.ErpConnection);
+        await db.GetSettingAsync<DataSourceConfig>(SettingsKeys.ErpConnection);
 
         Assert.Contains(logger.Warnings, w => w.Contains("plaintext", StringComparison.OrdinalIgnoreCase));
     }
@@ -165,7 +166,7 @@ public sealed class AppSettingEncryptionTests
         Assert.Empty(writerLogger.Warnings);
 
         await using var reader = new ExportLogDbContext(options, dataProtectionProvider, readerLogger);
-        await reader.GetSettingAsync<ErpConnectionConfig>(SettingsKeys.ErpConnection);
+        await reader.GetSettingAsync<DataSourceConfig>(SettingsKeys.ErpConnection);
 
         Assert.Empty(readerLogger.Warnings);
     }

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
 using Connector.Core.DynamicImport;
 using Connector.Infrastructure;
@@ -120,9 +121,9 @@ static partial class ImportDefinitionEndpoints
         var connRaw = await db.GetSettingRawAsync(SettingsKeys.ErpConnection);
         if (connRaw is null)
             return (null, "ERP connection not configured; cannot validate AllowedWritableColumns against the schema.");
-        var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connRaw)!;
+        var connCfg = JsonSerializer.Deserialize<DataSourceConfig>(connRaw)!;
 
-        SourceTableDto[] schema;
+        SourceTable[] schema;
         try
         {
             await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(connCfg));
@@ -156,7 +157,7 @@ static partial class ImportDefinitionEndpoints
         string column,
         string path,
         IReadOnlySet<string> allowedColumns,
-        IReadOnlyDictionary<string, SourceTableDto> schemaByTable
+        IReadOnlyDictionary<string, SourceTable> schemaByTable
     )
     {
         if (!allowedColumns.Contains(column))

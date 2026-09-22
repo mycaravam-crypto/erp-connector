@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
 using Connector.Core.Schema;
 using Npgsql;
@@ -60,7 +61,7 @@ public static class ExportDefinitionRunner
             var connRaw = await db.GetSettingRawAsync(SettingsKeys.ErpConnection);
             if (connRaw is null)
                 return await Fail("No database connection configured.");
-            var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connRaw);
+            var connCfg = JsonSerializer.Deserialize<DataSourceConfig>(connRaw);
             if (connCfg is null)
                 return await Fail("Stored database connection config could not be read.");
 

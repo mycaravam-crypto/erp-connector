@@ -63,27 +63,6 @@ public record ExportMappingConfig(
 );
 
 /// <summary>
-/// ERP PostgreSQL connection parameters used to open a live Npgsql connection.
-/// </summary>
-/// <param name="SslMode">
-/// Security-review finding SR-03: was previously hardcoded to Npgsql's "Prefer" everywhere (silently
-/// downgrades to an unencrypted connection if the server doesn't offer TLS) with no way for an operator to
-/// require and verify it instead. One of Npgsql's <c>SslMode</c> names — "Disable", "Allow", "Prefer",
-/// "Require", "VerifyCA", or "VerifyFull" (validated in <c>Connector.Api.Endpoints.ConnectionEndpoints</c>)
-/// — or null/empty to keep that same "Prefer" default. Optional, appended last with a default, so every
-/// existing 5-argument construction of this record (tests, stored settings predating this field) keeps
-/// compiling and behaving exactly as before.
-/// </param>
-public record ErpConnectionConfig(
-    string Host,
-    int Port,
-    string Database,
-    string Username,
-    string Password,
-    string? SslMode = null
-);
-
-/// <summary>
 /// Deserializes <see cref="ExportMappingConfig"/> stored as <c>AppSetting</c> JSON, repairing configs saved
 /// before relations gained a <c>Fields</c> list, <c>Delimiter</c>, and relation-level <c>FlattenStrategy</c>:
 /// System.Text.Json leaves a missing property at its type default — <see langword="null"/> for the string and
