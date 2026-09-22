@@ -86,17 +86,7 @@ See [`knowledge/pipeline/dynamic-export-service.md`](knowledge/pipeline/dynamic-
 
 ### Run the full stack in development
 
-```bash
-./dev.sh
-```
-
-Starts the API on `:5189` and the Vite dev server on `:5173`. Ctrl-C stops both.
-
-**Dev credentials:** `alice / alice123` and `bob / bob123` (hard-coded in Development mode only).
-
-#### Alternative: one-command Docker dev environment
-
-No local .NET/Node toolchain required. Runs the API (`dotnet watch`), the UI (Vite dev
+One command, no local .NET/Node toolchain required. Runs the API (`dotnet watch`), the UI (Vite dev
 server with hot reload), and the test Postgres ERP source together:
 
 ```bash
@@ -114,8 +104,8 @@ docker-compose -f docker-compose.dev.yml up
   so `localhost:5432` from the host machine is **not** reachable from there. On the Step 1
   screen, use host `testdb` (the docker-compose service name), not `localhost`. Full values:
   `testdb` / `5432` / `erp_testdb` / `erp_test` / `erp_test_pw`.
-  (If you're running via `./dev.sh` instead, the API runs directly on the host and `localhost`
-  is correct there.)
+
+**Dev credentials:** `alice / alice123` and `bob / bob123` (hard-coded in Development mode only).
 
 ### Run tests
 
