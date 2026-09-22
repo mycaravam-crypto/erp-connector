@@ -3,6 +3,7 @@ using System.Text;
 using System.Threading.RateLimiting;
 using Connector.Api;
 using Connector.Api.Endpoints;
+using Connector.Core.DataSources;
 using Connector.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -197,6 +198,13 @@ builder
 builder.Services.AddDbContext<ExportLogDbContext>(opt =>
     opt.UseSqlite(builder.Configuration.GetConnectionString("ExportLog"))
 );
+
+// Data source abstraction (Arbeitsauftrag 2): PostgreSql is the only registered provider today —
+// DataSourceProviderResolver.Resolve throws UnsupportedDataSourceException for any other DataSourceType
+// (MariaDb/ServiceNow), which are deliberately unimplemented. Both are singletons: neither holds per-call
+// state, and every provider method opens/disposes its own connection.
+builder.Services.AddSingleton<IDataSourceProvider, PostgreSqlDataSourceProvider>();
+builder.Services.AddSingleton<IDataSourceProviderResolver, DataSourceProviderResolver>();
 
 builder.Services.AddScoped<AuditService>();
 builder.Services.AddHostedService<ExportWorker>();
