@@ -373,3 +373,10 @@ async Task BootstrapMigrationsAsync(ExportLogDbContext db)
             "CREATE INDEX IF NOT EXISTS \"IX_AuditLog_Timestamp\" ON \"AuditLog\" (\"Timestamp\")"
         );
 }
+
+// Top-level statements generate an internal Program class by default; this partial declaration makes it
+// public so Connector.Integration.Tests's WebApplicationFactory<Program> (ApiFactory) can reference it.
+public partial class Program
+{
+    protected Program() { }
+}
