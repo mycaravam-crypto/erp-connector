@@ -58,7 +58,9 @@ onMounted(async () => {
 
   <template v-else-if="schedulerConfig && brandingConfig">
     <SchedulerSettingsForm :config="schedulerConfig" />
+    <hr class="my-10 border-border" />
     <GdprDenylistEditor :initial-fields="gdprFields" />
+    <hr class="my-10 border-border" />
     <BrandingSettingsForm :config="brandingConfig" />
   </template>
 </template>
