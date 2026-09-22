@@ -1,3 +1,4 @@
+using Connector.Core.DataSources;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -56,6 +57,7 @@ public sealed class ExportDefinitionWorker(IServiceScopeFactory scopeFactory, IL
         {
             await using var scope = scopeFactory.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<ExportLogDbContext>();
+            var resolver = scope.ServiceProvider.GetRequiredService<IDataSourceProviderResolver>();
 
             // Broad, SQL-translatable prefilter; CronSchedule.IsDue itself is plain C# and can't run inside
             // the EF query, so the actual cron match happens after materializing candidates.
@@ -68,6 +70,7 @@ public sealed class ExportDefinitionWorker(IServiceScopeFactory scopeFactory, IL
                     var (_, built, error) = await ExportDefinitionRunner.ExecuteAsync(
                         def,
                         db,
+                        resolver,
                         triggeredBy: SchedulerTriggeredBy,
                         isTestRun: false,
                         limit: null,

@@ -17,6 +17,8 @@ namespace Connector.Integration.Tests;
 /// </summary>
 public sealed class DynamicExportServiceNestedJsonPostgresTests
 {
+    private static readonly PostgreSqlDataSourceProvider Provider = new();
+
     // Seeded in testdb/init.sql: Acme Industrial has 2 addresses, Northbridge Sensors has 0.
     private const string AcmeManufacturerId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
     private const string AcmeItemId = "11111111-1111-1111-1111-111111111111"; // masterdata row → Acme
@@ -25,8 +27,7 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
     [Fact]
     public async Task ExecuteNestedJsonQueryAsync_ObjectKindGroup_EmbedsSingleNestedObject()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         var cfg = MakeConfig(
@@ -54,7 +55,8 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
         // ran these tests against Postgres at all until #145's fix — this is the first time either
         // gap would have been caught).
         var results = await DynamicExportService.ExecuteNestedJsonQueryAsync(
-            conn,
+            Provider,
+            ErpTestFixture.Config,
             cfg,
             CancellationToken.None,
             gdprDenylist: new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -69,8 +71,7 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
     [Fact]
     public async Task ExecuteNestedJsonQueryAsync_ArrayKindGroup_EmbedsArrayOfObjects()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         var cfg = MakeConfig(
@@ -91,7 +92,12 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
             sourceTable: "manufacturer"
         );
 
-        var results = await DynamicExportService.ExecuteNestedJsonQueryAsync(conn, cfg, CancellationToken.None);
+        var results = await DynamicExportService.ExecuteNestedJsonQueryAsync(
+            Provider,
+            ErpTestFixture.Config,
+            cfg,
+            CancellationToken.None
+        );
 
         var row = results.Single(r => r["manufacturerId"]!.GetValue<string>() == AcmeManufacturerId);
         var addresses = row["addresses"]!.AsArray();
@@ -102,8 +108,7 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
     [Fact]
     public async Task ExecuteNestedJsonQueryAsync_TwoHopNesting_ChildGroupNestsUnderParentKey()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         var cfg = MakeConfig(
@@ -134,7 +139,12 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
             ]
         );
 
-        var results = await DynamicExportService.ExecuteNestedJsonQueryAsync(conn, cfg, CancellationToken.None);
+        var results = await DynamicExportService.ExecuteNestedJsonQueryAsync(
+            Provider,
+            ErpTestFixture.Config,
+            cfg,
+            CancellationToken.None
+        );
 
         var row = results.Single(r => r["itemId"]!.GetValue<string>() == AcmeItemId);
         var manufacturer = row["manufacturer"]!.AsObject();
@@ -148,8 +158,7 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
     [Fact]
     public async Task ExecuteNestedJsonQueryAsync_DisabledGroupAndDisabledField_AreExcluded()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         var cfg = MakeConfig(
@@ -170,7 +179,12 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
             ]
         );
 
-        var results = await DynamicExportService.ExecuteNestedJsonQueryAsync(conn, cfg, CancellationToken.None);
+        var results = await DynamicExportService.ExecuteNestedJsonQueryAsync(
+            Provider,
+            ErpTestFixture.Config,
+            cfg,
+            CancellationToken.None
+        );
 
         var row = results.Single(r => r["itemId"]!.GetValue<string>() == AcmeItemId);
         Assert.False(row.ContainsKey("disabledGroup"));
@@ -182,8 +196,7 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
     [Fact]
     public async Task ExecuteNestedJsonQueryAsync_ZeroMatchingRelatedRows_YieldsEmptyArrayNotNull()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         var cfg = MakeConfig(
@@ -214,7 +227,12 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
             ]
         );
 
-        var results = await DynamicExportService.ExecuteNestedJsonQueryAsync(conn, cfg, CancellationToken.None);
+        var results = await DynamicExportService.ExecuteNestedJsonQueryAsync(
+            Provider,
+            ErpTestFixture.Config,
+            cfg,
+            CancellationToken.None
+        );
 
         var row = results.Single(r => r["itemId"]!.GetValue<string>() == NorthbridgeItemId);
         var addresses = row["manufacturer"]!["addresses"];
@@ -226,8 +244,7 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
     [Fact]
     public async Task ExecuteNestedJsonQueryAsync_GdprDeniedField_StrippedFromNestedObject()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         var cfg = MakeConfig(
@@ -251,7 +268,8 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
         var denylist = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "contact_email" };
 
         var results = await DynamicExportService.ExecuteNestedJsonQueryAsync(
-            conn,
+            Provider,
+            ErpTestFixture.Config,
             cfg,
             CancellationToken.None,
             gdprDenylist: denylist
@@ -268,8 +286,7 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
     [Fact]
     public async Task ExecuteNestedJsonQueryAsync_GdprDeniedField_ExcludedEvenWhenRenamed()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         var cfg = MakeConfig(
@@ -291,7 +308,8 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
         var denylist = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "contact_email" };
 
         var results = await DynamicExportService.ExecuteNestedJsonQueryAsync(
-            conn,
+            Provider,
+            ErpTestFixture.Config,
             cfg,
             CancellationToken.None,
             gdprDenylist: denylist
@@ -304,8 +322,7 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
     [Fact]
     public async Task ExecuteNestedJsonQueryAsync_ObjectKindGroupWithMultipleMatches_ThrowsActionableError()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         // Misconfigured as "object" (1:1 assumed) but manufacturer_address.manufacturer_id is not unique —
@@ -330,7 +347,12 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
         );
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            DynamicExportService.ExecuteNestedJsonQueryAsync(conn, cfg, CancellationToken.None)
+            DynamicExportService.ExecuteNestedJsonQueryAsync(
+                Provider,
+                ErpTestFixture.Config,
+                cfg,
+                CancellationToken.None
+            )
         );
         Assert.Contains("\"object\"", ex.Message);
         Assert.Contains("\"array\"", ex.Message);
@@ -339,8 +361,7 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
     [Fact]
     public async Task ExecuteNestedJsonQueryAsync_TargetKeyWithApostrophe_EscapedSafely()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         var cfg = MakeConfig(
@@ -348,7 +369,12 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
             nestedGroups: []
         );
 
-        var results = await DynamicExportService.ExecuteNestedJsonQueryAsync(conn, cfg, CancellationToken.None);
+        var results = await DynamicExportService.ExecuteNestedJsonQueryAsync(
+            Provider,
+            ErpTestFixture.Config,
+            cfg,
+            CancellationToken.None
+        );
 
         var row = results.Single(r => r["item's id"]!.GetValue<string>() == AcmeItemId);
         Assert.NotNull(row);

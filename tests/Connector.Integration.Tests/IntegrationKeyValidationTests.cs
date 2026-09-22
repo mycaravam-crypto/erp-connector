@@ -1,7 +1,9 @@
 using Connector.Api;
 using Connector.Api.Endpoints;
+using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
 using Connector.Core.DynamicImport;
+using Connector.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 namespace Connector.Integration.Tests;
@@ -17,6 +19,10 @@ namespace Connector.Integration.Tests;
 /// </summary>
 public sealed class IntegrationKeyValidationTests
 {
+    private static readonly IDataSourceProviderResolver Resolver = new DataSourceProviderResolver([
+        new PostgreSqlDataSourceProvider(),
+    ]);
+
     // ── Export side ──────────────────────────────────────────────────────────────────────────────────
 
     private static ExportNode ExportScalar(string targetKey, string sourceField) =>
@@ -283,6 +289,7 @@ public sealed class IntegrationKeyValidationTests
         var (root, error) = await ImportDefinitionEndpoints.ValidateRequestAsync(
             request,
             local.Db,
+            Resolver,
             CancellationToken.None
         );
 
@@ -299,6 +306,7 @@ public sealed class IntegrationKeyValidationTests
         var (root, error) = await ImportDefinitionEndpoints.ValidateRequestAsync(
             request,
             local.Db,
+            Resolver,
             CancellationToken.None
         );
 
@@ -337,6 +345,7 @@ public sealed class IntegrationKeyValidationTests
         var (secondRoot, secondError) = await ImportDefinitionEndpoints.ValidateRequestAsync(
             second,
             local.Db,
+            Resolver,
             CancellationToken.None
         );
 
@@ -379,6 +388,7 @@ public sealed class IntegrationKeyValidationTests
         var (secondRoot, secondError) = await ImportDefinitionEndpoints.ValidateRequestAsync(
             second,
             local.Db,
+            Resolver,
             CancellationToken.None
         );
 

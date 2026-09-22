@@ -13,6 +13,8 @@ namespace Connector.Integration.Tests;
 /// </summary>
 public sealed class ExportNodeQueryPostgresTests
 {
+    private static readonly PostgreSqlDataSourceProvider Provider = new();
+
     // Seeded in testdb/init.sql: Acme Industrial has 2 addresses, Northbridge Sensors has 0.
     private const string AcmeManufacturerId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
     private const string AcmeItemId = "11111111-1111-1111-1111-111111111111"; // masterdata row → Acme
@@ -21,14 +23,14 @@ public sealed class ExportNodeQueryPostgresTests
     [Fact]
     public async Task ExecuteExportNodeQueryAsync_ScalarFieldAtRoot_ReturnsPlainColumn()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         var root = MakeRoot(ScalarField("itemId", "id"));
 
         var results = await DynamicExportService.ExecuteExportNodeQueryAsync(
-            conn,
+            Provider,
+            ErpTestFixture.Config,
             "masterdata",
             root,
             CancellationToken.None
@@ -41,8 +43,7 @@ public sealed class ExportNodeQueryPostgresTests
     [Fact]
     public async Task ExecuteExportNodeQueryAsync_ObjectKindNode_EmbedsSingleNestedObject()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         var root = MakeRoot(
@@ -62,7 +63,8 @@ public sealed class ExportNodeQueryPostgresTests
         // denylist, so an explicit empty one here keeps the two concerns from coupling by accident
         // (see security-review finding SR-08).
         var results = await DynamicExportService.ExecuteExportNodeQueryAsync(
-            conn,
+            Provider,
+            ErpTestFixture.Config,
             "masterdata",
             root,
             CancellationToken.None,
@@ -78,8 +80,7 @@ public sealed class ExportNodeQueryPostgresTests
     [Fact]
     public async Task ExecuteExportNodeQueryAsync_ArrayKindNode_EmbedsArrayOfObjects()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         var root = MakeRoot(
@@ -95,7 +96,8 @@ public sealed class ExportNodeQueryPostgresTests
         );
 
         var results = await DynamicExportService.ExecuteExportNodeQueryAsync(
-            conn,
+            Provider,
+            ErpTestFixture.Config,
             "manufacturer",
             root,
             CancellationToken.None
@@ -110,8 +112,7 @@ public sealed class ExportNodeQueryPostgresTests
     [Fact]
     public async Task ExecuteExportNodeQueryAsync_ObjectKindNodeWithMultipleMatches_ThrowsActionableError()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         // Misconfigured as Object (1:1 assumed) but manufacturer_address.manufacturer_id is not unique —
@@ -130,7 +131,13 @@ public sealed class ExportNodeQueryPostgresTests
         );
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            DynamicExportService.ExecuteExportNodeQueryAsync(conn, "masterdata", root, CancellationToken.None)
+            DynamicExportService.ExecuteExportNodeQueryAsync(
+                Provider,
+                ErpTestFixture.Config,
+                "masterdata",
+                root,
+                CancellationToken.None
+            )
         );
         Assert.Contains("\"object\"", ex.Message);
         Assert.Contains("\"array\"", ex.Message);
@@ -139,8 +146,7 @@ public sealed class ExportNodeQueryPostgresTests
     [Fact]
     public async Task ExecuteExportNodeQueryAsync_ThreeLevelNesting_ArrayNestsUnderObjectKey()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         // masterdata (root) -> manufacturer (object) -> addresses (array): the concrete 3-level walkthrough
@@ -169,7 +175,8 @@ public sealed class ExportNodeQueryPostgresTests
         );
 
         var results = await DynamicExportService.ExecuteExportNodeQueryAsync(
-            conn,
+            Provider,
+            ErpTestFixture.Config,
             "masterdata",
             root,
             CancellationToken.None
@@ -185,8 +192,7 @@ public sealed class ExportNodeQueryPostgresTests
     [Fact]
     public async Task ExecuteExportNodeQueryAsync_ZeroMatchingRelatedRows_YieldsEmptyArrayNotNull()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         var root = MakeRoot(
@@ -212,7 +218,8 @@ public sealed class ExportNodeQueryPostgresTests
         );
 
         var results = await DynamicExportService.ExecuteExportNodeQueryAsync(
-            conn,
+            Provider,
+            ErpTestFixture.Config,
             "masterdata",
             root,
             CancellationToken.None
@@ -228,8 +235,7 @@ public sealed class ExportNodeQueryPostgresTests
     [Fact]
     public async Task ExecuteExportNodeQueryAsync_DisabledNodeAndDisabledField_AreExcluded()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         var root = MakeRoot(
@@ -254,7 +260,8 @@ public sealed class ExportNodeQueryPostgresTests
         );
 
         var results = await DynamicExportService.ExecuteExportNodeQueryAsync(
-            conn,
+            Provider,
+            ErpTestFixture.Config,
             "masterdata",
             root,
             CancellationToken.None
@@ -270,8 +277,7 @@ public sealed class ExportNodeQueryPostgresTests
     [Fact]
     public async Task ExecuteExportNodeQueryAsync_GdprDeniedField_StrippedAtNestedDepth()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         var root = MakeRoot(
@@ -290,7 +296,8 @@ public sealed class ExportNodeQueryPostgresTests
         var denylist = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "contact_email" };
 
         var results = await DynamicExportService.ExecuteExportNodeQueryAsync(
-            conn,
+            Provider,
+            ErpTestFixture.Config,
             "masterdata",
             root,
             CancellationToken.None,
@@ -309,8 +316,7 @@ public sealed class ExportNodeQueryPostgresTests
     [Fact]
     public async Task ExecuteExportNodeQueryAsync_GdprDeniedField_ExcludedEvenWhenRenamedAtRoot()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         // "technician_name" is denylisted by default (DynamicExportService.GdprDeniedFields); this
@@ -318,7 +324,8 @@ public sealed class ExportNodeQueryPostgresTests
         var root = MakeRoot(ScalarField("id", "id"), ScalarField("assignedTech", "technician_name"));
 
         var results = await DynamicExportService.ExecuteExportNodeQueryAsync(
-            conn,
+            Provider,
+            ErpTestFixture.Config,
             "systemconfiguration",
             root,
             CancellationToken.None
@@ -331,8 +338,7 @@ public sealed class ExportNodeQueryPostgresTests
     [Fact]
     public async Task ExecuteExportNodeQueryAsync_GdprDeniedField_ExcludedEvenWhenRenamedAtNestedDepth()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         var root = MakeRoot(
@@ -349,7 +355,8 @@ public sealed class ExportNodeQueryPostgresTests
         var denylist = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "contact_email" };
 
         var results = await DynamicExportService.ExecuteExportNodeQueryAsync(
-            conn,
+            Provider,
+            ErpTestFixture.Config,
             "masterdata",
             root,
             CancellationToken.None,
@@ -363,8 +370,7 @@ public sealed class ExportNodeQueryPostgresTests
     [Fact]
     public async Task ExecuteExportNodeQueryAsync_FilterFragment_ScopesToNodeTable()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         var root = MakeRoot(
@@ -381,7 +387,8 @@ public sealed class ExportNodeQueryPostgresTests
         );
 
         var results = await DynamicExportService.ExecuteExportNodeQueryAsync(
-            conn,
+            Provider,
+            ErpTestFixture.Config,
             "manufacturer",
             root,
             CancellationToken.None
@@ -396,14 +403,14 @@ public sealed class ExportNodeQueryPostgresTests
     [Fact]
     public async Task ExecuteExportNodeQueryAsync_RootFilter_ScopesRootRows()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         var root = MakeRoot(ScalarField("itemId", "id")) with { Filter = "manufacturer = 'Northbridge Sensors'" };
 
         var results = await DynamicExportService.ExecuteExportNodeQueryAsync(
-            conn,
+            Provider,
+            ErpTestFixture.Config,
             "masterdata",
             root,
             CancellationToken.None
@@ -416,8 +423,7 @@ public sealed class ExportNodeQueryPostgresTests
     [Fact]
     public async Task BuildExportNodeAsync_CsvFormat_ThreeLevelTreeFlattensWithJoinedColumn()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         var root = MakeRoot(
@@ -433,7 +439,8 @@ public sealed class ExportNodeQueryPostgresTests
         );
 
         var result = await DynamicExportService.BuildExportNodeAsync(
-            conn,
+            Provider,
+            ErpTestFixture.Config,
             "manufacturer",
             root,
             "csv",
@@ -454,8 +461,7 @@ public sealed class ExportNodeQueryPostgresTests
     [Fact]
     public async Task BuildExportNodeAsync_ExcelFormat_ThreeLevelTreeFlattensIntoWorksheet()
     {
-        await using var conn = await ErpTestFixture.TryOpenAsync();
-        if (conn is null)
+        if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
         var root = MakeRoot(
@@ -482,7 +488,8 @@ public sealed class ExportNodeQueryPostgresTests
         );
 
         var result = await DynamicExportService.BuildExportNodeAsync(
-            conn,
+            Provider,
+            ErpTestFixture.Config,
             "masterdata",
             root,
             "xlsx",

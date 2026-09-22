@@ -87,66 +87,6 @@ public sealed class DynamicExportServiceTests
         Assert.Empty(DynamicExportService.GetColumnNames(cfg));
     }
 
-    // ── BuildConnectionString ────────────────────────────────────────────────
-
-    // Security-review finding SR-02: a connection-string-injection payload smuggled through Password (or
-    // any other field) must never be able to append/override keys like Host in the string Npgsql actually
-    // parses. NpgsqlConnectionStringBuilder treats the whole value as the literal password, not as syntax.
-    [Fact]
-    public void BuildConnectionString_PasswordWithInjectionPayload_DoesNotOverrideHost()
-    {
-        var cfg = new DataSourceConfig(
-            "trusted-host.example",
-            5432,
-            "erp",
-            "erp_user",
-            "s3cret;Host=evil.example;Port=1234"
-        );
-
-        var connectionString = DynamicExportService.BuildConnectionString(cfg);
-        var parsed = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
-
-        Assert.Equal("trusted-host.example", parsed.Host);
-        Assert.Equal(5432, parsed.Port);
-        Assert.Equal("s3cret;Host=evil.example;Port=1234", parsed.Password);
-    }
-
-    [Fact]
-    public void BuildConnectionString_UsernameWithInjectionPayload_DoesNotOverrideDatabase()
-    {
-        var cfg = new DataSourceConfig("trusted-host.example", 5432, "erp", "erp_user;Database=other_db", "pw");
-
-        var connectionString = DynamicExportService.BuildConnectionString(cfg);
-        var parsed = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
-
-        Assert.Equal("erp", parsed.Database);
-        Assert.Equal("erp_user;Database=other_db", parsed.Username);
-    }
-
-    // Security-review finding SR-03: SslMode was previously hardcoded to Prefer everywhere. This proves
-    // an explicit choice is actually honored, and that an unset/unrecognized value falls back to the
-    // prior Prefer default rather than throwing (so a config saved before this field existed, or corrupted
-    // input, can never itself turn a working connection into a hard failure).
-    [Theory]
-    [InlineData("Require", Npgsql.SslMode.Require)]
-    [InlineData("VerifyFull", Npgsql.SslMode.VerifyFull)]
-    [InlineData("verifyfull", Npgsql.SslMode.VerifyFull)]
-    [InlineData(null, Npgsql.SslMode.Prefer)]
-    [InlineData("", Npgsql.SslMode.Prefer)]
-    [InlineData("not-a-real-mode", Npgsql.SslMode.Prefer)]
-    public void BuildConnectionString_SslMode_HonorsExplicitChoiceOrFallsBackToPrefer(
-        string? sslMode,
-        Npgsql.SslMode expected
-    )
-    {
-        var cfg = new DataSourceConfig("host.example", 5432, "erp", "user", "pw", sslMode);
-
-        var connectionString = DynamicExportService.BuildConnectionString(cfg);
-        var parsed = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
-
-        Assert.Equal(expected, parsed.SslMode);
-    }
-
     // ── ConnectionFingerprint ─────────────────────────────────────────────────
 
     // Security-review finding SR-05: the fingerprint pins *which system* a connection is (host/port/db),

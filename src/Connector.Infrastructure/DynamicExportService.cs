@@ -1,6 +1,5 @@
 using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
-using Npgsql;
 
 namespace Connector.Infrastructure;
 
@@ -37,38 +36,6 @@ public static partial class DynamicExportService
     public const int MaxExportRowsPerRun = 500_000;
 
     public readonly record struct ExportBuildResult(byte[] Bytes, int RecordCount, string Extension);
-
-    // Security-review finding SR-02: this previously interpolated Host/Database/Username/Password
-    // straight into the connection-string text. A Password (or Username/Database) value containing
-    // ";Host=evil;..." would append/override keys in the string Npgsql actually parses, letting a
-    // caller redirect the connection despite ValidateHostAsync only checking the Host field.
-    // NpgsqlConnectionStringBuilder sets each value as a typed property instead, so no field value can
-    // ever be interpreted as connection-string syntax. No TrustServerCertificate: Npgsql 10 removed the
-    // behavior it used to control (SslMode=Prefer already governs cert handling), and the property is
-    // now an obsolete no-op.
-    public static string BuildConnectionString(DataSourceConfig cfg) =>
-        new NpgsqlConnectionStringBuilder
-        {
-            Host = cfg.Host,
-            Port = cfg.Port,
-            Database = cfg.Database,
-            Username = cfg.Username,
-            Password = cfg.Password,
-            SslMode = ParseSslMode(cfg.SslMode),
-            Timeout = 5,
-            CommandTimeout = 10,
-        }.ConnectionString;
-
-    // Security-review finding SR-03: SslMode was previously hardcoded to Prefer everywhere — silently
-    // downgrading to an unencrypted connection whenever the server doesn't offer TLS, with no way for an
-    // operator to require and verify it instead. cfg.SslMode is validated against these same names at save
-    // time (ConnectionEndpoints), but this falls back to the prior Prefer default rather than throwing for
-    // null/empty/unrecognized input, so it can never itself turn a previously-working connection (or a
-    // config saved before this field existed) into a hard failure.
-    private static SslMode ParseSslMode(string? sslMode) =>
-        !string.IsNullOrWhiteSpace(sslMode) && Enum.TryParse<SslMode>(sslMode, ignoreCase: true, out var parsed)
-            ? parsed
-            : SslMode.Prefer;
 
     /// <summary>
     /// Security-review finding SR-05: identifies *which system* a connection points at — host, port, and

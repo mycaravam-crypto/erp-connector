@@ -9,7 +9,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Npgsql;
 
 namespace Connector.Infrastructure;
 
@@ -98,6 +97,7 @@ public sealed class ExportWorker(
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<ExportLogDbContext>();
         var audit = scope.ServiceProvider.GetRequiredService<AuditService>();
+        var resolver = scope.ServiceProvider.GetRequiredService<IDataSourceProviderResolver>();
 
         var sequenceNo = await NextSequenceNumberAsync(db, ct);
         var run = new ExportRunEntity
@@ -139,10 +139,10 @@ public sealed class ExportWorker(
             var extractedAt = DateTimeOffset.UtcNow;
             var gdprDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
 
-            await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(connCfg));
-            await conn.OpenAsync(ct);
+            var provider = resolver.Resolve(connCfg.Type);
             var built = await DynamicExportService.BuildExportAsync(
-                conn,
+                provider,
+                connCfg,
                 config,
                 format,
                 ExportSchema.Version,

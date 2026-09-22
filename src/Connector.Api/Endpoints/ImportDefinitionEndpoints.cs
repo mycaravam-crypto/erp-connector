@@ -48,12 +48,13 @@ static partial class ImportDefinitionEndpoints
                 async (
                     ImportDefinitionRequest request,
                     ExportLogDbContext db,
+                    IDataSourceProviderResolver resolver,
                     HttpContext httpContext,
                     AuditService audit,
                     CancellationToken ct
                 ) =>
                 {
-                    var (normalizedRoot, validationError) = await ValidateRequestAsync(request, db, ct);
+                    var (normalizedRoot, validationError) = await ValidateRequestAsync(request, db, resolver, ct);
                     if (validationError is not null)
                         return Results.BadRequest(validationError);
 
@@ -103,6 +104,7 @@ static partial class ImportDefinitionEndpoints
                     int id,
                     ImportDefinitionRequest request,
                     ExportLogDbContext db,
+                    IDataSourceProviderResolver resolver,
                     HttpContext httpContext,
                     AuditService audit,
                     CancellationToken ct
@@ -112,7 +114,13 @@ static partial class ImportDefinitionEndpoints
                     if (entity is null)
                         return Results.NotFound();
 
-                    var (normalizedRoot, validationError) = await ValidateRequestAsync(request, db, ct, excludeId: id);
+                    var (normalizedRoot, validationError) = await ValidateRequestAsync(
+                        request,
+                        db,
+                        resolver,
+                        ct,
+                        excludeId: id
+                    );
                     if (validationError is not null)
                         return Results.BadRequest(validationError);
 
@@ -280,7 +288,7 @@ static partial class ImportDefinitionEndpoints
                     try
                     {
                         await using var conn = new NpgsqlConnection(
-                            DynamicExportService.BuildConnectionString(connCfg)
+                            PostgreSqlDataSourceProvider.BuildConnectionString(connCfg)
                         );
                         await conn.OpenAsync(ct);
 
@@ -399,7 +407,7 @@ static partial class ImportDefinitionEndpoints
                     try
                     {
                         await using var conn = new NpgsqlConnection(
-                            DynamicExportService.BuildConnectionString(connCfg)
+                            PostgreSqlDataSourceProvider.BuildConnectionString(connCfg)
                         );
                         await conn.OpenAsync(ct);
                         var walkResult = await ImportNodeWalker.WalkAsync(conn, def, root, request.InboundJson, ct);

@@ -261,7 +261,7 @@ public sealed class ImportWorker(
         ImportWalkResult walkResult;
         try
         {
-            await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(connCfg));
+            await using var conn = new NpgsqlConnection(PostgreSqlDataSourceProvider.BuildConnectionString(connCfg));
             await conn.OpenAsync(ct);
             walkResult = await ImportNodeWalker.WalkAsync(conn, definition, root, inboundJson, ct);
         }

@@ -1,7 +1,7 @@
 using System.Text.Json.Nodes;
+using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
 using Connector.Infrastructure;
-using Npgsql;
 
 namespace Connector.Integration.Tests;
 
@@ -359,17 +359,25 @@ public sealed class ExportNodeEngineTests
     [Fact]
     public async Task ExecuteExportNodeQueryAsync_ExceedsMaxNestedDepth_ThrowsBeforeAnyDbAccess()
     {
-        // The depth check fires while building the SQL text, before the connection is ever touched — so
-        // this can run against an unopened connection object rather than needing the live testdb fixture.
+        // The depth check fires while building the SQL text, before the provider is ever called — so this
+        // can run against a provider/config that are never actually used, rather than needing the live
+        // testdb fixture.
         var deep = ScalarField("leaf", "leaf");
         for (var i = 0; i < DynamicExportService.MaxNestedDepth + 2; i++)
             deep = Node($"level{i}", ExportNodeKind.Object, relatedTable: "t", children: [deep]);
         var root = MakeRoot(deep);
 
-        using var conn = new NpgsqlConnection("Host=unused;Timeout=1");
+        var provider = new PostgreSqlDataSourceProvider();
+        var config = new DataSourceConfig("unused", 5432, "unused", "unused", "unused");
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            DynamicExportService.ExecuteExportNodeQueryAsync(conn, "masterdata", root, CancellationToken.None)
+            DynamicExportService.ExecuteExportNodeQueryAsync(
+                provider,
+                config,
+                "masterdata",
+                root,
+                CancellationToken.None
+            )
         );
     }
 
