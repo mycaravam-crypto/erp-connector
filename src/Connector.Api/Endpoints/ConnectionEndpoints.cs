@@ -1,4 +1,5 @@
 using System.Net;
+using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
 using Connector.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -57,7 +58,7 @@ static class ConnectionEndpoints
                 "/api/connection",
                 async (ExportLogDbContext db) =>
                 {
-                    var cfg = await db.GetSettingAsync<ErpConnectionConfig>(SettingsKeys.ErpConnection);
+                    var cfg = await db.GetSettingAsync<DataSourceConfig>(SettingsKeys.ErpConnection);
                     if (cfg is null)
                         return Results.NotFound();
 
@@ -71,7 +72,7 @@ static class ConnectionEndpoints
         // Tests the connection, persists it on success, and returns the live source schema.
         app.MapPost(
                 "/api/connection",
-                async (ErpConnectionConfig request, ExportLogDbContext db, CancellationToken ct) =>
+                async (DataSourceConfig request, ExportLogDbContext db, CancellationToken ct) =>
                 {
                     if (
                         string.IsNullOrWhiteSpace(request.Host)
@@ -113,7 +114,7 @@ static class ConnectionEndpoints
                 "/api/source-schema",
                 async (ExportLogDbContext db, CancellationToken ct) =>
                 {
-                    var cfg = await db.GetSettingAsync<ErpConnectionConfig>(SettingsKeys.ErpConnection);
+                    var cfg = await db.GetSettingAsync<DataSourceConfig>(SettingsKeys.ErpConnection);
                     if (cfg is null)
                         return Results.Ok(DemoSourceSchema());
 
@@ -133,19 +134,19 @@ static class ConnectionEndpoints
             .RequireAuthorization();
     }
 
-    // Opens a connection, introspects the schema, and wraps it in a SourceSchemaDto. Shared by
+    // Opens a connection, introspects the schema, and wraps it in a SourceSchema. Shared by
     // POST /api/connection (failures surface to the client as 400) and the GET /api/source-schema
     // fallback (failures are swallowed by the caller, which falls through to the demo schema).
-    private static async Task<SourceSchemaDto> ConnectAndIntrospectAsync(ErpConnectionConfig cfg, CancellationToken ct)
+    private static async Task<SourceSchema> ConnectAndIntrospectAsync(DataSourceConfig cfg, CancellationToken ct)
     {
         await using var conn = new NpgsqlConnection(DynamicExportService.BuildConnectionString(cfg));
         await conn.OpenAsync(ct);
         var tables = await IntrospectSchemaAsync(conn, ct);
-        return new SourceSchemaDto($"{cfg.Host}:{cfg.Port}/{cfg.Database}", tables);
+        return new SourceSchema($"{cfg.Host}:{cfg.Port}/{cfg.Database}", tables);
     }
 
     // Introspects the public schema of an open Npgsql connection using information_schema views.
-    internal static async Task<SourceTableDto[]> IntrospectSchemaAsync(
+    internal static async Task<SourceTable[]> IntrospectSchemaAsync(
         NpgsqlConnection conn,
         CancellationToken ct = default
     )
@@ -195,7 +196,7 @@ static class ConnectionEndpoints
         await using var cmd = new NpgsqlCommand(sql, conn);
         await using var reader = await cmd.ExecuteReaderAsync(ct);
 
-        var byTable = new Dictionary<string, List<SourceColumnDto>>();
+        var byTable = new Dictionary<string, List<SourceColumn>>();
         while (await reader.ReadAsync(ct))
         {
             var table = reader.GetString(0);
@@ -203,7 +204,7 @@ static class ConnectionEndpoints
                 byTable[table] = [];
             byTable[table]
                 .Add(
-                    new SourceColumnDto(
+                    new SourceColumn(
                         Name: reader.GetString(1),
                         Type: reader.GetString(2),
                         Nullable: reader.GetString(3) == "YES",
@@ -217,19 +218,19 @@ static class ConnectionEndpoints
                 );
         }
 
-        return byTable.Select(kv => new SourceTableDto(kv.Key, "", kv.Value.ToArray())).OrderBy(t => t.Name).ToArray();
+        return byTable.Select(kv => new SourceTable(kv.Key, "", kv.Value.ToArray())).OrderBy(t => t.Name).ToArray();
     }
 
     // Hardcoded demo schema that mirrors what a real production PostgreSQL ERP database would expose.
-    internal static SourceSchemaDto DemoSourceSchema() =>
+    internal static SourceSchema DemoSourceSchema() =>
         new(
             "demo-erp (SQLite in dev · PostgreSQL in prod)",
-            new SourceTableDto[]
+            new SourceTable[]
             {
                 new(
                     "systemconfiguration",
                     "Installed CI instances — one row per physical unit",
-                    new SourceColumnDto[]
+                    new SourceColumn[]
                     {
                         new("id", "uuid", Nullable: false, PrimaryKey: true),
                         new("serial", "character varying(100)", Nullable: true, PrimaryKey: false),
@@ -250,7 +251,7 @@ static class ConnectionEndpoints
                 new(
                     "masterdata",
                     "Article/model master records — one row per model type",
-                    new SourceColumnDto[]
+                    new SourceColumn[]
                     {
                         new("id", "uuid", Nullable: false, PrimaryKey: true),
                         new("article_name", "character varying(200)", Nullable: true, PrimaryKey: false),
@@ -261,7 +262,7 @@ static class ConnectionEndpoints
                 new(
                     "maintenance_plan",
                     "Maintenance plan assignments — drives scope filter",
-                    new SourceColumnDto[]
+                    new SourceColumn[]
                     {
                         new("id", "uuid", Nullable: false, PrimaryKey: true),
                         new(
@@ -279,7 +280,7 @@ static class ConnectionEndpoints
                 new(
                     "articlestructure",
                     "BOM parent–child relationships",
-                    new SourceColumnDto[]
+                    new SourceColumn[]
                     {
                         new("id", "uuid", Nullable: false, PrimaryKey: true),
                         new(

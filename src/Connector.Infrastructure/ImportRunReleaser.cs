@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
 using Connector.Core.DynamicImport;
 using Npgsql;
@@ -60,7 +61,7 @@ public static class ImportRunReleaser
             await FailAsync("No database connection configured.");
             return;
         }
-        var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connRaw);
+        var connCfg = JsonSerializer.Deserialize<DataSourceConfig>(connRaw);
         if (connCfg is null)
         {
             await FailAsync("Stored database connection config could not be read.");

@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Connector.Core.DataSources;
 using Connector.Core.Domain;
 using Connector.Core.DynamicExport;
 using Connector.Core.DynamicImport;
@@ -250,7 +251,7 @@ public sealed class ImportWorker(
             await RejectAsync("no ERP connection configured");
             return;
         }
-        var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connRaw);
+        var connCfg = JsonSerializer.Deserialize<DataSourceConfig>(connRaw);
         if (connCfg is null)
         {
             await RejectAsync("stored ERP connection config could not be read");

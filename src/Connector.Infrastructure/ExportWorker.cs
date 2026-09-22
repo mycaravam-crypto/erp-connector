@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using Connector.Core.DataSources;
 using Connector.Core.Domain;
 using Connector.Core.DynamicExport;
 using Connector.Core.Schema;
@@ -133,7 +134,7 @@ public sealed class ExportWorker(
                 await audit.LogAsync("scheduler", "export_failed", $"#{sequenceNo}: no erp_connection");
                 return;
             }
-            var connCfg = JsonSerializer.Deserialize<ErpConnectionConfig>(connSetting.Value)!;
+            var connCfg = JsonSerializer.Deserialize<DataSourceConfig>(connSetting.Value)!;
 
             var extractedAt = DateTimeOffset.UtcNow;
             var gdprDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);

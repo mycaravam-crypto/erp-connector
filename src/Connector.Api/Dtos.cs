@@ -1,3 +1,5 @@
+using Connector.Core.DataSources;
+
 namespace Connector.Api;
 
 record ExportRunSummary(
@@ -54,26 +56,9 @@ record SchemaColumnDto(string Name, string ErpSource, string Type, string Notes,
 
 record SchemaDto(string Version, SchemaColumnDto[] Columns);
 
-record SourceColumnDto(
-    string Name,
-    string Type,
-    bool Nullable,
-    bool PrimaryKey,
-    string? ForeignKeyTable = null,
-    string? ForeignKeyColumn = null,
-    // Populated by ConnectionEndpoints.IntrospectSchemaAsync from information_schema.columns'
-    // own is_identity/is_generated columns. Added for Phase 17 Slice 5 (import-definitions.md §6
-    // Open Decision #9): the save-time AllowedWritableColumns validator needs to reject a
-    // TargetColumn the ERP itself manages (an identity sequence or a GENERATED ... STORED
-    // expression), not just one that's the primary key or an FK. Defaults false so every existing
-    // SourceColumnDto call site (the hardcoded demo schema) stays valid without updating.
-    bool IsIdentity = false,
-    bool IsGenerated = false
-);
-
-record SourceTableDto(string Name, string Description, SourceColumnDto[] Columns);
-
-record SourceSchemaDto(string ConnectionLabel, SourceTableDto[] Tables);
+// SourceColumn/SourceTable/SourceSchema moved to Connector.Core.DataSources (Arbeitsauftrag 2): they're
+// IDataSourceProvider.ReadSchemaAsync's return shape, not an API-only Dto, so this file references the Core
+// types directly instead of keeping a parallel copy.
 
 record RunNowResult(int SequenceNo, int RecordCount, string Sha256Short);
 

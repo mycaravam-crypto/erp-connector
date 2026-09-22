@@ -145,7 +145,7 @@ public sealed class ImportRunEndpointsHttpTests
     // ImportRunReleaser.ReleaseAsync's very first guard fires: this is the one "successful validation,
     // release attempted" path reachable without a live Postgres instance.
     [Fact]
-    public async Task Release_ValidApprovalButNoErpConnectionConfigured_MarksRunFailedAndReturns500()
+    public async Task Release_ValidApprovalButNoDataSourceConfigured_MarksRunFailedAndReturns500()
     {
         // ImportPlanJson.Serialize/Deserialize both call JsonSerializer with no options, i.e. exact
         // (PascalCase) member names — matching that here rather than passing a raw JSON literal.
