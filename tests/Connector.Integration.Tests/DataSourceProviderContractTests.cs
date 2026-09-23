@@ -259,6 +259,21 @@ public abstract class DataSourceProviderContractTests
         Assert.DoesNotContain(WrongPassword, ex.ToString());
     }
 
+    [Fact]
+    public void Config_PassesTheProvidersOwnValidation()
+    {
+        var provider = CreateProvider();
+
+        Assert.Null(provider.ValidateConfig(Config));
+        Assert.False(string.IsNullOrWhiteSpace(provider.TargetHost(Config)));
+        Assert.NotNull(provider.ValidateConfig(new DataSourceConfig { Type = Config.Type }));
+    }
+
+    [Fact]
+    public void Capabilities_AreConsistent() =>
+        // The import path runs SQL on the provider's own connection, so it can't exist without native SQL.
+        Assert.True(!CreateProvider().Capabilities.Imports || CreateProvider().Capabilities.NativeSql);
+
     // ── Capability-dependent behavior: asserted both ways ──────────────────────
 
     [Fact]

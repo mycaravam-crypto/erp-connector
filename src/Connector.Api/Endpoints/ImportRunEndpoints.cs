@@ -1,3 +1,4 @@
+using Connector.Core.DataSources;
 using Connector.Core.DynamicImport;
 using Connector.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -47,6 +48,7 @@ static class ImportRunEndpoints
                     HttpContext httpContext,
                     ExportLogDbContext db,
                     AuditService audit,
+                    IDataSourceProviderResolver resolver,
                     CancellationToken ct
                 ) =>
                 {
@@ -69,7 +71,15 @@ static class ImportRunEndpoints
 
                     try
                     {
-                        await ImportRunReleaser.ReleaseAsync(db, run, operatorName, request.Approver, audit, ct);
+                        await ImportRunReleaser.ReleaseAsync(
+                            db,
+                            run,
+                            operatorName,
+                            request.Approver,
+                            audit,
+                            resolver,
+                            ct
+                        );
                     }
                     catch (DbUpdateConcurrencyException)
                     {

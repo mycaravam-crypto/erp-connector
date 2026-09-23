@@ -12,7 +12,7 @@ never crosses the air gap — its output ends at the staging folder.
 Folders are organized by the question you're asking, not just by topic:
 
 * [architecture/](architecture/) — **How is the system put together, independent of any one
-  feature?** Cross-cutting structural decisions like the data source abstraction, the
+  feature?** Cross-cutting structural decisions like the multi-source architecture, the data source abstraction, the
   database-neutral source query model, the SQL dialect, the MariaDB and ServiceNow providers, query performance, and how export trees
   are assembled.
 * [pipeline/](pipeline/) — **How does the export actually run?** The live query/build engine,

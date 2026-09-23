@@ -300,7 +300,10 @@ using (var scope = app.Services.CreateScope())
     // Arbeitsauftrag 11: a connection saved before the production TLS rule (or with the opt-out) keeps working,
     // but is called out on every start so it doesn't go unnoticed.
     var storedConnection = await exportLogDb.GetSettingAsync<DataSourceConfig>(SettingsKeys.ErpConnection);
-    if (storedConnection is not null && !TransportSecurity.IsAlwaysEncrypted(storedConnection))
+    var storedProvider = storedConnection is null
+        ? null
+        : scope.ServiceProvider.GetServices<IDataSourceProvider>().FirstOrDefault(p => p.Type == storedConnection.Type);
+    if (storedConnection is not null && storedProvider?.IsAlwaysEncrypted(storedConnection) == false)
         app.Logger.LogWarning(
             "The stored ERP connection ({Type}) can use an unencrypted connection (TLS mode '{SslMode}'). "
                 + "Set it to Require, VerifyCA or VerifyFull.",

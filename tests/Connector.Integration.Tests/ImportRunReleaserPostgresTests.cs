@@ -1,5 +1,7 @@
 using Connector.Core.DynamicImport;
 using Connector.Infrastructure;
+using Connector.Infrastructure.DataSources;
+using Connector.Infrastructure.DataSources.PostgreSql;
 using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 
@@ -18,6 +20,8 @@ namespace Connector.Integration.Tests;
 /// </summary>
 public sealed class ImportRunReleaserPostgresTests
 {
+    private static readonly DataSourceProviderResolver Resolver = new([new PostgreSqlDataSourceProvider()]);
+
     // Seeded in testdb/init.sql, reserved for this test class — see its own comment there.
     private const string FixtureA = "c0000001-0001-0001-0001-000000000001";
     private const string FixtureB = "c0000002-0002-0002-0002-000000000002";
@@ -117,7 +121,7 @@ public sealed class ImportRunReleaserPostgresTests
             var plan = SingleOperationPlan(FixtureA, "status", "active", "confirmed");
             var run = await SeedRunAsync(db, plan, new string('a', 64));
 
-            await ImportRunReleaser.ReleaseAsync(db, run, "alice", "bob", audit, CancellationToken.None);
+            await ImportRunReleaser.ReleaseAsync(db, run, "alice", "bob", audit, Resolver, CancellationToken.None);
 
             Assert.Equal(ImportRunStatus.Released, run.Status);
             Assert.Equal(0, run.ConflictCount);
@@ -156,7 +160,7 @@ public sealed class ImportRunReleaserPostgresTests
             var plan = SingleOperationPlan(FixtureB, "status", "active", "confirmed");
             var run = await SeedRunAsync(db, plan, new string('b', 64));
 
-            await ImportRunReleaser.ReleaseAsync(db, run, "alice", "bob", audit, CancellationToken.None);
+            await ImportRunReleaser.ReleaseAsync(db, run, "alice", "bob", audit, Resolver, CancellationToken.None);
 
             // Still Released, not Failed: a conflicted row doesn't fail the run (Open Decision #6).
             Assert.Equal(ImportRunStatus.Released, run.Status);
@@ -218,7 +222,7 @@ public sealed class ImportRunReleaserPostgresTests
             );
             var run = await SeedRunAsync(db, plan, new string('c', 64));
 
-            await ImportRunReleaser.ReleaseAsync(db, run, "alice", "bob", audit, CancellationToken.None);
+            await ImportRunReleaser.ReleaseAsync(db, run, "alice", "bob", audit, Resolver, CancellationToken.None);
 
             Assert.Equal(ImportRunStatus.Failed, run.Status);
             Assert.NotNull(run.ErrorMessage);
@@ -280,7 +284,7 @@ public sealed class ImportRunReleaserPostgresTests
                 DynamicExportService.ConnectionFingerprint(ErpTestFixture.Config)
             );
 
-            await ImportRunReleaser.ReleaseAsync(db, run, "alice", "bob", audit, CancellationToken.None);
+            await ImportRunReleaser.ReleaseAsync(db, run, "alice", "bob", audit, Resolver, CancellationToken.None);
 
             Assert.Equal(ImportRunStatus.Released, run.Status);
             Assert.Equal("confirmed", await ReadStatusAsync(erp, FixtureA));
@@ -309,7 +313,7 @@ public sealed class ImportRunReleaserPostgresTests
             var plan = SingleOperationPlan(FixtureA, "status", "active", "confirmed");
             var run = await SeedRunAsync(db, plan, new string('f', 64), "swapped-host.example:5432/erp");
 
-            await ImportRunReleaser.ReleaseAsync(db, run, "alice", "bob", audit, CancellationToken.None);
+            await ImportRunReleaser.ReleaseAsync(db, run, "alice", "bob", audit, Resolver, CancellationToken.None);
 
             Assert.Equal(ImportRunStatus.Failed, run.Status);
             Assert.Contains("connection changed", run.ErrorMessage);

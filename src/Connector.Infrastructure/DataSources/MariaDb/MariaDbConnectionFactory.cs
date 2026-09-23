@@ -45,7 +45,7 @@ public static class MariaDbConnectionFactory
     }
 
     // DataSourceConfig.SslMode uses one vocabulary for every relational source — the Npgsql names that
-    // ConnectionEndpoints.IsValidSslMode validates at save time — mapped here onto MySqlConnector's modes.
+    // RelationalConnectionRules validates at save time — mapped here onto MySqlConnector's modes.
     // Unset/unknown falls back to Preferred (TLS when the server offers it), mirroring Postgres's Prefer default.
     private static MySqlSslMode ParseSslMode(string? sslMode) =>
         sslMode?.Trim().ToUpperInvariant() switch

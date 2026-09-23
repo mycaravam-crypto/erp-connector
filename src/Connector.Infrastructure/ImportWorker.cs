@@ -7,13 +7,12 @@ using Connector.Core.Domain;
 using Connector.Core.DynamicExport;
 using Connector.Core.DynamicImport;
 using Connector.Core.Schema;
-using Connector.Infrastructure.DataSources.PostgreSql;
+using Connector.Infrastructure.DataSources;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Npgsql;
 
 namespace Connector.Infrastructure;
 
@@ -127,6 +126,7 @@ public sealed class ImportWorker(
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<ExportLogDbContext>();
         var audit = scope.ServiceProvider.GetRequiredService<AuditService>();
+        var resolver = scope.ServiceProvider.GetRequiredService<IDataSourceProviderResolver>();
 
         async Task RejectAsync(string reason)
         {
@@ -262,11 +262,10 @@ public sealed class ImportWorker(
         ImportWalkResult walkResult;
         try
         {
-            await using var conn = new NpgsqlConnection(PostgreSqlDataSourceProvider.BuildConnectionString(connCfg));
-            await conn.OpenAsync(ct);
+            await using var conn = await ImportConnection.OpenAsync(resolver, connCfg, ct);
             walkResult = await ImportNodeWalker.WalkAsync(conn, definition, root, inboundJson, ct);
         }
-        catch (ImportValidationException ex)
+        catch (Exception ex) when (ex is ImportValidationException or UnsupportedDataSourceException)
         {
             await RejectAsync(ex.Message);
             return;

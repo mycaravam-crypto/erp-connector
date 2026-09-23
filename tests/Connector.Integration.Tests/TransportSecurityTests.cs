@@ -7,8 +7,9 @@ using Microsoft.Extensions.Hosting;
 
 namespace Connector.Integration.Tests;
 
-/// <summary>Arbeitsauftrag 11 transport security: which configs are guaranteed encrypted, and when an unencrypted
-/// one is refused (production, unless explicitly allowed). Pure unit tests.</summary>
+/// <summary>Arbeitsauftrag 11 transport security: when an unencrypted config is refused (production, unless
+/// explicitly allowed). Which configs are always encrypted is each provider's call — see
+/// <see cref="DataSourceConfigValidationTests"/>. Pure unit tests.</summary>
 public sealed class TransportSecurityTests
 {
     private static DataSourceConfig Relational(DataSourceType type, string? sslMode) =>
@@ -21,41 +22,6 @@ public sealed class TransportSecurityTests
             Username = "u",
             SslMode = sslMode,
         };
-
-    [Theory]
-    [InlineData("Require")]
-    [InlineData("VerifyCA")]
-    [InlineData("verifyfull")]
-    public void MandatoryTls_IsAlwaysEncrypted(string sslMode)
-    {
-        Assert.True(TransportSecurity.IsAlwaysEncrypted(Relational(DataSourceType.PostgreSql, sslMode)));
-        Assert.True(TransportSecurity.IsAlwaysEncrypted(Relational(DataSourceType.MariaDb, sslMode)));
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("Prefer")]
-    [InlineData("Allow")]
-    [InlineData("Disable")]
-    public void OptionalOrNoTls_IsNotAlwaysEncrypted(string? sslMode)
-    {
-        Assert.False(TransportSecurity.IsAlwaysEncrypted(Relational(DataSourceType.PostgreSql, sslMode)));
-        Assert.False(TransportSecurity.IsAlwaysEncrypted(Relational(DataSourceType.MariaDb, sslMode)));
-    }
-
-    [Fact]
-    public void ServiceNow_IsAlwaysEncrypted_BecauseItsClientOnlySpeaksHttps() =>
-        Assert.True(
-            TransportSecurity.IsAlwaysEncrypted(
-                new DataSourceConfig
-                {
-                    Type = DataSourceType.ServiceNowTableApi,
-                    InstanceUrl = "https://x.service-now.com",
-                    Username = "u",
-                }
-            )
-        );
 
     [Fact]
     public void Refusal_NamesTheModeAndTheOptOut()

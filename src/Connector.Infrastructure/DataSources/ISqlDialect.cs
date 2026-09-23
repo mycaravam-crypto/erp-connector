@@ -58,6 +58,12 @@ public interface ISqlDialect
     /// </summary>
     JsonNode? ConvertNativeTextToJson(string nativeText, string dataType);
 
+    /// <summary>The connector's string form of a non-null column <paramref name="value"/> as the driver returned
+    /// it, for a column the backend calls <paramref name="dataType"/>: date/timestamp columns as <c>yyyy-MM-dd</c>,
+    /// everything else the value's own <c>ToString()</c>. Shared by the provider's row materialization and the
+    /// import walker, so old values read for a diff match exported values exactly.</summary>
+    string FormatValue(object value, string dataType);
+
     /// <summary>Aggregates <paramref name="expression"/> (as text) over the rows of the enclosing SELECT into
     /// one string joined by <paramref name="delimiter"/>; null values are skipped.</summary>
     string BuildStringAggregate(string expression, string delimiter);
@@ -72,4 +78,11 @@ public interface ISqlDialect
 public interface ISqlDataSourceProvider : Connector.Core.DataSources.IDataSourceProvider
 {
     ISqlDialect Dialect { get; }
+
+    /// <summary>An open ADO.NET connection for callers that need more than one query per call — the import path's
+    /// multi-statement transaction. The caller disposes it.</summary>
+    Task<System.Data.Common.DbConnection> OpenConnectionAsync(
+        Connector.Core.DataSources.DataSourceConfig config,
+        CancellationToken cancellationToken
+    );
 }

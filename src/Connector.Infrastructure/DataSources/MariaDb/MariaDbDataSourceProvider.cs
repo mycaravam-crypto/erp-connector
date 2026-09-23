@@ -17,7 +17,20 @@ public sealed class MariaDbDataSourceProvider : ISqlDataSourceProvider
 
     public DataSourceType Type => DataSourceType.MariaDb;
 
-    public DataSourceCapabilities Capabilities => DataSourceCapabilities.Sql;
+    // Imports stay PostgreSQL-only until the walker/releaser have been verified against MariaDB (the dialect already
+    // covers their SQL: CAST … AS CHAR, <=>).
+    public DataSourceCapabilities Capabilities { get; } = DataSourceCapabilities.Sql with { Imports = false };
+
+    public async Task<System.Data.Common.DbConnection> OpenConnectionAsync(
+        DataSourceConfig config,
+        CancellationToken cancellationToken
+    ) => await MariaDbConnectionFactory.OpenAsync(config, cancellationToken);
+
+    public string? ValidateConfig(DataSourceConfig config) => RelationalConnectionRules.Validate(config);
+
+    public string TargetHost(DataSourceConfig config) => config.Host!;
+
+    public bool IsAlwaysEncrypted(DataSourceConfig config) => RelationalConnectionRules.IsAlwaysEncrypted(config);
 
     public ISqlDialect Dialect => MariaDbDialect.Instance;
 
@@ -115,7 +128,7 @@ public sealed class MariaDbDataSourceProvider : ISqlDataSourceProvider
                     var value = reader.GetValue(i);
                     values[i] = returnNativeText
                         ? FormatNative(value, columns[i].DataType!)
-                        : FormatDefault(value, columns[i].DataType!);
+                        : MariaDbDialect.Instance.FormatValue(value, columns[i].DataType!);
                 }
                 rows.Add(new QueryResultRow { Values = values });
             }
@@ -129,13 +142,6 @@ public sealed class MariaDbDataSourceProvider : ISqlDataSourceProvider
             throw new DataSourceQueryException(ex.SqlState, ex.Message, ex);
         }
     }
-
-    // Same contract as the PostgreSQL provider's default stringification: date/time columns as yyyy-MM-dd,
-    // everything else the CLR value's own ToString().
-    private static string? FormatDefault(object value, string dataType) =>
-        value is DateTime dt && dataType is "DATE" or "DATETIME" or "TIMESTAMP"
-            ? dt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
-            : value.ToString();
 
     // The provider's "native text": MariaDB's own text rendering of each value (what the server sends over the
     // text protocol), rebuilt from the CLR value MySqlConnector parsed it into — MariaDbDialect.ConvertNativeTextToJson

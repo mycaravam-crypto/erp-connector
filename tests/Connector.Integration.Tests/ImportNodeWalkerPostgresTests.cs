@@ -1,5 +1,7 @@
 using Connector.Core.DynamicImport;
 using Connector.Infrastructure;
+using Connector.Infrastructure.DataSources;
+using Connector.Infrastructure.DataSources.PostgreSql;
 using Npgsql;
 
 namespace Connector.Integration.Tests;
@@ -15,6 +17,8 @@ namespace Connector.Integration.Tests;
 /// </summary>
 public sealed class ImportNodeWalkerPostgresTests
 {
+    private static ImportConnection Pg(Npgsql.NpgsqlConnection conn) => new(conn, PostgreSqlDialect.Instance);
+
     // Seeded in testdb/init.sql.
     private const string ActiveCiId = "44444444-4444-4444-4444-444444444444"; // status=active, has a maintenance_plan
     private const string DecommissionedCiId = "66666666-6666-6666-6666-666666666666"; // status=decommissioned, no maintenance_plan
@@ -134,7 +138,7 @@ public sealed class ImportNodeWalkerPostgresTests
         var definition = MakeDefinition("systemconfiguration", "id", ["status"]);
         var json = Envelope($$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "confirmed" }]""");
 
-        var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
+        var result = await ImportNodeWalker.WalkAsync(Pg(conn), definition, root, json, CancellationToken.None);
 
         Assert.Equal(1, result.RecordCount);
         Assert.Equal(1, result.AcceptedCount);
@@ -158,7 +162,7 @@ public sealed class ImportNodeWalkerPostgresTests
         var definition = MakeDefinition("systemconfiguration", "id", ["status"]);
         var json = Envelope($$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "active" }]""");
 
-        var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
+        var result = await ImportNodeWalker.WalkAsync(Pg(conn), definition, root, json, CancellationToken.None);
 
         var row = Assert.Single(result.Rows);
         Assert.Equal(ImportRowStatus.Accepted, row.Status);
@@ -180,7 +184,7 @@ public sealed class ImportNodeWalkerPostgresTests
         var json = $$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "confirmed" }]""";
 
         await Assert.ThrowsAsync<ImportValidationException>(() =>
-            ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None)
+            ImportNodeWalker.WalkAsync(Pg(conn), definition, root, json, CancellationToken.None)
         );
     }
 
@@ -196,7 +200,7 @@ public sealed class ImportNodeWalkerPostgresTests
         var json = $$"""{ "records": [{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "confirmed" }] }""";
 
         await Assert.ThrowsAsync<ImportValidationException>(() =>
-            ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None)
+            ImportNodeWalker.WalkAsync(Pg(conn), definition, root, json, CancellationToken.None)
         );
     }
 
@@ -222,7 +226,7 @@ public sealed class ImportNodeWalkerPostgresTests
             """;
 
         var ex = await Assert.ThrowsAsync<ImportValidationException>(() =>
-            ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None)
+            ImportNodeWalker.WalkAsync(Pg(conn), definition, root, json, CancellationToken.None)
         );
         Assert.Contains("exported data file", ex.Message);
     }
@@ -241,7 +245,7 @@ public sealed class ImportNodeWalkerPostgresTests
             """;
 
         await Assert.ThrowsAsync<ImportValidationException>(() =>
-            ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None)
+            ImportNodeWalker.WalkAsync(Pg(conn), definition, root, json, CancellationToken.None)
         );
     }
 
@@ -271,14 +275,14 @@ public sealed class ImportNodeWalkerPostgresTests
             """;
 
         var resultWithout = await ImportNodeWalker.WalkAsync(
-            conn,
+            Pg(conn),
             definition,
             root,
             withoutProvenance,
             CancellationToken.None
         );
         var resultWith = await ImportNodeWalker.WalkAsync(
-            conn,
+            Pg(conn),
             definition,
             root,
             withProvenance,
@@ -308,7 +312,7 @@ public sealed class ImportNodeWalkerPostgresTests
         var definition = MakeDefinition("systemconfiguration", "id", ["status"], UnmatchedRootPolicy.Reject);
         var json = Envelope($$"""[{ "ciId": "{{UnknownCiId}}", "confirmationStatus": "confirmed" }]""");
 
-        var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
+        var result = await ImportNodeWalker.WalkAsync(Pg(conn), definition, root, json, CancellationToken.None);
 
         Assert.Equal(0, result.AcceptedCount);
         Assert.Equal(1, result.RejectedCount);
@@ -328,7 +332,7 @@ public sealed class ImportNodeWalkerPostgresTests
         var definition = MakeDefinition("systemconfiguration", "id", ["status"], UnmatchedRootPolicy.Quarantine);
         var json = Envelope($$"""[{ "ciId": "{{UnknownCiId}}", "confirmationStatus": "confirmed" }]""");
 
-        var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
+        var result = await ImportNodeWalker.WalkAsync(Pg(conn), definition, root, json, CancellationToken.None);
 
         var row = Assert.Single(result.Rows);
         Assert.Equal(ImportRowStatus.Quarantined, row.Status);
@@ -349,7 +353,7 @@ public sealed class ImportNodeWalkerPostgresTests
         var json = Envelope($$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "confirmed" }]""");
 
         await Assert.ThrowsAsync<ImportValidationException>(() =>
-            ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None)
+            ImportNodeWalker.WalkAsync(Pg(conn), definition, root, json, CancellationToken.None)
         );
     }
 
@@ -368,7 +372,7 @@ public sealed class ImportNodeWalkerPostgresTests
             $$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "active", "maintenancePlan": { "allocationChartRef": "AC-2024-099" } }]"""
         );
 
-        var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
+        var result = await ImportNodeWalker.WalkAsync(Pg(conn), definition, root, json, CancellationToken.None);
 
         var row = Assert.Single(result.Rows);
         Assert.Equal(ImportRowStatus.Accepted, row.Status);
@@ -393,7 +397,7 @@ public sealed class ImportNodeWalkerPostgresTests
             $$"""[{ "ciId": "{{DecommissionedCiId}}", "confirmationStatus": "decommissioned", "maintenancePlan": { "allocationChartRef": "AC-2024-099" } }]"""
         );
 
-        var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
+        var result = await ImportNodeWalker.WalkAsync(Pg(conn), definition, root, json, CancellationToken.None);
 
         var row = Assert.Single(result.Rows);
         Assert.Equal(ImportRowStatus.Accepted, row.Status); // the root row itself still matched fine
@@ -414,7 +418,7 @@ public sealed class ImportNodeWalkerPostgresTests
         var definition = MakeDefinition("systemconfiguration", "id", ["status", "allocation_chart_ref"]);
         var json = Envelope($$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "active" }]""");
 
-        var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
+        var result = await ImportNodeWalker.WalkAsync(Pg(conn), definition, root, json, CancellationToken.None);
 
         var row = Assert.Single(result.Rows);
         Assert.Empty(row.Children);
@@ -435,7 +439,7 @@ public sealed class ImportNodeWalkerPostgresTests
             $$"""[{ "manufacturerId": "{{AcmeManufacturerId}}", "addresses": [{ "city": "Austin" }] }]"""
         );
 
-        var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
+        var result = await ImportNodeWalker.WalkAsync(Pg(conn), definition, root, json, CancellationToken.None);
 
         var row = Assert.Single(result.Rows);
         Assert.Equal(ImportRowStatus.Accepted, row.Status);
@@ -456,7 +460,7 @@ public sealed class ImportNodeWalkerPostgresTests
             $$"""[{ "manufacturerId": "{{NorthbridgeManufacturerId}}", "addresses": [{ "city": "Somewhere" }] }]"""
         );
 
-        var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
+        var result = await ImportNodeWalker.WalkAsync(Pg(conn), definition, root, json, CancellationToken.None);
 
         var row = Assert.Single(result.Rows);
         var child = Assert.Single(row.Children);
@@ -485,7 +489,7 @@ public sealed class ImportNodeWalkerPostgresTests
             $$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "confirmed", "maintenancePlan": { "allocationChartRef": "AC-2024-099" } }]"""
         );
 
-        var result = await ImportNodeWalker.WalkAsync(conn, definition, root, json, CancellationToken.None);
+        var result = await ImportNodeWalker.WalkAsync(Pg(conn), definition, root, json, CancellationToken.None);
 
         Assert.Equal(1, result.AcceptedCount);
         await tx.RollbackAsync();

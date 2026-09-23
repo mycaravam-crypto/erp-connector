@@ -15,6 +15,19 @@ public interface IDataSourceProvider
     /// <summary>What this provider supports beyond the common contract — see <see cref="DataSourceCapabilities"/>.</summary>
     DataSourceCapabilities Capabilities { get; }
 
+    /// <summary>Whether <paramref name="config"/> has what this provider needs to connect (required fields, a valid
+    /// TLS mode or instance URL): a user-facing message, or null when it's usable. Checked before any connection
+    /// attempt; the only place per-source-type config rules live.</summary>
+    string? ValidateConfig(DataSourceConfig config);
+
+    /// <summary>The host a connection with the (validated) <paramref name="config"/> reaches — what the SSRF check
+    /// in <c>POST /api/connection</c> resolves.</summary>
+    string TargetHost(DataSourceConfig config);
+
+    /// <summary>True when <paramref name="config"/> can only ever reach the source encrypted — never falling back
+    /// to plaintext.</summary>
+    bool IsAlwaysEncrypted(DataSourceConfig config);
+
     /// <summary>Opens a connection against <paramref name="config"/> and reads back its schema, without
     /// persisting anything. Never throws for a reachability/credential failure — that's reported via
     /// <see cref="TestConnectionResult.Success"/>/<see cref="TestConnectionResult.Error"/> instead, sanitized

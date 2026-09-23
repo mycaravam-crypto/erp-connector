@@ -81,22 +81,20 @@ kept over a `DataSourceConfig` class hierarchy (or separate `RelationalDataSourc
 
 ## 3. Required fields per type
 
-Not enforced by the type system (a `DataSourceConfig` is a plain data holder, not self-validating) —
-enforced at save time by `ConnectionEndpoints.ValidateRequiredFields`, the single choke point
-`POST /api/connection` routes every request through before ever calling a provider:
+Not enforced by the type system (a `DataSourceConfig` is a plain data holder, not self-validating).
+Each provider enforces its own rules in `IDataSourceProvider.ValidateConfig` (Arbeitsauftrag 14).
+`POST /api/connection` resolves the provider for `Type` first and asks it before connecting:
 
 | `Type` | Required | Rejected if |
 |---|---|---|
-| `PostgreSql`, `MariaDb` | `Host`, `Port`, `Database`, `Username` | Any of the four is null/blank |
-| `ServiceNowTableApi`, `ServiceNowSqlApi` | `InstanceUrl`, `Username` | Either is null/blank |
-| Anything else (including a numeric value outside every defined member) | — | Always — `"Unknown data source type '{Type}'."` |
+| `PostgreSql`, `MariaDb` (`RelationalConnectionRules`) | `Host`, `Port`, `Database`, `Username`; `SslMode` unset or one of the shared names | Any of the four is null/blank, or `SslMode` is unknown |
+| `ServiceNowTableApi` | `InstanceUrl` (absolute `https://`), `Username` | Either is missing, or the URL isn't HTTPS |
+| Anything else (`ServiceNowSqlApi`, or a numeric value outside every defined member) | — | No provider is registered: `"data source type '{Type}' is not supported by this connector version yet."` |
 
-This single function covers both the "invalid combinations" case (e.g. a `PostgreSql` config
-missing `Host`, or one that mixed in `InstanceUrl` instead) and the "unknown data source type" case
-from the same `switch`, so the two can't drift into inconsistent error handling.
-`DataSourceProviderResolver.Resolve` enforces the unknown/unimplemented-type case again,
-independently, for every other caller that reaches a provider without going through this HTTP
-endpoint (`ExportWorker`, `ImportWorker`, etc.).
+"Invalid combinations" fail the provider's check, e.g. a `PostgreSql` config that carries
+`InstanceUrl` instead of `Host`. `DataSourceProviderResolver.Resolve` rejects unknown or
+unimplemented types for every caller, including those that never go through this endpoint
+(`ExportWorker`, `ImportWorker`, etc.).
 
 `POST /api/connection` validates `SslMode` for `PostgreSql`/`MariaDb` (one vocabulary for both — the
 MariaDB provider maps the names onto MySqlConnector's modes). The SSRF host check
@@ -154,8 +152,8 @@ never requires an EF Core migration. Compatibility is entirely a JSON property, 
 - **A config with an explicit `Type`** (any shape) round-trips identically.
 - **An out-of-range numeric `Type`** (e.g. `999`, from a future member this codebase doesn't know
   about yet) still deserializes rather than throwing — `System.Text.Json` doesn't validate enum
-  values against defined members by default — leaving `ValidateRequiredFields`/
-  `DataSourceProviderResolver.Resolve` as the actual, explicit rejection points rather than a
+  values against defined members by default — leaving `DataSourceProviderResolver.Resolve` (and so
+  `POST /api/connection`) as the actual, explicit rejection point rather than a
   deserialization crash.
 
 No stored `AppSetting` row needs a one-time rewrite for any of this — every old shape already
@@ -175,7 +173,7 @@ shows only that type's fields. The rules live in `src/lib/connectionForm.ts`:
 
 Switching type moves the port to the new default unless the user entered their own. Fields that the
 chosen type doesn't use are sent as `null`. Required fields are checked in the browser before any
-request, per type, with one message per field. The server's own `ValidateRequiredFields` stays the
+request, per type, with one message per field. The provider's `ValidateConfig` on the server stays the
 authority. A stored config without `Type` loads as PostgreSQL. With `hasPassword`, the password field
 stays empty and its placeholder says it's unchanged. A type with no provider yet (currently the
 ServiceNow SQL API) gets a readable 400 ("not supported by this connector version yet").
@@ -186,10 +184,10 @@ ServiceNow SQL API) gets a readable 400 ("not supported by this connector versio
   from §5, `ToString()`/`HasPassword` password-leak coverage, and that an "invalid combination" or
   out-of-range `Type` still deserializes (rejection is a separate, later step, not a parse-time
   concern).
-- `ConnectionEndpointsRequiredFieldValidationTests` (`Connector.Integration.Tests`, pure unit, no
-  database) — `ValidateRequiredFields` for every `DataSourceType`: all-required-fields-present,
-  each-field-individually-missing, a relational type carrying `InstanceUrl` instead of `Host`/an
-  HTTP-API type carrying `Host` instead of `InstanceUrl`, and the unknown-type case.
+- `DataSourceConfigValidationTests` (`Connector.Integration.Tests`, pure unit, no database) — every
+  provider's `ValidateConfig`/`TargetHost`/`IsAlwaysEncrypted`: required fields present or missing,
+  invalid combinations, TLS-mode vocabulary, ServiceNow's HTTPS instance URL, and the `Imports`
+  capability check.
 - `ConnectionEndpointsHttpTests` (`Connector.Integration.Tests`, real HTTP pipeline via `ApiFactory`,
   no Postgres `testdb` needed) — `GET /api/connection`'s raw JSON response never contains the
   stored password or a `"password"` key, `HasPassword` reflects whether one is set, and

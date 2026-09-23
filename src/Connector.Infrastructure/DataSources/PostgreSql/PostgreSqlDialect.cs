@@ -48,6 +48,14 @@ public sealed class PostgreSqlDialect : ISqlDialect
     public JsonNode? ConvertNativeTextToJson(string nativeText, string dataType) =>
         PostgreSqlJsonValues.FromNativeText(nativeText, dataType);
 
+    public string FormatValue(object value, string dataType) =>
+        (value, dataType) switch
+        {
+            (DateTime dt, "date" or "timestamp" or "timestamptz") => dt.ToString("yyyy-MM-dd"),
+            (DateOnly d, _) => d.ToString("yyyy-MM-dd"),
+            _ => value.ToString() ?? "",
+        };
+
     public string BuildStringAggregate(string expression, string delimiter) =>
         $"string_agg({CastToText(expression)}, {QuoteStringLiteral(delimiter)})";
 }
