@@ -204,6 +204,22 @@ public sealed class ServiceNowTableApiProviderTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_TableNameWithEncodedQuerySyntax_IsUnknownAndNeverSent()
+    {
+        var sn = FakeServiceNow.WithIncidents();
+
+        await Assert.ThrowsAsync<InvalidSourceQueryException>(() =>
+            sn.CreateProvider()
+                .ExecuteAsync(
+                    FakeServiceNow.Config,
+                    new SourceQuery { RootTable = "incident^NQsys_user" },
+                    CancellationToken.None
+                )
+        );
+        Assert.DoesNotContain(sn.Requests, u => Uri.UnescapeDataString(u.Query).Contains("NQsys_user"));
+    }
+
+    [Fact]
     public async Task ExecuteAsync_Pagination_ReadsEveryPage()
     {
         var sn = FakeServiceNow.WithIncidents();

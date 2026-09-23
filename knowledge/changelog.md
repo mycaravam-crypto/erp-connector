@@ -10,6 +10,22 @@ Last updated: 2026-09-23
 
 ---
 
+## Phase 29 — Data source security hardening ✅
+
+Arbeitsauftrag 11: a targeted security review of the multi-source layer, with the concrete gaps fixed.
+See [Data Source Security](/security/data-source-security.md) for threats, controls, residual risks
+and test coverage.
+
+| Item | Notes |
+|---|---|
+| `SanitizingLogFormatter` | Every log line goes through it: exception text (incl. inner exceptions) and string properties scrubbed, destructured `Password` dropped |
+| `ErrorSanitizer` | Also scrubs HTTP `Basic` credentials. New `Scrub` (any text) and `ForLogging` (exceptions) |
+| `AuditService` | Scrubs every detail. `export_failed`/`export_preset_run_failed` no longer store the raw exception message |
+| `TransportSecurity`, `POST /api/connection` | In production, PostgreSQL/MariaDB must use `Require`/`VerifyCA`/`VerifyFull` unless `DataSources:AllowUnencryptedConnections=true`. Startup warning for a stored connection that isn't always encrypted |
+| Tests | `DataSourceSecurityTests` (injection in table/column/join field/filter/IN/export identifier and recursive GDPR, on PostgreSQL and MariaDB), `SanitizingLogFormatterTests`, `TransportSecurityTests`, more `ErrorSanitizerTests`, ServiceNow table-name injection |
+
+---
+
 ## Phase 28 — ServiceNow Table API data source ✅
 
 Arbeitsauftrag 9: ServiceNow can be connected, its schema read and queried through `SourceQuery`

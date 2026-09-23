@@ -178,10 +178,11 @@ the API itself reachable only from that proxy — an internal network or loopbac
 Everything served by this API, including the login endpoint, is plaintext until a proxy in front of it adds
 TLS.
 
-Separately, the ERP Postgres connection configured in Step 1 defaults to Npgsql's `Prefer` SSL mode, which
-silently falls back to an unencrypted connection if the target doesn't offer TLS. For a production ERP
-target, set the connection's SSL Mode to `Require` (or `VerifyFull`, once the target's certificate/CA is in
-place) instead of leaving it on the default.
+Separately, a PostgreSQL/MariaDB connection configured in Step 1 defaults to the `Prefer` TLS mode, which
+silently falls back to an unencrypted connection if the target doesn't offer TLS. In production the API
+refuses to save such a connection: choose `Require` (or `VerifyFull`, once the target's certificate/CA is in
+place), or opt out explicitly with `DataSources__AllowUnencryptedConnections=true`. ServiceNow is always
+HTTPS. See [Data Source Security](knowledge/security/data-source-security.md).
 
 ---
 

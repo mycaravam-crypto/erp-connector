@@ -198,7 +198,7 @@ public sealed class ExportWorker(
             logger.LogError(ex, "Export #{Seq} failed", sequenceNo);
             run.Status = ExportRunStatus.Failed;
             await db.SaveChangesAsync(CancellationToken.None);
-            await audit.LogAsync("scheduler", "export_failed", $"#{sequenceNo}: {ex.Message}");
+            await audit.LogAsync("scheduler", "export_failed", $"#{sequenceNo}: {ErrorSanitizer.Detail(ex)}");
         }
     }
 

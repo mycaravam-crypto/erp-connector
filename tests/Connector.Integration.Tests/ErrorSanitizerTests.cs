@@ -42,4 +42,27 @@ public sealed class ErrorSanitizerTests
 
         Assert.Equal("Host=erp;Password=***", ErrorSanitizer.Detail(ex));
     }
+
+    [Fact]
+    public void Scrub_BasicAuthCredential_IsRedacted() =>
+        Assert.Equal("Authorization: Basic ***", ErrorSanitizer.Scrub("Authorization: Basic c3ZjOnNlY3JldA=="));
+
+    [Fact]
+    public void ForLogging_CleanException_IsReturnedAsIs()
+    {
+        var ex = new InvalidOperationException("connection refused");
+
+        Assert.Same(ex, ErrorSanitizer.ForLogging(ex));
+    }
+
+    [Fact]
+    public void ForLogging_CredentialInInnerException_IsScrubbedFromTheFullText()
+    {
+        var ex = new InvalidOperationException("outer", new ArgumentException("Host=erp;Password=hunter2"));
+
+        var logged = ErrorSanitizer.ForLogging(ex).ToString();
+
+        Assert.DoesNotContain("hunter2", logged);
+        Assert.Contains("ArgumentException", logged);
+    }
 }
