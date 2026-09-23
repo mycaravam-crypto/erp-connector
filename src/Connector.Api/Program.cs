@@ -279,6 +279,15 @@ using (var scope = app.Services.CreateScope())
         """CREATE INDEX IF NOT EXISTS "IX_AuditLog_Timestamp" ON "AuditLog" ("Timestamp")"""
     );
 
+    // Encrypts AppSetting rows still stored as plaintext from before EncryptedStringConverter existed —
+    // otherwise they stay plaintext on disk and log the converter's SR-11 warning on every read. No-op once
+    // every row is encrypted.
+    await AppSettingEncryptionMigrator.EncryptPlaintextRowsAsync(
+        exportLogDb,
+        scope.ServiceProvider.GetRequiredService<IDataProtectionProvider>(),
+        app.Logger
+    );
+
     // Phase 14: one-time conversion of the legacy single mapping + presets into ExportDefinition rows.
     // No-ops once any ExportDefinition row exists.
     await ExportDefinitionMigrator.MigrateLegacyMappingsAsync(exportLogDb);

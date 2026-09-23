@@ -170,4 +170,71 @@ public sealed class AppSettingEncryptionTests
 
         Assert.Empty(readerLogger.Warnings);
     }
+
+    // AppSettingEncryptionMigrator: rows written before the converter existed must not stay plaintext on
+    // disk (and keep logging SR-11's warning) just because nobody happens to re-save that key.
+    [Fact]
+    public async Task Migrator_EncryptsPlaintextRows_LeavesCiphertextAlone_AndIsIdempotent()
+    {
+        var dataProtectionProvider = new EphemeralDataProtectionProvider();
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        // See PreEncryptionPlaintextRow_LogsWarningOnEachRead's comment on EnableServiceProviderCaching.
+        var options = new DbContextOptionsBuilder<ExportLogDbContext>()
+            .UseSqlite(connection)
+            .EnableServiceProviderCaching(false)
+            .Options;
+
+        await using (var writer = new ExportLogDbContext(options, dataProtectionProvider))
+        {
+            await writer.Database.EnsureCreatedAsync();
+            await writer.SetSettingAsync("already_encrypted", "keep me");
+        }
+        var plainJson = JsonSerializer.Serialize(ErpTestFixture.Config);
+        await WriteRawColumnValueAsync(connection, SettingsKeys.ErpConnection, plainJson);
+        await WriteRawColumnValueAsync(connection, "scheduler_config", "{\"Enabled\":true}");
+        // Ciphertext from a key ring this app no longer has: must never be treated as plaintext.
+        var foreignCiphertext = new EphemeralDataProtectionProvider()
+            .CreateProtector("Connector.Infrastructure.AppSettingEntity.Value.v1")
+            .Protect("from a lost key ring");
+        await WriteRawColumnValueAsync(connection, "foreign", foreignCiphertext);
+        var encryptedBefore = await ReadRawColumnValueAsync(connection, "already_encrypted");
+
+        await using (var db = new ExportLogDbContext(options, dataProtectionProvider))
+        {
+            var migrated = await AppSettingEncryptionMigrator.EncryptPlaintextRowsAsync(
+                db,
+                dataProtectionProvider,
+                Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance
+            );
+            Assert.Equal(2, migrated);
+            Assert.Equal(
+                0,
+                await AppSettingEncryptionMigrator.EncryptPlaintextRowsAsync(
+                    db,
+                    dataProtectionProvider,
+                    Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance
+                )
+            );
+        }
+
+        var rawConnection = await ReadRawColumnValueAsync(connection, SettingsKeys.ErpConnection);
+        Assert.StartsWith("CfDJ8", rawConnection, StringComparison.Ordinal);
+        Assert.DoesNotContain(ErpTestFixture.Config.Password, rawConnection, StringComparison.Ordinal);
+        Assert.StartsWith(
+            "CfDJ8",
+            await ReadRawColumnValueAsync(connection, "scheduler_config"),
+            StringComparison.Ordinal
+        );
+        Assert.Equal(encryptedBefore, await ReadRawColumnValueAsync(connection, "already_encrypted"));
+        Assert.Equal(foreignCiphertext, await ReadRawColumnValueAsync(connection, "foreign"));
+
+        // Reads now decrypt normally — same values, and no plaintext warning any more.
+        var logger = new CapturingLogger();
+        await using var reader = new ExportLogDbContext(options, dataProtectionProvider, logger);
+        Assert.Equal(ErpTestFixture.Config, await reader.GetSettingAsync<DataSourceConfig>(SettingsKeys.ErpConnection));
+        Assert.Equal("{\"Enabled\":true}", (await reader.AppSettings.FindAsync("scheduler_config"))!.Value);
+        Assert.Equal("keep me", await reader.GetSettingAsync<string>("already_encrypted"));
+        Assert.Empty(logger.Warnings);
+    }
 }
