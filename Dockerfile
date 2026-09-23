@@ -14,7 +14,7 @@ RUN npm run build-only
 # ── Stage 2: Build the .NET API ───────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine@sha256:730abfea9d28f7d643bc29857363b35ddff06d8f22a388d912acfba5bf78fab2 AS api-build
 WORKDIR /app
-COPY Directory.Build.props ./
+COPY Directory.Build.props VERSION ./
 COPY src/ ./src/
 COPY tests/ ./tests/
 RUN dotnet restore src/Connector.Api/Connector.Api.csproj

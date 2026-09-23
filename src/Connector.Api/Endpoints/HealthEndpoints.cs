@@ -1,3 +1,4 @@
+using System.Reflection;
 using Connector.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -31,6 +32,19 @@ static class HealthEndpoints
                 return healthy ? Results.Ok(result) : Results.Json(result, statusCode: 503);
             }
         );
+
+        // Unauthenticated — the login screen shows it so a deployment can be verified before sign-in.
+        app.MapGet("/api/version", () => Results.Ok(new { version = AppVersion }));
+    }
+
+    // From the VERSION file via Directory.Build.props. The SDK may append "+<git sha>" to the
+    // informational version in local builds; only the semantic version is shown.
+    private static readonly string AppVersion = ReadVersion();
+
+    private static string ReadVersion()
+    {
+        var attr = typeof(HealthEndpoints).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+        return attr?.InformationalVersion.Split('+')[0] ?? "unknown";
     }
 
     private static bool IsStagingWritable(string path)
