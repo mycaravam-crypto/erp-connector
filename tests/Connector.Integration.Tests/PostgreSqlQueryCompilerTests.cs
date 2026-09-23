@@ -315,8 +315,12 @@ public sealed class PostgreSqlQueryCompilerTests
             }
         );
 
+        // Only the string parameter's type is set explicitly; a non-string value keeps its CLR value for
+        // Npgsql's own (lazy, bind-time) inference, so its NpgsqlDbType isn't asserted here. The effect of the
+        // untyped binding is exercised end-to-end by PostgreSqlDataSourceProviderTests (string vs. uuid column).
         Assert.Equal(NpgsqlDbType.Unknown, compiled.Parameters[0].NpgsqlDbType);
-        Assert.Equal(NpgsqlDbType.Integer, compiled.Parameters[1].NpgsqlDbType);
+        Assert.Equal("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", compiled.Parameters[0].Value);
+        Assert.Equal(7, compiled.Parameters[1].Value);
     }
 
     [Fact]
