@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { getConnection, type ErpConnectionInfo } from '@/api/connection'
 import { listExportDefinitions } from '@/api/exportDefinitions'
@@ -14,6 +14,11 @@ import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 // instead) — an orientation point for the areas that used to be reachable only from the account menu,
 // not a replacement for any of them.
 const connection = ref<ErpConnectionInfo | null>(null)
+// A relational source is named by its database and reached at host:port; ServiceNow by its instance URL.
+const connectionName = computed(() => connection.value?.database ?? connection.value?.instanceUrl)
+const connectionTarget = computed(() =>
+  connection.value?.host ? `${connection.value.host}:${connection.value.port}` : connection.value?.instanceUrl,
+)
 const exportJobCount = ref<number | null>(null)
 const enabledExportJobCount = ref<number | null>(null)
 const importDefinitionCount = ref<number | null>(null)
@@ -64,10 +69,10 @@ const links = [
       <span class="text-brand shrink-0"><Icon :icon="Plug" :size="24" /></span>
       <div class="min-w-0">
         <p class="m-0 text-sm font-semibold text-text-primary">
-          {{ connection ? `Connected to ${connection.database}` : 'No connection configured' }}
+          {{ connection ? `Connected to ${connectionName}` : 'No connection configured' }}
         </p>
         <p v-if="connection" class="m-0 text-xs text-text-secondary font-mono truncate">
-          {{ connection.username }}@{{ connection.host }}:{{ connection.port }}
+          {{ connection.username }}@{{ connectionTarget }}
         </p>
       </div>
       <RouterLink :to="{ name: 'connect' }" class="ml-auto text-brand text-sm shrink-0 hover:underline">

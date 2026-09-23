@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { getConnection, saveConnection, getSourceSchema, isConnectionConfigured, invalidateConnectionCache } from '@/api/connection'
+import {
+  getConnection,
+  saveConnection,
+  getSourceSchema,
+  isConnectionConfigured,
+  invalidateConnectionCache,
+  DataSourceType,
+} from '@/api/connection'
 
 const SCHEMA = {
   connectionLabel: 'localhost:5432/erp',
@@ -9,7 +16,15 @@ const SCHEMA = {
   ],
 }
 
-const CONN_INFO = { host: 'localhost', port: 5432, database: 'erp', username: 'ro', sslMode: null }
+const CONN_INFO = {
+  type: DataSourceType.PostgreSql,
+  host: 'localhost',
+  port: 5432,
+  database: 'erp',
+  instanceUrl: null,
+  username: 'ro',
+  sslMode: null,
+}
 
 function mockFetch(body: unknown, status = 200) {
   return vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
@@ -52,9 +67,11 @@ describe('saveConnection', () => {
   it('sends all fields including password in the body', async () => {
     mockFetch(SCHEMA)
     await saveConnection({
+      type: DataSourceType.MariaDb,
       host: 'db.local',
-      port: 5433,
+      port: 3307,
       database: 'prod',
+      instanceUrl: null,
       username: 'reader',
       password: 'pw',
       sslMode: null,
@@ -62,9 +79,11 @@ describe('saveConnection', () => {
     const call = vi.mocked(fetch).mock.calls[0]
     const body = JSON.parse(call[1]?.body as string)
     expect(body).toEqual({
+      type: 1,
       host: 'db.local',
-      port: 5433,
+      port: 3307,
       database: 'prod',
+      instanceUrl: null,
       username: 'reader',
       password: 'pw',
       sslMode: null,

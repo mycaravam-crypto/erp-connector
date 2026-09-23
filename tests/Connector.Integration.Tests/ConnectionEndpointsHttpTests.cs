@@ -112,4 +112,29 @@ public sealed class ConnectionEndpointsHttpTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
+
+    // A modeled but unimplemented type (ServiceNow SQL API) gets a readable 400, not the resolver's internal
+    // "No IDataSourceProvider is registered" wording.
+    [Fact]
+    public async Task PostConnection_UnimplementedDataSourceType_ReturnsReadableBadRequest()
+    {
+        using var client = await _factory.CreateAuthenticatedClientAsync();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/connection",
+            new
+            {
+                type = 3,
+                instanceUrl = "https://acme.service-now.com",
+                username = "u",
+                password = "p",
+            },
+            ApiAuth.Json
+        );
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("not supported by this connector version", body);
+        Assert.DoesNotContain("IDataSourceProvider", body);
+    }
 }

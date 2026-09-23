@@ -10,6 +10,23 @@ Last updated: 2026-09-23
 
 ---
 
+## Phase 27 — Connection UI for several source types ✅
+
+Arbeitsauftrag 8: the connection page asks for the source type first (PostgreSQL, MariaDB / MySQL,
+ServiceNow) and shows that type's fields. See
+[Data Source Configuration §6](/architecture/data-source-configuration.md).
+
+| Item | Notes |
+|---|---|
+| `ConnectionView.vue`, `lib/connectionForm.ts`, `ConnectionTlsSelect.vue` | Source Type select. Per-type fields and default ports (5432/3306). ServiceNow Instance URL + Access Method. Per-type required-field messages. Stored configs (including ones without `type`) load correctly |
+| `api/connection.ts` | `DataSourceType`, `type`/`instanceUrl`/`hasPassword` in the DTOs; POST sends the full config |
+| `ConnectionEndpoints.WithStoredPasswordIfUnchanged` | An empty password keeps the stored one while type, target and username are unchanged |
+| `POST /api/connection` | A type with no provider yet gets a readable 400 instead of the resolver's internal message |
+| `DashboardView.vue` | Shows the ServiceNow instance URL when there is no host/database |
+| Tests | `ConnectionView.test.ts` (+14), `connectionForm.test.ts`, `ConnectionEndpointsPasswordRetentionTests`, one more `ConnectionEndpointsHttpTests` case |
+
+---
+
 ## Phase 26 — MariaDB data source ✅
 
 Arbeitsauftrag 7: MariaDB is the second relational data source, over MySqlConnector. The same

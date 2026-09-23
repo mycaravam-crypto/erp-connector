@@ -271,7 +271,7 @@ The UI lives at `src/connector-ui/`. It implements a **four-step workflow** plus
 
 | Route | View | Purpose |
 |---|---|---|
-| `/connect` | `ConnectionView` | Configure and test the source PostgreSQL connection |
+| `/connect` | `ConnectionView` | Choose the source type (PostgreSQL, MariaDB/MySQL, ServiceNow), configure and test the connection |
 | `/source-schema` | `SourceSchemaView` | Browse tables and columns from the live source DB |
 | `/export-schema` | `SchemaView` | Toggle export columns, set column name overrides |
 | `/exports` | `ExportView` | Trigger export, live preview, run history |

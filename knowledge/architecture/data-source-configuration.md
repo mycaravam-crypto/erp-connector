@@ -106,7 +106,7 @@ that would ever open a connection to it.
 
 ## 4. Password handling
 
-Three independent guarantees:
+Four independent guarantees:
 
 1. **Never returned by a GET endpoint.** `GET /api/connection`'s response DTO, `ErpConnectionInfo`,
    has no `Password` field at all — only `HasPassword`, a bool, so a caller can distinguish "no
@@ -116,7 +116,12 @@ Three independent guarantees:
    otherwise print every public property, `Password` included, in plaintext into any log statement,
    exception message, or debugger view that happens to interpolate the config (`$"{config}"`, a
    `{Config}` structured-logging template, etc.).
-3. **Connection strings/exceptions never fully logged with a password.** `ErrorSanitizer.Detail`
+3. **Never silently replaced or re-sent.** The connection form (`ConnectionView`, Arbeitsauftrag 8) never
+   fills the password field from a GET response. Leaving it empty means "keep the stored password":
+   `ConnectionEndpoints.WithStoredPasswordIfUnchanged` carries the stored value over only if `Type`,
+   `Host`, `Port`, `Database`, `InstanceUrl` and `Username` are all unchanged. Otherwise the request
+   keeps its empty password, so a changed target never receives the stored credential.
+4. **Connection strings/exceptions never fully logged with a password.** `ErrorSanitizer.Detail`
    scrubs any `password=`/`pwd=` fragment out of an exception's message before it's ever returned to
    a caller or logged — the one place Npgsql has been observed to echo a connection string,
    credential included, back inside its own exception text.
@@ -157,7 +162,25 @@ No stored `AppSetting` row needs a one-time rewrite for any of this — every ol
 deserializes correctly against the current type, and the next `POST /api/connection` (or any other
 `SetSettingAsync` call against that key) naturally re-persists it in the current shape.
 
-## 6. Tests
+## 6. Connection form (frontend)
+
+`ConnectionView` starts with a **Source Type** select — PostgreSQL, MariaDB / MySQL, ServiceNow — and
+shows only that type's fields. The rules live in `src/lib/connectionForm.ts`:
+
+| Source type | Fields | Sent as |
+|---|---|---|
+| PostgreSQL | Host, Port (default `5432`), Database, Username, Password, TLS/SSL Mode | `Type = PostgreSql` |
+| MariaDB / MySQL | Host, Port (default `3306`), Database, Username, Password, TLS Mode (no `Allow`) | `Type = MariaDb` |
+| ServiceNow | Instance URL (`https://` required), Access Method, Username, Password | `Type = ServiceNowTableApi` (Table API) or `ServiceNowSqlApi` (SQL API / Live Connect) |
+
+Switching type moves the port to the new default unless the user entered their own. Fields that the
+chosen type doesn't use are sent as `null`. Required fields are checked in the browser before any
+request, per type, with one message per field. The server's own `ValidateRequiredFields` stays the
+authority. A stored config without `Type` loads as PostgreSQL. With `hasPassword`, the password field
+stays empty and its placeholder says it's unchanged. A type with no provider yet (currently the
+ServiceNow SQL API) gets a readable 400 ("not supported by this connector version yet").
+
+## 7. Tests
 
 - `DataSourceConfigTests` (`Connector.Core.Tests`, no database/HTTP) — the back-compat/JSON cases
   from §5, `ToString()`/`HasPassword` password-leak coverage, and that an "invalid combination" or
@@ -173,5 +196,8 @@ deserializes correctly against the current type, and the next `POST /api/connect
   `POST /api/connection` 400s for an unknown type or a type-inappropriate missing field.
 - `DataSourceProviderResolverTests` — covers `ServiceNowTableApi`/`ServiceNowSqlApi`, `MariaDb`, an
   out-of-range numeric type, and no-providers-registered.
+- `ConnectionEndpointsPasswordRetentionTests` — empty password kept only for an unchanged target/account.
+- Frontend: `ConnectionView.test.ts` (provider switch, default ports, required fields, stored PostgreSQL/
+  MariaDB/ServiceNow configs, password handling, API errors), `connectionForm.test.ts`, `connection-api.test.ts`.
 - Every Postgres-backed test (`PostgreSqlDataSourceProviderTests`, the `DynamicExportService*`
   suites, etc.) passes unchanged against a real PostgreSQL instance.

@@ -51,6 +51,28 @@ static class ConnectionEndpoints
             _ => $"Unknown data source type '{config.Type}'.",
         };
 
+    // Arbeitsauftrag 8: GET /api/connection never returns the password, so the form re-submits an empty one to
+    // mean "keep the stored password". It is only carried over when the request still points at the same
+    // system with the same account — otherwise a changed Host/InstanceUrl could send the stored credential to
+    // a different server.
+    internal static DataSourceConfig WithStoredPasswordIfUnchanged(
+        DataSourceConfig request,
+        DataSourceConfig? stored
+    ) =>
+        !request.HasPassword
+        && stored is { HasPassword: true }
+        && stored.Type == request.Type
+        && stored.Host == request.Host
+        && stored.Port == request.Port
+        && stored.Database == request.Database
+        && stored.InstanceUrl == request.InstanceUrl
+        && stored.Username == request.Username
+            ? request with
+            {
+                Password = stored.Password,
+            }
+            : request;
+
     internal static async Task<string?> ValidateHostAsync(string host, CancellationToken ct)
     {
         IPAddress[] addresses;
@@ -131,6 +153,11 @@ static class ConnectionEndpoints
                             return Results.BadRequest(hostError);
                     }
 
+                    request = WithStoredPasswordIfUnchanged(
+                        request,
+                        await db.GetSettingAsync<DataSourceConfig>(SettingsKeys.ErpConnection)
+                    );
+
                     try
                     {
                         var provider = resolver.Resolve(request.Type);
@@ -140,6 +167,12 @@ static class ConnectionEndpoints
 
                         await db.SetSettingAsync(SettingsKeys.ErpConnection, request);
                         return Results.Ok(result.Schema);
+                    }
+                    catch (UnsupportedDataSourceException)
+                    {
+                        return Results.BadRequest(
+                            $"Connection failed: data source type '{request.Type}' is not supported by this connector version yet."
+                        );
                     }
                     catch (Exception ex)
                     {
