@@ -30,6 +30,26 @@ public sealed class ServiceNowTableApiProvider : IDataSourceProvider
     private readonly ServiceNowClient _client;
     private readonly ServiceNowSchemaReader _schemaReader;
 
+    public string? ValidateConfig(DataSourceConfig config)
+    {
+        if (string.IsNullOrWhiteSpace(config.InstanceUrl) || string.IsNullOrWhiteSpace(config.Username))
+            return "InstanceUrl and Username are required for this data source type.";
+        try
+        {
+            ServiceNowClient.ParseInstanceUrl(config.InstanceUrl);
+            return null;
+        }
+        catch (ArgumentException ex)
+        {
+            return ex.Message;
+        }
+    }
+
+    public string TargetHost(DataSourceConfig config) => ServiceNowClient.ParseInstanceUrl(config.InstanceUrl).Host;
+
+    // The client refuses anything but HTTPS, before every request.
+    public bool IsAlwaysEncrypted(DataSourceConfig config) => true;
+
     public ServiceNowTableApiProvider()
         : this(new ServiceNowClient(SharedHttpClient)) { }
 
@@ -50,6 +70,7 @@ public sealed class ServiceNowTableApiProvider : IDataSourceProvider
             CaseSensitiveTextMatch = false,
             DistinguishesEmptyFromNull = false,
             ConditionsOnLeftJoinedTables = false,
+            Imports = false,
         };
 
     /// <summary>Never throws for a reachability/credential/permission failure — reported via

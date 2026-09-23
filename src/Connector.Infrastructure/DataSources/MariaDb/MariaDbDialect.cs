@@ -70,6 +70,11 @@ public sealed partial class MariaDbDialect : ISqlDialect
         };
     }
 
+    public string FormatValue(object value, string dataType) =>
+        value is DateTime dt && dataType is "DATE" or "DATETIME" or "TIMESTAMP"
+            ? dt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            : value.ToString() ?? "";
+
     // GROUP_CONCAT truncates at group_concat_max_len (1 MiB by default on MariaDB) — far beyond a flat export
     // cell, and the same order of magnitude as a spreadsheet cell's own limit.
     public string BuildStringAggregate(string expression, string delimiter) =>

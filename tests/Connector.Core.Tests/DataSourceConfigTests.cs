@@ -134,8 +134,8 @@ public sealed class DataSourceConfigTests
     }
 
     // ── Invalid combinations ─────────────────────────────────────────────────────────────
-    // ConnectionEndpoints.ValidateRequiredFields (Connector.Api) owns full required-field validation per
-    // DataSourceType — covered in ConnectionEndpointsRequiredFieldValidationTests. This project has no
+    // Each provider's IDataSourceProvider.ValidateConfig owns full required-field validation for its
+    // DataSourceType — covered in DataSourceConfigValidationTests. This project has no
     // reference to Connector.Api, so this level only covers what the model itself can express/deserialize:
     // an "invalid combination" (e.g. PostgreSql with a null Host) deserializes just fine — DataSourceConfig
     // is a plain data holder, not a self-validating type — which is exactly why that validation exists as a
@@ -161,7 +161,7 @@ public sealed class DataSourceConfigTests
         // out-of-range Type must still deserialize (so a payload from a newer/foreign version of this
         // service doesn't hard-fail parsing), leaving DataSourceProviderResolver.Resolve
         // (DataSourceProviderResolverTests.Resolve_OutOfRangeType_ThrowsUnsupportedDataSourceException) and
-        // ConnectionEndpoints.ValidateRequiredFields as the actual rejection points.
+        // POST /api/connection (which resolves the provider first) as the actual rejection points.
         const string json = """{"Type":999,"Username":"u"}""";
 
         var config = JsonSerializer.Deserialize<DataSourceConfig>(json);

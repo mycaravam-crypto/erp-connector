@@ -17,6 +17,30 @@ public sealed class PostgreSqlDataSourceProvider : ISqlDataSourceProvider
 
     public DataSourceCapabilities Capabilities => DataSourceCapabilities.Sql;
 
+    public async Task<System.Data.Common.DbConnection> OpenConnectionAsync(
+        DataSourceConfig config,
+        CancellationToken cancellationToken
+    )
+    {
+        var conn = new NpgsqlConnection(BuildConnectionString(config));
+        try
+        {
+            await conn.OpenAsync(cancellationToken);
+            return conn;
+        }
+        catch
+        {
+            await conn.DisposeAsync();
+            throw;
+        }
+    }
+
+    public string? ValidateConfig(DataSourceConfig config) => RelationalConnectionRules.Validate(config);
+
+    public string TargetHost(DataSourceConfig config) => config.Host!;
+
+    public bool IsAlwaysEncrypted(DataSourceConfig config) => RelationalConnectionRules.IsAlwaysEncrypted(config);
+
     public ISqlDialect Dialect => PostgreSqlDialect.Instance;
 
     // Security-review finding SR-02: this previously interpolated Host/Database/Username/Password straight
@@ -30,13 +54,12 @@ public sealed class PostgreSqlDataSourceProvider : ISqlDataSourceProvider
     // 3: not every DataSourceType has a Host/Port at all), but every caller reaching this provider has already
     // gone through ConnectionEndpoints' required-field validation for PostgreSql/MariaDb, so null here only
     // ever means "use the default," never "unset by mistake."
-    // Also the choke point for the import paths (ImportNodeWalker/ImportRunReleaser and their callers), which
-    // still open Npgsql connections directly: a config for any other source type is refused here with a clear
-    // message instead of Npgsql trying to speak PostgreSQL's wire protocol to, say, a MariaDB server.
+    // A config for any other source type is refused with a clear message instead of Npgsql trying to speak
+    // PostgreSQL's wire protocol to, say, a MariaDB server.
     public static string BuildConnectionString(DataSourceConfig config) =>
         config.Type != DataSourceType.PostgreSql
             ? throw new UnsupportedDataSourceException(
-                $"Data source type '{config.Type}' is not supported here: imports currently require PostgreSQL."
+                $"Data source type '{config.Type}' is not a PostgreSQL connection."
             )
             : new NpgsqlConnectionStringBuilder
             {
@@ -275,10 +298,7 @@ public sealed class PostgreSqlDataSourceProvider : ISqlDataSourceProvider
             if (await reader.IsDBNullAsync(i, ct))
                 continue;
 
-            var pgType = reader.GetDataTypeName(i);
-            values[i] = pgType is "date" or "timestamp" or "timestamptz"
-                ? reader.GetDateTime(i).ToString("yyyy-MM-dd")
-                : reader.GetValue(i)?.ToString();
+            values[i] = PostgreSqlDialect.Instance.FormatValue(reader.GetValue(i), reader.GetDataTypeName(i));
         }
         return new QueryResultRow { Values = values };
     }

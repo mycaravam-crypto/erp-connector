@@ -27,9 +27,22 @@ public sealed class MeteredDataSourceProvider(IDataSourceProvider inner) : ISqlD
 
     public DataSourceCapabilities Capabilities => inner.Capabilities;
 
+    public string? ValidateConfig(DataSourceConfig config) => inner.ValidateConfig(config);
+
+    public string TargetHost(DataSourceConfig config) => inner.TargetHost(config);
+
+    public bool IsAlwaysEncrypted(DataSourceConfig config) => inner.IsAlwaysEncrypted(config);
+
     public ISqlDialect Dialect =>
         (inner as ISqlDataSourceProvider)?.Dialect
         ?? throw new UnsupportedDataSourceException($"Data source type '{inner.Type}' has no SQL dialect.");
+
+    public Task<System.Data.Common.DbConnection> OpenConnectionAsync(
+        DataSourceConfig config,
+        CancellationToken cancellationToken
+    ) =>
+        (inner as ISqlDataSourceProvider)?.OpenConnectionAsync(config, cancellationToken)
+        ?? throw new UnsupportedDataSourceException($"Data source type '{inner.Type}' has no SQL connection.");
 
     public Task<TestConnectionResult> TestConnectionAsync(
         DataSourceConfig config,

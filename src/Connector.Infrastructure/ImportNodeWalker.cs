@@ -1,10 +1,9 @@
+using System.Data.Common;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Connector.Core.DynamicExport;
 using Connector.Core.DynamicImport;
 using Connector.Infrastructure.DataSources;
-using Connector.Infrastructure.DataSources.PostgreSql;
-using Npgsql;
 
 namespace Connector.Infrastructure;
 
@@ -22,9 +21,19 @@ namespace Connector.Infrastructure;
 /// </summary>
 public static class ImportNodeWalker
 {
-    // The walker runs on a caller-supplied NpgsqlConnection (see knowledge/architecture/sql-dialect.md §4),
-    // so its SQL is always rendered for PostgreSQL — but through the dialect, not inline syntax.
-    private static readonly ISqlDialect Dialect = PostgreSqlDialect.Instance;
+    // The walker runs on a caller-supplied ImportConnection: an ADO.NET connection plus the dialect its SQL is
+    // rendered with, both from the configured provider (Arbeitsauftrag 14) — no driver type appears here.
+    private static DbCommand Command(ImportConnection conn, string sql, string parameterName, object value)
+    {
+        var cmd = conn.Connection.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.CommandTimeout = 10;
+        var parameter = cmd.CreateParameter();
+        parameter.ParameterName = parameterName;
+        parameter.Value = value;
+        cmd.Parameters.Add(parameter);
+        return cmd;
+    }
 
     /// <summary>
     /// Walks <paramref name="inboundJson"/> (an <c>ImportEnvelope</c> — <c>schemaVersion</c> + <c>records</c>,
@@ -35,7 +44,7 @@ public static class ImportNodeWalker
     /// record's correlation mismatch is reported via <see cref="ImportRowResult"/>, not an exception.
     /// </summary>
     public static async Task<ImportWalkResult> WalkAsync(
-        NpgsqlConnection conn,
+        ImportConnection conn,
         ImportDefinitionEntity definition,
         ImportNode root,
         string inboundJson,
@@ -277,7 +286,7 @@ public static class ImportNodeWalker
             : ImportRowStatus.Rejected;
 
     private static async Task<Dictionary<string, string?>?> FetchRootRowAsync(
-        NpgsqlConnection conn,
+        ImportConnection conn,
         string rootTable,
         string rootMatchColumn,
         string correlationValue,
@@ -285,23 +294,23 @@ public static class ImportNodeWalker
         CancellationToken ct
     )
     {
+        var dialect = conn.Dialect;
         var columns = CollectSelectColumns(root, rootMatchColumn);
         var sql =
-            $"SELECT {SelectList(columns)} FROM {Dialect.QuoteIdentifier(rootTable)} "
-            + $"WHERE {Dialect.CastToText(Dialect.QuoteIdentifier(rootMatchColumn))} = {Dialect.BuildParameterName(0)} "
-            + Dialect.BuildLimit(1);
+            $"SELECT {SelectList(dialect, columns)} FROM {dialect.QuoteIdentifier(rootTable)} "
+            + $"WHERE {dialect.CastToText(dialect.QuoteIdentifier(rootMatchColumn))} = {dialect.BuildParameterName(0)} "
+            + dialect.BuildLimit(1);
 
-        await using var cmd = new NpgsqlCommand(sql, conn) { CommandTimeout = 10 };
-        cmd.Parameters.AddWithValue(Dialect.BuildParameterName(0), correlationValue);
+        await using var cmd = Command(conn, sql, dialect.BuildParameterName(0), correlationValue);
         await using var reader = await cmd.ExecuteReaderAsync(ct);
         if (!await reader.ReadAsync(ct))
             return null;
 
-        return await ReadRowAsync(reader, columns, ct);
+        return await ReadRowAsync(dialect, reader, columns, ct);
     }
 
-    private static string SelectList(IEnumerable<string> columns) =>
-        string.Join(", ", columns.Select(Dialect.QuoteIdentifier));
+    private static string SelectList(ISqlDialect dialect, IEnumerable<string> columns) =>
+        string.Join(", ", columns.Select(dialect.QuoteIdentifier));
 
     /// <summary>Column list for a root-row (or child-row) fetch: the match/join column itself, every direct
     /// scalar-field <c>TargetColumn</c> (so the diff has an "old value" to compare against), and every direct
@@ -317,31 +326,22 @@ public static class ImportNodeWalker
         return columns.Distinct(StringComparer.Ordinal).ToList();
     }
 
+    // Same DBNull/date-coercion contract as the provider's own row materialization (ISqlDialect.FormatValue), so
+    // an old value read here compares fairly against the ISO-8601 form FieldMapping/CoerceToDataType would
+    // produce for a new value of the same column.
     private static async Task<Dictionary<string, string?>> ReadRowAsync(
-        NpgsqlDataReader reader,
+        ISqlDialect dialect,
+        DbDataReader reader,
         IReadOnlyList<string> columns,
         CancellationToken ct
     )
     {
         var row = new Dictionary<string, string?>(columns.Count);
         for (int i = 0; i < columns.Count; i++)
-            row[columns[i]] = await ReadColumnAsStringAsync(reader, i, ct);
+            row[columns[i]] = await reader.IsDBNullAsync(i, ct)
+                ? null
+                : dialect.FormatValue(reader.GetValue(i), reader.GetDataTypeName(i));
         return row;
-    }
-
-    // Same DBNull/date-coercion contract as DynamicExportService.ExecuteQueryAsync's row loop, so an old value
-    // read here compares fairly against the ISO-8601 form FieldMapping/CoerceToDataType would produce for a
-    // new value of the same column.
-    private static async Task<string?> ReadColumnAsStringAsync(NpgsqlDataReader reader, int i, CancellationToken ct)
-    {
-        if (await reader.IsDBNullAsync(i, ct))
-            return null;
-
-        var pgType = reader.GetDataTypeName(i);
-        if (pgType is "date" or "timestamp" or "timestamptz")
-            return reader.GetDateTime(i).ToString("yyyy-MM-dd");
-
-        return reader.GetValue(i)?.ToString();
     }
 
     private static List<ImportFieldDiff> DiffScalarFields(
@@ -396,7 +396,7 @@ public static class ImportNodeWalker
     /// import-definitions.md §3 step 4, applying <see cref="ImportNode.OnMissingChild"/> when it doesn't.
     /// </summary>
     private static async Task<ImportChildResult?> ResolveChildAsync(
-        NpgsqlConnection conn,
+        ImportConnection conn,
         ImportNode node,
         Dictionary<string, string?> parentRow,
         JsonObject parentRecord,
@@ -440,18 +440,18 @@ public static class ImportNodeWalker
                 []
             );
 
+        var dialect = conn.Dialect;
         var columns = CollectSelectColumns(node, node.JoinKey!);
         var sql =
-            $"SELECT {SelectList(columns)} FROM {Dialect.QuoteIdentifier(node.RelatedTable!)} "
-            + $"WHERE {Dialect.CastToText(Dialect.QuoteIdentifier(node.JoinKey!))} = {Dialect.BuildParameterName(0)}";
+            $"SELECT {SelectList(dialect, columns)} FROM {dialect.QuoteIdentifier(node.RelatedTable!)} "
+            + $"WHERE {dialect.CastToText(dialect.QuoteIdentifier(node.JoinKey!))} = {dialect.BuildParameterName(0)}";
 
         var matches = new List<Dictionary<string, string?>>();
-        await using (var cmd = new NpgsqlCommand(sql, conn) { CommandTimeout = 10 })
+        await using (var cmd = Command(conn, sql, dialect.BuildParameterName(0), parentJoinValue))
         {
-            cmd.Parameters.AddWithValue(Dialect.BuildParameterName(0), parentJoinValue);
             await using var reader = await cmd.ExecuteReaderAsync(ct);
             while (await reader.ReadAsync(ct))
-                matches.Add(await ReadRowAsync(reader, columns, ct));
+                matches.Add(await ReadRowAsync(dialect, reader, columns, ct));
         }
 
         return node.Kind == ImportNodeKind.Object
@@ -465,7 +465,7 @@ public static class ImportNodeWalker
     // the type itself still supports it — but until Slice 5 lands, nothing stops a saved definition from
     // reaching this branch today. Flagging so that gap stays visible rather than being mistaken for "done."
     private static async Task<ImportChildResult> ResolveObjectChildAsync(
-        NpgsqlConnection conn,
+        ImportConnection conn,
         ImportNode node,
         JsonObject childRecord,
         List<Dictionary<string, string?>> matches,

@@ -95,31 +95,24 @@ how `MariaDbDataSourceProvider` was added.
 | `ConnectionEndpoints`' `POST /api/connection`, `GET /api/source-schema` | Call `provider.TestConnectionAsync`/`ReadSchemaAsync` directly. |
 | `ImportDefinitionEndpoints`' save-time `AllowedWritableColumns` validator | Calls `provider.ReadSchemaAsync` directly. |
 
-## 5. What's still direct `NpgsqlConnection` — and why
+## 5. Imports: a connection, not a query
 
-`ImportNodeWalker` and `ImportRunReleaser` (`Connector.Infrastructure`) still build and use
-`NpgsqlConnection` directly. This is a deliberate, documented scope boundary, not an oversight:
+The import path needs more than one query per call. `ImportNodeWalker` issues a SELECT per matched
+record and child. `ImportRunReleaser` commits an approved diff as **one** transaction of conditional
+`UPDATE`s, all or nothing, under the four-eyes contract. `ExecuteAsync`/`ExecuteNativeAsync` are one
+query in and one result out, so the import path doesn't use them.
 
-- **`ImportNodeWalker`** only ever issues read-only `SELECT`s per its own doc comment, so it *could*
-  plausibly route through `IDataSourceProvider.ExecuteAsync` with a neutral `SourceQuery` — but touching the import read path
-  adds risk to the write-back walk logic for no behavior change, and abstracting it wasn't required
-  for the current provider seam.
-- **`ImportRunReleaser`** is the harder case: `ReleaseAsync` commits an approved import's field-level
-  diff as one atomic multi-statement transaction (a conditional `UPDATE` per row, guarded by every
-  row's expected old values, all-or-nothing per the four-eyes commit contract). The given
-  `IDataSourceProvider.ExecuteAsync`/`ExecuteNativeAsync(config, query, ct)` shape is a single query in, single
-  `QueryResult` out — it has no concept of a caller-managed transaction spanning multiple
-  statements. Modeling that without inventing a second, parallel execution entry point is real
-  design work, and `ImportRunReleaser` is the single highest-risk write path in the whole system:
-  it's the only code that writes to the customer's ERP database at all, under the four-eyes
-  approval guarantee. Changing its connection handling without a corresponding transaction-aware
-  interface extension isn't worth the risk this abstraction is meant to reduce.
+Instead (Arbeitsauftrag 14), a SQL provider hands out an ADO.NET connection:
+`ISqlDataSourceProvider.OpenConnectionAsync(config, ct)` returns a `DbConnection`. `ImportConnection.OpenAsync(resolver, config, ct)`
+pairs it with the provider's `ISqlDialect` and is the only way the import code gets one. It is used by
+`ImportWorker`, the preview and stage endpoints, and `ImportRunReleaser`. It refuses any provider
+without the `Imports` capability. The walker and the releaser work on `DbConnection`/`DbCommand`/
+`DbDataReader`. Their SQL comes from the dialect, and column values are stringified by
+`ISqlDialect.FormatValue`, the same rule the provider's own rows use. None of them names a driver.
 
-Both keep working exactly as any direct caller would — `PostgreSqlDataSourceProvider.BuildConnectionString`
-(public static) is the one place they get an Npgsql connection string from, so there's no
-duplicated connection-string-building logic even though the connections themselves aren't
-provider-abstracted. It refuses a config of any other `Type` (`UnsupportedDataSourceException`), so an
-import against a MariaDB connection fails clearly.
+`Imports` is enabled for PostgreSQL only. MariaDB's dialect already covers the statements
+(`CAST(… AS CHAR)`, `<=>`), but the release path hasn't been verified against it, so it stays off
+until it is. ServiceNow has no SQL.
 
 ## 6. Adding another provider
 
@@ -130,9 +123,11 @@ import against a MariaDB connection fails clearly.
    the neutral `SourceQuery` to its own dialect (see [Source Query Model](/architecture/source-query-model.md));
    for `ExecuteNativeAsync` to receive SQL it can run, a SQL provider also implements
    `ISqlDataSourceProvider` and returns its own `ISqlDialect` — `DynamicExportService` renders its
-   export trees through that ([SQL Dialect](/architecture/sql-dialect.md)). Still PostgreSQL-bound
-   regardless: the import walker/releaser (§5) and `ExportNode.Filter` (a stored, dialect-specific
-   WHERE fragment — see [SQL Dialect §4](/architecture/sql-dialect.md)).
+   export trees through that ([SQL Dialect](/architecture/sql-dialect.md)), and `OpenConnectionAsync`
+   for imports (§5). It also implements `ValidateConfig`/`TargetHost`/`IsAlwaysEncrypted` (its
+   config rules; a relational one reuses `RelationalConnectionRules`) and declares its
+   `Capabilities` (§7). `ExportNode.Filter` stays a stored, dialect-specific WHERE fragment
+   ([SQL Dialect §4](/architecture/sql-dialect.md)).
 2. Register it in `Program.cs` (`builder.Services.AddSingleton<IDataSourceProvider, YourProvider>()`)
    — `DataSourceProviderResolver` picks it up automatically via `IEnumerable<IDataSourceProvider>`.
 3. No resolver code changes, no `DynamicExportService` signature changes — those are already

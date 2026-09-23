@@ -1,9 +1,12 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Connector.Core.DataSources;
 using Connector.Core.DynamicImport;
 using Connector.Core.Schema;
 using Connector.Infrastructure;
+using Connector.Infrastructure.DataSources;
+using Connector.Infrastructure.DataSources.PostgreSql;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -52,6 +55,8 @@ public sealed class ImportWorkerPostgresTests
                 return db;
             if (serviceType == typeof(AuditService))
                 return audit;
+            if (serviceType == typeof(IDataSourceProviderResolver))
+                return new DataSourceProviderResolver([new PostgreSqlDataSourceProvider()]);
             return null;
         }
     }

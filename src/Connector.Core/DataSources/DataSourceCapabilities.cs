@@ -26,6 +26,11 @@ public sealed record DataSourceCapabilities
     /// with <see cref="InvalidSourceQueryException"/>.</summary>
     public required bool ConditionsOnLeftJoinedTables { get; init; }
 
+    /// <summary>The four-eyes import path (<c>ImportNodeWalker</c> reads, <c>ImportRunReleaser</c>'s transactional
+    /// conditional updates) runs against this source — through the provider's ADO.NET connection and SQL dialect.
+    /// Implies <see cref="NativeSql"/>.</summary>
+    public required bool Imports { get; init; }
+
     /// <summary>A relational database: everything the model defines.</summary>
     public static readonly DataSourceCapabilities Sql = new()
     {
@@ -33,5 +38,6 @@ public sealed record DataSourceCapabilities
         CaseSensitiveTextMatch = true,
         DistinguishesEmptyFromNull = true,
         ConditionsOnLeftJoinedTables = true,
+        Imports = true,
     };
 }

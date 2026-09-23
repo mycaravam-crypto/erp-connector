@@ -275,7 +275,18 @@ public sealed class DataSourceSecurityTests
 
         public DataSourceCapabilities Capabilities => inner.Capabilities;
 
+        public string? ValidateConfig(DataSourceConfig config) => inner.ValidateConfig(config);
+
+        public string TargetHost(DataSourceConfig config) => inner.TargetHost(config);
+
+        public bool IsAlwaysEncrypted(DataSourceConfig config) => inner.IsAlwaysEncrypted(config);
+
         public ISqlDialect Dialect => inner.Dialect;
+
+        public Task<System.Data.Common.DbConnection> OpenConnectionAsync(
+            DataSourceConfig config,
+            CancellationToken cancellationToken
+        ) => inner.OpenConnectionAsync(config, cancellationToken);
 
         public Task<TestConnectionResult> TestConnectionAsync(
             DataSourceConfig config,

@@ -3,8 +3,6 @@ using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
 using Connector.Core.DynamicImport;
 using Connector.Infrastructure.DataSources;
-using Connector.Infrastructure.DataSources.PostgreSql;
-using Npgsql;
 
 namespace Connector.Infrastructure;
 
@@ -19,10 +17,6 @@ namespace Connector.Infrastructure;
 /// </summary>
 public static class ImportRunReleaser
 {
-    // Commits over its own NpgsqlConnection/transaction (see knowledge/architecture/sql-dialect.md §4), so its
-    // SQL is always rendered for PostgreSQL — but through the dialect, not inline syntax.
-    private static readonly ISqlDialect Dialect = PostgreSqlDialect.Instance;
-
     /// <summary>
     /// Applies <paramref name="run"/>'s persisted <c>PlanJson</c> to the ERP: one conditional <c>UPDATE</c> per
     /// row (Open Decision #12) — every column that row's plan changes, guarded by every one of that row's
@@ -42,6 +36,7 @@ public static class ImportRunReleaser
         string operatorName,
         string approver,
         AuditService audit,
+        IDataSourceProviderResolver resolver,
         CancellationToken ct
     )
     {
@@ -92,44 +87,45 @@ public static class ImportRunReleaser
         int conflictCount;
         try
         {
-            await using var conn = new NpgsqlConnection(PostgreSqlDataSourceProvider.BuildConnectionString(connCfg));
-            await conn.OpenAsync(ct);
-            await using var tx = await conn.BeginTransactionAsync(ct);
+            // One transaction on the provider's own ADO.NET connection; SQL rendered with its dialect
+            // (Arbeitsauftrag 14) — the provider must have the Imports capability.
+            await using var import = await ImportConnection.OpenAsync(resolver, connCfg, ct);
+            var dialect = import.Dialect;
+            await using var tx = await import.Connection.BeginTransactionAsync(ct);
 
             conflictCount = 0;
             foreach (var rowOps in plan.Operations.GroupBy(o => (o.Table, o.KeyColumn, o.KeyValue)))
             {
                 var ops = rowOps.ToList();
-                await using var cmd = new NpgsqlCommand
-                {
-                    Connection = conn,
-                    Transaction = tx,
-                    CommandTimeout = 10,
-                };
+                await using var cmd = import.Connection.CreateCommand();
+                cmd.Transaction = tx;
+                cmd.CommandTimeout = 10;
                 string Bind(object? value)
                 {
-                    var name = Dialect.BuildParameterName(cmd.Parameters.Count);
-                    cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
-                    return name;
+                    var parameter = cmd.CreateParameter();
+                    parameter.ParameterName = dialect.BuildParameterName(cmd.Parameters.Count);
+                    parameter.Value = value ?? DBNull.Value;
+                    cmd.Parameters.Add(parameter);
+                    return parameter.ParameterName;
                 }
 
                 var setClause = string.Join(
                     ", ",
-                    ops.Select(o => $"{Dialect.QuoteIdentifier(o.Column)} = {Bind(o.NewValue)}")
+                    ops.Select(o => $"{dialect.QuoteIdentifier(o.Column)} = {Bind(o.NewValue)}")
                 );
                 var guardClause = string.Join(
                     " AND ",
                     ops.Select(o =>
-                        Dialect.BuildNullSafeEquals(
-                            Dialect.CastToText(Dialect.QuoteIdentifier(o.Column)),
+                        dialect.BuildNullSafeEquals(
+                            dialect.CastToText(dialect.QuoteIdentifier(o.Column)),
                             Bind(o.ExpectedOldValue)
                         )
                     )
                 );
                 var keyClause =
-                    $"{Dialect.CastToText(Dialect.QuoteIdentifier(rowOps.Key.KeyColumn))} = {Bind(rowOps.Key.KeyValue)}";
+                    $"{dialect.CastToText(dialect.QuoteIdentifier(rowOps.Key.KeyColumn))} = {Bind(rowOps.Key.KeyValue)}";
                 cmd.CommandText =
-                    $"UPDATE {Dialect.QuoteIdentifier(rowOps.Key.Table)} SET {setClause} WHERE {keyClause} AND {guardClause}";
+                    $"UPDATE {dialect.QuoteIdentifier(rowOps.Key.Table)} SET {setClause} WHERE {keyClause} AND {guardClause}";
 
                 var affected = await cmd.ExecuteNonQueryAsync(ct);
                 if (affected == 0)

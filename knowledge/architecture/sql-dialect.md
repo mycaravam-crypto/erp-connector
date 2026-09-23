@@ -50,6 +50,7 @@ concern, and `Connector.Core` stays dialect-free.
 | `BuildMatchesAny` | `expr = ANY(@p0)` — binds the key batch itself (one `text[]` parameter; MariaDB binds one parameter per key: `expr IN (@p0, …)`) | export tree engine's one-query-per-level child fetch |
 | `ConvertNativeTextToJson` | `to_json`'s rules, applied in C# (`PostgreSqlJsonValues`) | export tree engine's typed values for legacy nested groups |
 | `BuildStringAggregate` | `string_agg(x::text, 'delim')` | legacy flat export's relation flattening |
+| `FormatValue` | dates/timestamps as `yyyy-MM-dd`, else `ToString()` | provider row materialization, import walker's old values |
 
 The first three are the ones the work order asked for. The other six are extensions, each backed by a
 builder listed in the right-hand column. `BuildJsonObject`/`BuildJsonArrayAggregate` existed until
@@ -61,8 +62,8 @@ in existing code.
 - `DynamicExportService` asks the provider. A provider that speaks SQL implements
   `ISqlDataSourceProvider` (`IDataSourceProvider` + `Dialect`). Any other provider makes an export
   query throw `UnsupportedDataSourceException`.
-- `ImportNodeWalker` and `ImportRunReleaser` use `PostgreSqlDialect.Instance` directly, because they
-  already run on an Npgsql connection (§4).
+- `ImportNodeWalker` and `ImportRunReleaser` get it from `ImportConnection`, together with the
+  provider's ADO.NET connection ([Data Source Abstraction §5](/architecture/data-source-abstraction.md)).
 
 **One intentional SQL change:** the legacy flat export's "array" relation strategy used
 `array_to_string(array_agg(x::text), ',')` and is now `string_agg(x::text, ',')`. The two differ only
@@ -89,9 +90,6 @@ emit any PostgreSQL SQL syntax. What remains:
 |---|---|---|
 | `ExportNode.Filter` → `DynamicExportService.ExecuteExportNodeQueryAsync` (per-node queries) | A stored, admin-authored WHERE fragment spliced in as `WHERE (…)` / `AND (…)` | The fragment is written in the backend's dialect by whoever saves the definition. The builder adds only ANSI parentheses. Replacing it with structured `QueryCondition`s needs a stored-data migration and a UI change, see [Source Query Model §5](/architecture/source-query-model.md). |
 | `ExportDefinitionEndpoints` (`DangerousFilterKeywordRegex`) | Denylist of PostgreSQL functions/catalogs (`pg_sleep`, `pg_catalog`, `dblink`, …) | Save-time security screening of the free-SQL `Filter` above. It has to know the target's dangerous functions, and it goes away together with `Filter`. |
-| `ImportNodeWalker`, `ImportRunReleaser` | Take/open an `NpgsqlConnection` and `NpgsqlCommand` | A driver dependency, not SQL syntax (their SQL now goes through the dialect). The releaser needs one multi-statement transaction, which `IDataSourceProvider` can't express. See [Data Source Abstraction §5](/architecture/data-source-abstraction.md). |
-| `ImportWorker`, `ImportDefinitionEndpoints` (preview + stage) | Open the `NpgsqlConnection` handed to `ImportNodeWalker` | Same boundary as the walker. |
-| `ConnectionEndpoints.IsValidSslMode` | Validates `SslMode` against Npgsql's `SslMode` enum | Connection configuration for the relational (PostgreSQL) source type, not query syntax. |
 | Doc comments in `Connector.Core` (`ExportNode.cs`, `ImportPlan.cs`, `SourceSchema.cs`, `DataSourceQueryException.cs`, `DataSourceConfig.cs`) | Mention `::text`, `IS NOT DISTINCT FROM`, `information_schema`, SQLSTATE, Npgsql | Descriptive text only; no code in `Connector.Core` builds or runs SQL. |
 | `DynamicExportService.LegacyMapping.cs` comment | Mentions the old `array_to_string(array_agg(…))` form | Explains the one SQL change above. |
 

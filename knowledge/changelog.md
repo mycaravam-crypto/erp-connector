@@ -10,6 +10,23 @@ Last updated: 2026-09-23
 
 ---
 
+## Phase 32 — Multi-source architecture cleanup ✅
+
+Arbeitsauftrag 14: a final architecture review. Driver packages and every per-source-type decision
+now live only in `DataSources/PostgreSql|MariaDb|ServiceNow`. See
+[Multi-Source Architecture](/architecture/multi-source-architecture.md): component picture,
+providers, capability matrix, limits, security model, and how to add a provider.
+
+| Item | Notes |
+|---|---|
+| `IDataSourceProvider.ValidateConfig`/`TargetHost`/`IsAlwaysEncrypted`, `RelationalConnectionRules` | Replace `ConnectionEndpoints.ValidateRequiredFields`/`IsValidSslMode`/`ValidateInstanceUrl` and the type switch in `TransportSecurity`. `POST /api/connection` resolves the provider first |
+| `ISqlDataSourceProvider.OpenConnectionAsync`, `ImportConnection`, `DataSourceCapabilities.Imports` | The import walker, releaser, worker and endpoints run on the provider's `DbConnection` + dialect instead of Npgsql. Imports are enabled for PostgreSQL only |
+| `ISqlDialect.FormatValue` | One column-to-string rule for provider rows and the import walker |
+| `Connector.Api.csproj` | `Npgsql` reference removed |
+| Tests | `DataSourceConfigValidationTests` (replaces the two `ConnectionEndpoints*ValidationTests`, plus the `Imports` capability check). Import tests updated to the new signatures |
+
+---
+
 ## Phase 31 — Query performance metrics and load tests ✅
 
 Arbeitsauftrag 13: the export pipeline was checked for N+1 queries and unneeded full reads, and now

@@ -5,9 +5,8 @@ using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
 using Connector.Core.DynamicImport;
 using Connector.Infrastructure;
-using Connector.Infrastructure.DataSources.PostgreSql;
+using Connector.Infrastructure.DataSources;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace Connector.Api.Endpoints;
 
@@ -271,7 +270,13 @@ static partial class ImportDefinitionEndpoints
         // folder watcher doesn't exist yet.
         app.MapPost(
                 "/api/import-definitions/{id:int}/preview",
-                async (int id, ImportDefinitionPreviewRequest request, ExportLogDbContext db, CancellationToken ct) =>
+                async (
+                    int id,
+                    ImportDefinitionPreviewRequest request,
+                    ExportLogDbContext db,
+                    IDataSourceProviderResolver resolver,
+                    CancellationToken ct
+                ) =>
                 {
                     var def = await db.ImportDefinitions.FindAsync([id], ct);
                     if (def is null)
@@ -288,16 +293,13 @@ static partial class ImportDefinitionEndpoints
 
                     try
                     {
-                        await using var conn = new NpgsqlConnection(
-                            PostgreSqlDataSourceProvider.BuildConnectionString(connCfg)
-                        );
-                        await conn.OpenAsync(ct);
+                        await using var conn = await ImportConnection.OpenAsync(resolver, connCfg, ct);
 
                         var walkResult = await ImportNodeWalker.WalkAsync(conn, def, root, request.InboundJson, ct);
                         var plan = ImportPlanBuilder.Build(walkResult, def.RootTable, def.RootMatchColumn);
                         return Results.Ok(plan);
                     }
-                    catch (ImportValidationException ex)
+                    catch (Exception ex) when (ex is ImportValidationException or UnsupportedDataSourceException)
                     {
                         return Results.BadRequest(ex.Message);
                     }
@@ -375,6 +377,7 @@ static partial class ImportDefinitionEndpoints
                     HttpContext httpContext,
                     ExportLogDbContext db,
                     AuditService audit,
+                    IDataSourceProviderResolver resolver,
                     CancellationToken ct
                 ) =>
                 {
@@ -407,14 +410,11 @@ static partial class ImportDefinitionEndpoints
                     ImportPlan plan;
                     try
                     {
-                        await using var conn = new NpgsqlConnection(
-                            PostgreSqlDataSourceProvider.BuildConnectionString(connCfg)
-                        );
-                        await conn.OpenAsync(ct);
+                        await using var conn = await ImportConnection.OpenAsync(resolver, connCfg, ct);
                         var walkResult = await ImportNodeWalker.WalkAsync(conn, def, root, request.InboundJson, ct);
                         plan = ImportPlanBuilder.Build(walkResult, def.RootTable, def.RootMatchColumn);
                     }
-                    catch (ImportValidationException ex)
+                    catch (Exception ex) when (ex is ImportValidationException or UnsupportedDataSourceException)
                     {
                         return Results.BadRequest(ex.Message);
                     }

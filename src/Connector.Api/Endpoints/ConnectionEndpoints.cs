@@ -2,9 +2,7 @@ using System.Net;
 using Connector.Core.DataSources;
 using Connector.Infrastructure;
 using Connector.Infrastructure.DataSources;
-using Connector.Infrastructure.DataSources.ServiceNow;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace Connector.Api.Endpoints;
 
@@ -21,37 +19,6 @@ static class ConnectionEndpoints
         IPNetwork.Parse("169.254.0.0/16"),
         IPNetwork.Parse("fe80::/10"),
     ];
-
-    // Security-review finding SR-03: SslMode was previously hardcoded to Prefer, which silently downgrades
-    // to an unencrypted connection whenever the server doesn't offer TLS. Validated here against Npgsql's
-    // own enum names rather than a hand-maintained list, so save-time validation and
-    // DynamicExportService.ParseSslMode can never quietly drift apart on what's "valid."
-    internal static bool IsValidSslMode(string? sslMode) =>
-        string.IsNullOrWhiteSpace(sslMode) || Enum.TryParse<SslMode>(sslMode, ignoreCase: true, out _);
-
-    // Arbeitsauftrag 3: each DataSourceType has its own set of fields it actually needs — a relational
-    // source needs Host/Port/Database, an HTTP API source needs InstanceUrl instead — so "required fields
-    // present" can no longer be one flat check. Also the single place an out-of-range/unrecognized Type
-    // (e.g. a JSON payload with a numeric value outside the enum, or a future member this switch hasn't been
-    // taught yet) is rejected as invalid input rather than silently falling through to a provider that isn't
-    // registered for it (DataSourceProviderResolver.Resolve already throws for that case too, but this gives
-    // the caller a clear 400 instead of the resolver's exception surfacing as a 500-ish failure).
-    internal static string? ValidateRequiredFields(DataSourceConfig config) =>
-        config.Type switch
-        {
-            DataSourceType.PostgreSql or DataSourceType.MariaDb => string.IsNullOrWhiteSpace(config.Host)
-            || config.Port is null
-            || string.IsNullOrWhiteSpace(config.Database)
-            || string.IsNullOrWhiteSpace(config.Username)
-                ? "Host, Port, Database, and Username are required for this data source type."
-                : null,
-            DataSourceType.ServiceNowTableApi or DataSourceType.ServiceNowSqlApi => string.IsNullOrWhiteSpace(
-                config.InstanceUrl
-            ) || string.IsNullOrWhiteSpace(config.Username)
-                ? "InstanceUrl and Username are required for this data source type."
-                : null,
-            _ => $"Unknown data source type '{config.Type}'.",
-        };
 
     // Arbeitsauftrag 8: GET /api/connection never returns the password, so the form re-submits an empty one to
     // mean "keep the stored password". It is only carried over when the request still points at the same
@@ -74,20 +41,6 @@ static class ConnectionEndpoints
                 Password = stored.Password,
             }
             : request;
-
-    // ServiceNow is only ever reached over HTTPS: the Basic-auth credentials travel in every request.
-    internal static string? ValidateInstanceUrl(string? instanceUrl)
-    {
-        try
-        {
-            ServiceNowClient.ParseInstanceUrl(instanceUrl);
-            return null;
-        }
-        catch (ArgumentException ex)
-        {
-            return ex.Message;
-        }
-    }
 
     internal static async Task<string?> ValidateHostAsync(string host, CancellationToken ct)
     {
@@ -157,33 +110,29 @@ static class ConnectionEndpoints
                     CancellationToken ct
                 ) =>
                 {
-                    var requiredFieldError = ValidateRequiredFields(request);
-                    if (requiredFieldError is not null)
-                        return Results.BadRequest(requiredFieldError);
-
-                    // SslMode only applies to the relational (Host/Port) sources; the SSRF host check applies to
-                    // every source — for ServiceNow to the InstanceUrl's host, which must also be HTTPS.
-                    string host;
-                    if (request.Type is DataSourceType.PostgreSql or DataSourceType.MariaDb)
+                    // Every per-source-type rule (required fields, TLS mode, instance URL, which host is reached,
+                    // whether the transport is always encrypted) belongs to the provider (Arbeitsauftrag 14). A type
+                    // without one — an unknown value, or one this version doesn't implement — is a 400.
+                    IDataSourceProvider provider;
+                    try
                     {
-                        if (!IsValidSslMode(request.SslMode))
-                            return Results.BadRequest(
-                                "SslMode must be one of: Disable, Allow, Prefer, Require, VerifyCA, VerifyFull."
-                            );
-                        host = request.Host!;
+                        provider = resolver.Resolve(request.Type);
                     }
-                    else
+                    catch (UnsupportedDataSourceException)
                     {
-                        var instanceError = ValidateInstanceUrl(request.InstanceUrl);
-                        if (instanceError is not null)
-                            return Results.BadRequest(instanceError);
-                        host = new Uri(request.InstanceUrl!.Trim()).Host;
+                        return Results.BadRequest(
+                            $"Connection failed: data source type '{request.Type}' is not supported by this connector version yet."
+                        );
                     }
 
-                    if (!allowUnencrypted && !TransportSecurity.IsAlwaysEncrypted(request))
+                    var configError = provider.ValidateConfig(request);
+                    if (configError is not null)
+                        return Results.BadRequest(configError);
+
+                    if (!allowUnencrypted && !provider.IsAlwaysEncrypted(request))
                         return Results.BadRequest(TransportSecurity.UnencryptedRefusal(request));
 
-                    var hostError = await ValidateHostAsync(host, ct);
+                    var hostError = await ValidateHostAsync(provider.TargetHost(request), ct);
                     if (hostError is not null)
                         return Results.BadRequest(hostError);
 
@@ -194,19 +143,12 @@ static class ConnectionEndpoints
 
                     try
                     {
-                        var provider = resolver.Resolve(request.Type);
                         var result = await provider.TestConnectionAsync(request, ct);
                         if (!result.Success)
                             return Results.BadRequest($"Connection failed: {result.Error}");
 
                         await db.SetSettingAsync(SettingsKeys.ErpConnection, request);
                         return Results.Ok(result.Schema);
-                    }
-                    catch (UnsupportedDataSourceException)
-                    {
-                        return Results.BadRequest(
-                            $"Connection failed: data source type '{request.Type}' is not supported by this connector version yet."
-                        );
                     }
                     catch (Exception ex)
                     {
