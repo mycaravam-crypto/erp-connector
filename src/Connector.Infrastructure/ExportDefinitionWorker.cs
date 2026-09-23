@@ -86,10 +86,14 @@ public sealed class ExportDefinitionWorker(IServiceScopeFactory scopeFactory, IL
                         );
                     else
                         logger.LogInformation(
-                            "Scheduled export definition #{Id} '{Name}' completed: {Count} records",
+                            "Scheduled export definition #{Id} '{Name}' completed: {Count} records; "
+                                + "{QueryCount} queries, {RecordsRead} source rows read, {DurationMs} ms",
                             def.Id,
                             def.Name,
-                            built.Value.RecordCount
+                            built.Value.RecordCount,
+                            built.Value.Metrics.QueryCount,
+                            built.Value.Metrics.RecordsRead,
+                            built.Value.Metrics.DurationMs
                         );
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)

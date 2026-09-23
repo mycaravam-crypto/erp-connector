@@ -182,10 +182,14 @@ public sealed class ExportWorker(
             await db.SaveChangesAsync(ct);
 
             logger.LogInformation(
-                "Export #{Seq} completed: {Count} records, SHA-256={Hash}",
+                "Export #{Seq} completed: {Count} records, SHA-256={Hash}; {QueryCount} queries, "
+                    + "{RecordsRead} source rows read, {DurationMs} ms",
                 sequenceNo,
                 package.Manifest.RecordCount,
-                package.Manifest.Sha256Checksum
+                package.Manifest.Sha256Checksum,
+                built.Metrics.QueryCount,
+                built.Metrics.RecordsRead,
+                built.Metrics.DurationMs
             );
             await audit.LogAsync(
                 "scheduler",
