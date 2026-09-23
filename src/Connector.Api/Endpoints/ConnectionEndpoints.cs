@@ -1,6 +1,7 @@
 using System.Net;
 using Connector.Core.DataSources;
 using Connector.Infrastructure;
+using Connector.Infrastructure.DataSources;
 using Connector.Infrastructure.DataSources.ServiceNow;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -111,8 +112,15 @@ static class ConnectionEndpoints
         return null;
     }
 
+    // Arbeitsauftrag 11: in production an ERP connection must be encrypted unless an operator explicitly opts out;
+    // elsewhere (local dev, the docker test database) plaintext stays allowed unless configured otherwise.
+    internal static bool AllowUnencryptedConnections(IConfiguration configuration, IHostEnvironment environment) =>
+        configuration.GetValue<bool?>(TransportSecurity.AllowUnencryptedSetting) ?? !environment.IsProduction();
+
     internal static void MapConnectionEndpoints(this WebApplication app)
     {
+        var allowUnencrypted = AllowUnencryptedConnections(app.Configuration, app.Environment);
+
         // Returns the stored connection — never the password itself, only whether one is set
         // (HasPassword). See knowledge/architecture/data-source-configuration.md.
         app.MapGet(
@@ -171,6 +179,9 @@ static class ConnectionEndpoints
                             return Results.BadRequest(instanceError);
                         host = new Uri(request.InstanceUrl!.Trim()).Host;
                     }
+
+                    if (!allowUnencrypted && !TransportSecurity.IsAlwaysEncrypted(request))
+                        return Results.BadRequest(TransportSecurity.UnencryptedRefusal(request));
 
                     var hostError = await ValidateHostAsync(host, ct);
                     if (hostError is not null)

@@ -228,7 +228,11 @@ static class PipelineEndpoints
                     }
                     catch (Exception ex) when (ex is not OperationCanceledException)
                     {
-                        await audit.LogAsync(user, "export_preset_run_failed", $"preset={name}: {ex.Message}");
+                        await audit.LogAsync(
+                            user,
+                            "export_preset_run_failed",
+                            $"preset={name}: {ErrorSanitizer.Detail(ex)}"
+                        );
                         return Results.Problem(ErrorSanitizer.Detail(ex), statusCode: 500);
                     }
                 }

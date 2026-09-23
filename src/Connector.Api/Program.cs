@@ -37,10 +37,16 @@ builder.Host.UseSerilog(
             .ReadFrom.Configuration(ctx.Configuration)
             .ReadFrom.Services(services);
 
-        if (ctx.HostingEnvironment.IsProduction())
-            cfg.WriteTo.Console(new Serilog.Formatting.Json.JsonFormatter());
-        else
-            cfg.WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}");
+        // Every sink formats through SanitizingLogFormatter, so no log line carries a credential (Arbeitsauftrag 11).
+        cfg.WriteTo.Console(
+            new SanitizingLogFormatter(
+                ctx.HostingEnvironment.IsProduction()
+                    ? new Serilog.Formatting.Json.JsonFormatter()
+                    : new Serilog.Formatting.Display.MessageTemplateTextFormatter(
+                        "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
+                    )
+            )
+        );
     }
 );
 
@@ -290,6 +296,17 @@ using (var scope = app.Services.CreateScope())
         scope.ServiceProvider.GetRequiredService<IDataProtectionProvider>(),
         app.Logger
     );
+
+    // Arbeitsauftrag 11: a connection saved before the production TLS rule (or with the opt-out) keeps working,
+    // but is called out on every start so it doesn't go unnoticed.
+    var storedConnection = await exportLogDb.GetSettingAsync<DataSourceConfig>(SettingsKeys.ErpConnection);
+    if (storedConnection is not null && !TransportSecurity.IsAlwaysEncrypted(storedConnection))
+        app.Logger.LogWarning(
+            "The stored ERP connection ({Type}) can use an unencrypted connection (TLS mode '{SslMode}'). "
+                + "Set it to Require, VerifyCA or VerifyFull.",
+            storedConnection.Type,
+            storedConnection.SslMode ?? "Prefer (default)"
+        );
 
     // Phase 14: one-time conversion of the legacy single mapping + presets into ExportDefinition rows.
     // No-ops once any ExportDefinition row exists.

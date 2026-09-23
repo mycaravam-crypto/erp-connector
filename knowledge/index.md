@@ -25,6 +25,8 @@ Folders are organized by the question you're asking, not just by topic:
 * [schema/](schema/) — **What's the ICD column contract with the vendor?**
 * [api/](api/) — **How do I call the API?** Authentication, on-demand triggers, and the
   Export Definition API reference.
+* [security/](security/) — **How are the source systems and their data protected?** Threats,
+  controls, residual risks and test coverage of the data source layer.
 * [operations/](operations/) — **What rules govern running this day to day?** Four-eyes release,
   GDPR compliance, data retention, operational monitoring.
 * [legacy/](legacy/) — **What used to exist, and why does some rule still apply?** The original
