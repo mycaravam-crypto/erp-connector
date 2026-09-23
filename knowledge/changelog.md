@@ -10,6 +10,27 @@ Last updated: 2026-09-23
 
 ---
 
+## Phase 28 — ServiceNow Table API data source ✅
+
+Arbeitsauftrag 9: ServiceNow can be connected, its schema read and queried through `SourceQuery`
+over the REST Table API, behind the same `IDataSourceProvider` interface. See
+[ServiceNow Table API Provider](/architecture/servicenow-provider.md).
+
+| Item | Notes |
+|---|---|
+| `DataSources/ServiceNow/` | `ServiceNowTableApiProvider`, `ServiceNowClient`, `ServiceNowSchemaReader`, `ServiceNowQueryCompiler`; registered in `Program.cs` |
+| Schema | `sys_db_object` + `sys_dictionary` with inheritance. `sys_id` is the PK. Reference fields are relations (`incident.assignment_group` → `sys_user_group.sys_id`) |
+| Queries | Server-side encoded-query filter, `sysparm_fields` projection, offset pagination, joins in C# with batched `IN` reads (no N+1), limit |
+| Resilience | Retry only on 429/502/503, bounded (3) and honoring `Retry-After`. No retry on 401/403/400. 30 s request timeout. Cancellation |
+| Security | HTTPS only (save time and every request), SSRF check on the instance host, credentials only in the `Authorization` header, ACLs respected, no admin role, no writes |
+| `POST /api/connection`, `GET /api/source-schema` | Instance URL validation. The schema error names the instance URL |
+| Tests | `ServiceNowTableApiProviderTests` against the in-memory `FakeServiceNow` Table API (no real credentials in CI), plus instance-URL cases in `ConnectionEndpointsHttpTests` |
+
+**Known limit:** exports still render SQL, so an export against a ServiceNow connection fails with
+`UnsupportedDataSourceException`. Moving export trees onto `SourceQuery` is follow-up work.
+
+---
+
 ## Phase 27 — Connection UI for several source types ✅
 
 Arbeitsauftrag 8: the connection page asks for the source type first (PostgreSQL, MariaDB / MySQL,

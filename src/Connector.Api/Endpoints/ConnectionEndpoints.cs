@@ -1,6 +1,7 @@
 using System.Net;
 using Connector.Core.DataSources;
 using Connector.Infrastructure;
+using Connector.Infrastructure.DataSources.ServiceNow;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -73,6 +74,20 @@ static class ConnectionEndpoints
             }
             : request;
 
+    // ServiceNow is only ever reached over HTTPS: the Basic-auth credentials travel in every request.
+    internal static string? ValidateInstanceUrl(string? instanceUrl)
+    {
+        try
+        {
+            ServiceNowClient.ParseInstanceUrl(instanceUrl);
+            return null;
+        }
+        catch (ArgumentException ex)
+        {
+            return ex.Message;
+        }
+    }
+
     internal static async Task<string?> ValidateHostAsync(string host, CancellationToken ct)
     {
         IPAddress[] addresses;
@@ -138,20 +153,28 @@ static class ConnectionEndpoints
                     if (requiredFieldError is not null)
                         return Results.BadRequest(requiredFieldError);
 
-                    // Host-based SSRF check and SslMode only apply to the relational (Host/Port) sources —
-                    // ServiceNowTableApi/ServiceNowSqlApi use InstanceUrl instead and aren't implemented yet
-                    // (the resolver below throws UnsupportedDataSourceException for them).
+                    // SslMode only applies to the relational (Host/Port) sources; the SSRF host check applies to
+                    // every source — for ServiceNow to the InstanceUrl's host, which must also be HTTPS.
+                    string host;
                     if (request.Type is DataSourceType.PostgreSql or DataSourceType.MariaDb)
                     {
                         if (!IsValidSslMode(request.SslMode))
                             return Results.BadRequest(
                                 "SslMode must be one of: Disable, Allow, Prefer, Require, VerifyCA, VerifyFull."
                             );
-
-                        var hostError = await ValidateHostAsync(request.Host!, ct);
-                        if (hostError is not null)
-                            return Results.BadRequest(hostError);
+                        host = request.Host!;
                     }
+                    else
+                    {
+                        var instanceError = ValidateInstanceUrl(request.InstanceUrl);
+                        if (instanceError is not null)
+                            return Results.BadRequest(instanceError);
+                        host = new Uri(request.InstanceUrl!.Trim()).Host;
+                    }
+
+                    var hostError = await ValidateHostAsync(host, ct);
+                    if (hostError is not null)
+                        return Results.BadRequest(hostError);
 
                     request = WithStoredPasswordIfUnchanged(
                         request,
@@ -204,7 +227,7 @@ static class ConnectionEndpoints
                     catch (Exception ex)
                     {
                         return Results.Problem(
-                            detail: $"Could not read the schema from {cfg.Host}:{cfg.Port}/{cfg.Database}: {ErrorSanitizer.Detail(ex)}",
+                            detail: $"Could not read the schema from {cfg.InstanceUrl ?? $"{cfg.Host}:{cfg.Port}/{cfg.Database}"}: {ErrorSanitizer.Detail(ex)}",
                             statusCode: StatusCodes.Status502BadGateway
                         );
                     }

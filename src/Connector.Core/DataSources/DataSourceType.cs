@@ -18,13 +18,12 @@ public enum DataSourceType
     /// (<c>Host</c>/<c>Port</c>/<c>Database</c>/<c>SslMode</c>) like <see cref="PostgreSql"/>.</summary>
     MariaDb = 1,
 
-    /// <summary>ServiceNow's Table API (REST, one JSON object per record). Arbeitsauftrag 3: modeled so a
-    /// <see cref="DataSourceConfig"/> can describe it (<c>InstanceUrl</c>/<c>Username</c>/<c>Password</c>),
-    /// but not implemented yet — <see cref="IDataSourceProviderResolver.Resolve"/> throws
-    /// <see cref="UnsupportedDataSourceException"/> for this value.</summary>
+    /// <summary>ServiceNow's Table API (REST, one JSON object per record), Arbeitsauftrag 9. Uses
+    /// <c>InstanceUrl</c> (HTTPS only)/<c>Username</c>/<c>Password</c>.</summary>
     ServiceNowTableApi = 2,
 
-    /// <summary>ServiceNow's (deprecated but still deployed) SOAP/SQL-style query API. Arbeitsauftrag 3: same
-    /// modeling-only status as <see cref="ServiceNowTableApi"/> — not implemented yet.</summary>
+    /// <summary>ServiceNow's (deprecated but still deployed) SOAP/SQL-style query API. Modeled only (Arbeitsauftrag
+    /// 3): <see cref="IDataSourceProviderResolver.Resolve"/> throws <see cref="UnsupportedDataSourceException"/>
+    /// for this value.</summary>
     ServiceNowSqlApi = 3,
 }

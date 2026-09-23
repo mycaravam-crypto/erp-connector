@@ -52,7 +52,7 @@ itself.
 
 | Type | Purpose |
 |---|---|
-| `DataSourceType` | `PostgreSql`, `MariaDb` (both implemented — see [MariaDB Provider](/architecture/mariadb-provider.md)), `ServiceNowTableApi`/`ServiceNowSqlApi` (not yet) |
+| `DataSourceType` | `PostgreSql`, `MariaDb` ([MariaDB Provider](/architecture/mariadb-provider.md)), `ServiceNowTableApi` ([ServiceNow Table API Provider](/architecture/servicenow-provider.md)) — all implemented; `ServiceNowSqlApi` (modeled only) |
 | `DataSourceConfig` | Generic connection parameters (`Type` + relational Host/Port/Database or HTTP-API InstanceUrl + Username/Password/SslMode). See [Data Source Configuration](/architecture/data-source-configuration.md) for the full shape. Persisted under the same `AppSettings` storage key as always. |
 | `SourceSchema`/`SourceTable`/`SourceColumn` | The provider's schema-read result — the interface's own return type, mirroring `Connector.Api/Dtos.cs`'s `SourceSchemaDto`/`SourceTableDto`/`SourceColumnDto` shape (no parallel model, no API change). |
 | `TestConnectionResult` | `Success`/`Schema`/`Error` — a connection-test failure is reported here, sanitized, never thrown as a raw exception a caller might leak (credentials) by accident. |
@@ -123,7 +123,7 @@ import against a MariaDB connection fails clearly.
 
 ## 6. Adding another provider
 
-`MariaDb` was added exactly this way ([MariaDB Provider](/architecture/mariadb-provider.md)). To add a ServiceNow provider:
+`MariaDb` and `ServiceNowTableApi` were added exactly this way ([MariaDB Provider](/architecture/mariadb-provider.md), [ServiceNow Table API Provider](/architecture/servicenow-provider.md)). To add another one:
 
 1. Implement `IDataSourceProvider` for it. `TestConnectionAsync`/`ReadSchemaAsync` are
    straightforward — connect, introspect, return `SourceSchema`. `ExecuteAsync` needs a compiler from
