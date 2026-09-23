@@ -20,20 +20,43 @@ export interface SourceSchema {
   tables: SourceTable[]
 }
 
-/** Server-side stored connection — password is never returned. */
+/** Backend `DataSourceType` (serialized as its numeric value). */
+export const DataSourceType = {
+  PostgreSql: 0,
+  MariaDb: 1,
+  ServiceNowTableApi: 2,
+  ServiceNowSqlApi: 3,
+} as const
+export type DataSourceType = (typeof DataSourceType)[keyof typeof DataSourceType]
+
+/** Server-side stored connection — password is never returned, only whether one is set. Host/port/database
+ *  are set for PostgreSQL/MariaDB, instanceUrl for ServiceNow. A config stored before `type` existed comes
+ *  back as PostgreSQL (0). */
 export interface ErpConnectionInfo {
-  host: string
-  port: number
-  database: string
+  type?: DataSourceType
+  host: string | null
+  port: number | null
+  database: string | null
+  instanceUrl?: string | null
   username: string
   /** One of Npgsql's SslMode names (Disable/Allow/Prefer/Require/VerifyCA/VerifyFull), or null/empty to
-   *  use the default (Prefer — falls back to unencrypted if the server doesn't offer TLS). See SR-03. */
+   *  use the default (Prefer — falls back to unencrypted if the server doesn't offer TLS). See SR-03.
+   *  MariaDB uses the same names. */
   sslMode: string | null
+  hasPassword?: boolean
 }
 
-/** Full config sent to POST /api/connection (password included, stays server-side). */
-export interface ConnectionConfig extends ErpConnectionInfo {
+/** Full config sent to POST /api/connection (password included, stays server-side). An empty password
+ *  keeps the stored one, as long as type, target and username are unchanged. */
+export interface ConnectionConfig {
+  type: DataSourceType
+  host: string | null
+  port: number | null
+  database: string | null
+  instanceUrl: string | null
+  username: string
   password: string
+  sslMode: string | null
 }
 
 /** Returns the currently stored ERP connection (no password), or null if none is configured. */
@@ -69,14 +92,7 @@ export async function saveConnection(
   const res = await fetch('/api/connection', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({
-      host: cfg.host,
-      port: cfg.port,
-      database: cfg.database,
-      username: cfg.username,
-      password: cfg.password,
-      sslMode: cfg.sslMode || null,
-    }),
+    body: JSON.stringify({ ...cfg, sslMode: cfg.sslMode || null }),
   })
   if (res.ok) return { schema: (await res.json()) as SourceSchema }
   const text = await res.text().catch(() => '')

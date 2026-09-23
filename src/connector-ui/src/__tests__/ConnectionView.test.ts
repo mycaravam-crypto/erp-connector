@@ -4,7 +4,7 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import ConnectionView from '@/views/ConnectionView.vue'
 import * as connectionApi from '@/api/connection'
 import * as authApi from '@/api/auth'
-import type { ErpConnectionInfo, SourceSchema } from '@/api/connection'
+import { DataSourceType, type ErpConnectionInfo, type SourceSchema } from '@/api/connection'
 import { useToasts } from '@/composables/useToasts'
 
 function buildRouter() {
@@ -125,9 +125,11 @@ describe('ConnectionView', () => {
     await w.find('form').trigger('submit')
     await flushPromises()
     expect(connectionApi.saveConnection).toHaveBeenCalledWith({
+      type: DataSourceType.PostgreSql,
       host: 'myhost',
       port: 5433,
       database: 'mydb',
+      instanceUrl: null,
       username: 'user1',
       password: 's3cr3t',
       sslMode: '',
@@ -233,5 +235,182 @@ describe('ConnectionView', () => {
     await w.vm.$nextTick()
     expect(w.find('button[type="submit"]').text()).toContain('Testing')
     resolve({ schema: SCHEMA })
+  })
+})
+
+async function mountView() {
+  const w = mount(ConnectionView, { global: { plugins: [buildRouter()] } })
+  await flushPromises()
+  return w
+}
+
+describe('ConnectionView — source types (Arbeitsauftrag 8)', () => {
+  it('defaults to PostgreSQL with port 5432', async () => {
+    const w = await mountView()
+    expect((w.find('#source-type').element as HTMLSelectElement).value).toBe('postgres')
+    expect((w.find('#port').element as HTMLInputElement).value).toBe('5432')
+  })
+
+  it('switching to MariaDB sets port 3306 and back to PostgreSQL restores 5432', async () => {
+    const w = await mountView()
+    await w.find('#source-type').setValue('mariadb')
+    expect((w.find('#port').element as HTMLInputElement).value).toBe('3306')
+    expect(w.text()).toContain('TLS Mode')
+    await w.find('#source-type').setValue('postgres')
+    expect((w.find('#port').element as HTMLInputElement).value).toBe('5432')
+  })
+
+  it('keeps a custom port when switching provider', async () => {
+    const w = await mountView()
+    await w.find('#port').setValue('6000')
+    await w.find('#source-type').setValue('mariadb')
+    expect((w.find('#port').element as HTMLInputElement).value).toBe('6000')
+  })
+
+  it('ServiceNow shows instance URL and access method instead of host/port/database/TLS', async () => {
+    const w = await mountView()
+    await w.find('#source-type').setValue('servicenow')
+    expect(w.find('#instance-url').exists()).toBe(true)
+    expect(w.find('#access-method').exists()).toBe(true)
+    expect(w.find('#host').exists()).toBe(false)
+    expect(w.find('#port').exists()).toBe(false)
+    expect(w.find('#database').exists()).toBe(false)
+    expect(w.find('#ssl-mode').exists()).toBe(false)
+  })
+
+  it('submits a MariaDB config with its type', async () => {
+    vi.spyOn(connectionApi, 'saveConnection').mockResolvedValue({ schema: SCHEMA })
+    const w = await mountView()
+    await w.find('#source-type').setValue('mariadb')
+    await w.find('#host').setValue('maria')
+    await w.find('#database').setValue('erp')
+    await w.find('#username').setValue('reader')
+    await w.find('#password').setValue('pw')
+    await w.find('#ssl-mode').setValue('Require')
+    await w.find('form').trigger('submit')
+    await flushPromises()
+    expect(connectionApi.saveConnection).toHaveBeenCalledWith({
+      type: DataSourceType.MariaDb,
+      host: 'maria',
+      port: 3306,
+      database: 'erp',
+      instanceUrl: null,
+      username: 'reader',
+      password: 'pw',
+      sslMode: 'Require',
+    })
+  })
+
+  it('submits a ServiceNow config with the chosen access method and no relational fields', async () => {
+    vi.spyOn(connectionApi, 'saveConnection').mockResolvedValue({ schema: SCHEMA })
+    const w = await mountView()
+    await w.find('#source-type').setValue('servicenow')
+    await w.find('#instance-url').setValue('https://acme.service-now.com')
+    await w.find('#access-method').setValue('sql')
+    await w.find('#username').setValue('svc')
+    await w.find('#password').setValue('pw')
+    await w.find('form').trigger('submit')
+    await flushPromises()
+    expect(connectionApi.saveConnection).toHaveBeenCalledWith({
+      type: DataSourceType.ServiceNowSqlApi,
+      host: null,
+      port: null,
+      database: null,
+      instanceUrl: 'https://acme.service-now.com',
+      username: 'svc',
+      password: 'pw',
+      sslMode: null,
+    })
+  })
+
+  it('blocks submission and names every missing required field (relational)', async () => {
+    const spy = vi.spyOn(connectionApi, 'saveConnection')
+    const w = await mountView()
+    await w.find('form').trigger('submit')
+    await flushPromises()
+    expect(spy).not.toHaveBeenCalled()
+    expect(w.text()).toContain('Host is required.')
+    expect(w.text()).toContain('Database is required.')
+    expect(w.text()).toContain('Username is required.')
+  })
+
+  it('requires an https instance URL for ServiceNow', async () => {
+    const spy = vi.spyOn(connectionApi, 'saveConnection')
+    const w = await mountView()
+    await w.find('#source-type').setValue('servicenow')
+    await w.find('#instance-url').setValue('http://acme.service-now.com')
+    await w.find('#username').setValue('svc')
+    await w.find('form').trigger('submit')
+    await flushPromises()
+    expect(spy).not.toHaveBeenCalled()
+    expect(w.text()).toContain('Instance URL must start with https://')
+  })
+
+  it('loads a stored config without a type as PostgreSQL', async () => {
+    vi.spyOn(connectionApi, 'getConnection').mockResolvedValue(STORED_CONNECTION)
+    const w = await mountView()
+    expect((w.find('#source-type').element as HTMLSelectElement).value).toBe('postgres')
+    expect((w.find('#host').element as HTMLInputElement).value).toBe('db.example.com')
+  })
+
+  it('loads a stored MariaDB config', async () => {
+    vi.spyOn(connectionApi, 'getConnection').mockResolvedValue({
+      ...STORED_CONNECTION,
+      type: DataSourceType.MariaDb,
+      port: 3306,
+    })
+    const w = await mountView()
+    expect((w.find('#source-type').element as HTMLSelectElement).value).toBe('mariadb')
+    expect((w.find('#port').element as HTMLInputElement).value).toBe('3306')
+  })
+
+  it('loads a stored ServiceNow SQL API config', async () => {
+    vi.spyOn(connectionApi, 'getConnection').mockResolvedValue({
+      type: DataSourceType.ServiceNowSqlApi,
+      host: null,
+      port: null,
+      database: null,
+      instanceUrl: 'https://acme.service-now.com',
+      username: 'svc',
+      sslMode: null,
+      hasPassword: true,
+    })
+    const w = await mountView()
+    expect((w.find('#source-type').element as HTMLSelectElement).value).toBe('servicenow')
+    expect((w.find('#access-method').element as HTMLSelectElement).value).toBe('sql')
+    expect((w.find('#instance-url').element as HTMLInputElement).value).toBe('https://acme.service-now.com')
+    expect(w.text()).toContain('https://acme.service-now.com')
+  })
+
+  it('never fills the password from the stored config and signals a stored one via the placeholder', async () => {
+    vi.spyOn(connectionApi, 'getConnection').mockResolvedValue({ ...STORED_CONNECTION, hasPassword: true })
+    const w = await mountView()
+    const input = w.find('#password').element as HTMLInputElement
+    expect(input.value).toBe('')
+    expect(input.placeholder).toContain('leave empty to keep')
+  })
+
+  it('submits an empty password to keep the stored one', async () => {
+    vi.spyOn(connectionApi, 'getConnection').mockResolvedValue({ ...STORED_CONNECTION, hasPassword: true })
+    vi.spyOn(connectionApi, 'saveConnection').mockResolvedValue({ schema: SCHEMA })
+    const w = await mountView()
+    await w.find('form').trigger('submit')
+    await flushPromises()
+    expect(connectionApi.saveConnection).toHaveBeenCalledWith(expect.objectContaining({ password: '' }))
+  })
+
+  it('shows the API error message for a failed provider connection', async () => {
+    vi.spyOn(connectionApi, 'saveConnection').mockResolvedValue({
+      error: "Connection failed: Access denied for user 'reader'",
+      status: 400,
+    })
+    const w = await mountView()
+    await w.find('#source-type').setValue('mariadb')
+    await w.find('#host').setValue('maria')
+    await w.find('#database').setValue('erp')
+    await w.find('#username').setValue('reader')
+    await w.find('form').trigger('submit')
+    await flushPromises()
+    expect(w.text()).toContain("Access denied for user 'reader'")
   })
 })

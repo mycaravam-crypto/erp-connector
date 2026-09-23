@@ -28,7 +28,7 @@ test.describe('Connection (Step 1)', () => {
   test('shows Step 1 heading and all form fields', async ({ page }) => {
     await loginAs(page)
     await expect(page.getByText('Step 1')).toBeVisible()
-    await expect(page.getByRole('heading', { name: /connect to source database/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /connect to source system/i })).toBeVisible()
     await expect(page.locator('#host')).toBeVisible()
     await expect(page.locator('#port')).toBeVisible()
     await expect(page.locator('#database')).toBeVisible()
@@ -52,13 +52,13 @@ test.describe('Connection (Step 1)', () => {
     await expect(page.getByText(/port must be a number between 1 and 65535/i)).toBeVisible()
   })
 
-  test('shows backend validation error when required fields are blank', async ({ page }) => {
+  test('shows validation errors when required fields are blank', async ({ page }) => {
     await loginAs(page)
     await page.locator('#host').fill('')
     await page.locator('#database').fill('')
     await page.locator('#username').fill('')
     await page.getByRole('button', { name: /test connection/i }).click()
-    await expect(page.getByText(/host, database, and username are required/i)).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/host is required/i).first()).toBeVisible({ timeout: 5000 })
   })
 
   test('shows connection failed error for an unreachable host', async ({ page }) => {
