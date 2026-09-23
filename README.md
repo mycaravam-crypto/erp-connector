@@ -155,6 +155,14 @@ See [`docker-compose.yml`](docker-compose.yml) and [`Dockerfile`](Dockerfile) fo
 Auth__JwtSecret=<your-secret-min-32-chars> docker-compose up
 ```
 
+### Versioning
+
+The app version lives in [`VERSION`](VERSION). Every PR merged into `main` bumps it automatically
+([`.github/workflows/version.yml`](.github/workflows/version.yml)) — patch by default, or minor/major when the PR
+carries a `minor` or `major` label — and tags the commit `vX.Y.Z`. The running version is shown on the login screen
+and in the app footer (served by `GET /api/version`), so after `docker-compose up --build` you can confirm the new
+build is actually live.
+
 ### TLS
 
 The shipped `docker-compose.yml` runs the API over plain HTTP on port `8080` — there is no TLS listener or

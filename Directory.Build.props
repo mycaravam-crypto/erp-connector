@@ -8,6 +8,12 @@
       Treat warnings as errors only in Release builds on non-test projects.
       This keeps the inner dev loop friction-free while making the CI gate strict.
     -->
+    <!--
+      Single source of truth for the app version: the VERSION file at the repo root, bumped
+      automatically by .github/workflows/version.yml on every merged PR. Surfaced to the UI via
+      GET /api/version so a deployment can be checked at a glance.
+    -->
+    <Version>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)VERSION').Trim())</Version>
     <TreatWarningsAsErrors Condition="'$(Configuration)' == 'Release' AND '$(IsTestProject)' != 'true'"
       >true</TreatWarningsAsErrors>
   </PropertyGroup>

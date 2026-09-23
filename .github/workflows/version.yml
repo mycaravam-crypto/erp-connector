@@ -1,0 +1,58 @@
+name: Version
+
+# Bumps the VERSION file (the app's single version source — see Directory.Build.props) on every PR
+# merged into main, commits it back, and tags the commit vX.Y.Z. The running version is shown on the
+# login screen and in the app footer (GET /api/version), so a Docker redeploy can be checked at a
+# glance.
+#
+# Bump size comes from the merged PR's labels: `major` or `minor`, otherwise patch.
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+concurrency:
+  group: version-bump
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Bump VERSION
+        id: bump
+        env:
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ' ') }}
+        run: |
+          IFS=. read -r major minor patch < VERSION
+          case " $LABELS " in
+            *" major "*) major=$((major + 1)); minor=0; patch=0 ;;
+            *" minor "*) minor=$((minor + 1)); patch=0 ;;
+            *) patch=$((patch + 1)) ;;
+          esac
+          version="$major.$minor.$patch"
+          echo "$version" > VERSION
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and tag
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add VERSION
+          git commit -m "Release v$VERSION (#$PR_NUMBER) [skip ci]"
+          git tag "v$VERSION"
+          git push origin HEAD:main "v$VERSION"

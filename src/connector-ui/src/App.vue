@@ -6,6 +6,7 @@ import ThemeToggle from '@/components/ThemeToggle.vue'
 import UserMenu from '@/components/UserMenu.vue'
 import ConnectorNav from '@/components/ConnectorNav.vue'
 import ToastHost from '@/components/ui/ToastHost.vue'
+import AppVersion from '@/components/AppVersion.vue'
 import { useBranding } from '@/composables/useBranding'
 
 const { appName, logoUrl } = useBranding()
@@ -51,6 +52,7 @@ async function revokeSessions() {
     <div class="flex-1 w-full max-w-[1280px] mx-auto glass rounded-2xl border border-border shadow-lg p-4 sm:p-6">
       <RouterView />
     </div>
+    <footer v-if="loggedIn" class="text-center mt-3"><AppVersion /></footer>
   </main>
 
   <ToastHost />

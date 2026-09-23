@@ -6,6 +6,7 @@ import { useBranding } from '@/composables/useBranding'
 import Card from '@/components/ui/Card.vue'
 import Input from '@/components/ui/Input.vue'
 import Button from '@/components/ui/Button.vue'
+import AppVersion from '@/components/AppVersion.vue'
 
 const { appName, logoUrl } = useBranding()
 
@@ -55,6 +56,8 @@ async function submit() {
       >
         {{ submitting ? 'Signing in…' : 'Sign in' }}
       </Button>
+
+      <p class="text-center mt-4 mb-0"><AppVersion /></p>
     </Card>
   </div>
 </template>
