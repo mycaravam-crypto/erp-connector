@@ -273,6 +273,8 @@ public sealed class DataSourceSecurityTests
 
         public DataSourceType Type => inner.Type;
 
+        public DataSourceCapabilities Capabilities => inner.Capabilities;
+
         public ISqlDialect Dialect => inner.Dialect;
 
         public Task<TestConnectionResult> TestConnectionAsync(

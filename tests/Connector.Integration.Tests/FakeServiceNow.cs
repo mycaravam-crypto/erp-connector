@@ -130,6 +130,55 @@ internal sealed partial class FakeServiceNow : HttpMessageHandler
                 Row("g2", ("name", "Network"))
             );
 
+    /// <summary>The <c>export_order</c>/<c>export_customer</c> rows of testdb/init.sql as ServiceNow would hold them:
+    /// the same ids and values, <c>""</c> for NULL, and <c>customer_id</c> as a reference to the customer's
+    /// <c>sys_id</c> — so the shared provider contract tests run the same assertions against all three providers.</summary>
+    public static FakeServiceNow WithExportFixture() =>
+        new FakeServiceNow()
+            .AddTable(
+                "export_customer",
+                null,
+                [new("sys_id", "GUID"), new("id", "integer"), new("name"), new("vip", "boolean")],
+                Row("c1", ("id", "1"), ("name", "Acme"), ("vip", "true")),
+                Row("c2", ("id", "2"), ("name", "Globex"), ("vip", ""))
+            )
+            .AddTable(
+                "export_order",
+                null,
+                [
+                    new("sys_id", "GUID"),
+                    new("id", "integer"),
+                    new("customer_id", "reference", "export_customer"),
+                    new("placed_on", "glide_date"),
+                    new("total", "decimal"),
+                    new("note"),
+                ],
+                Row(
+                    "o100",
+                    ("id", "100"),
+                    ("customer_id", "c1"),
+                    ("placed_on", "2024-01-05"),
+                    ("total", "99.90"),
+                    ("note", "rush")
+                ),
+                Row(
+                    "o101",
+                    ("id", "101"),
+                    ("customer_id", "c1"),
+                    ("placed_on", "2024-02-10"),
+                    ("total", ""),
+                    ("note", "")
+                ),
+                Row(
+                    "o102",
+                    ("id", "102"),
+                    ("customer_id", ""),
+                    ("placed_on", "2024-03-01"),
+                    ("total", "5.00"),
+                    ("note", "")
+                )
+            );
+
     public static Dictionary<string, string> Row(string sysId, params (string Field, string Value)[] values)
     {
         var row = new Dictionary<string, string>(StringComparer.Ordinal) { ["sys_id"] = sysId };

@@ -52,10 +52,10 @@ public static partial class DynamicExportService
     /// The <see cref="ISqlDialect"/> the export builders render their SQL with — every PostgreSQL-specific
     /// fragment (quoting, JSON construction/aggregation, casts, LIMIT) comes from it, so this class itself holds
     /// only dialect-neutral statement structure. Throws <see cref="UnsupportedDataSourceException"/> for a
-    /// provider that doesn't speak SQL at all.
+    /// provider without the <see cref="DataSourceCapabilities.NativeSql"/> capability.
     /// </summary>
     private static ISqlDialect DialectOf(IDataSourceProvider provider) =>
-        provider is ISqlDataSourceProvider sql
+        provider is ISqlDataSourceProvider { Capabilities.NativeSql: true } sql
             ? sql.Dialect
             : throw new UnsupportedDataSourceException(
                 $"Data source type '{provider.Type}' does not support SQL export queries."
