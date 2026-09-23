@@ -8,6 +8,7 @@ using Connector.Infrastructure;
 using Connector.Infrastructure.DataSources;
 using Connector.Infrastructure.DataSources.MariaDb;
 using Connector.Infrastructure.DataSources.PostgreSql;
+using Connector.Infrastructure.DataSources.ServiceNow;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
@@ -203,10 +204,11 @@ builder.Services.AddDbContext<ExportLogDbContext>(opt =>
 );
 
 // Data source abstraction: one provider per DataSourceType — DataSourceProviderResolver.Resolve throws
-// UnsupportedDataSourceException for any type without one (ServiceNowTableApi/ServiceNowSqlApi today). All are
-// singletons: none holds per-call state, and every provider method opens/disposes its own connection.
+// UnsupportedDataSourceException for any type without one (ServiceNowSqlApi today). All are singletons: none
+// holds per-call state, and every provider method opens/disposes its own connection (or HTTP request).
 builder.Services.AddSingleton<IDataSourceProvider, PostgreSqlDataSourceProvider>();
 builder.Services.AddSingleton<IDataSourceProvider, MariaDbDataSourceProvider>();
+builder.Services.AddSingleton<IDataSourceProvider, ServiceNowTableApiProvider>();
 builder.Services.AddSingleton<IDataSourceProviderResolver, DataSourceProviderResolver>();
 
 builder.Services.AddScoped<AuditService>();

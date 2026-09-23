@@ -125,7 +125,8 @@ public sealed class ConnectionEndpointsHttpTests
             new
             {
                 type = 3,
-                instanceUrl = "https://acme.service-now.com",
+                // An IP literal (TEST-NET-3), so the SSRF host check needs no DNS.
+                instanceUrl = "https://203.0.113.10",
                 username = "u",
                 password = "p",
             },
@@ -136,5 +137,28 @@ public sealed class ConnectionEndpointsHttpTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.Contains("not supported by this connector version", body);
         Assert.DoesNotContain("IDataSourceProvider", body);
+    }
+
+    [Theory]
+    [InlineData("http://acme.service-now.com")]
+    [InlineData("acme.service-now.com")]
+    [InlineData("https://169.254.169.254")]
+    public async Task PostConnection_ServiceNowInstanceUrlNotHttpsOrBlocked_ReturnsBadRequest(string instanceUrl)
+    {
+        using var client = await _factory.CreateAuthenticatedClientAsync();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/connection",
+            new
+            {
+                type = 2,
+                instanceUrl,
+                username = "u",
+                password = "p",
+            },
+            ApiAuth.Json
+        );
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 }

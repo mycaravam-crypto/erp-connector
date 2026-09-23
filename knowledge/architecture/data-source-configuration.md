@@ -23,10 +23,10 @@ with the actually-required set enforced per `DataSourceType` at save time instea
 constructor — so a config for a source that isn't a relational database at all doesn't have to fake
 values for fields it has no use for.
 
-`PostgreSql` and `MariaDb` have providers ([MariaDB Provider](/architecture/mariadb-provider.md)).
-`ServiceNowTableApi`/`ServiceNowSqlApi` are modeled only: a config can describe them, but
-`DataSourceProviderResolver.Resolve` rejects them with `UnsupportedDataSourceException` because no
-`IDataSourceProvider` is registered for either.
+`PostgreSql`, `MariaDb` ([MariaDB Provider](/architecture/mariadb-provider.md)) and `ServiceNowTableApi`
+([ServiceNow Table API Provider](/architecture/servicenow-provider.md)) have providers. `ServiceNowSqlApi`
+is modeled only: a config can describe it, but `DataSourceProviderResolver.Resolve` rejects it with
+`UnsupportedDataSourceException` because no `IDataSourceProvider` is registered for it.
 
 ## 2. The type
 
@@ -37,7 +37,7 @@ public enum DataSourceType
 {
     PostgreSql = 0,        // implemented
     MariaDb = 1,            // implemented (Arbeitsauftrag 7)
-    ServiceNowTableApi = 2, // not implemented — modeled only
+    ServiceNowTableApi = 2, // implemented (Arbeitsauftrag 9)
     ServiceNowSqlApi = 3,   // not implemented — modeled only
 }
 
@@ -98,11 +98,11 @@ from the same `switch`, so the two can't drift into inconsistent error handling.
 independently, for every other caller that reaches a provider without going through this HTTP
 endpoint (`ExportWorker`, `ImportWorker`, etc.).
 
-`POST /api/connection`'s host-reachability SSRF check ([Data Source Abstraction](/architecture/data-source-abstraction.md))
-and `SslMode` validation only run for `PostgreSql`/`MariaDb` (one `SslMode` vocabulary for both — the
-MariaDB provider maps the names onto MySqlConnector's modes) — an HTTP-API source's `InstanceUrl`
-isn't a bare host, and isn't validated here at all yet, since there is no live ServiceNow provider
-that would ever open a connection to it.
+`POST /api/connection` validates `SslMode` for `PostgreSql`/`MariaDb` (one vocabulary for both — the
+MariaDB provider maps the names onto MySqlConnector's modes). The SSRF host check
+([Data Source Abstraction](/architecture/data-source-abstraction.md)) runs for every type: against `Host`
+for the relational ones, and against the `InstanceUrl`'s host for ServiceNow. That URL must also be an
+absolute `https://` URL.
 
 ## 4. Password handling
 
