@@ -1,9 +1,9 @@
 ---
 type: Business Process
 title: Export Definition API — configure once, trigger from anywhere
-description: CRUD, manual trigger, test, preview, and run history for saved, named export definitions (Phase 14 Slice 3) — the API surface an external program uses to run a saved export on demand.
+description: CRUD, manual trigger, test, preview, and run history for saved, named export definitions — the API surface an external program uses to run a saved export on demand.
 resource: src/Connector.Api/Endpoints/ExportDefinitionEndpoints.cs
-tags: [process, api, export-definitions, on-demand, phase-14]
+tags: [process, api, export-definitions, on-demand]
 timestamp: 2026-08-27T00:00:00Z
 ---
 
@@ -82,7 +82,7 @@ Unlike [On-Demand Run](/api/on-demand-run.md)'s `POST /api/pipeline/run`, this c
 `ExportRun`, writes nothing to the staging folder, and isn't subject to
 [Four-Eyes Release](/operations/four-eyes-release.md) — those model the CI-to-vendor delivery
 contract specifically, out of scope for generic definitions (see
-[Export Definitions 2.0 §10](/pipeline/export-definitions-2.0.md)). A run is synchronous
+[Export Definitions §6](/pipeline/export-definitions-2.0.md#6-non-goals)). A run is synchronous
 request/response only.
 
 # Test and preview
@@ -147,7 +147,7 @@ definition — no special role, matching [On-Demand Run](/api/on-demand-run.md).
 
 # Related
 
-- [Export Definitions 2.0](/pipeline/export-definitions-2.0.md) — full data model and spec
+- [Export Definitions](/pipeline/export-definitions-2.0.md) — full data model and design
 - [Dynamic Export](/dynamic-export/index.md) — the `ExportNode` tree, scheduler, and run-history entity this API is a surface over
 - [DynamicExportService](/pipeline/dynamic-export-service.md) — query/format-writer engine
 - [On-Demand Run](/api/on-demand-run.md) — the legacy single-mapping equivalent

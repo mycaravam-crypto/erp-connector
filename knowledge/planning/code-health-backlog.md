@@ -14,14 +14,13 @@ work isn't lost between sessions.
 
 # Status
 
-Done (session `claude/codebase-minimize-optimize-ywu53y`): both backend items below, and 5 of 7
-frontend template-complexity items (SchemaView, ErpDatabaseView, ExportView, ExportDetail,
-SourceSchemaView, plus `router/index.ts:42`) — see the ✅ rows below.
+Done: both backend items below, and 5 of 7 frontend template-complexity items (SchemaView,
+ErpDatabaseView, ExportView, ExportDetail, SourceSchemaView, plus `router/index.ts:42`) — see the
+✅ rows below.
 
-Done (session `claude/issues-code-health-prs-9ens0s`): of the remaining 5 items, `fallow health`
-no longer flags `NestedGroupEditor.vue` or `App.vue` at all (thresholds or their scoring must have
-shifted since this doc was written — re-verified against a fresh `fallow health --hotspots
---targets` run, 8 findings total, neither file present). The 3 that were still flagged are fixed:
+Of the remaining 5 items, `fallow health` no longer flags `NestedGroupEditor.vue` or `App.vue` at
+all (re-verified against a fresh `fallow health --hotspots --targets` run, 8 findings total,
+neither file present). The 3 that were still flagged are fixed:
 
 - **`IcdSchemaView.vue`** — CRAP 43.1, off the list. Split into `IcdActiveColumnsTable.vue` and
   `IcdExcludedFieldsList.vue`.
@@ -71,12 +70,10 @@ item for it — but re-check comments in any region a refactor touches, fixing o
 
 # Frontend (`src/connector-ui`) — template complexity
 
-`fallow`'s dead-code/duplication findings are already fixed (see `claude/fallow-js-code-checking-l5imc9`).
-What's left is `fallow health`'s **template complexity** findings — Vue `<template>` blocks (or
-one `.ts` arrow function) over cyclomatic/cognitive/CRAP thresholds. Earlier sessions left the
-lower-priority items undone because verifying a UI refactor needs a running browser; a Playwright
-browser became available in the `issues-code-health-prs-9ens0s` session's environment, used to
-smoke-test the items closed out there (see Status above).
+`fallow`'s dead-code/duplication findings are already fixed. What's left is `fallow health`'s
+**template complexity** findings — Vue `<template>` blocks (or one `.ts` arrow function) over
+cyclomatic/cognitive/CRAP thresholds. Verifying a UI refactor needs a running Playwright browser,
+used to smoke-test the items closed out below (see Status above).
 
 Re-run `npx fallow health --hotspots --targets` (from `src/connector-ui/`) any time for fresh numbers.
 
@@ -111,11 +108,11 @@ Re-run `npx fallow health --hotspots --targets` (from `src/connector-ui/`) any t
     `needsLogin()`/`needsConnection()`.
 11. `App.vue` — no longer flagged (same re-check as item 6). Untouched.
 
-## Phase 14 Slice 5 additions (new files) — resolved via threshold override
+## Export Definitions tree builder (new files) — resolved via threshold override
 
-`fallow audit --base origin/main` run for export-definitions-2.0.md Slice 5 (the Export
-Definitions tree builder) flagged 6 template-complexity findings, all in new files that new UI's
-inherent size, not accumulated debt in an old one:
+`fallow audit --base origin/main` flags 6 template-complexity findings in the Export Definitions
+tree builder, all in new files reflecting that UI's inherent size, not accumulated debt in an old
+one:
 
 - `ExportNodeTreeEditor.vue` — 17 cyclomatic, 29 cognitive, 255 lines, CRAP 79.4 (HIGH). The
   recursive tree-node editor (scalar-field/object/array in one component, per node kind) —
@@ -123,13 +120,12 @@ inherent size, not accumulated debt in an old one:
   which this generalizes the idea of; splitting the per-kind branches out would just recreate the
   circular-import problem that component's own comment documents.
 - `ExportDefinitionRunControls.vue` — 14 cyclomatic, 17 cognitive, 208 lines, CRAP 56.3 (HIGH).
-  Grew from Save+Test (Phase 14 Slice 3 recovery UI) to Save+Test+Run Now+Duplicate+Delete; a
-  plausible split is one component per action, but each action's state (loading/error/result) is
-  small and independent, so splitting would trade one readable file for five tiny ones with no
-  shared logic to justify the extraction (see this doc's "minimal code" ground rule).
-- `ExportDefinitionsView.vue` — 12 cyclomatic, 25 cognitive, 218 lines, CRAP 43.1 (HIGH). Grew
-  from a read-only list to the full list view (enable toggle, schedule/last-run columns,
-  test/duplicate/delete actions) export-definitions-2.0.md §7 calls for.
+  Covers Save+Test+Run Now+Duplicate+Delete; a plausible split is one component per action, but
+  each action's state (loading/error/result) is small and independent, so splitting would trade
+  one readable file for five tiny ones with no shared logic to justify the extraction (see this
+  doc's "minimal code" ground rule).
+- `ExportDefinitionsView.vue` — 12 cyclomatic, 25 cognitive, 218 lines, CRAP 43.1 (HIGH). The full
+  list view: enable toggle, schedule/last-run columns, test/duplicate/delete actions.
 - `ExportDefinitionEditView.vue` — 13 cyclomatic, 22 cognitive, 245 lines, CRAP 49.5. Orchestrates
   create vs. edit mode, the tree editor, preview, and execution history.
 - `StatusBadge.vue` — 8 cyclomatic, 17 cognitive, 15 lines (pre-existing component; two status
@@ -150,11 +146,11 @@ the file's actual framework, so it can't target a Vue `<template>` finding. Reso
 pre-existing `SchemaView.vue`, caught in the same diff only because this pass touched it), each
 with a `reason`, rather than a global threshold change or an ignore comment that doesn't work.
 
-## Phase 17 Slice 6 additions (new files) — resolved via threshold override, duplication accepted
+## Import Definitions frontend (new files) — resolved via threshold override, duplication accepted
 
-`fallow audit --base origin/main` run for import-definitions.md Slice 6 (the Import Definitions
-frontend — the write-side mirror of Phase 14 Slice 5 above) flagged the same shape of finding,
-resolved the same way:
+`fallow audit --base origin/main` flags the same shape of finding in the Import Definitions
+frontend — the write-side mirror of the Export Definitions tree builder above — resolved the same
+way:
 
 - `ImportNodeTreeEditor.vue` — 17 cyclomatic, 29 cognitive, CRAP 79.4 (HIGH). The same
   self-referencing recursive tree-node editor as `ExportNodeTreeEditor.vue`, built against
@@ -173,14 +169,14 @@ resolved the same way:
 - `ImportDefinitionsView.vue` — 10 cyclomatic, 19 cognitive, CRAP 31.6 — same shape as
   `ExportDefinitionsView.vue`'s own list view.
 
-All four added to the existing Phase 14 `thresholdOverrides` entry's file list (same
+All four added to the existing Export Definitions `thresholdOverrides` entry's file list (same
 `maxCognitive`/`maxCrap`, same reasoning) rather than a new entry, since the numbers land in the
 same band for the same underlying reason.
 
 **Duplication accepted, not suppressed.** `fallow audit` also reports ~1,000 duplicated lines
 across `Export*`/`Import*` pairs (tree editor, run controls, list/edit views, API clients). This is
-the intended shape, not accumulated debt: import-definitions.md §4 explains at length why
-`ImportNode` deliberately doesn't merge into `ExportNode` (opposite read/write directions, policy
+the intended shape, not accumulated debt: [Import Definitions §5](/pipeline/import-definitions.md#5-data-model)
+explains at length why `ImportNode` deliberately doesn't merge into `ExportNode` (opposite read/write directions, policy
 fields meaningless on the other side), and the same reasoning holds one layer up in the UI — an
 `ExportNode`-shaped tree editor and an `ImportNode`-shaped one are two small, honest components,
 not one generic one with half its props unused per direction. `.fallowrc.json` has no precedent for
@@ -252,7 +248,7 @@ call-site renames), and the 3 new shared files add 109 back, for a net -160 line
 ## 4. ✅ DynamicExportService.cs split by responsibility (GitHub issue #84) — done
 
 At 820 lines / 38.5 KB, `DynamicExportService.cs` mixed the GDPR denylist, the legacy
-`ExportMappingConfig` flat/nested-JSON query builder, the Phase 14 `ExportNode` tree query engine, and
+`ExportMappingConfig` flat/nested-JSON query builder, the `ExportNode` tree query engine, and
 output-format serialization (CSV/Excel/JSON) in one file. Confirmed the legacy nested-JSON path
 (`BuildNestedGroupExpr`/`ExecuteNestedJsonQueryAsync`/`UsesNestedJson`) is **not** dead code — it's still
 called by `PipelineEndpoints.cs`'s `/api/pipeline/*` endpoints, which `SchemaView.vue`/`ExportView.vue`
@@ -268,7 +264,7 @@ and both test projects — keeps compiling unchanged:
 - `DynamicExportService.LegacyMapping.cs` — the `ExportMappingConfig`-based flat/nested-JSON query
   builder (`GetColumnNames`, `UsesNestedJson`, `BuildExportAsync`, `ExecuteQueryAsync`,
   `BuildNestedGroupExpr`, `ExecuteNestedJsonQueryAsync`).
-- `DynamicExportService.ExportNode.cs` — the Phase 14 `ExportNode` tree engine (query building, field
+- `DynamicExportService.ExportNode.cs` — the `ExportNode` tree engine (query building, field
   mapping application, column flattening, `BuildExportNodeAsync`).
 - `DynamicExportService.Output.cs` — CSV/JSON/Excel/nested-JSON byte writers, `ContentTypeFor`,
   `BuildNamedFileName`.
@@ -289,8 +285,8 @@ Split into 3 files, kept as one `partial class` (not separate classes) so the `i
 `ValidateIntegrationKeyPairEnabledAsync`) keep compiling unchanged:
 
 - `ImportDefinitionEndpoints.cs` — route registrations only (`MapImportDefinitionEndpoints`).
-- `ImportDefinitionEndpoints.Validation.cs` — the Open Decision #9/#15 save-time guardrails
-  (`SqlIdentifierRegex`, `ValidateRequestAsync`, `ValidateTargetAgainstSchema`, `ValidateNode`,
+- `ImportDefinitionEndpoints.Validation.cs` — the `AllowedWritableColumns`/`OnMissingChild` save-time
+  guardrails (`SqlIdentifierRegex`, `ValidateRequestAsync`, `ValidateTargetAgainstSchema`, `ValidateNode`,
   `ContainsControlCharacters`, `ValidateIntegrationKeyPairEnabledAsync`).
 - `ImportDefinitionEndpoints.Mapping.cs` — entity/DTO mapping and the "create from export" suggestion
   lookup (`ToDto`, `ToSummaryDto`, `BuildSuggestionAsync`, `TryParseSample`).
@@ -312,4 +308,4 @@ Consider a C# duplication/complexity analyzer if these findings recur elsewhere.
 
 # Related
 
-- [Export Definitions 2.0](/pipeline/export-definitions-2.0.md) — Phase 14, orthogonal to this backlog
+- [Export Definitions](/pipeline/export-definitions-2.0.md) — orthogonal to this backlog

@@ -68,7 +68,7 @@ stage it as a real `PendingReview` run without dropping a file + manifest on dis
 |---|---|
 | `POST /api/import-definitions/{id}/runs` | Reuses `ImportNodeWalker.WalkAsync`/`ImportPlanBuilder.Build` — the same walk-then-build pass `.../preview` and `ImportWorker` already share — then persists an `ImportRunEntity` at `PendingReview` with `TriggeredBy` set to the operator's username. Checksum computed from the posted content itself (no manifest file); `(ImportDefinitionId, Sha256Checksum)` still dedupes a re-submit, returning 409 with the existing run's id/status |
 | `ImportDefinitionPreviewPanel.vue` gained a file picker + **Run** button | Sits next to the existing **Preview** dry run — same textarea, same sample; Preview writes nothing, Run stages it for real and hands off straight into the existing review/release dialog |
-| Docs reconciled | [Import Definitions §2](/pipeline/import-definitions.md#2-current-state)'s Trigger row and [ImportWorker](/dynamic-import/import-worker.md) now name both triggers; the stale "nothing to run on demand" comment in `ImportDefinitionRunControls.vue` is gone |
+| Docs reconciled | [Import Definitions §3](/pipeline/import-definitions.md#3-comparison-with-the-export-side)'s Trigger row and [ImportWorker](/dynamic-import/import-worker.md) now name both triggers; the stale "nothing to run on demand" comment in `ImportDefinitionRunControls.vue` is gone |
 
 **Verification:** `npm test` (frontend, including a new manual-run case), `vue-tsc --build` clean;
 backend endpoint smoke-tested against `testdb` — staged, diffed, deduped on re-submit (409), and
@@ -162,9 +162,9 @@ Backlog](/planning/code-health-backlog.md#phase-17-slice-6-additions-new-files--
 plus a Playwright smoke pass covering the full golden path (list → edit → tree-build → preview →
 run history → review → release with a distinct approver). No dotnet SDK/Docker daemon was
 available in the Slice 6 session, so the backend `GET /api/import-runs/{id}` addition there was
-verified by manual review rather than a live run, unlike [Export Definitions 2.0's Slice
-4–6 verification](/pipeline/export-definitions-2.0.md#verification-end-to-end-after-all-slices),
-which did have a live .NET toolchain and Postgres available in one session.
+verified by manual review rather than a live run, unlike [Export Definitions
+2.0](/pipeline/export-definitions-2.0.md)'s equivalent pass, which did have a live .NET toolchain
+and Postgres available in one session.
 
 ---
 
@@ -236,9 +236,8 @@ supported, separate workflow — this was never a cutover (§11 decision #2).
 (scoped `.fallowrc.json` threshold overrides for the new tree-builder's inherently large
 components — see [Code Health Backlog](/planning/code-health-backlog.md)), a real browser session
 driving the actual tree-builder UI against a running backend, and the scheduler confirmed firing
-a run unattended against a live app. See
-[Export Definitions 2.0's Verification section](/pipeline/export-definitions-2.0.md#verification-end-to-end-after-all-slices)
-for the full account.
+a run unattended against a live app. See [Export Definitions 2.0](/pipeline/export-definitions-2.0.md)
+for the design this shipped.
 
 ---
 
