@@ -157,28 +157,28 @@ public sealed class PostgreSqlDataSourceProviderTests
         Assert.True(statusUpper.IsGenerated);
     }
 
-    // ── ExecuteAsync ──────────────────────────────────────────────────────────────
+    // ── ExecuteNativeAsync ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task ExecuteAsync_FlatSelectWithParameter_ReturnsStringKeyedRow()
+    public async Task ExecuteNativeAsync_FlatSelectWithParameter_ReturnsStringKeyedRow()
     {
         if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
-        var query = new SourceQuery(
+        var query = new NativeSqlQuery(
             "SELECT id, article_name, manufacturer_id FROM masterdata WHERE id = @id::uuid",
             new Dictionary<string, object?> { ["id"] = AcmeItemId }
         );
 
-        var result = await Provider.ExecuteAsync(ErpTestFixture.Config, query, CancellationToken.None);
+        var result = await Provider.ExecuteNativeAsync(ErpTestFixture.Config, query, CancellationToken.None);
 
-        var row = Assert.Single(result.Rows);
+        var row = Assert.Single(result.ToDictionaries());
         Assert.Equal("Compressor Unit CU-200", row["article_name"]);
         Assert.Equal(AcmeManufacturerId, row["manufacturer_id"]);
     }
 
     [Fact]
-    public async Task ExecuteAsync_NullColumn_ReturnsNullNotEmptyString()
+    public async Task ExecuteNativeAsync_NullColumn_ReturnsNullNotEmptyString()
     {
         if (!await ErpTestFixture.IsAvailableAsync())
             return;
@@ -187,53 +187,53 @@ public sealed class PostgreSqlDataSourceProviderTests
         // `manufacturer_id` is never null in the fixture, so use manufacturer_address's optional-looking
         // columns instead — none are declared NOT NULL, and address_type is always populated in the seed, so
         // assert against a genuinely nullable/unpopulated projection instead: a literal SQL NULL column.
-        var query = new SourceQuery(
+        var query = new NativeSqlQuery(
             "SELECT NULL::text AS maybe_null, id FROM masterdata WHERE id = @id::uuid",
             new Dictionary<string, object?> { ["id"] = AcmeItemId }
         );
 
-        var result = await Provider.ExecuteAsync(ErpTestFixture.Config, query, CancellationToken.None);
+        var result = await Provider.ExecuteNativeAsync(ErpTestFixture.Config, query, CancellationToken.None);
 
-        var row = Assert.Single(result.Rows);
+        var row = Assert.Single(result.ToDictionaries());
         Assert.Null(row["maybe_null"]);
     }
 
     [Fact]
-    public async Task ExecuteAsync_DateColumn_CoercesToIso8601()
+    public async Task ExecuteNativeAsync_DateColumn_CoercesToIso8601()
     {
         if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
-        var query = new SourceQuery(
+        var query = new NativeSqlQuery(
             "SELECT commission_date FROM systemconfiguration WHERE id = '44444444-4444-4444-4444-444444444444'::uuid"
         );
 
-        var result = await Provider.ExecuteAsync(ErpTestFixture.Config, query, CancellationToken.None);
+        var result = await Provider.ExecuteNativeAsync(ErpTestFixture.Config, query, CancellationToken.None);
 
-        var row = Assert.Single(result.Rows);
+        var row = Assert.Single(result.ToDictionaries());
         Assert.Equal("2024-03-15", row["commission_date"]);
     }
 
     [Fact]
-    public async Task ExecuteAsync_JsonBuildObjectAggregation_ReturnsRawJsonTextColumn()
+    public async Task ExecuteNativeAsync_JsonBuildObjectAggregation_ReturnsRawJsonTextColumn()
     {
         if (!await ErpTestFixture.IsAvailableAsync())
             return;
 
-        var query = new SourceQuery(
+        var query = new NativeSqlQuery(
             "SELECT json_build_object('id', id, 'name', article_name) AS row_json FROM masterdata WHERE id = @id::uuid",
             new Dictionary<string, object?> { ["id"] = AcmeItemId }
         );
 
-        var result = await Provider.ExecuteAsync(ErpTestFixture.Config, query, CancellationToken.None);
+        var result = await Provider.ExecuteNativeAsync(ErpTestFixture.Config, query, CancellationToken.None);
 
-        var row = Assert.Single(result.Rows);
+        var row = Assert.Single(result.ToDictionaries());
         var json = (JsonObject)JsonNode.Parse(row["row_json"]!)!;
         Assert.Equal("Compressor Unit CU-200", json["name"]!.GetValue<string>());
     }
 
     [Fact]
-    public async Task ExecuteAsync_CardinalityViolation_ThrowsDataSourceQueryExceptionWithSqlState21000()
+    public async Task ExecuteNativeAsync_CardinalityViolation_ThrowsDataSourceQueryExceptionWithSqlState21000()
     {
         if (!await ErpTestFixture.IsAvailableAsync())
             return;
@@ -242,16 +242,125 @@ public sealed class PostgreSqlDataSourceProviderTests
         // subquery expecting at most one row fails with Postgres SQLSTATE 21000 ("more than one row returned
         // by a subquery used as an expression"), the same guard DynamicExportService relies on for its
         // "object vs. array" nested-group cardinality check.
-        var query = new SourceQuery(
+        var query = new NativeSqlQuery(
             "SELECT (SELECT city FROM manufacturer_address WHERE manufacturer_id = m.id) AS city "
                 + "FROM manufacturer m WHERE m.id = @id::uuid",
             new Dictionary<string, object?> { ["id"] = AcmeManufacturerId }
         );
 
         var ex = await Assert.ThrowsAsync<DataSourceQueryException>(() =>
-            Provider.ExecuteAsync(ErpTestFixture.Config, query, CancellationToken.None)
+            Provider.ExecuteNativeAsync(ErpTestFixture.Config, query, CancellationToken.None)
         );
 
         Assert.Equal("21000", ex.ErrorCode);
+    }
+
+    // ── ExecuteAsync (neutral SourceQuery, compiled by PostgreSqlQueryCompiler) ───────────────────────
+
+    [Fact]
+    public async Task ExecuteAsync_ProjectionWithStringValueOnUuidColumn_ReturnsAlignedColumnsAndRows()
+    {
+        if (!await ErpTestFixture.IsAvailableAsync())
+            return;
+
+        var query = new SourceQuery
+        {
+            RootTable = "masterdata",
+            Columns =
+            [
+                new QueryColumn { Column = "article_name", Alias = "name" },
+                new QueryColumn { Column = "part_number" },
+            ],
+            Conditions =
+            [
+                new QueryCondition
+                {
+                    Column = "id",
+                    Operator = QueryOperator.Equal,
+                    Value = AcmeItemId,
+                },
+            ],
+        };
+
+        var result = await Provider.ExecuteAsync(ErpTestFixture.Config, query, CancellationToken.None);
+
+        Assert.Equal(["name", "part_number"], result.Columns.Select(c => c.Name));
+        Assert.Equal(["Compressor Unit CU-200", "CU-200"], Assert.Single(result.Rows).Values);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_JoinInNullCheckLikeAndLimit_RunAgainstRealPostgres()
+    {
+        if (!await ErpTestFixture.IsAvailableAsync())
+            return;
+
+        var query = new SourceQuery
+        {
+            RootTable = "systemconfiguration",
+            Columns =
+            [
+                new QueryColumn { Column = "serial" },
+                new QueryColumn { Column = "commission_date" },
+                new QueryColumn { Table = "masterdata", Column = "article_name" },
+            ],
+            Joins =
+            [
+                new QueryJoin
+                {
+                    Table = "masterdata",
+                    Column = "id",
+                    ParentColumn = "article_id",
+                    Type = QueryJoinType.Left,
+                },
+            ],
+            Conditions =
+            [
+                new QueryCondition
+                {
+                    Column = "serial",
+                    Operator = QueryOperator.In,
+                    Values = ["SN-00042", "SN-00044"],
+                },
+                new QueryCondition { Column = "commission_date", Operator = QueryOperator.IsNotNull },
+                new QueryCondition
+                {
+                    Table = "masterdata",
+                    Column = "article_name",
+                    Operator = QueryOperator.StartsWith,
+                    Value = "Compressor",
+                },
+                new QueryCondition
+                {
+                    Column = "commission_date",
+                    Operator = QueryOperator.GreaterThan,
+                    Value = new DateOnly(2023, 1, 1),
+                },
+            ],
+            Limit = 5,
+        };
+
+        var result = await Provider.ExecuteAsync(ErpTestFixture.Config, query, CancellationToken.None);
+
+        var row = Assert.Single(result.ToDictionaries());
+        Assert.Equal("SN-00042", row["serial"]);
+        Assert.Equal("2024-03-15", row["commission_date"]);
+        Assert.Equal("Compressor Unit CU-200", row["article_name"]);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_UnknownColumn_ThrowsInvalidSourceQueryException()
+    {
+        if (!await ErpTestFixture.IsAvailableAsync())
+            return;
+
+        var query = new SourceQuery
+        {
+            RootTable = "masterdata",
+            Columns = [new QueryColumn { Column = "no_such_column" }],
+        };
+
+        await Assert.ThrowsAsync<InvalidSourceQueryException>(() =>
+            Provider.ExecuteAsync(ErpTestFixture.Config, query, CancellationToken.None)
+        );
     }
 }

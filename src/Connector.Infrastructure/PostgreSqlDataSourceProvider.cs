@@ -154,31 +154,76 @@ public sealed class PostgreSqlDataSourceProvider : IDataSourceProvider
         return byTable.Select(kv => new SourceTable(kv.Key, "", kv.Value.ToArray())).OrderBy(t => t.Name).ToArray();
     }
 
-    /// <summary>Executes <paramref name="query"/>'s SQL generically: the provider does not parse or understand
-    /// the text itself, only materializes rows as string-keyed dictionaries. Date/timestamp columns are
-    /// coerced to ISO-8601 (<c>yyyy-MM-dd</c>) the same way the pre-abstraction row-reading loop in
-    /// <c>DynamicExportService</c> did, so every existing caller's output is unchanged.</summary>
+    /// <summary>Compiles <paramref name="query"/> with <see cref="PostgreSqlQueryCompiler"/> against the live
+    /// schema (read fresh on every call, so a column dropped since a definition was saved is reported as unknown
+    /// rather than failing inside Postgres) and executes it — same row materialization as
+    /// <see cref="ExecuteNativeAsync"/>.</summary>
     public async Task<QueryResult> ExecuteAsync(
         DataSourceConfig config,
         SourceQuery query,
         CancellationToken cancellationToken
     )
     {
+        var schema = await ReadSchemaAsync(config, cancellationToken);
+        var compiled = PostgreSqlQueryCompiler.Compile(query, schema);
+        return await RunAsync(
+            config,
+            compiled.Sql,
+            compiled.Parameters,
+            DefaultCommandTimeoutSeconds,
+            cancellationToken
+        );
+    }
+
+    /// <summary>Executes <paramref name="query"/>'s SQL generically: the provider does not parse or understand
+    /// the text itself, only materializes rows. Date/timestamp columns are coerced to ISO-8601
+    /// (<c>yyyy-MM-dd</c>) the same way the pre-abstraction row-reading loop in <c>DynamicExportService</c> did,
+    /// so every existing caller's output is unchanged.</summary>
+    public Task<QueryResult> ExecuteNativeAsync(
+        DataSourceConfig config,
+        NativeSqlQuery query,
+        CancellationToken cancellationToken
+    )
+    {
+        var parameters = (query.Parameters ?? new Dictionary<string, object?>())
+            .Select(kv => new NpgsqlParameter(kv.Key, kv.Value ?? DBNull.Value))
+            .ToList();
+        return RunAsync(
+            config,
+            query.Sql,
+            parameters,
+            query.CommandTimeoutSeconds ?? DefaultCommandTimeoutSeconds,
+            cancellationToken
+        );
+    }
+
+    private const int DefaultCommandTimeoutSeconds = 30;
+
+    private static async Task<QueryResult> RunAsync(
+        DataSourceConfig config,
+        string sql,
+        IEnumerable<NpgsqlParameter> parameters,
+        int commandTimeoutSeconds,
+        CancellationToken cancellationToken
+    )
+    {
         await using var conn = new NpgsqlConnection(BuildConnectionString(config));
         await conn.OpenAsync(cancellationToken);
 
-        await using var cmd = new NpgsqlCommand(query.Sql, conn) { CommandTimeout = query.CommandTimeoutSeconds ?? 30 };
-        if (query.Parameters is not null)
-            foreach (var (name, value) in query.Parameters)
-                cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
+        await using var cmd = new NpgsqlCommand(sql, conn) { CommandTimeout = commandTimeoutSeconds };
+        cmd.Parameters.AddRange(parameters.ToArray());
 
         try
         {
             await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-            var rows = new List<IReadOnlyDictionary<string, string?>>();
+            var columns = Enumerable
+                .Range(0, reader.FieldCount)
+                .Select(i => new QueryResultColumn { Name = reader.GetName(i) })
+                .ToList();
+            var rows = new List<QueryResultRow>();
             while (await reader.ReadAsync(cancellationToken))
                 rows.Add(await ReadRowAsync(reader, cancellationToken));
-            return new QueryResult(rows);
+            return new QueryResult { Columns = columns, Rows = rows };
         }
         catch (PostgresException pex)
         {
@@ -192,25 +237,19 @@ public sealed class PostgreSqlDataSourceProvider : IDataSourceProvider
     // used: a date/timestamp/timestamptz column is coerced to ISO-8601 regardless of locale; everything else
     // is Postgres's own ToString() of the CLR value Npgsql mapped it to (a json/jsonb column comes back as
     // its raw JSON text with Npgsql's default mapping, letting a caller re-parse it as JSON if it needs to).
-    private static async Task<IReadOnlyDictionary<string, string?>> ReadRowAsync(
-        NpgsqlDataReader reader,
-        CancellationToken ct
-    )
+    private static async Task<QueryResultRow> ReadRowAsync(NpgsqlDataReader reader, CancellationToken ct)
     {
-        var row = new Dictionary<string, string?>(reader.FieldCount);
+        var values = new string?[reader.FieldCount];
         for (var i = 0; i < reader.FieldCount; i++)
         {
             if (await reader.IsDBNullAsync(i, ct))
-            {
-                row[reader.GetName(i)] = null;
                 continue;
-            }
 
             var pgType = reader.GetDataTypeName(i);
-            row[reader.GetName(i)] = pgType is "date" or "timestamp" or "timestamptz"
+            values[i] = pgType is "date" or "timestamp" or "timestamptz"
                 ? reader.GetDateTime(i).ToString("yyyy-MM-dd")
                 : reader.GetValue(i)?.ToString();
         }
-        return row;
+        return new QueryResultRow { Values = values };
     }
 }

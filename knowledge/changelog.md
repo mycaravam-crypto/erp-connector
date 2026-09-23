@@ -6,7 +6,30 @@ tags: [changelog, roadmap, history]
 timestamp: 2026-09-03T00:00:00Z
 ---
 
-Last updated: 2026-09-22
+Last updated: 2026-09-23
+
+---
+
+## Phase 23 — Database-neutral query model ✅
+
+Arbeitsauftrag 4: introduced a database-neutral `SourceQuery`/`QueryResult` model so query intent no
+longer has to be Postgres SQL text, plus its PostgreSQL compilation. See
+[Source Query Model](/architecture/source-query-model.md) for the full design.
+
+| Item | Notes |
+|---|---|
+| `SourceQuery`/`QueryColumn`/`QueryJoin`/`QueryCondition`/`QueryOperator` | New neutral model in `Connector.Core.DataSources` — no field can hold a SQL fragment; every filter operand is a value |
+| `QueryResult` | Now `Columns` + `Rows` (values aligned with columns); `ToDictionaries()` returns the previous name-keyed shape |
+| `SourceQueryValidator` | Dialect-free validation against `SourceSchema`: unknown table/column, join scoping, operand rules → `InvalidSourceQueryException` |
+| `PostgreSqlQueryCompiler` | `SourceQuery` → quoted-identifier SQL with every value a bound parameter (`@p0`…), string values bound as `unknown` so Postgres infers the column type |
+| `IDataSourceProvider` | `ExecuteAsync` now takes the neutral `SourceQuery` (validated against the live schema); the old raw-SQL path is `ExecuteNativeAsync(NativeSqlQuery)` — `NativeSqlQuery` is the old `SourceQuery`, renamed |
+| `DynamicExportService` | Moved to `ExecuteNativeAsync` with identical SQL — export output unchanged. Migrating `ExportNode` (incl. its free-SQL `Filter`) onto `SourceQuery` is follow-up work |
+| Tests | New `SourceQueryValidatorTests`, `PostgreSqlQueryCompilerTests`, and real-Postgres `ExecuteAsync` tests in `PostgreSqlDataSourceProviderTests`; the existing raw-SQL tests moved to `ExecuteNativeAsync` |
+
+**Verification:** `dotnet build -c Release` (warnings-as-errors) clean, `dotnet csharpier check .`
+clean, full test suite (480 tests: 74 `Connector.Core.Tests` + 406 `Connector.Integration.Tests`)
+green **against a real PostgreSQL 16 loaded from `testdb/init.sql`** — including every pre-existing
+Postgres-backed export test, the evidence that PostgreSQL behavior is unchanged.
 
 ---
 
