@@ -7,9 +7,9 @@ namespace Connector.Core.DataSources;
 /// </summary>
 /// <remarks>
 /// Two producers exist: a provider's own compiler for <see cref="SourceQuery"/> (e.g.
-/// <c>Connector.Infrastructure.PostgreSqlQueryCompiler</c>), and <c>DynamicExportService</c>'s existing
-/// Postgres-dialect export builders (<c>json_build_object</c>/<c>json_agg</c> trees), which the neutral model
-/// cannot express yet — see knowledge/architecture/source-query-model.md §5. The provider only executes this
+/// <c>Connector.Infrastructure.DataSources.PostgreSql.PostgreSqlQueryCompiler</c>), and
+/// <c>DynamicExportService</c>'s export builders (JSON object/array aggregation trees, rendered through the
+/// provider's SQL dialect), which the neutral model cannot express yet — see knowledge/architecture/source-query-model.md §5. The provider only executes this
 /// text and materializes rows generically; it never parses it. Nothing in <c>Connector.Core</c> builds one.
 /// </remarks>
 public sealed record NativeSqlQuery(

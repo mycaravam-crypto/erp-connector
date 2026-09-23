@@ -5,6 +5,8 @@ using Connector.Api;
 using Connector.Api.Endpoints;
 using Connector.Core.DataSources;
 using Connector.Infrastructure;
+using Connector.Infrastructure.DataSources;
+using Connector.Infrastructure.DataSources.PostgreSql;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;

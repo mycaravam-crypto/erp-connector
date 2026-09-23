@@ -3,7 +3,7 @@ namespace Connector.Core.DataSources;
 /// <summary>
 /// Abstraction over one kind of ERP data source backend — see Arbeitsauftrag 2 /
 /// knowledge/architecture/data-source-abstraction.md. Exactly one implementation exists today,
-/// <c>Connector.Infrastructure.PostgreSqlDataSourceProvider</c>; obtained via
+/// <c>Connector.Infrastructure.DataSources.PostgreSql.PostgreSqlDataSourceProvider</c>; obtained via
 /// <see cref="IDataSourceProviderResolver"/>, never constructed directly outside DI registration.
 /// </summary>
 public interface IDataSourceProvider

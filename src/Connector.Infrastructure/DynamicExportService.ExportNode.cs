@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
+using Connector.Infrastructure.DataSources;
 
 namespace Connector.Infrastructure;
 
@@ -14,8 +15,8 @@ namespace Connector.Infrastructure;
 public static partial class DynamicExportService
 {
     /// <summary>
-    /// Recursively emits a <c>json_build_object(...)</c> expression for an <see cref="ExportNodeKind.Object"/>
-    /// node, or a <c>(SELECT json_agg(...) ...)</c> expression for an <see cref="ExportNodeKind.Array"/> node —
+    /// Recursively emits a JSON-object expression for an <see cref="ExportNodeKind.Object"/> node, or a
+    /// <c>(SELECT</c> JSON-array-aggregate <c>...)</c> expression for an <see cref="ExportNodeKind.Array"/> node —
     /// the <see cref="ExportNode"/> counterpart of <see cref="BuildNestedGroupExpr"/>, extended to also emit
     /// <see cref="ExportNodeKind.ScalarField"/> children as plain columns (not just further nesting) and to
     /// scope each node's own <see cref="ExportNode.Filter"/> fragment to its own subquery.
@@ -25,9 +26,12 @@ public static partial class DynamicExportService
         string parentAlias,
         ref int aliasCounter,
         int depth,
-        IReadOnlySet<string> denylist
+        IReadOnlySet<string> denylist,
+        ISqlDialect dialect
     )
     {
+        string QI(string identifier) => dialect.QuoteIdentifier(identifier);
+
         if (depth > MaxNestedDepth)
             throw new InvalidOperationException(
                 $"Export node '{node.TargetKey}' exceeds the maximum nesting depth of {MaxNestedDepth}."
@@ -37,7 +41,7 @@ public static partial class DynamicExportService
         // the same related table, and is QI-safe by construction (see BuildNestedGroupExpr's alias).
         var alias = $"en{aliasCounter++}";
 
-        var args = new List<string>();
+        var members = new List<(string, string)>();
         foreach (var child in node.Children.Where(x => x.Enabled))
         {
             // GDPR denylist check keyed on SourceField (the actual column), not TargetKey (the export's
@@ -50,18 +54,17 @@ public static partial class DynamicExportService
                 continue;
 
             if (child.Kind == ExportNodeKind.ScalarField)
-                args.Add($"{SqlLit(child.TargetKey)}, {alias}.{QI(child.SourceField!)}::text");
+                members.Add((child.TargetKey, dialect.CastToText($"{alias}.{QI(child.SourceField!)}")));
             else
-                args.Add(
-                    $"{SqlLit(child.TargetKey)}, "
-                        + $"{BuildExportNodeExpr(child, alias, ref aliasCounter, depth + 1, denylist)}"
+                members.Add(
+                    (child.TargetKey, BuildExportNodeExpr(child, alias, ref aliasCounter, depth + 1, denylist, dialect))
                 );
         }
 
-        var objectExpr = $"json_build_object({string.Join(", ", args)})";
-        // Same COALESCE-only-for-array reasoning as BuildNestedGroupExpr: json_agg() over zero rows
-        // returns SQL NULL, not '[]', but a genuinely absent N:1 object node should stay JSON null.
-        var agg = node.Kind == ExportNodeKind.Array ? $"COALESCE(json_agg({objectExpr}), '[]'::json)" : objectExpr;
+        var objectExpr = dialect.BuildJsonObject(members);
+        // Same aggregate-only-for-array reasoning as BuildNestedGroupExpr: an array node over zero rows is
+        // [], but a genuinely absent N:1 object node should stay JSON null.
+        var agg = node.Kind == ExportNodeKind.Array ? dialect.BuildJsonArrayAggregate(objectExpr) : objectExpr;
 
         var filter = string.IsNullOrWhiteSpace(node.Filter) ? "" : $" AND ({node.Filter})";
         return $"(SELECT {agg} FROM {QI(node.RelatedTable!)} {alias} "
@@ -90,8 +93,9 @@ public static partial class DynamicExportService
     )
     {
         var effectiveDenylist = gdprDenylist ?? GdprDeniedFields;
+        var dialect = DialectOf(provider);
 
-        var args = new List<string>();
+        var members = new List<(string, string)>();
         var aliasCounter = 0;
         foreach (var child in root.Children.Where(x => x.Enabled))
         {
@@ -101,16 +105,18 @@ public static partial class DynamicExportService
                 continue;
 
             if (child.Kind == ExportNodeKind.ScalarField)
-                args.Add($"{SqlLit(child.TargetKey)}, s.{QI(child.SourceField!)}::text");
+                members.Add((child.TargetKey, dialect.CastToText($"s.{dialect.QuoteIdentifier(child.SourceField!)}")));
             else
-                args.Add(
-                    $"{SqlLit(child.TargetKey)}, "
-                        + $"{BuildExportNodeExpr(child, "s", ref aliasCounter, depth: 1, effectiveDenylist)}"
+                members.Add(
+                    (
+                        child.TargetKey,
+                        BuildExportNodeExpr(child, "s", ref aliasCounter, depth: 1, effectiveDenylist, dialect)
+                    )
                 );
         }
 
         var results = new List<JsonObject>();
-        if (args.Count == 0)
+        if (members.Count == 0)
             return results;
 
         // An explicit caller limit (e.g. a preview) is honored exactly; otherwise the query is still capped
@@ -119,10 +125,10 @@ public static partial class DynamicExportService
         // "more rows exist" without a separate COUNT(*) query.
         var sqlLimit = Math.Min(limit ?? int.MaxValue, MaxExportRowsPerRun + 1);
 
-        var sql = $"SELECT json_build_object({string.Join(", ", args)}) AS row_json FROM {QI(rootTable)} s";
+        var sql = $"SELECT {dialect.BuildJsonObject(members)} AS row_json FROM {dialect.QuoteIdentifier(rootTable)} s";
         if (!string.IsNullOrWhiteSpace(root.Filter))
             sql += $" WHERE ({root.Filter})";
-        sql += $" LIMIT {sqlLimit}";
+        sql += " " + dialect.BuildLimit(sqlLimit);
 
         QueryResult queryResult;
         try
@@ -172,7 +178,7 @@ public static partial class DynamicExportService
     /// each scalar field's <see cref="FieldMapping"/> (transform/default/data-type coercion) at the point the
     /// value is read — deliberately in C#, not SQL: a malformed single row's value (e.g. non-numeric text
     /// under a <see cref="FieldDataType.Number"/> field) degrades to a best-effort string instead of aborting
-    /// the whole query the way a SQL-side <c>::numeric</c> cast failure would. Called by
+    /// the whole query the way a SQL-side numeric cast failure would. Called by
     /// <see cref="ExecuteExportNodeQueryAsync"/> on every fetched row; public (like this class's other pure
     /// C# post-processing, e.g. <see cref="BuildCsvBytes"/>) so transform behavior is unit-testable against a
     /// hand-built tree without a live Postgres connection.

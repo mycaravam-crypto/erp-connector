@@ -2,6 +2,8 @@ using System.Text.Json;
 using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
 using Connector.Core.DynamicImport;
+using Connector.Infrastructure.DataSources;
+using Connector.Infrastructure.DataSources.PostgreSql;
 using Npgsql;
 
 namespace Connector.Infrastructure;
@@ -17,6 +19,10 @@ namespace Connector.Infrastructure;
 /// </summary>
 public static class ImportRunReleaser
 {
+    // Commits over its own NpgsqlConnection/transaction (see knowledge/architecture/sql-dialect.md §4), so its
+    // SQL is always rendered for PostgreSQL — but through the dialect, not inline syntax.
+    private static readonly ISqlDialect Dialect = PostgreSqlDialect.Instance;
+
     /// <summary>
     /// Applies <paramref name="run"/>'s persisted <c>PlanJson</c> to the ERP: one conditional <c>UPDATE</c> per
     /// row (Open Decision #12) — every column that row's plan changes, guarded by every one of that row's
@@ -94,25 +100,36 @@ public static class ImportRunReleaser
             foreach (var rowOps in plan.Operations.GroupBy(o => (o.Table, o.KeyColumn, o.KeyValue)))
             {
                 var ops = rowOps.ToList();
+                await using var cmd = new NpgsqlCommand
+                {
+                    Connection = conn,
+                    Transaction = tx,
+                    CommandTimeout = 10,
+                };
+                string Bind(object? value)
+                {
+                    var name = Dialect.BuildParameterName(cmd.Parameters.Count);
+                    cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
+                    return name;
+                }
+
                 var setClause = string.Join(
                     ", ",
-                    ops.Select((o, i) => $"{DynamicExportService.QI(o.Column)} = @new{i}")
+                    ops.Select(o => $"{Dialect.QuoteIdentifier(o.Column)} = {Bind(o.NewValue)}")
                 );
                 var guardClause = string.Join(
                     " AND ",
-                    ops.Select((o, i) => $"{DynamicExportService.QI(o.Column)}::text IS NOT DISTINCT FROM @old{i}")
+                    ops.Select(o =>
+                        Dialect.BuildNullSafeEquals(
+                            Dialect.CastToText(Dialect.QuoteIdentifier(o.Column)),
+                            Bind(o.ExpectedOldValue)
+                        )
+                    )
                 );
-                var sql =
-                    $"UPDATE {DynamicExportService.QI(rowOps.Key.Table)} SET {setClause} "
-                    + $"WHERE {DynamicExportService.QI(rowOps.Key.KeyColumn)}::text = @key AND {guardClause}";
-
-                await using var cmd = new NpgsqlCommand(sql, conn, tx) { CommandTimeout = 10 };
-                cmd.Parameters.AddWithValue("key", rowOps.Key.KeyValue);
-                for (int i = 0; i < ops.Count; i++)
-                {
-                    cmd.Parameters.AddWithValue($"new{i}", (object?)ops[i].NewValue ?? DBNull.Value);
-                    cmd.Parameters.AddWithValue($"old{i}", (object?)ops[i].ExpectedOldValue ?? DBNull.Value);
-                }
+                var keyClause =
+                    $"{Dialect.CastToText(Dialect.QuoteIdentifier(rowOps.Key.KeyColumn))} = {Bind(rowOps.Key.KeyValue)}";
+                cmd.CommandText =
+                    $"UPDATE {Dialect.QuoteIdentifier(rowOps.Key.Table)} SET {setClause} WHERE {keyClause} AND {guardClause}";
 
                 var affected = await cmd.ExecuteNonQueryAsync(ct);
                 if (affected == 0)

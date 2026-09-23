@@ -2,6 +2,8 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Connector.Core.DynamicExport;
 using Connector.Core.DynamicImport;
+using Connector.Infrastructure.DataSources;
+using Connector.Infrastructure.DataSources.PostgreSql;
 using Npgsql;
 
 namespace Connector.Infrastructure;
@@ -20,6 +22,10 @@ namespace Connector.Infrastructure;
 /// </summary>
 public static class ImportNodeWalker
 {
+    // The walker runs on a caller-supplied NpgsqlConnection (see knowledge/architecture/sql-dialect.md §4),
+    // so its SQL is always rendered for PostgreSQL — but through the dialect, not inline syntax.
+    private static readonly ISqlDialect Dialect = PostgreSqlDialect.Instance;
+
     /// <summary>
     /// Walks <paramref name="inboundJson"/> (an <c>ImportEnvelope</c> — <c>schemaVersion</c> + <c>records</c>,
     /// Open Decision #14) against <paramref name="root"/>, matching each record's correlation key against
@@ -281,17 +287,21 @@ public static class ImportNodeWalker
     {
         var columns = CollectSelectColumns(root, rootMatchColumn);
         var sql =
-            $"SELECT {string.Join(", ", columns.Select(DynamicExportService.QI))} FROM {DynamicExportService.QI(rootTable)} "
-            + $"WHERE {DynamicExportService.QI(rootMatchColumn)}::text = @val LIMIT 1";
+            $"SELECT {SelectList(columns)} FROM {Dialect.QuoteIdentifier(rootTable)} "
+            + $"WHERE {Dialect.CastToText(Dialect.QuoteIdentifier(rootMatchColumn))} = {Dialect.BuildParameterName(0)} "
+            + Dialect.BuildLimit(1);
 
         await using var cmd = new NpgsqlCommand(sql, conn) { CommandTimeout = 10 };
-        cmd.Parameters.AddWithValue("val", correlationValue);
+        cmd.Parameters.AddWithValue(Dialect.BuildParameterName(0), correlationValue);
         await using var reader = await cmd.ExecuteReaderAsync(ct);
         if (!await reader.ReadAsync(ct))
             return null;
 
         return await ReadRowAsync(reader, columns, ct);
     }
+
+    private static string SelectList(IEnumerable<string> columns) =>
+        string.Join(", ", columns.Select(Dialect.QuoteIdentifier));
 
     /// <summary>Column list for a root-row (or child-row) fetch: the match/join column itself, every direct
     /// scalar-field <c>TargetColumn</c> (so the diff has an "old value" to compare against), and every direct
@@ -432,13 +442,13 @@ public static class ImportNodeWalker
 
         var columns = CollectSelectColumns(node, node.JoinKey!);
         var sql =
-            $"SELECT {string.Join(", ", columns.Select(DynamicExportService.QI))} FROM {DynamicExportService.QI(node.RelatedTable!)} "
-            + $"WHERE {DynamicExportService.QI(node.JoinKey!)}::text = @val";
+            $"SELECT {SelectList(columns)} FROM {Dialect.QuoteIdentifier(node.RelatedTable!)} "
+            + $"WHERE {Dialect.CastToText(Dialect.QuoteIdentifier(node.JoinKey!))} = {Dialect.BuildParameterName(0)}";
 
         var matches = new List<Dictionary<string, string?>>();
         await using (var cmd = new NpgsqlCommand(sql, conn) { CommandTimeout = 10 })
         {
-            cmd.Parameters.AddWithValue("val", parentJoinValue);
+            cmd.Parameters.AddWithValue(Dialect.BuildParameterName(0), parentJoinValue);
             await using var reader = await cmd.ExecuteReaderAsync(ct);
             while (await reader.ReadAsync(ct))
                 matches.Add(await ReadRowAsync(reader, columns, ct));

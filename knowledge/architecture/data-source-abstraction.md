@@ -43,7 +43,7 @@ public interface IDataSourceProviderResolver
 
 Both live in `Connector.Core.DataSources` — `Connector.Core` has no `Npgsql` package reference, and
 none of these types (or `DataSourceConfig`/`SourceSchema`/`SourceQuery`/`NativeSqlQuery`/`QueryResult`) mention
-`Npgsql` anywhere in their own signatures. `DataSourceProviderResolver` (`Connector.Infrastructure`)
+`Npgsql` anywhere in their own signatures. `DataSourceProviderResolver` (`Connector.Infrastructure.DataSources`)
 resolves by each DI-registered provider's own `Type` (`IEnumerable<IDataSourceProvider>`
 injection), so adding a second provider is a DI registration, never a change to the resolver
 itself.
@@ -64,7 +64,7 @@ itself.
 
 ## 3. What's abstracted, and what deliberately isn't
 
-**In `PostgreSqlDataSourceProvider` (`Connector.Infrastructure`), the one registered implementation:**
+**In `PostgreSqlDataSourceProvider` (`Connector.Infrastructure.DataSources.PostgreSql`), the one registered implementation:**
 
 - `BuildConnectionString`/`ParseSslMode` — building an `NpgsqlConnectionStringBuilder` from a `DataSourceConfig`.
 - The `information_schema` schema-introspection query (`ReadSchemaAsync`).
@@ -74,17 +74,17 @@ itself.
   parameters, and materializes rows generically. This is where the
   Postgres-specific date/timestamp → ISO-8601 stringification rule lives.
 
-**Deliberately *not* abstracted — SQL dialect generation stays in `DynamicExportService`:**
+**SQL dialect — in `PostgreSqlDialect`, used by `DynamicExportService`:**
 
-The `json_build_object`/`json_agg`/`string_agg`/`array_agg`/`::text`-cast/double-quote-identifier
-SQL text `DynamicExportService` builds is Postgres-specific, and lives in
-`DynamicExportService.LegacyMapping.cs`/`.ExportNode.cs`. `IDataSourceProvider` does not understand
-or generate SQL — it only *executes* a `NativeSqlQuery.Sql` string handed to it and returns rows
-generically. This is a deliberate scope boundary, not an oversight: abstracting the SQL dialect
-itself (so a second provider could generate its own native JSON-aggregation syntax) is real future
-work — a second provider today would need `ExecuteNativeAsync` to accept Postgres-flavored SQL it can't
-actually run, which is exactly why `MariaDb`/`ServiceNowTableApi`/`ServiceNowSqlApi` stay
-unimplemented rather than half-implemented.
+`DynamicExportService` still assembles its export queries itself: correlated JSON object/array trees
+and string-aggregated relations in `DynamicExportService.LegacyMapping.cs`/`.ExportNode.cs`. But every
+PostgreSQL-specific fragment in them (identifier quoting, `json_build_object`/`json_agg`,
+`string_agg`, `::text`, `LIMIT`) comes from the provider's `ISqlDialect`. See
+[SQL Dialect](/architecture/sql-dialect.md). `IDataSourceProvider.ExecuteNativeAsync` only *executes*
+the resulting `NativeSqlQuery.Sql` string and returns rows generically. So a second SQL provider needs
+its own `ISqlDialect` (plus `ISqlDataSourceProvider`), not changes to the export builders. That is why
+`MariaDb`/`ServiceNowTableApi`/`ServiceNowSqlApi` can stay unimplemented rather than half-implemented
+until that work is done.
 
 ## 4. What calls the abstraction
 
@@ -127,10 +127,11 @@ To add a real (not placeholder) `MariaDb` or ServiceNow provider:
 1. Implement `IDataSourceProvider` for it. `TestConnectionAsync`/`ReadSchemaAsync` are
    straightforward — connect, introspect, return `SourceSchema`. `ExecuteAsync` needs a compiler from
    the neutral `SourceQuery` to its own dialect (see [Source Query Model](/architecture/source-query-model.md));
-   `ExecuteNativeAsync` is the hard one: it must run whatever `NativeSqlQuery.Sql` it's handed, which today is always Postgres-dialect
-   SQL from `DynamicExportService`. A second provider is only genuinely usable once
-   `DynamicExportService`'s SQL-building (§3) also becomes dialect-aware — otherwise it can only
-   ever receive SQL it can't run.
+   for `ExecuteNativeAsync` to receive SQL it can run, a SQL provider also implements
+   `ISqlDataSourceProvider` and returns its own `ISqlDialect` — `DynamicExportService` renders its
+   export trees through that ([SQL Dialect](/architecture/sql-dialect.md)). Still PostgreSQL-bound
+   regardless: the import walker/releaser (§5) and `ExportNode.Filter` (a stored, dialect-specific
+   WHERE fragment — see [SQL Dialect §4](/architecture/sql-dialect.md)).
 2. Register it in `Program.cs` (`builder.Services.AddSingleton<IDataSourceProvider, YourProvider>()`)
    — `DataSourceProviderResolver` picks it up automatically via `IEnumerable<IDataSourceProvider>`.
 3. No resolver code changes, no `DynamicExportService` signature changes — those are already

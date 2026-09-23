@@ -1,5 +1,6 @@
 using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
+using Connector.Infrastructure.DataSources;
 
 namespace Connector.Infrastructure;
 
@@ -13,7 +14,7 @@ namespace Connector.Infrastructure;
 /// files by responsibility, rather than separate classes, so every existing
 /// <c>DynamicExportService.*</c> call site across the API/Infrastructure/test projects keeps working
 /// unchanged. This file holds the members shared across every other part: the nesting-depth cap, the
-/// build-result shape, and the SQL-identifier/connection-string primitives both query engines build on.
+/// build-result shape, the connection fingerprint, and the dialect lookup both query engines build on.
 /// </summary>
 public static partial class DynamicExportService
 {
@@ -47,13 +48,16 @@ public static partial class DynamicExportService
     /// </summary>
     public static string ConnectionFingerprint(DataSourceConfig cfg) => $"{cfg.Host}:{cfg.Port}/{cfg.Database}";
 
-    // Safe SQL identifier quoting — wraps in double quotes and escapes embedded double quotes.
-    public static string QI(string identifier) => "\"" + identifier.Replace("\"", "\"\"") + "\"";
-
-    // Single-quote escaping for a value embedded as a JSON key STRING LITERAL inside
-    // json_build_object('key', expr, ...). Distinct from QI(), which double-quote-escapes SQL
-    // IDENTIFIERS — reusing QI() here would be a correctness bug (Postgres would try to resolve
-    // "key" as a column reference instead of treating it as a JSON object key). Shared by the legacy
-    // nested-group builder and the ExportNode tree builder.
-    private static string SqlLit(string value) => "'" + value.Replace("'", "''") + "'";
+    /// <summary>
+    /// The <see cref="ISqlDialect"/> the export builders render their SQL with — every PostgreSQL-specific
+    /// fragment (quoting, JSON construction/aggregation, casts, LIMIT) comes from it, so this class itself holds
+    /// only dialect-neutral statement structure. Throws <see cref="UnsupportedDataSourceException"/> for a
+    /// provider that doesn't speak SQL at all.
+    /// </summary>
+    private static ISqlDialect DialectOf(IDataSourceProvider provider) =>
+        provider is ISqlDataSourceProvider sql
+            ? sql.Dialect
+            : throw new UnsupportedDataSourceException(
+                $"Data source type '{provider.Type}' does not support SQL export queries."
+            );
 }

@@ -7,6 +7,7 @@ using Connector.Core.Domain;
 using Connector.Core.DynamicExport;
 using Connector.Core.DynamicImport;
 using Connector.Core.Schema;
+using Connector.Infrastructure.DataSources.PostgreSql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

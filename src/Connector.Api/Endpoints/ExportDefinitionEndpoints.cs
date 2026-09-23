@@ -478,7 +478,7 @@ static class ExportDefinitionEndpoints
     // Valid SQL identifier: letters/digits/underscore, not starting with a digit — mirrors
     // ExportMappingEndpoints.SqlIdentifierRegex, applied here to every identifier field of an ExportNode tree
     // (RootTable/RelatedTable/JoinKey/SourceJoinKey/SourceField) before it can reach DynamicExportService's
-    // QI()-based query builder.
+    // dialect-quoted (ISqlDialect.QuoteIdentifier) query builder.
     private static readonly Regex SqlIdentifierRegex = new("^[A-Za-z_][A-Za-z0-9_]*$", RegexOptions.Compiled);
 
     // Filter is a WHERE-clause fragment by design (export-definitions-2.0.md §4), not a single identifier,

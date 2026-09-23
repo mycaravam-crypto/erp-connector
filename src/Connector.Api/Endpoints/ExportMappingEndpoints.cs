@@ -125,7 +125,7 @@ static class ExportMappingEndpoints
     // Valid SQL identifier: letters/digits/underscore, not starting with a digit. Scoped only to new
     // nested-group inputs (RelatedTable/JoinKey/SourceJoinKey/SourceField) — deliberately not retrofitted
     // onto the pre-existing Fields/Relations inputs, which are already in production protected only by
-    // DynamicExportService.QI(); adding a stricter regex there risks breaking an existing saved mapping
+    // the SQL dialect's identifier quoting (ISqlDialect.QuoteIdentifier); adding a stricter regex there risks breaking an existing saved mapping
     // whose SourceName/RelatedTable happens to contain a character outside this charset on next re-save.
     private static readonly Regex SqlIdentifierRegex = new("^[A-Za-z_][A-Za-z0-9_]*$", RegexOptions.Compiled);
 
