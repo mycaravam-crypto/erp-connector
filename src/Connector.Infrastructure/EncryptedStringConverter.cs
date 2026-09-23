@@ -22,7 +22,7 @@ public sealed class EncryptedStringConverter : ValueConverter<string, string>
 {
     // Scopes key derivation to this exact column, per Data Protection's purpose-string convention — versioned
     // so a future rekey/format change can introduce "...v2" without touching already-encrypted rows.
-    private const string Purpose = "Connector.Infrastructure.AppSettingEntity.Value.v1";
+    internal const string Purpose = "Connector.Infrastructure.AppSettingEntity.Value.v1";
 
     public EncryptedStringConverter(IDataProtectionProvider provider, ILogger<EncryptedStringConverter> logger)
         : base(BuildProtect(provider), BuildUnprotect(provider, logger)) { }

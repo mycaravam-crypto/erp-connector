@@ -125,6 +125,14 @@ included) is encrypted via `EncryptedStringConverter`/ASP.NET Core Data Protecti
 converter's own doc comment. That encryption is a property of the storage column, not of
 `DataSourceConfig` itself.
 
+Rows written before the converter existed are plaintext. At every startup,
+`AppSettingEncryptionMigrator` encrypts any such row in place and logs the affected **keys** (never
+values). It recognizes ciphertext by the `CfDJ8` prefix every Data Protection payload starts with,
+so a ciphertext this key ring can't decrypt is left untouched rather than re-encrypted as if it were
+plaintext. Once every row is encrypted it does nothing. After this runs, the converter's SR-11
+warning ("read as plaintext instead of a Data Protection payload") only fires for a row written
+around the converter, which is the case worth investigating.
+
 ## 5. Backward compatibility
 
 `AppSetting.Value` is a schemaless, encrypted JSON blob (`Connector.Infrastructure.AppSettingsStore`/
