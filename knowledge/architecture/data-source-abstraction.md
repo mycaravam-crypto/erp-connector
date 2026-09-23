@@ -52,7 +52,7 @@ itself.
 
 | Type | Purpose |
 |---|---|
-| `DataSourceType` | `PostgreSql` (implemented), `MariaDb`/`ServiceNowTableApi`/`ServiceNowSqlApi` (deliberately not — see §5) |
+| `DataSourceType` | `PostgreSql`, `MariaDb` (both implemented — see [MariaDB Provider](/architecture/mariadb-provider.md)), `ServiceNowTableApi`/`ServiceNowSqlApi` (not yet) |
 | `DataSourceConfig` | Generic connection parameters (`Type` + relational Host/Port/Database or HTTP-API InstanceUrl + Username/Password/SslMode). See [Data Source Configuration](/architecture/data-source-configuration.md) for the full shape. Persisted under the same `AppSettings` storage key as always. |
 | `SourceSchema`/`SourceTable`/`SourceColumn` | The provider's schema-read result — the interface's own return type, mirroring `Connector.Api/Dtos.cs`'s `SourceSchemaDto`/`SourceTableDto`/`SourceColumnDto` shape (no parallel model, no API change). |
 | `TestConnectionResult` | `Success`/`Schema`/`Error` — a connection-test failure is reported here, sanitized, never thrown as a raw exception a caller might leak (credentials) by accident. |
@@ -64,7 +64,7 @@ itself.
 
 ## 3. What's abstracted, and what deliberately isn't
 
-**In `PostgreSqlDataSourceProvider` (`Connector.Infrastructure.DataSources.PostgreSql`), the one registered implementation:**
+**In `PostgreSqlDataSourceProvider` (`Connector.Infrastructure.DataSources.PostgreSql`)** — `MariaDbDataSourceProvider` mirrors each point for MariaDB, see [MariaDB Provider](/architecture/mariadb-provider.md):
 
 - `BuildConnectionString`/`ParseSslMode` — building an `NpgsqlConnectionStringBuilder` from a `DataSourceConfig`.
 - The `information_schema` schema-introspection query (`ReadSchemaAsync`).
@@ -83,9 +83,8 @@ in them (identifier quoting, `= ANY(…)`, `string_agg`, `::text`, `LIMIT`) come
 `ISqlDialect`. See
 [SQL Dialect](/architecture/sql-dialect.md). `IDataSourceProvider.ExecuteNativeAsync` only *executes*
 the resulting `NativeSqlQuery.Sql` string and returns rows generically. So a second SQL provider needs
-its own `ISqlDialect` (plus `ISqlDataSourceProvider`), not changes to the export builders. That is why
-`MariaDb`/`ServiceNowTableApi`/`ServiceNowSqlApi` can stay unimplemented rather than half-implemented
-until that work is done.
+its own `ISqlDialect` (plus `ISqlDataSourceProvider`), not changes to the export builders — which is exactly
+how `MariaDbDataSourceProvider` was added.
 
 ## 4. What calls the abstraction
 
@@ -119,11 +118,12 @@ until that work is done.
 Both keep working exactly as any direct caller would — `PostgreSqlDataSourceProvider.BuildConnectionString`
 (public static) is the one place they get an Npgsql connection string from, so there's no
 duplicated connection-string-building logic even though the connections themselves aren't
-provider-abstracted.
+provider-abstracted. It refuses a config of any other `Type` (`UnsupportedDataSourceException`), so an
+import against a MariaDB connection fails clearly.
 
-## 6. Adding a second provider
+## 6. Adding another provider
 
-To add a real (not placeholder) `MariaDb` or ServiceNow provider:
+`MariaDb` was added exactly this way ([MariaDB Provider](/architecture/mariadb-provider.md)). To add a ServiceNow provider:
 
 1. Implement `IDataSourceProvider` for it. `TestConnectionAsync`/`ReadSchemaAsync` are
    straightforward — connect, introspect, return `SourceSchema`. `ExecuteAsync` needs a compiler from
@@ -140,10 +140,10 @@ To add a real (not placeholder) `MariaDb` or ServiceNow provider:
 
 ## 7. Tests
 
-- `DataSourceProviderResolverTests` — provider resolution (`PostgreSql` resolves to the registered
-  provider) and the unsupported-provider error scenario (`MariaDb`/`ServiceNowTableApi`/`ServiceNowSqlApi`/an
-  out-of-range numeric type/no providers at all throw `UnsupportedDataSourceException` carrying the
-  requested type).
+- `DataSourceProviderResolverTests` — provider resolution (`PostgreSql`/`MariaDb` resolve to their registered
+  providers) and the unsupported-provider error scenario (an unregistered type, an out-of-range numeric
+  type, no providers at all throw `UnsupportedDataSourceException` carrying the requested type).
+- The MariaDB provider's own suites — see [MariaDB Provider §5](/architecture/mariadb-provider.md).
 - `PostgreSqlDataSourceProviderTests` — `TestConnectionAsync` (success + sanitized failure),
   `ReadSchemaAsync` (tables/PK/FK/generated-column shape), `ExecuteAsync` (neutral `SourceQuery`
   with projection, join, `IN`, null check, LIKE, limit; unknown column rejected), `ExecuteNativeAsync` (flat select, null

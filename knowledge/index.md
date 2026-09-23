@@ -13,7 +13,8 @@ Folders are organized by the question you're asking, not just by topic:
 
 * [architecture/](architecture/) — **How is the system put together, independent of any one
   feature?** Cross-cutting structural decisions like the data source abstraction, the
-  database-neutral source query model, the SQL dialect, and how export trees are assembled.
+  database-neutral source query model, the SQL dialect, the MariaDB provider, and how export trees
+  are assembled.
 * [pipeline/](pipeline/) — **How does the export actually run?** The live query/build engine,
   the scheduler, the staging writer, and the generic export-definitions design it grew into.
 * [dynamic-export/](dynamic-export/) — **How does a saved Export Definition run?** The

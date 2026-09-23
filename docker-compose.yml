@@ -79,6 +79,26 @@ services:
       timeout: 5s
       retries: 10
 
+  # MariaDB counterpart of testdb (Arbeitsauftrag 7) for the MariaDB provider/parity tests.
+  # Start explicitly with: docker-compose --profile test up -d testdb-mariadb
+  testdb-mariadb:
+    image: mariadb:11.4
+    profiles: ["test"]
+    environment:
+      MARIADB_USER: erp_test
+      MARIADB_PASSWORD: erp_test_pw
+      MARIADB_DATABASE: erp_testdb
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - ./testdb/mariadb-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
 volumes:
   connector-db:
   connector-dpkeys:

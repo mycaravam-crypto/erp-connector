@@ -46,6 +46,19 @@ public sealed class PostgreSqlDataSourceProviderTests
         Assert.Equal("s3cret;Host=evil.example;Port=1234", parsed.Password);
     }
 
+    // The import paths open Npgsql connections through this method directly; a MariaDB config must be refused
+    // with a clear message rather than Npgsql speaking PostgreSQL's protocol to a MariaDB server.
+    [Fact]
+    public void BuildConnectionString_NonPostgreSqlConfig_IsRefused() =>
+        Assert.Throws<UnsupportedDataSourceException>(() =>
+            PostgreSqlDataSourceProvider.BuildConnectionString(
+                ErpTestFixture.Config with
+                {
+                    Type = DataSourceType.MariaDb,
+                }
+            )
+        );
+
     [Fact]
     public void BuildConnectionString_UsernameWithInjectionPayload_DoesNotOverrideDatabase()
     {

@@ -33,7 +33,17 @@ public sealed class PostgreSqlDialect : ISqlDialect
 
     public string BuildNullSafeEquals(string left, string right) => $"{left} IS NOT DISTINCT FROM {right}";
 
-    public string BuildMatchesAny(string expression, string arrayParameter) => $"{expression} = ANY({arrayParameter})";
+    // One text[] parameter for the whole batch, however many keys it holds.
+    public string BuildMatchesAny(
+        string expression,
+        IReadOnlyList<string> values,
+        IDictionary<string, object?> parameters
+    )
+    {
+        var name = BuildParameterName(parameters.Count);
+        parameters[name] = values.ToArray();
+        return $"{expression} = ANY({name})";
+    }
 
     public JsonNode? ConvertNativeTextToJson(string nativeText, string dataType) =>
         PostgreSqlJsonValues.FromNativeText(nativeText, dataType);

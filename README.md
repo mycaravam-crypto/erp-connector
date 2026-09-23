@@ -17,7 +17,7 @@ for the live per-slice status.
 ## What it does
 
 ```
-ERP database (read-only, PostgreSQL)
+ERP database (read-only, PostgreSQL or MariaDB)
     ↓  runtime-configurable mapping: source table, columns, joins — no hardcoded schema
 Query   — flat SQL, or nested json_build_object/json_agg for JSON export
     ↓
@@ -128,6 +128,12 @@ it can't reach a database; start a disposable local Postgres fixture for it with
 
 ```bash
 docker-compose --profile test up -d testdb   # localhost:5432, erp_test/erp_test_pw/erp_testdb
+```
+
+The MariaDB provider and PostgreSQL↔MariaDB parity tests use a second fixture (they no-op without it):
+
+```bash
+docker-compose --profile test up -d testdb-mariadb   # localhost:3306, erp_test/erp_test_pw/erp_testdb
 ```
 
 ### Build manually
@@ -242,7 +248,7 @@ All endpoints except `/api/health` and `/api/auth/login` require `Authorization:
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/api/connection` | Stored ERP connection info (no password returned) |
-| `POST` | `/api/connection` | Test and persist a Postgres ERP connection |
+| `POST` | `/api/connection` | Test and persist an ERP connection (PostgreSQL or MariaDB) |
 | `GET` | `/api/source-schema` | Live source schema (falls back to demo schema if no connection) |
 
 ### Settings

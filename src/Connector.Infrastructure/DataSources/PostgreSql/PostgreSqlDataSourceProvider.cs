@@ -4,9 +4,8 @@ using Npgsql;
 namespace Connector.Infrastructure.DataSources.PostgreSql;
 
 /// <summary>
-/// The <see cref="IDataSourceProvider"/> for <see cref="DataSourceType.PostgreSql"/> — the only backend the
-/// connector supports today (Arbeitsauftrag 2/3 explicitly defer MariaDb/ServiceNowTableApi/ServiceNowSqlApi).
-/// Owns every piece of PostgreSQL-specific connection/schema/query logic that used to live directly in
+/// The <see cref="IDataSourceProvider"/> for <see cref="DataSourceType.PostgreSql"/>. Owns every piece of
+/// PostgreSQL-specific connection/schema/query logic that used to live directly in
 /// <c>Connector.Api.Endpoints.ConnectionEndpoints</c> and <c>DynamicExportService</c>: building an Npgsql
 /// connection string, introspecting <c>information_schema</c>, and executing a caller-built SQL query
 /// generically. Registered as a singleton (see <c>Program.cs</c>) — it holds no per-call state; every method
@@ -29,18 +28,25 @@ public sealed class PostgreSqlDataSourceProvider : ISqlDataSourceProvider
     // 3: not every DataSourceType has a Host/Port at all), but every caller reaching this provider has already
     // gone through ConnectionEndpoints' required-field validation for PostgreSql/MariaDb, so null here only
     // ever means "use the default," never "unset by mistake."
+    // Also the choke point for the import paths (ImportNodeWalker/ImportRunReleaser and their callers), which
+    // still open Npgsql connections directly: a config for any other source type is refused here with a clear
+    // message instead of Npgsql trying to speak PostgreSQL's wire protocol to, say, a MariaDB server.
     public static string BuildConnectionString(DataSourceConfig config) =>
-        new NpgsqlConnectionStringBuilder
-        {
-            Host = config.Host,
-            Port = config.Port ?? 5432,
-            Database = config.Database,
-            Username = config.Username,
-            Password = config.Password,
-            SslMode = ParseSslMode(config.SslMode),
-            Timeout = 5,
-            CommandTimeout = 10,
-        }.ConnectionString;
+        config.Type != DataSourceType.PostgreSql
+            ? throw new UnsupportedDataSourceException(
+                $"Data source type '{config.Type}' is not supported here: imports currently require PostgreSQL."
+            )
+            : new NpgsqlConnectionStringBuilder
+            {
+                Host = config.Host,
+                Port = config.Port ?? 5432,
+                Database = config.Database,
+                Username = config.Username,
+                Password = config.Password,
+                SslMode = ParseSslMode(config.SslMode),
+                Timeout = 5,
+                CommandTimeout = 10,
+            }.ConnectionString;
 
     // Security-review finding SR-03: SslMode was previously hardcoded to Prefer everywhere — silently
     // downgrading to an unencrypted connection whenever the server doesn't offer TLS, with no way for an
