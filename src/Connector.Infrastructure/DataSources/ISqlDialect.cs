@@ -7,8 +7,9 @@ namespace Connector.Infrastructure.DataSources;
 /// general-purpose SQL abstraction (Arbeitsauftrag 5: no SQL framework, no AST, no ORM). Generic query
 /// builders (<see cref="DynamicExportService"/>, <see cref="ImportNodeWalker"/>, <see cref="ImportRunReleaser"/>)
 /// assemble statements from plain ANSI keywords (<c>SELECT</c>/<c>FROM</c>/<c>WHERE</c>/<c>AND</c>/<c>AS</c>)
-/// plus these members; everything else is a dialect's job. The only implementation is
-/// <see cref="PostgreSql.PostgreSqlDialect"/>. See knowledge/architecture/sql-dialect.md.
+/// plus these members; everything else is a dialect's job. Implementations:
+/// <see cref="PostgreSql.PostgreSqlDialect"/> and <see cref="MariaDb.MariaDbDialect"/>. See
+/// knowledge/architecture/sql-dialect.md.
 /// </summary>
 /// <remarks>
 /// Members past the first three exist because a concrete builder needs them today, not speculatively: string
@@ -41,10 +42,12 @@ public interface ISqlDialect
     /// <summary>A null-safe equality test: true when both sides are equal <i>or</i> both are null.</summary>
     string BuildNullSafeEquals(string left, string right);
 
-    /// <summary>True when <paramref name="expression"/> equals any element of the array bound to
-    /// <paramref name="arrayParameter"/> (a parameter whose value is a <c>string[]</c>) — how the export tree
-    /// engine fetches every child row of a whole level in one query instead of one query per parent.</summary>
-    string BuildMatchesAny(string expression, string arrayParameter);
+    /// <summary>True when <paramref name="expression"/> equals any of <paramref name="values"/> — how the export
+    /// tree engine fetches every child row of a whole level in one query instead of one query per parent. Binds
+    /// the values into <paramref name="parameters"/> (named from <see cref="BuildParameterName"/>, continuing at
+    /// its current count) in whatever shape the backend needs: one array parameter, or one parameter per value.
+    /// </summary>
+    string BuildMatchesAny(string expression, IReadOnlyList<string> values, IDictionary<string, object?> parameters);
 
     /// <summary>
     /// Renders <paramref name="nativeText"/> — a value in the backend's own text format, as returned for a

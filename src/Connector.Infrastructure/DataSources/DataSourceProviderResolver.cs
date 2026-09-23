@@ -4,9 +4,7 @@ namespace Connector.Infrastructure.DataSources;
 
 /// <summary>
 /// Resolves every DI-registered <see cref="IDataSourceProvider"/> by its own <see cref="IDataSourceProvider.Type"/>
-/// — adding a future MariaDb/ServiceNowTableApi/ServiceNowSqlApi provider (Arbeitsauftrag 2/3 explicitly
-/// defer all three) is a DI
-/// registration in <c>Program.cs</c>, never a change to this resolver.
+/// — adding a provider is a DI registration in <c>Program.cs</c>, never a change to this resolver.
 /// </summary>
 public sealed class DataSourceProviderResolver : IDataSourceProviderResolver
 {

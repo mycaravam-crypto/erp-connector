@@ -14,8 +14,8 @@ public enum DataSourceType
 {
     PostgreSql = 0,
 
-    /// <summary>Arbeitsauftrag 2: not implemented yet. <see cref="IDataSourceProviderResolver.Resolve"/>
-    /// throws <see cref="UnsupportedDataSourceException"/> for this value.</summary>
+    /// <summary>MariaDB (Arbeitsauftrag 7), over MySqlConnector. Uses the relational fields
+    /// (<c>Host</c>/<c>Port</c>/<c>Database</c>/<c>SslMode</c>) like <see cref="PostgreSql"/>.</summary>
     MariaDb = 1,
 
     /// <summary>ServiceNow's Table API (REST, one JSON object per record). Arbeitsauftrag 3: modeled so a

@@ -10,6 +10,29 @@ Last updated: 2026-09-23
 
 ---
 
+## Phase 26 — MariaDB data source ✅
+
+Arbeitsauftrag 7: MariaDB is the second relational data source, over MySqlConnector. The same
+`ExportDefinition` produces the same result against PostgreSQL and MariaDB. See
+[MariaDB Provider](/architecture/mariadb-provider.md).
+
+| Item | Notes |
+|---|---|
+| `DataSources/MariaDb/` | `MariaDbDataSourceProvider`, `MariaDbConnectionFactory`, `MariaDbSchemaReader`, `MariaDbQueryCompiler`, `MariaDbDialect`; registered in `Program.cs` |
+| `ISqlDialect.BuildMatchesAny` | Now binds the key batch itself (PostgreSQL: one array parameter, same SQL as before; MariaDB: one parameter per key) |
+| `PostgreSqlDataSourceProvider.BuildConnectionString` | Refuses non-PostgreSQL configs, so the still Npgsql-only import paths fail clearly against a MariaDB connection |
+| `testdb/mariadb-init.sql`, `docker-compose.yml` `testdb-mariadb`, CI `mariadb:11.4` service | MariaDB fixture with the same `export_*` rows as the PostgreSQL one |
+| Tests | `MariaDbDialectTests`, `MariaDbQueryCompilerTests`, `MariaDbDataSourceProviderTests`, `MariaDbExportParityTests` (flat, filter, join, nested, CSV, JSON, XLSX, invalid credentials, missing table, timeout on both backends) |
+
+**Known difference:** an `ExportNode` scalar of a boolean column is `"1"`/`"0"` on MariaDB
+(`BOOLEAN` = `TINYINT(1)`) and `"true"`/`"false"` on PostgreSQL; documented and pinned by a test.
+
+**Verification:** `dotnet build -c Release` (warnings-as-errors) and `dotnet csharpier check .` clean;
+full suite (576 tests: 74 `Connector.Core.Tests` + 502 `Connector.Integration.Tests`) green against a
+real PostgreSQL 16 (`testdb/init.sql`) and MariaDB 10.11 (`testdb/mariadb-init.sql`).
+
+---
+
 ## Phase 25 — Export trees assembled in C# ✅
 
 Arbeitsauftrag 6: the database no longer builds nested export JSON. `ExportNode` trees and legacy

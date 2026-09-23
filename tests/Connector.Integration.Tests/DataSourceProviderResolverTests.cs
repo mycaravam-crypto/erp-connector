@@ -1,6 +1,7 @@
 using Connector.Core.DataSources;
 using Connector.Infrastructure;
 using Connector.Infrastructure.DataSources;
+using Connector.Infrastructure.DataSources.MariaDb;
 using Connector.Infrastructure.DataSources.PostgreSql;
 
 namespace Connector.Integration.Tests;
@@ -24,9 +25,17 @@ public sealed class DataSourceProviderResolverTests
         Assert.Equal(DataSourceType.PostgreSql, resolved.Type);
     }
 
-    // MariaDb/ServiceNowTableApi/ServiceNowSqlApi are deliberately unimplemented (Arbeitsauftrag 2/3) — no
-    // provider is ever registered for any of them, so resolving them must fail clearly rather than silently
-    // returning some other provider.
+    [Fact]
+    public void Resolve_MariaDb_ReturnsTheRegisteredMariaDbProvider()
+    {
+        var mariaDb = new MariaDbDataSourceProvider();
+        var resolver = new DataSourceProviderResolver([new PostgreSqlDataSourceProvider(), mariaDb]);
+
+        Assert.Same(mariaDb, resolver.Resolve(DataSourceType.MariaDb));
+    }
+
+    // A type with no registered provider (ServiceNowTableApi/ServiceNowSqlApi today, or MariaDb when it isn't
+    // registered) must fail clearly rather than silently returning some other provider.
     [Theory]
     [InlineData(DataSourceType.MariaDb)]
     [InlineData(DataSourceType.ServiceNowTableApi)]

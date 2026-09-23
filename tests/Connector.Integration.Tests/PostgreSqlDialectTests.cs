@@ -43,8 +43,15 @@ public sealed class PostgreSqlDialectTests
         Assert.Equal("a IS NOT DISTINCT FROM @p0", Dialect.BuildNullSafeEquals("a", "@p0"));
 
     [Fact]
-    public void BuildMatchesAny_ComparesAgainstArrayParameter() =>
-        Assert.Equal("t.\"k\"::text = ANY(@p0)", Dialect.BuildMatchesAny("t.\"k\"::text", "@p0"));
+    public void BuildMatchesAny_BindsOneArrayParameter()
+    {
+        var parameters = new Dictionary<string, object?> { ["@p0"] = "taken" };
+
+        var sql = Dialect.BuildMatchesAny("t.\"k\"::text", ["a", "b"], parameters);
+
+        Assert.Equal("t.\"k\"::text = ANY(@p1)", sql);
+        Assert.Equal(new[] { "a", "b" }, parameters["@p1"]);
+    }
 
     // Expected values are exactly what PostgreSQL's own json_build_object/to_json produced for these native
     // text values (captured against a real server before the JSON assembly moved to C#).

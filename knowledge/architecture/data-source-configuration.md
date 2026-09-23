@@ -23,10 +23,10 @@ with the actually-required set enforced per `DataSourceType` at save time instea
 constructor — so a config for a source that isn't a relational database at all doesn't have to fake
 values for fields it has no use for.
 
-This is **modeling only**. No `MariaDb`/`ServiceNow` provider is implemented; `ServiceNowTableApi`/
-`ServiceNowSqlApi` join `MariaDb` as `DataSourceType` members a config can describe, all three still
-rejected by `DataSourceProviderResolver.Resolve` with `UnsupportedDataSourceException` because no
-`IDataSourceProvider` is registered for any of them.
+`PostgreSql` and `MariaDb` have providers ([MariaDB Provider](/architecture/mariadb-provider.md)).
+`ServiceNowTableApi`/`ServiceNowSqlApi` are modeled only: a config can describe them, but
+`DataSourceProviderResolver.Resolve` rejects them with `UnsupportedDataSourceException` because no
+`IDataSourceProvider` is registered for either.
 
 ## 2. The type
 
@@ -36,7 +36,7 @@ namespace Connector.Core.DataSources;
 public enum DataSourceType
 {
     PostgreSql = 0,        // implemented
-    MariaDb = 1,            // not implemented — modeled only
+    MariaDb = 1,            // implemented (Arbeitsauftrag 7)
     ServiceNowTableApi = 2, // not implemented — modeled only
     ServiceNowSqlApi = 3,   // not implemented — modeled only
 }
@@ -99,7 +99,8 @@ independently, for every other caller that reaches a provider without going thro
 endpoint (`ExportWorker`, `ImportWorker`, etc.).
 
 `POST /api/connection`'s host-reachability SSRF check ([Data Source Abstraction](/architecture/data-source-abstraction.md))
-and `SslMode` validation only run for `PostgreSql`/`MariaDb` — an HTTP-API source's `InstanceUrl`
+and `SslMode` validation only run for `PostgreSql`/`MariaDb` (one `SslMode` vocabulary for both — the
+MariaDB provider maps the names onto MySqlConnector's modes) — an HTTP-API source's `InstanceUrl`
 isn't a bare host, and isn't validated here at all yet, since there is no live ServiceNow provider
 that would ever open a connection to it.
 

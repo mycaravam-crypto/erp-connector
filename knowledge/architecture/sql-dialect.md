@@ -14,7 +14,7 @@ timestamp: 2026-09-23T00:00:00Z
 
 The generic query builders build statements from plain ANSI structure (`SELECT … FROM … WHERE … AND
 …`, `UPDATE … SET … WHERE …`, correlated subqueries) and take every backend-specific fragment from an
-`ISqlDialect`. The only implementation is `PostgreSqlDialect`. It is not a SQL framework: there is no
+`ISqlDialect`. Implementations: `PostgreSqlDialect` and `MariaDbDialect` ([MariaDB Provider](/architecture/mariadb-provider.md)). It is not a SQL framework: there is no
 AST, no query builder object and no ORM. Each member returns a string fragment, and it exists only
 because some builder in this codebase emits that fragment.
 
@@ -22,10 +22,16 @@ because some builder in this codebase emits that fragment.
 src/Connector.Infrastructure/DataSources/
 ├── ISqlDialect.cs                   ISqlDialect, ISqlDataSourceProvider
 ├── DataSourceProviderResolver.cs
-└── PostgreSql/
-    ├── PostgreSqlDialect.cs         every PostgreSQL-specific SQL fragment
-    ├── PostgreSqlDataSourceProvider.cs
-    └── PostgreSqlQueryCompiler.cs   SourceQuery → PostgreSQL (see Source Query Model)
+├── PostgreSql/
+│   ├── PostgreSqlDialect.cs         every PostgreSQL-specific SQL fragment
+│   ├── PostgreSqlDataSourceProvider.cs
+│   └── PostgreSqlQueryCompiler.cs   SourceQuery → PostgreSQL (see Source Query Model)
+└── MariaDb/                         see MariaDB Provider
+    ├── MariaDbDialect.cs            every MariaDB-specific SQL fragment
+    ├── MariaDbDataSourceProvider.cs
+    ├── MariaDbConnectionFactory.cs
+    ├── MariaDbSchemaReader.cs
+    └── MariaDbQueryCompiler.cs      SourceQuery → MariaDB
 ```
 
 `ISqlDialect` lives in `Connector.Infrastructure`, not `Connector.Core`: SQL is an infrastructure
@@ -41,7 +47,7 @@ concern, and `Connector.Core` stays dialect-free.
 | `QuoteStringLiteral` | `'…'` (embedded `'` doubled) | string-aggregate delimiter |
 | `CastToText` | `expr::text` | export tree scalars and join keys, import walker/releaser key matching, LIKE in the compiler |
 | `BuildNullSafeEquals` | `a IS NOT DISTINCT FROM b` | import releaser's expected-old-value guard |
-| `BuildMatchesAny` | `expr = ANY(@p0)` | export tree engine's one-query-per-level child fetch |
+| `BuildMatchesAny` | `expr = ANY(@p0)` — binds the key batch itself (one `text[]` parameter; MariaDB binds one parameter per key: `expr IN (@p0, …)`) | export tree engine's one-query-per-level child fetch |
 | `ConvertNativeTextToJson` | `to_json`'s rules, applied in C# (`PostgreSqlJsonValues`) | export tree engine's typed values for legacy nested groups |
 | `BuildStringAggregate` | `string_agg(x::text, 'delim')` | legacy flat export's relation flattening |
 

@@ -166,7 +166,7 @@ public static partial class DynamicExportService
     // can only have one parent, so every further use gets its own copy.
     private static JsonNode Detached(JsonObject record) => record.Parent is null ? record : record.DeepClone();
 
-    // SELECT <member columns>[, <join key>] FROM <table> <alias> [WHERE <join key> = ANY(@p0) AND (<filter>)]
+    // SELECT <member columns>[, <join key>] FROM <table> <alias> [WHERE <join key> IN <parent keys> AND (<filter>)]
     // [LIMIT n]. Column i of the result is member i: a scalar's value, or a child's parent-side join key; the
     // optional last column is this row's own join key. Keys are compared and returned as text so both sides of
     // the grouping agree on one representation.
@@ -201,9 +201,7 @@ public static partial class DynamicExportService
         var parameters = new Dictionary<string, object?>();
         if (joinKeyColumn is not null)
         {
-            var name = dialect.BuildParameterName(0);
-            parameters[name] = parentKeys;
-            conditions.Add(dialect.BuildMatchesAny(dialect.CastToText(Column(joinKeyColumn)), name));
+            conditions.Add(dialect.BuildMatchesAny(dialect.CastToText(Column(joinKeyColumn)), parentKeys!, parameters));
         }
         if (!string.IsNullOrWhiteSpace(plan.Filter))
             conditions.Add($"({plan.Filter})");
