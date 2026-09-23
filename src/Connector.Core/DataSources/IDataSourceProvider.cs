@@ -2,15 +2,18 @@ namespace Connector.Core.DataSources;
 
 /// <summary>
 /// Abstraction over one kind of ERP data source backend — see Arbeitsauftrag 2 /
-/// knowledge/architecture/data-source-abstraction.md. Exactly one implementation exists today,
-/// <c>Connector.Infrastructure.DataSources.PostgreSql.PostgreSqlDataSourceProvider</c>; obtained via
-/// <see cref="IDataSourceProviderResolver"/>, never constructed directly outside DI registration.
+/// knowledge/architecture/data-source-abstraction.md. Implemented for PostgreSQL, MariaDB and the ServiceNow Table
+/// API (<c>Connector.Infrastructure.DataSources.*</c>); obtained via <see cref="IDataSourceProviderResolver"/>,
+/// never constructed directly outside DI registration. Where providers differ, <see cref="Capabilities"/> says so.
 /// </summary>
 public interface IDataSourceProvider
 {
     /// <summary>The <see cref="DataSourceType"/> this provider implements — what
     /// <see cref="IDataSourceProviderResolver.Resolve"/> matches against.</summary>
     DataSourceType Type { get; }
+
+    /// <summary>What this provider supports beyond the common contract — see <see cref="DataSourceCapabilities"/>.</summary>
+    DataSourceCapabilities Capabilities { get; }
 
     /// <summary>Opens a connection against <paramref name="config"/> and reads back its schema, without
     /// persisting anything. Never throws for a reachability/credential failure — that's reported via

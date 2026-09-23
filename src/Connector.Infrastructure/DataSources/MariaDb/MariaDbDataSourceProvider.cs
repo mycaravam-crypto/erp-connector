@@ -17,6 +17,8 @@ public sealed class MariaDbDataSourceProvider : ISqlDataSourceProvider
 
     public DataSourceType Type => DataSourceType.MariaDb;
 
+    public DataSourceCapabilities Capabilities => DataSourceCapabilities.Sql;
+
     public ISqlDialect Dialect => MariaDbDialect.Instance;
 
     /// <summary>Never throws for a reachability/credential failure — reported, sanitized, via

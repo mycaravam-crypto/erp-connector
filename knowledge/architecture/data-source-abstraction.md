@@ -138,7 +138,38 @@ import against a MariaDB connection fails clearly.
 3. No resolver code changes, no `DynamicExportService` signature changes — those are already
    provider-agnostic.
 
-## 7. Tests
+## 7. Capabilities and the provider contract
+
+Providers differ in a few ways. `IDataSourceProvider.Capabilities` (`DataSourceCapabilities`, in
+`Connector.Core`) names each difference, so neither callers nor tests branch on `provider.Type`. Only
+the differences that actually exist are modeled:
+
+| Capability | PostgreSQL | MariaDB | ServiceNow Table API | Effect |
+|---|---|---|---|---|
+| `NativeSql` | ✅ | ✅ | ❌ | `ExecuteNativeAsync` runs SQL, so the SQL-rendering export builders work. `DynamicExportService` refuses a provider without it (`UnsupportedDataSourceException`). |
+| `CaseSensitiveTextMatch` | ✅ | ✅ | ❌ | `Contains`/`StartsWith`/`EndsWith` are case-sensitive as the model asks; ServiceNow ignores case |
+| `DistinguishesEmptyFromNull` | ✅ | ✅ | ❌ | ServiceNow has no NULL; an empty field is reported as `null` |
+| `ConditionsOnLeftJoinedTables` | ✅ | ✅ | ❌ | ServiceNow rejects a condition on a left-joined table (`InvalidSourceQueryException`) |
+
+Everything else is required of every provider and pinned by `DataSourceProviderContractTests`: an
+abstract xUnit class that runs the same assertions against each provider, on the same
+`export_order`/`export_customer` rows.
+
+- `TestConnection` succeeds, and the schema can be read.
+- Relation metadata exists.
+- A simple table and selected fields can be queried.
+- Filters (`=`, `>`, `IN`), null handling and limit work, and a join over the reported relation works.
+- An unknown table or column fails with `InvalidSourceQueryException`.
+- Cancellation works.
+- No secret appears in an error.
+
+A capability-dependent test asserts the declared behavior **both ways**: for example, native SQL runs
+when `NativeSql` is set and throws `UnsupportedDataSourceException` when it isn't. The concrete
+classes are `PostgreSqlProviderContractTests`, `MariaDbProviderContractTests` (real databases; no-op
+when the fixture isn't running) and `ServiceNowTableApiProviderContractTests` (in-memory
+`FakeServiceNow.WithExportFixture()`). A new provider gets a subclass, which is three members.
+
+## 8. Tests
 
 - `DataSourceProviderResolverTests` — provider resolution (`PostgreSql`/`MariaDb` resolve to their registered
   providers) and the unsupported-provider error scenario (an unregistered type, an out-of-range numeric

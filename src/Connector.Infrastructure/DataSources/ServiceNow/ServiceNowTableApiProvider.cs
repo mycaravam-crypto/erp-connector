@@ -41,6 +41,17 @@ public sealed class ServiceNowTableApiProvider : IDataSourceProvider
 
     public DataSourceType Type => DataSourceType.ServiceNowTableApi;
 
+    // No SQL; ServiceNow's LIKE/STARTSWITH/ENDSWITH ignore case; the Table API has no NULL (empty is ""); a filter on
+    // a left-joined table would change the join's semantics when applied to the joined read (see the compiler).
+    public DataSourceCapabilities Capabilities { get; } =
+        new()
+        {
+            NativeSql = false,
+            CaseSensitiveTextMatch = false,
+            DistinguishesEmptyFromNull = false,
+            ConditionsOnLeftJoinedTables = false,
+        };
+
     /// <summary>Never throws for a reachability/credential/permission failure — reported via
     /// <see cref="TestConnectionResult.Failed"/>.</summary>
     public async Task<TestConnectionResult> TestConnectionAsync(

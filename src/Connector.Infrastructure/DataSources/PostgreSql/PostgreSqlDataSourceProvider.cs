@@ -15,6 +15,8 @@ public sealed class PostgreSqlDataSourceProvider : ISqlDataSourceProvider
 {
     public DataSourceType Type => DataSourceType.PostgreSql;
 
+    public DataSourceCapabilities Capabilities => DataSourceCapabilities.Sql;
+
     public ISqlDialect Dialect => PostgreSqlDialect.Instance;
 
     // Security-review finding SR-02: this previously interpolated Host/Database/Username/Password straight

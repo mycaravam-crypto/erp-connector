@@ -10,6 +10,21 @@ Last updated: 2026-09-23
 
 ---
 
+## Phase 30 — Provider contract tests and capabilities ✅
+
+Arbeitsauftrag 12: one shared test contract for every data source provider, with the ways providers
+legitimately differ stated as explicit capabilities. See
+[Data Source Abstraction §7](/architecture/data-source-abstraction.md).
+
+| Item | Notes |
+|---|---|
+| `DataSourceCapabilities`, `IDataSourceProvider.Capabilities` | `NativeSql`, `CaseSensitiveTextMatch`, `DistinguishesEmptyFromNull`, `ConditionsOnLeftJoinedTables`. PostgreSQL/MariaDB: all; ServiceNow: none |
+| `DynamicExportService` | Gets its SQL dialect only from a provider with `NativeSql` |
+| `DataSourceProviderContractTests` | 17 shared tests: connection, schema, relation metadata, simple query, projection, filter, null handling, limit, join, unknown table/column, cancellation, secrets not in errors, plus four capability-dependent tests asserted both ways |
+| `PostgreSqlProviderContractTests`, `MariaDbProviderContractTests`, `ServiceNowTableApiProviderContractTests` | One subclass per provider; ServiceNow runs on `FakeServiceNow.WithExportFixture()` (same rows as the SQL fixtures) |
+
+---
+
 ## Phase 29 — Data source security hardening ✅
 
 Arbeitsauftrag 11: a targeted security review of the multi-source layer, with the concrete gaps fixed.
