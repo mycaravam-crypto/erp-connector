@@ -35,6 +35,7 @@ public interface IDataSourceProvider
     Task<TestConnectionResult> TestConnectionAsync(DataSourceConfig config, CancellationToken cancellationToken);
     Task<SourceSchema> ReadSchemaAsync(DataSourceConfig config, CancellationToken cancellationToken);
     Task<QueryResult> ExecuteAsync(DataSourceConfig config, SourceQuery query, CancellationToken cancellationToken);
+    Task<QueryResult> ExecuteNativeAsync(DataSourceConfig config, NativeSqlQuery query, CancellationToken cancellationToken);
 }
 
 public interface IDataSourceProviderResolver
@@ -44,7 +45,7 @@ public interface IDataSourceProviderResolver
 ```
 
 Both live in `Connector.Core.DataSources` — `Connector.Core` still has no `Npgsql` package reference,
-and none of these types (or `DataSourceConfig`/`SourceSchema`/`SourceQuery`/`QueryResult`) mention
+and none of these types (or `DataSourceConfig`/`SourceSchema`/`SourceQuery`/`NativeSqlQuery`/`QueryResult`) mention
 `Npgsql` anywhere in their own signatures. `DataSourceProviderResolver` (`Connector.Infrastructure`)
 resolves by each DI-registered provider's own `Type` (`IEnumerable<IDataSourceProvider>` injection),
 so adding a second provider later is a DI registration, never a change to the resolver itself.
@@ -57,8 +58,9 @@ so adding a second provider later is a DI registration, never a change to the re
 | `DataSourceConfig` | Generic connection parameters (`Type` + relational Host/Port/Database or HTTP-API InstanceUrl + Username/Password/SslMode). Renamed from `ErpConnectionConfig` in Arbeitsauftrag 2, generalized from a positional record to an init-only one in Arbeitsauftrag 3 — see [Data Source Configuration](/architecture/data-source-configuration.md) for the current shape and its back-compat contract. Same `AppSettings` storage key throughout. |
 | `SourceSchema`/`SourceTable`/`SourceColumn` | The provider's schema-read result — moved down from `Connector.Api/Dtos.cs`'s `SourceSchemaDto`/`SourceTableDto`/`SourceColumnDto` (same shape, no parallel model, no API change) since it's the interface's own return type, not an API-only shape. |
 | `TestConnectionResult` | `Success`/`Schema`/`Error` — a connection-test failure is reported here, sanitized, never thrown as a raw exception a caller might leak (credentials) by accident. |
-| `SourceQuery` | Provider-native SQL text + optional named parameters + optional command timeout. The provider does not parse or understand this text — see §3. |
-| `QueryResult` | Generic rows: `IReadOnlyList<IReadOnlyDictionary<string, string?>>`. Every value is already stringified by the provider (see §3); `null` means the source column was `NULL`. |
+| `SourceQuery` | Arbeitsauftrag 4: the database-neutral query model (root table, columns, joins, conditions, limit) — see [Source Query Model](/architecture/source-query-model.md). |
+| `NativeSqlQuery` | Provider-native SQL text + optional named parameters + optional command timeout (named `SourceQuery` before Arbeitsauftrag 4). The provider does not parse or understand this text — see §3. |
+| `QueryResult` | Generic rows: `Columns` plus `Rows` whose `Values` align with them (Arbeitsauftrag 4; previously name-keyed dictionaries, still available via `ToDictionaries()`). Every value is already stringified by the provider (see §3); `null` means the source column was `NULL`. |
 | `DataSourceQueryException` | Wraps a provider-specific query failure a caller needs to *inspect*, not just log — e.g. a SQL error code — without the caller referencing a provider SDK type. `ErrorCode` carries that code verbatim (Postgres's `SQLSTATE`, for `PostgreSqlDataSourceProvider`). |
 | `UnsupportedDataSourceException` | Thrown by `Resolve` for a `DataSourceType` with no registered provider. |
 
@@ -69,7 +71,7 @@ so adding a second provider later is a DI registration, never a change to the re
 - `BuildConnectionString`/`ParseSslMode` — building an `NpgsqlConnectionStringBuilder` from a `DataSourceConfig`.
 - The `information_schema` schema-introspection query (`ReadSchemaAsync`) — previously
   `ConnectionEndpoints.IntrospectSchemaAsync`.
-- Generic SQL execution (`ExecuteAsync`) — opens a connection, runs `SourceQuery.Sql` with its
+- Generic SQL execution (`ExecuteNativeAsync`, `ExecuteAsync` before Arbeitsauftrag 4) — opens a connection, runs `NativeSqlQuery.Sql` with its
   parameters, and materializes rows as string-keyed dictionaries. This is where the
   Postgres-specific date/timestamp → ISO-8601 stringification rule now lives (unchanged behavior,
   just relocated from the old inline reader loops in `DynamicExportService`/`ConnectionEndpoints`).
@@ -79,19 +81,19 @@ so adding a second provider later is a DI registration, never a change to the re
 The `json_build_object`/`json_agg`/`string_agg`/`array_agg`/`::text`-cast/double-quote-identifier SQL
 text `DynamicExportService` builds is still Postgres-specific, and still lives in
 `DynamicExportService.LegacyMapping.cs`/`.ExportNode.cs` exactly as before. `IDataSourceProvider`
-does not understand or generate SQL — it only *executes* a `SourceQuery.Sql` string handed to it and
+does not understand or generate SQL — it only *executes* a `NativeSqlQuery.Sql` string handed to it and
 returns rows generically. This is a deliberate scope boundary from Arbeitsauftrag 2 itself: "Keine
 neue Export-Pipeline erstellen" and "Bestehendes Exportverhalten muss unverändert bleiben." Abstracting
 the SQL dialect itself (so a second provider could generate its own native JSON-aggregation syntax)
 is real future work, not something this change attempts — a second provider today would need
-`ExecuteAsync` to accept Postgres-flavored SQL it can't actually run, which is exactly why
+`ExecuteNativeAsync` to accept Postgres-flavored SQL it can't actually run, which is exactly why
 `MariaDb`/`ServiceNowTableApi`/`ServiceNowSqlApi` stay unimplemented rather than half-implemented.
 
 ## 4. What calls the abstraction today
 
 | Caller | What it does |
 |---|---|
-| `DynamicExportService.BuildExportAsync`/`ExecuteQueryAsync`/`ExecuteNestedJsonQueryAsync`/`ExecuteExportNodeQueryAsync`/`BuildExportNodeAsync` | Build Postgres SQL text (unchanged), execute it via `provider.ExecuteAsync`, convert `QueryResult` back into the same `List<Dictionary<string,string>>`/`List<JsonObject>` shapes callers already expected. |
+| `DynamicExportService.BuildExportAsync`/`ExecuteQueryAsync`/`ExecuteNestedJsonQueryAsync`/`ExecuteExportNodeQueryAsync`/`BuildExportNodeAsync` | Build Postgres SQL text (unchanged), execute it via `provider.ExecuteNativeAsync`, convert `QueryResult` back into the same `List<Dictionary<string,string>>`/`List<JsonObject>` shapes callers already expected. |
 | `ExportWorker`, `ExportDefinitionRunner` (+ `ExportDefinitionWorker`), `PipelineEndpoints`' three handlers, `ExportDefinitionEndpoints`' preview handler | Resolve a provider via `IDataSourceProviderResolver.Resolve(config.Type)` instead of building their own `NpgsqlConnection`. |
 | `ConnectionEndpoints`' `POST /api/connection`, `GET /api/source-schema` | Call `provider.TestConnectionAsync`/`ReadSchemaAsync` directly. |
 | `ImportDefinitionEndpoints`' save-time `AllowedWritableColumns` validator | Calls `provider.ReadSchemaAsync` directly (previously called `ConnectionEndpoints.IntrospectSchemaAsync` with its own `NpgsqlConnection`). |
@@ -102,13 +104,13 @@ is real future work, not something this change attempts — a second provider to
 `NpgsqlConnection` directly. This is a deliberate, documented scope boundary, not an oversight:
 
 - **`ImportNodeWalker`** only ever issues read-only `SELECT`s per its own doc comment, so it *could*
-  plausibly route through `IDataSourceProvider.ExecuteAsync` — but doing so wasn't required by
+  plausibly route through `IDataSourceProvider.ExecuteNativeAsync` (or, better, `ExecuteAsync` with a neutral `SourceQuery`) — but doing so wasn't required by
   Arbeitsauftrag 2's Definition of Done (which names `DynamicExportService` specifically), and
   touching the import read path adds risk to Phase 17's Slice 2 walk logic for no behavior change.
 - **`ImportRunReleaser`** is the harder case: `ReleaseAsync` commits an approved import's field-level
   diff as one atomic multi-statement transaction (a conditional `UPDATE` per row, guarded by every
   row's expected old values, all-or-nothing per the four-eyes commit contract). The given
-  `IDataSourceProvider.ExecuteAsync(config, query, ct)` shape is a single query in, single
+  `IDataSourceProvider.ExecuteAsync`/`ExecuteNativeAsync(config, query, ct)` shape is a single query in, single
   `QueryResult` out — it has no concept of a caller-managed transaction spanning multiple
   statements. Modeling that without inventing a second, parallel execution entry point (which
   Arbeitsauftrag 2 explicitly rules out — "Keine neue Export-Pipeline erstellen" extends in spirit to
@@ -127,8 +129,9 @@ connection-string-building logic even though the connections themselves aren't p
 To add a real (not placeholder) `MariaDb` or ServiceNow provider:
 
 1. Implement `IDataSourceProvider` for it. `TestConnectionAsync`/`ReadSchemaAsync` are
-   straightforward — connect, introspect, return `SourceSchema`. `ExecuteAsync` is the interesting
-   one: it must run whatever `SourceQuery.Sql` it's handed, which today is always Postgres-dialect
+   straightforward — connect, introspect, return `SourceSchema`. `ExecuteAsync` needs a compiler from the
+   neutral `SourceQuery` to its own dialect (see [Source Query Model](/architecture/source-query-model.md));
+   `ExecuteNativeAsync` is the hard one: it must run whatever `NativeSqlQuery.Sql` it's handed, which today is always Postgres-dialect
    SQL from `DynamicExportService`. A second provider is only genuinely usable once
    `DynamicExportService`'s SQL-building (§3) also becomes dialect-aware — otherwise it can only ever
    receive SQL it can't run.
@@ -144,7 +147,7 @@ To add a real (not placeholder) `MariaDb` or ServiceNow provider:
   out-of-range numeric type/no providers at all throw `UnsupportedDataSourceException` carrying the
   requested type).
 - `PostgreSqlDataSourceProviderTests` — `TestConnectionAsync` (success + sanitized failure),
-  `ReadSchemaAsync` (tables/PK/FK/generated-column shape), `ExecuteAsync` (flat select, null
+  `ReadSchemaAsync` (tables/PK/FK/generated-column shape), `ExecuteNativeAsync` (flat select, null
   handling, date coercion, `json_build_object` aggregation, SQLSTATE 21000 cardinality-violation
   mapping to `DataSourceQueryException`), plus the relocated `BuildConnectionString` unit tests
   (connection-string-injection safety, SslMode handling). Real-Postgres, same

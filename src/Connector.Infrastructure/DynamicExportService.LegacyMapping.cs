@@ -124,8 +124,15 @@ public static partial class DynamicExportService
         // Date/timestamp columns already arrive ISO-8601-coerced (YYYY-MM-DD) from the provider — same rule
         // the pre-abstraction reader loop applied inline here. A NULL column becomes "" (not the provider's
         // own null), matching this method's long-standing contract for the legacy flat CSV/Excel/JSON export.
-        var queryResult = await provider.ExecuteAsync(dsConfig, new SourceQuery(sql, CommandTimeoutSeconds: 30), ct);
-        var results = queryResult.Rows.Select(row => row.ToDictionary(kv => kv.Key, kv => kv.Value ?? "")).ToList();
+        var queryResult = await provider.ExecuteNativeAsync(
+            dsConfig,
+            new NativeSqlQuery(sql, CommandTimeoutSeconds: 30),
+            ct
+        );
+        var results = queryResult
+            .ToDictionaries()
+            .Select(row => row.ToDictionary(kv => kv.Key, kv => kv.Value ?? ""))
+            .ToList();
 
         // Second, independent layer of defence-in-depth on top of the SELECT-list exclusion above — catches
         // a denied field under a TargetName that happens to match its own denylist entry (or any other
@@ -224,14 +231,18 @@ public static partial class DynamicExportService
         QueryResult queryResult;
         try
         {
-            queryResult = await provider.ExecuteAsync(dsConfig, new SourceQuery(sql, CommandTimeoutSeconds: 30), ct);
+            queryResult = await provider.ExecuteNativeAsync(
+                dsConfig,
+                new NativeSqlQuery(sql, CommandTimeoutSeconds: 30),
+                ct
+            );
         }
         catch (DataSourceQueryException dex) when (dex.ErrorCode == "21000")
         {
             throw new InvalidOperationException(ObjectGroupCardinalityErrorMessage, dex);
         }
 
-        foreach (var row in queryResult.Rows)
+        foreach (var row in queryResult.ToDictionaries())
         {
             // The provider hands back the json/jsonb column's raw JSON text (Npgsql's default mapping, no
             // custom type mapping in this repo); parsing it into a mutable JsonObject (rather than treating

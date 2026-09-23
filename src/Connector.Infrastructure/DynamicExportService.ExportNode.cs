@@ -127,14 +127,18 @@ public static partial class DynamicExportService
         QueryResult queryResult;
         try
         {
-            queryResult = await provider.ExecuteAsync(dsConfig, new SourceQuery(sql, CommandTimeoutSeconds: 30), ct);
+            queryResult = await provider.ExecuteNativeAsync(
+                dsConfig,
+                new NativeSqlQuery(sql, CommandTimeoutSeconds: 30),
+                ct
+            );
         }
         catch (DataSourceQueryException dex) when (dex.ErrorCode == "21000")
         {
             throw new InvalidOperationException(ObjectNodeCardinalityErrorMessage, dex);
         }
 
-        foreach (var row in queryResult.Rows)
+        foreach (var row in queryResult.ToDictionaries())
         {
             var text = row.GetValueOrDefault("row_json") ?? "{}";
             var node = JsonNode.Parse(text) as JsonObject ?? [];

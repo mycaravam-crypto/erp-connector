@@ -23,8 +23,21 @@ public interface IDataSourceProvider
     /// once a connection is already known-good and a failure here is a real, reportable error.</summary>
     Task<SourceSchema> ReadSchemaAsync(DataSourceConfig config, CancellationToken cancellationToken);
 
-    /// <summary>Executes <paramref name="query"/>'s provider-native SQL against the data source described by
-    /// <paramref name="config"/> and returns its rows generically. A query-execution failure the caller needs
-    /// to inspect (not just log) surfaces as <see cref="DataSourceQueryException"/>.</summary>
+    /// <summary>Validates <paramref name="query"/> against the data source's live schema
+    /// (<see cref="SourceQueryValidator"/>), compiles it into the provider's own dialect with every filter value
+    /// bound as a parameter, executes it, and returns its rows generically. Throws
+    /// <see cref="InvalidSourceQueryException"/> — before touching any data — for an unknown table/column or a
+    /// malformed query; an execution failure the caller needs to inspect surfaces as
+    /// <see cref="DataSourceQueryException"/>.</summary>
     Task<QueryResult> ExecuteAsync(DataSourceConfig config, SourceQuery query, CancellationToken cancellationToken);
+
+    /// <summary>Executes caller-built, provider-native SQL as-is and returns its rows generically — the path
+    /// <c>DynamicExportService</c>'s JSON-tree builders still use for what <see cref="SourceQuery"/> cannot
+    /// express yet (knowledge/architecture/source-query-model.md §5). Same error contract as
+    /// <see cref="ExecuteAsync"/>, minus schema validation.</summary>
+    Task<QueryResult> ExecuteNativeAsync(
+        DataSourceConfig config,
+        NativeSqlQuery query,
+        CancellationToken cancellationToken
+    );
 }
