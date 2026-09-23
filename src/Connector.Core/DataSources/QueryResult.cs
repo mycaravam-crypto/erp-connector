@@ -31,6 +31,11 @@ public sealed record QueryResult
 public sealed record QueryResultColumn
 {
     public required string Name { get; init; }
+
+    /// <summary>The backend's own name for the column's type (for PostgreSQL e.g. <c>integer</c>,
+    /// <c>numeric(10, 2)</c>, <c>text[]</c>), or null if the provider doesn't report one. Opaque outside the
+    /// provider's own layer.</summary>
+    public string? DataType { get; init; }
 }
 
 /// <summary>One row of a <see cref="QueryResult"/>.</summary>

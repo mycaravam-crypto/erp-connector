@@ -2,8 +2,7 @@ namespace Connector.Core.DataSources;
 
 /// <summary>
 /// Provider-agnostic wrapper for a query execution failure that a caller needs to inspect, not just log or
-/// surface verbatim — e.g. <c>Connector.Infrastructure.DynamicExportService</c> detects a "more than one row
-/// returned by a subquery" cardinality violation without referencing <c>Npgsql.PostgresException</c>/
+/// surface verbatim — e.g. to recognize a specific SQL error without referencing <c>Npgsql.PostgresException</c>/
 /// <c>SqlState</c> directly. <see cref="ErrorCode"/> is the provider's own error-code string verbatim (the
 /// Postgres SQLSTATE, for <c>PostgreSqlDataSourceProvider</c>) — opaque to callers unless they know the
 /// specific code they're looking for.

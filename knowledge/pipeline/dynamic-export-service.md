@@ -22,7 +22,7 @@ ExportMappingConfig (runtime-configurable: source table, columns, joins,
     ↓
 DynamicExportService.BuildExportAsync
     ↓  UsesNestedJson(config, format)?
-    ├─ yes → ExecuteNestedJsonQueryAsync → BuildNestedJsonBytes   (json_build_object/json_agg in SQL)
+    ├─ yes → ExecuteNestedJsonQueryAsync → BuildNestedJsonBytes   (tree assembled in C#, one query per group)
     └─ no  → ExecuteQueryAsync → BuildCsvBytes / BuildJsonBytes / BuildExcelBytes
     ↓
 ExportPackage (bytes + ExportManifest) → IExportSink → staging folder
