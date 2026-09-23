@@ -36,7 +36,14 @@ public static partial class DynamicExportService
     /// </summary>
     public const int MaxExportRowsPerRun = 500_000;
 
-    public readonly record struct ExportBuildResult(byte[] Bytes, int RecordCount, string Extension);
+    /// <summary>A built export file. <see cref="Metrics"/> says what the build read from the source
+    /// (Arbeitsauftrag 13).</summary>
+    public readonly record struct ExportBuildResult(
+        byte[] Bytes,
+        int RecordCount,
+        string Extension,
+        ExportQueryMetrics Metrics = default
+    );
 
     /// <summary>
     /// Security-review finding SR-05: identifies *which system* a connection points at — host, port, and

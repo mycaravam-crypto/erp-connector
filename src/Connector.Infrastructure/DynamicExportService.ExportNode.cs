@@ -324,9 +324,10 @@ public static partial class DynamicExportService
         ExportProvenance? provenance = null
     )
     {
-        var records = await ExecuteExportNodeQueryAsync(provider, dsConfig, rootTable, root, ct, limit, gdprDenylist);
+        var metered = new MeteredDataSourceProvider(provider);
+        var records = await ExecuteExportNodeQueryAsync(metered, dsConfig, rootTable, root, ct, limit, gdprDenylist);
         var writer = ExportFormatWriterFactory.Get(format);
         var bytes = writer.Write(root, records, schemaVersion, extractedAt, provenance);
-        return new ExportBuildResult(bytes, records.Count, writer.FileExtension);
+        return new ExportBuildResult(bytes, records.Count, writer.FileExtension, metered.Metrics);
     }
 }

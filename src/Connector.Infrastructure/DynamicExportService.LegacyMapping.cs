@@ -47,6 +47,31 @@ public static partial class DynamicExportService
         IReadOnlySet<string>? gdprDenylist = null
     )
     {
+        var metered = new MeteredDataSourceProvider(provider);
+        var built = await BuildExportUnmeteredAsync(
+            metered,
+            dsConfig,
+            cfg,
+            format,
+            schemaVersion,
+            extractedAt,
+            ct,
+            gdprDenylist
+        );
+        return built with { Metrics = metered.Metrics };
+    }
+
+    private static async Task<ExportBuildResult> BuildExportUnmeteredAsync(
+        IDataSourceProvider provider,
+        DataSourceConfig dsConfig,
+        ExportMappingConfig cfg,
+        string format,
+        string schemaVersion,
+        DateTimeOffset extractedAt,
+        CancellationToken ct,
+        IReadOnlySet<string>? gdprDenylist
+    )
+    {
         if (UsesNestedJson(cfg, format))
         {
             var nestedRecords = await ExecuteNestedJsonQueryAsync(

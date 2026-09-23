@@ -10,6 +10,20 @@ Last updated: 2026-09-23
 
 ---
 
+## Phase 31 — Query performance metrics and load tests ✅
+
+Arbeitsauftrag 13: the export pipeline was checked for N+1 queries and unneeded full reads, and now
+measures what each run reads. See [Query Performance](/architecture/query-performance.md).
+
+| Item | Notes |
+|---|---|
+| `MeteredDataSourceProvider`, `ExportQueryMetrics`, `ExportBuildResult.Metrics` | `QueryCount`, `RecordsRead`, `DurationMs` per build (`BuildExportNodeAsync`, `BuildExportAsync`) |
+| `ExportWorker`, `ExportDefinitionWorker`, Export Definition run/test endpoints | Metrics logged per scheduled run and recorded in the audit detail of manual and test runs |
+| `ExportLoadTests` | 1 000 / 10 000 / 100 000 records on PostgreSQL and MariaDB. Asserts query count `1 + ⌈n/10 000⌉`, rows read `3n`, output size. Reports duration and allocations. Plus cancellation of a 100 000-record export |
+| Analysis | No query per root record in any path, no `SELECT *`, only needed fields, server-side filters, ServiceNow paginated; known limits documented |
+
+---
+
 ## Phase 30 — Provider contract tests and capabilities ✅
 
 Arbeitsauftrag 12: one shared test contract for every data source provider, with the ways providers

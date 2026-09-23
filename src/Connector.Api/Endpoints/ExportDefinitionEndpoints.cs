@@ -5,6 +5,7 @@ using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
 using Connector.Core.Schema;
 using Connector.Infrastructure;
+using Connector.Infrastructure.DataSources;
 using Microsoft.EntityFrameworkCore;
 
 namespace Connector.Api.Endpoints;
@@ -339,7 +340,7 @@ static class ExportDefinitionEndpoints
                     await audit.LogAsync(
                         user,
                         "export_definition_run",
-                        $"id={id} name={def.Name} records={built.Value.RecordCount}"
+                        $"id={id} name={def.Name} records={built.Value.RecordCount} {MetricsDetail(built.Value.Metrics)}"
                     );
 
                     httpContext.Response.Headers["X-Export-Run-Id"] = run.Id.ToString();
@@ -391,7 +392,7 @@ static class ExportDefinitionEndpoints
                         built is null ? "export_definition_test_failed" : "export_definition_test",
                         built is null
                             ? $"id={id} name={def.Name}: {error}"
-                            : $"id={id} name={def.Name} records={built.Value.RecordCount}"
+                            : $"id={id} name={def.Name} records={built.Value.RecordCount} {MetricsDetail(built.Value.Metrics)}"
                     );
 
                     return Results.Ok(
@@ -474,6 +475,10 @@ static class ExportDefinitionEndpoints
             e.UpdatedBy,
             e.UpdatedAt
         );
+
+    // Arbeitsauftrag 13: what the run read from the source, recorded with it in the audit log.
+    private static string MetricsDetail(ExportQueryMetrics m) =>
+        $"queries={m.QueryCount} rows_read={m.RecordsRead} duration_ms={m.DurationMs}";
 
     // Valid SQL identifier: letters/digits/underscore, not starting with a digit — mirrors
     // ExportMappingEndpoints.SqlIdentifierRegex, applied here to every identifier field of an ExportNode tree
