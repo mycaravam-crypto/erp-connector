@@ -76,10 +76,11 @@ itself.
 
 **SQL dialect — in `PostgreSqlDialect`, used by `DynamicExportService`:**
 
-`DynamicExportService` still assembles its export queries itself: correlated JSON object/array trees
-and string-aggregated relations in `DynamicExportService.LegacyMapping.cs`/`.ExportNode.cs`. But every
-PostgreSQL-specific fragment in them (identifier quoting, `json_build_object`/`json_agg`,
-`string_agg`, `::text`, `LIMIT`) comes from the provider's `ISqlDialect`. See
+`DynamicExportService` still assembles its export queries itself: plain per-node SELECTs for the
+export trees (nested records are built in C# — see [Export Tree Assembly](/architecture/export-tree-assembly.md))
+and string-aggregated relations for the legacy flat export. But every PostgreSQL-specific fragment
+in them (identifier quoting, `= ANY(…)`, `string_agg`, `::text`, `LIMIT`) comes from the provider's
+`ISqlDialect`. See
 [SQL Dialect](/architecture/sql-dialect.md). `IDataSourceProvider.ExecuteNativeAsync` only *executes*
 the resulting `NativeSqlQuery.Sql` string and returns rows generically. So a second SQL provider needs
 its own `ISqlDialect` (plus `ISqlDataSourceProvider`), not changes to the export builders. That is why

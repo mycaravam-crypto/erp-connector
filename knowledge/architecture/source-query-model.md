@@ -110,13 +110,17 @@ against it and executes — so a column dropped since a definition was saved fai
 | `ExecuteAsync` | `SourceQuery` (neutral, validated, parameterized) | New code; nothing in the export pipeline yet |
 | `ExecuteNativeAsync` | `NativeSqlQuery` (renamed from the old raw-SQL `SourceQuery`) | `DynamicExportService`'s flat, nested-JSON and `ExportNode` builders |
 
-The export builders stay on native SQL for now because the model can't yet express what they emit:
-correlated `json_build_object`/`json_agg` subquery trees, `string_agg`/`array_agg` flattening, and
-`ExportNode.Filter`, which is still a free SQL fragment stored in the definition (screened at save
-time by `ExportDefinitionEndpoints.ValidateRequestAsync`, but still spliced into the WHERE clause).
-Moving `ExportNode → SourceQuery` needs (a) nested/aggregated projections in the model and (b)
-replacing `Filter` with structured `QueryCondition`s, including a migration for stored definitions
-and a UI change. Both are follow-up work. Nothing in `Connector.Core` builds a `NativeSqlQuery`.
+Since the export trees are assembled in C# ([Export Tree Assembly](/architecture/export-tree-assembly.md)),
+each of their queries is a plain one-table SELECT with a key match. That shape is close to what
+`SourceQuery` can express: `In` for the key batch, `Limit` for the root. What still keeps them on
+native SQL:
+- `ExportNode.Filter` is a free SQL fragment stored in the definition. It is screened at save time
+  by `ExportDefinitionEndpoints.ValidateRequestAsync`, but still spliced into the WHERE clause.
+- The text-cast projections and `ReturnNativeText` typed values have no model equivalent.
+- The legacy flat export's `string_agg` relation flattening has no model equivalent either.
+
+Moving the trees onto `SourceQuery` needs `Filter` replaced by structured `QueryCondition`s. That
+includes a migration for stored definitions and a UI change, and is follow-up work. Nothing in `Connector.Core` builds a `NativeSqlQuery`.
 
 ## 6. Tests
 

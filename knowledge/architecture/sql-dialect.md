@@ -38,15 +38,17 @@ concern, and `Connector.Core` stays dialect-free.
 | `QuoteIdentifier` | `"name"` (embedded `"` doubled) | every builder |
 | `BuildParameterName(i)` | `@p{i}` (also the Npgsql parameter name) | query compiler, import walker, import releaser |
 | `BuildLimit(n)` | `LIMIT n` | legacy flat/nested export, `ExportNode` export, import walker, query compiler |
-| `QuoteStringLiteral` | `'…'` (embedded `'` doubled) | JSON object keys, string-aggregate delimiter |
-| `CastToText` | `expr::text` | `ExportNode` scalar fields, import walker/releaser key matching, LIKE in the compiler |
+| `QuoteStringLiteral` | `'…'` (embedded `'` doubled) | string-aggregate delimiter |
+| `CastToText` | `expr::text` | export tree scalars and join keys, import walker/releaser key matching, LIKE in the compiler |
 | `BuildNullSafeEquals` | `a IS NOT DISTINCT FROM b` | import releaser's expected-old-value guard |
-| `BuildJsonObject` | `json_build_object('k', v, …)` | nested-JSON and `ExportNode` export trees |
-| `BuildJsonArrayAggregate` | `COALESCE(json_agg(x), '[]'::json)` | "array" nested groups / `ExportNode` array nodes |
+| `BuildMatchesAny` | `expr = ANY(@p0)` | export tree engine's one-query-per-level child fetch |
+| `ConvertNativeTextToJson` | `to_json`'s rules, applied in C# (`PostgreSqlJsonValues`) | export tree engine's typed values for legacy nested groups |
 | `BuildStringAggregate` | `string_agg(x::text, 'delim')` | legacy flat export's relation flattening |
 
 The first three are the ones the work order asked for. The other six are extensions, each backed by a
-builder listed in the right-hand column. The work order allowed extensions only for a concrete need
+builder listed in the right-hand column. `BuildJsonObject`/`BuildJsonArrayAggregate` existed until
+the export trees moved to C# ([Export Tree Assembly](/architecture/export-tree-assembly.md)) and were
+removed with them. The work order allowed extensions only for a concrete need
 in existing code.
 
 **How builders get a dialect:**
@@ -79,9 +81,8 @@ emit any PostgreSQL SQL syntax. What remains:
 
 | Where | What | Why it stays |
 |---|---|---|
-| `ExportNode.Filter` → `DynamicExportService.ExecuteExportNodeQueryAsync`/`BuildExportNodeExpr` | A stored, admin-authored WHERE fragment spliced in as `WHERE (…)` / `AND (…)` | The fragment is written in the backend's dialect by whoever saves the definition. The builder adds only ANSI parentheses. Replacing it with structured `QueryCondition`s needs a stored-data migration and a UI change, see [Source Query Model §5](/architecture/source-query-model.md). |
+| `ExportNode.Filter` → `DynamicExportService.ExecuteExportNodeQueryAsync` (per-node queries) | A stored, admin-authored WHERE fragment spliced in as `WHERE (…)` / `AND (…)` | The fragment is written in the backend's dialect by whoever saves the definition. The builder adds only ANSI parentheses. Replacing it with structured `QueryCondition`s needs a stored-data migration and a UI change, see [Source Query Model §5](/architecture/source-query-model.md). |
 | `ExportDefinitionEndpoints` (`DangerousFilterKeywordRegex`) | Denylist of PostgreSQL functions/catalogs (`pg_sleep`, `pg_catalog`, `dblink`, …) | Save-time security screening of the free-SQL `Filter` above. It has to know the target's dangerous functions, and it goes away together with `Filter`. |
-| `DynamicExportService` (`dex.ErrorCode == "21000"`) | SQLSTATE check for "more than one row from a subquery" | `21000` is the SQL standard's cardinality-violation class, not a PostgreSQL code, and it reaches the service via the provider-neutral `DataSourceQueryException.ErrorCode`. |
 | `ImportNodeWalker`, `ImportRunReleaser` | Take/open an `NpgsqlConnection` and `NpgsqlCommand` | A driver dependency, not SQL syntax (their SQL now goes through the dialect). The releaser needs one multi-statement transaction, which `IDataSourceProvider` can't express. See [Data Source Abstraction §5](/architecture/data-source-abstraction.md). |
 | `ImportWorker`, `ImportDefinitionEndpoints` (preview + stage) | Open the `NpgsqlConnection` handed to `ImportNodeWalker` | Same boundary as the walker. |
 | `ConnectionEndpoints.IsValidSslMode` | Validates `SslMode` against Npgsql's `SslMode` enum | Connection configuration for the relational (PostgreSQL) source type, not query syntax. |

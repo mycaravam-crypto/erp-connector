@@ -92,3 +92,52 @@ INSERT INTO systemconfiguration (id, serial, article_id, status, commission_date
 
 INSERT INTO articlestructure (id, parent_id, child_id) VALUES
     ('99999999-9999-9999-9999-999999999999', '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333');
+
+-- Dedicated to ExportTreeRegressionTests (Arbeitsauftrag 6: nested export records assembled in C# from plain
+-- rows). Read-only for every test. Covers, in one small graph: several root rows, a 1:1 lookup (order →
+-- customer) including a shared parent (orders 100 and 101 → customer 1) and a NULL foreign key (order 102 →
+-- no customer), a 1:n relation (order → lines) including an order with none (101), a second nesting level
+-- (line → tags) including a line with none (1001), and NULL values in otherwise-populated columns.
+CREATE TABLE export_customer (
+    id integer PRIMARY KEY,
+    name character varying(100),
+    vip boolean
+);
+
+CREATE TABLE export_order (
+    id integer PRIMARY KEY,
+    customer_id integer REFERENCES export_customer(id),
+    placed_on date,
+    total numeric(10, 2),
+    note text
+);
+
+CREATE TABLE export_order_line (
+    id integer PRIMARY KEY,
+    order_id integer NOT NULL REFERENCES export_order(id),
+    sku character varying(20),
+    qty integer
+);
+
+CREATE TABLE export_line_tag (
+    id integer PRIMARY KEY,
+    line_id integer NOT NULL REFERENCES export_order_line(id),
+    tag character varying(20)
+);
+
+INSERT INTO export_customer (id, name, vip) VALUES
+    (1, 'Acme', true),
+    (2, 'Globex', NULL);
+
+INSERT INTO export_order (id, customer_id, placed_on, total, note) VALUES
+    (100, 1, '2024-01-05', 99.90, 'rush'),
+    (101, 1, '2024-02-10', NULL, NULL),
+    (102, NULL, '2024-03-01', 5.00, NULL);
+
+INSERT INTO export_order_line (id, order_id, sku, qty) VALUES
+    (1000, 100, 'A-1', 2),
+    (1001, 100, 'B-2', NULL);
+
+INSERT INTO export_line_tag (id, line_id, tag) VALUES
+    (1, 1000, 'fragile'),
+    (2, 1000, 'heavy');

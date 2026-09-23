@@ -10,6 +10,30 @@ Last updated: 2026-09-23
 
 ---
 
+## Phase 25 — Export trees assembled in C# ✅
+
+Arbeitsauftrag 6: the database no longer builds nested export JSON. `ExportNode` trees and legacy
+nested JSON groups are fetched as plain relational rows (one query per tree node) and assembled in C#.
+Output is identical. See [Export Tree Assembly](/architecture/export-tree-assembly.md).
+
+| Item | Notes |
+|---|---|
+| `DynamicExportService.TreeQuery.cs` | New tree query engine: compiled `TreePlan`, one query per node (child levels batched via `= ANY(@keys)`, chunked at 10 000 keys), grouping by join-key text, assembly in member order |
+| `ExecuteExportNodeQueryAsync`, `ExecuteNestedJsonQueryAsync` | Same signatures and callers. Now compile to a `TreePlan` instead of a `json_build_object`/`json_agg` query. Cardinality errors are raised in C# with the same messages |
+| `NativeSqlQuery.ReturnNativeText`, `QueryResultColumn.DataType` | The provider can return PostgreSQL's exact text rendering plus each column's type (Npgsql `AllResultTypesAreUnknown`) |
+| `ISqlDialect` | `BuildJsonObject`/`BuildJsonArrayAggregate` removed; `BuildMatchesAny` and `ConvertNativeTextToJson` (`PostgreSqlJsonValues`, PostgreSQL's `to_json` rules) added |
+| `testdb/init.sql` | Dedicated `export_customer`/`export_order`/`export_order_line`/`export_line_tag` tables for the regression tests |
+| Tests | New `ExportTreeRegressionTests` (root, 1:1, 1:n, two levels, empty collection, NULL fields, multiple roots, query count / no JSON SQL, legacy typed values), native-text conversion cases in `PostgreSqlDialectTests`. All pre-existing export tests unchanged |
+
+**Verification:** a local differential harness compared the old SQL-built output with the new output
+for 28 trees against a scratch database with every relevant column type. All 28 were identical. The
+new regression tests were also run against the old implementation, where every structural test
+passed. `dotnet build -c Release` (warnings-as-errors) and `dotnet csharpier check .` are clean. The
+full suite (519 tests: 74 `Connector.Core.Tests` + 445 `Connector.Integration.Tests`) is green
+against a real PostgreSQL 16 loaded from `testdb/init.sql`.
+
+---
+
 ## Phase 24 — PostgreSQL dialect encapsulated ✅
 
 Arbeitsauftrag 5: moved every PostgreSQL-specific SQL fragment out of the generic query builders into

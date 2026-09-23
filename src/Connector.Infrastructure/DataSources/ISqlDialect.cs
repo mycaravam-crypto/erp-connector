@@ -1,3 +1,5 @@
+using System.Text.Json.Nodes;
+
 namespace Connector.Infrastructure.DataSources;
 
 /// <summary>
@@ -10,8 +12,9 @@ namespace Connector.Infrastructure.DataSources;
 /// </summary>
 /// <remarks>
 /// Members past the first three exist because a concrete builder needs them today, not speculatively: string
-/// literals and JSON construction/aggregation for the export query trees, text casts for the import walker's
-/// type-agnostic matching, and a null-safe comparison for the import releaser's optimistic-concurrency guard.
+/// literals and a string aggregate for the legacy flat export, text casts and a batched key match for the export
+/// tree engine's per-level child queries, rendering a native text value as JSON for that engine's C#-side tree
+/// assembly, and a null-safe comparison for the import releaser's optimistic-concurrency guard.
 /// Every member returns a SQL fragment; callers must only pass it identifiers from a known schema/config,
 /// expressions built by this dialect, or values they escape through <see cref="QuoteStringLiteral"/>.
 /// </remarks>
@@ -38,12 +41,19 @@ public interface ISqlDialect
     /// <summary>A null-safe equality test: true when both sides are equal <i>or</i> both are null.</summary>
     string BuildNullSafeEquals(string left, string right);
 
-    /// <summary>A JSON object built from (key, value expression) pairs, in order.</summary>
-    string BuildJsonObject(IEnumerable<(string Key, string ValueExpression)> members);
+    /// <summary>True when <paramref name="expression"/> equals any element of the array bound to
+    /// <paramref name="arrayParameter"/> (a parameter whose value is a <c>string[]</c>) — how the export tree
+    /// engine fetches every child row of a whole level in one query instead of one query per parent.</summary>
+    string BuildMatchesAny(string expression, string arrayParameter);
 
-    /// <summary>Aggregates <paramref name="elementExpression"/> over the rows of the enclosing SELECT into a
-    /// JSON array — an empty array, never null, when there are no rows.</summary>
-    string BuildJsonArrayAggregate(string elementExpression);
+    /// <summary>
+    /// Renders <paramref name="nativeText"/> — a value in the backend's own text format, as returned for a
+    /// <see cref="Connector.Core.DataSources.NativeSqlQuery.ReturnNativeText"/> query — as the JSON value the
+    /// backend's own JSON encoding would give a column of type <paramref name="dataType"/>
+    /// (<see cref="Connector.Core.DataSources.QueryResultColumn.DataType"/>): numbers as JSON numbers, booleans
+    /// as JSON booleans, JSON columns embedded as JSON, arrays as JSON arrays, anything else as a string.
+    /// </summary>
+    JsonNode? ConvertNativeTextToJson(string nativeText, string dataType);
 
     /// <summary>Aggregates <paramref name="expression"/> (as text) over the rows of the enclosing SELECT into
     /// one string joined by <paramref name="delimiter"/>; null values are skipped.</summary>

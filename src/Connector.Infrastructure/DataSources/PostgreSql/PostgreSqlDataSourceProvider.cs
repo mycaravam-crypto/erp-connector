@@ -195,7 +195,8 @@ public sealed class PostgreSqlDataSourceProvider : ISqlDataSourceProvider
             query.Sql,
             parameters,
             query.CommandTimeoutSeconds ?? DefaultCommandTimeoutSeconds,
-            cancellationToken
+            cancellationToken,
+            query.ReturnNativeText
         );
     }
 
@@ -206,13 +207,20 @@ public sealed class PostgreSqlDataSourceProvider : ISqlDataSourceProvider
         string sql,
         IEnumerable<NpgsqlParameter> parameters,
         int commandTimeoutSeconds,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        bool returnNativeText = false
     )
     {
         await using var conn = new NpgsqlConnection(BuildConnectionString(config));
         await conn.OpenAsync(cancellationToken);
 
-        await using var cmd = new NpgsqlCommand(sql, conn) { CommandTimeout = commandTimeoutSeconds };
+        // AllResultTypesAreUnknown makes Postgres send every column in its text output format, which Npgsql
+        // then hands back verbatim as a string — while GetDataTypeName still reports the real column type.
+        await using var cmd = new NpgsqlCommand(sql, conn)
+        {
+            CommandTimeout = commandTimeoutSeconds,
+            AllResultTypesAreUnknown = returnNativeText,
+        };
         cmd.Parameters.AddRange(parameters.ToArray());
 
         try
@@ -220,19 +228,31 @@ public sealed class PostgreSqlDataSourceProvider : ISqlDataSourceProvider
             await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
             var columns = Enumerable
                 .Range(0, reader.FieldCount)
-                .Select(i => new QueryResultColumn { Name = reader.GetName(i) })
+                .Select(i => new QueryResultColumn { Name = reader.GetName(i), DataType = reader.GetDataTypeName(i) })
                 .ToList();
             var rows = new List<QueryResultRow>();
             while (await reader.ReadAsync(cancellationToken))
-                rows.Add(await ReadRowAsync(reader, cancellationToken));
+                rows.Add(
+                    returnNativeText
+                        ? await ReadNativeTextRowAsync(reader, cancellationToken)
+                        : await ReadRowAsync(reader, cancellationToken)
+                );
             return new QueryResult { Columns = columns, Rows = rows };
         }
         catch (PostgresException pex)
         {
-            // Wrapped so callers (e.g. DynamicExportService's cardinality-violation guard on SQLSTATE 21000)
+            // Wrapped so callers that need to inspect a failure (by its SQLSTATE)
             // never need an Npgsql reference themselves.
             throw new DataSourceQueryException(pex.SqlState, pex.Message, pex);
         }
+    }
+
+    private static async Task<QueryResultRow> ReadNativeTextRowAsync(NpgsqlDataReader reader, CancellationToken ct)
+    {
+        var values = new string?[reader.FieldCount];
+        for (var i = 0; i < reader.FieldCount; i++)
+            values[i] = await reader.IsDBNullAsync(i, ct) ? null : await reader.GetFieldValueAsync<string>(i, ct);
+        return new QueryResultRow { Values = values };
     }
 
     // Same DBNull/date-coercion contract the pre-abstraction ExecuteQueryAsync/ImportNodeWalker row loops

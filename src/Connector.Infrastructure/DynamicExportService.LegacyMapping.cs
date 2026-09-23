@@ -150,58 +150,59 @@ public static partial class DynamicExportService
         return results;
     }
 
-    // Recursively emits a JSON-object expression for an "object" (N:1) group, or a (SELECT <JSON array
-    // aggregate> ...) expression for an "array" (1:N) group, recursing into Children so
-    // further nested keys are built within the same expression — this is what lets nested groups
-    // reach unlimited depth without any depth-specific SQL-building logic.
-    private static string BuildNestedGroupExpr(
+    // Compiles one nested group (and, recursively, its Children) into a TreePlan for the tree query engine
+    // (DynamicExportService.TreeQuery.cs): "array" groups become arrays of objects, every other Kind a single
+    // embedded object. Fields keep their column's own JSON type (CastScalarsToText: false) — a number stays a
+    // number, as it did when the database built this JSON. Fully built, depth check included, before any query.
+    private static TreePlan BuildNestedGroupPlan(
         ExportMappingNestedGroup g,
-        string parentAlias,
+        string alias,
         ref int aliasCounter,
         int depth,
-        IReadOnlySet<string> denylist,
-        ISqlDialect dialect
+        IReadOnlySet<string> denylist
     )
     {
-        string QI(string identifier) => dialect.QuoteIdentifier(identifier);
-
         if (depth > MaxNestedDepth)
             throw new InvalidOperationException(
                 $"Nested group '{g.TargetKey}' exceeds the maximum nesting depth of {MaxNestedDepth}."
             );
 
-        // Synthetic alias (not derived from RelatedTable/TargetKey): avoids alias collisions when two
-        // groups join the same related table, and is QI-safe by construction rather than needing
-        // identifier validation against admin-supplied text.
-        var alias = $"ng{aliasCounter++}";
-
-        var members = new List<(string, string)>();
+        var members = new List<TreeMember>();
         // GDPR denylist check keyed on SourceField, not TargetKey — see the matching comment in
-        // DynamicExportService.ExportNode.cs's BuildExportNodeExpr (security-review finding SR-08).
+        // DynamicExportService.ExportNode.cs's BuildExportNodePlan (security-review finding SR-08).
         foreach (var f in g.Fields.Where(x => x.Enabled && !denylist.Contains(x.SourceField)))
-            members.Add((f.TargetKey, $"{alias}.{QI(f.SourceField)}"));
+            members.Add(new TreeScalar(f.TargetKey, f.SourceField));
         foreach (var child in g.Children.Where(x => x.Enabled))
-            members.Add(
-                (child.TargetKey, BuildNestedGroupExpr(child, alias, ref aliasCounter, depth + 1, denylist, dialect))
-            );
+            members.Add(NestedGroupMember(child, ref aliasCounter, depth + 1, denylist));
 
-        var objectExpr = dialect.BuildJsonObject(members);
-        // The array aggregate yields [] (not null) over zero matching rows, so a manufacturer with no
-        // addresses serializes as "addresses": []. Object-kind groups deliberately don't aggregate: a
-        // genuinely absent N:1 row should become JSON null, which is the correct representation of "no
-        // manufacturer".
-        var agg = g.Kind == "array" ? dialect.BuildJsonArrayAggregate(objectExpr) : objectExpr;
+        return new TreePlan(g.RelatedTable, alias, Filter: null, members, CastScalarsToText: false);
+    }
 
-        return $"(SELECT {agg} FROM {QI(g.RelatedTable)} {alias} "
-            + $"WHERE {alias}.{QI(g.JoinKey)} = {parentAlias}.{QI(g.SourceJoinKey)})";
+    private static TreeChild NestedGroupMember(
+        ExportMappingNestedGroup g,
+        ref int aliasCounter,
+        int depth,
+        IReadOnlySet<string> denylist
+    )
+    {
+        // Synthetic alias, numbered in pre-order like the correlated subqueries this replaced.
+        var alias = $"ng{aliasCounter++}";
+        return new TreeChild(
+            g.TargetKey,
+            IsArray: g.Kind == "array",
+            g.JoinKey,
+            g.SourceJoinKey,
+            BuildNestedGroupPlan(g, alias, ref aliasCounter, depth, denylist),
+            ObjectGroupCardinalityErrorMessage
+        );
     }
 
     /// <summary>
-    /// JSON-only sibling of <see cref="ExecuteQueryAsync"/>: builds one query that returns a single
-    /// JSON column per row (top-level fields plus recursively nested groups), using the dialect's native
-    /// JSON object/array aggregation to construct the nested tree in SQL rather than
-    /// materializing it by hand in C#. Existing flat CSV/Excel/legacy-JSON export is entirely unaffected —
-    /// this never calls, and is never called by, <see cref="ExecuteQueryAsync"/>.
+    /// JSON-only sibling of <see cref="ExecuteQueryAsync"/>: returns one JSON object per source row — top-level
+    /// fields plus recursively nested groups — assembled in C# from plain rows by the tree query engine (one
+    /// query per group, never per row). Values keep their column's JSON type exactly as PostgreSQL's own JSON
+    /// encoding gave them when this tree used to be built in SQL. Existing flat CSV/Excel/legacy-JSON export is
+    /// entirely unaffected — this never calls, and is never called by, <see cref="ExecuteQueryAsync"/>.
     /// </summary>
     public static async Task<List<JsonObject>> ExecuteNestedJsonQueryAsync(
         IDataSourceProvider provider,
@@ -216,63 +217,25 @@ public static partial class DynamicExportService
         // excludes a denylisted source column from the SELECT list entirely, re-evaluated against the
         // *current* denylist on every run.
         var effectiveDenylist = gdprDenylist ?? GdprDeniedFields;
-        var dialect = DialectOf(provider);
 
-        var members = new List<(string, string)>();
+        var members = new List<TreeMember>();
         foreach (var f in cfg.Fields.Where(x => x.Enabled && !effectiveDenylist.Contains(x.SourceName)))
-            members.Add((f.TargetName, $"s.{dialect.QuoteIdentifier(f.SourceName)}"));
+            members.Add(new TreeScalar(f.TargetName, f.SourceName));
 
         var aliasCounter = 0;
         foreach (var g in (cfg.NestedGroups ?? []).Where(x => x.Enabled))
-            members.Add(
-                (g.TargetKey, BuildNestedGroupExpr(g, "s", ref aliasCounter, depth: 1, effectiveDenylist, dialect))
-            );
+            members.Add(NestedGroupMember(g, ref aliasCounter, depth: 1, effectiveDenylist));
 
-        var results = new List<JsonObject>();
-        if (members.Count == 0)
-            return results;
-
-        var sql =
-            $"SELECT {dialect.BuildJsonObject(members)} AS row_json FROM {dialect.QuoteIdentifier(cfg.SourceTable)} s";
-        if (limit.HasValue)
-            sql += " " + dialect.BuildLimit(limit.Value);
-
-        QueryResult queryResult;
-        try
-        {
-            queryResult = await provider.ExecuteNativeAsync(
-                dsConfig,
-                new NativeSqlQuery(sql, CommandTimeoutSeconds: 30),
-                ct
-            );
-        }
-        catch (DataSourceQueryException dex) when (dex.ErrorCode == "21000")
-        {
-            throw new InvalidOperationException(ObjectGroupCardinalityErrorMessage, dex);
-        }
-
-        foreach (var row in queryResult.ToDictionaries())
-        {
-            // The provider hands back the json/jsonb column's raw JSON text (Npgsql's default mapping, no
-            // custom type mapping in this repo); parsing it into a mutable JsonObject (rather than treating
-            // it as an opaque string) is what lets it be spliced into the final output tree as real nested
-            // JSON instead of a JSON-encoded string-within-a-string.
-            var text = row.GetValueOrDefault("row_json") ?? "{}";
-            var node = JsonNode.Parse(text) as JsonObject ?? [];
+        var plan = new TreePlan(cfg.SourceTable, "s", Filter: null, members, CastScalarsToText: false);
+        var results = await ExecuteTreeQueryAsync(provider, dsConfig, plan, limit, ct);
+        foreach (var node in results)
             StripGdprFieldsRecursive(node, effectiveDenylist);
-            results.Add(node);
-        }
-
         return results;
     }
 
     /// <summary>
-    /// Surfaced when an "object" (1:N-assumed) nested group's correlated subquery matches more than one
-    /// related row for some source row — the database raises SQLSTATE 21000 (the SQL standard's
-    /// cardinality-violation code; Postgres: "more than one row returned by a subquery used as an expression")
-    /// because a bare JSON-object subquery, unlike an "array" group's aggregated one, has no way to hold
-    /// multiple rows. This turns that opaque
-    /// SQL error into an actionable message pointing at the actual fix.
+    /// Surfaced when an "object" (1:1-assumed) nested group matches more than one related row for some source
+    /// row — an object has room for exactly one. Points at the actual fix instead of silently picking a row.
     /// </summary>
     private const string ObjectGroupCardinalityErrorMessage =
         "Nested JSON export failed: an \"object\" nested group matched more than one related row for at "

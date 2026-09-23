@@ -483,7 +483,7 @@ static class ExportDefinitionEndpoints
 
     // Filter is a WHERE-clause fragment by design (export-definitions-2.0.md §4), not a single identifier,
     // so it can't go through SqlIdentifierRegex. It still gets concatenated verbatim into the query
-    // (DynamicExportService.ExecuteExportNodeQueryAsync/BuildExportNodeExpr), so it's restricted to a safe
+    // (DynamicExportService.ExecuteExportNodeQueryAsync's per-node queries), so it's restricted to a safe
     // character set — comparisons/boolean logic against already-validated column names, e.g.
     // "status = 'active' AND amount > 100" — and screened for statement-injection primitives (stacked
     // queries, comments, UNION-based exfiltration, dangerous functions/catalogs). This is defense-in-depth,

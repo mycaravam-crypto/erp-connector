@@ -6,76 +6,87 @@ using Connector.Infrastructure.DataSources;
 namespace Connector.Infrastructure;
 
 // ── ExportNode tree engine (Phase 14) ───────────────────────────────────────
-// Generalizes the legacy nested-JSON path (DynamicExportService.LegacyMapping.cs's BuildNestedGroupExpr/
+// Generalizes the legacy nested-JSON path (DynamicExportService.LegacyMapping.cs's BuildNestedGroupPlan/
 // ExecuteNestedJsonQueryAsync) to a single recursive tree walk that also emits plain scalar-field columns,
 // so one query shape serves every output format instead of the legacy flat-vs-nested-JSON fork. There is
 // deliberately no ExportNode counterpart to UsesNestedJson: every ExportNode tree is queried the same way
 // regardless of format (see BuildExportNodeAsync) — only the format WRITER differs (IExportFormatWriter in
 // ExportFormatWriters.cs), which is the actual OCP seam knowledge/pipeline/export-definitions-2.0.md §8 asks for.
+// The database only returns relational rows; the nested records are assembled in C# by the tree query
+// engine (DynamicExportService.TreeQuery.cs).
 public static partial class DynamicExportService
 {
     /// <summary>
-    /// Recursively emits a JSON-object expression for an <see cref="ExportNodeKind.Object"/> node, or a
-    /// <c>(SELECT</c> JSON-array-aggregate <c>...)</c> expression for an <see cref="ExportNodeKind.Array"/> node —
-    /// the <see cref="ExportNode"/> counterpart of <see cref="BuildNestedGroupExpr"/>, extended to also emit
-    /// <see cref="ExportNodeKind.ScalarField"/> children as plain columns (not just further nesting) and to
-    /// scope each node's own <see cref="ExportNode.Filter"/> fragment to its own subquery.
+    /// Compiles one <see cref="ExportNode"/>'s enabled children into a <see cref="TreePlan"/> for the tree
+    /// query engine: <see cref="ExportNodeKind.ScalarField"/> children become text-valued columns, every other
+    /// child a nested object (<see cref="ExportNodeKind.Object"/>) or array (<see cref="ExportNodeKind.Array"/>)
+    /// joined on its <see cref="ExportNode.JoinKey"/>/<see cref="ExportNode.SourceJoinKey"/> and scoped by its
+    /// own <see cref="ExportNode.Filter"/>. Fully built — including the depth check — before any query runs.
     /// </summary>
-    private static string BuildExportNodeExpr(
+    private static TreePlan BuildExportNodePlan(
+        string table,
+        string alias,
         ExportNode node,
-        string parentAlias,
         ref int aliasCounter,
         int depth,
-        IReadOnlySet<string> denylist,
-        ISqlDialect dialect
+        IReadOnlySet<string> denylist
     )
     {
-        string QI(string identifier) => dialect.QuoteIdentifier(identifier);
-
-        if (depth > MaxNestedDepth)
-            throw new InvalidOperationException(
-                $"Export node '{node.TargetKey}' exceeds the maximum nesting depth of {MaxNestedDepth}."
-            );
-
-        // Synthetic alias, not derived from RelatedTable/TargetKey: avoids collisions when two nodes join
-        // the same related table, and is QI-safe by construction (see BuildNestedGroupExpr's alias).
-        var alias = $"en{aliasCounter++}";
-
-        var members = new List<(string, string)>();
+        var members = new List<TreeMember>();
         foreach (var child in node.Children.Where(x => x.Enabled))
         {
-            // GDPR denylist check keyed on SourceField (the actual column), not TargetKey (the export's
-            // chosen output name) — security-review finding SR-08: a field renamed away from its source
-            // name must still be excluded, including a definition saved before this field was denylisted,
-            // since this filter re-applies fresh against the *current* denylist on every run. Excluding it
-            // from the SELECT list entirely (rather than relying only on StripGdprFieldsRecursive's
-            // output-key match below) means the value never leaves the database in the first place.
-            if (child.Kind == ExportNodeKind.ScalarField && denylist.Contains(child.SourceField!))
-                continue;
-
             if (child.Kind == ExportNodeKind.ScalarField)
-                members.Add((child.TargetKey, dialect.CastToText($"{alias}.{QI(child.SourceField!)}")));
-            else
-                members.Add(
-                    (child.TargetKey, BuildExportNodeExpr(child, alias, ref aliasCounter, depth + 1, denylist, dialect))
+            {
+                // GDPR denylist check keyed on SourceField (the actual column), not TargetKey (the export's
+                // chosen output name) — security-review finding SR-08: a field renamed away from its source
+                // name must still be excluded, including a definition saved before this field was
+                // denylisted, since this filter re-applies fresh against the *current* denylist on every
+                // run. Excluding it from the SELECT list entirely (rather than relying only on
+                // StripGdprFieldsRecursive's output-key match) means the value never leaves the database.
+                if (!denylist.Contains(child.SourceField!))
+                    members.Add(new TreeScalar(child.TargetKey, child.SourceField!));
+                continue;
+            }
+
+            if (depth > MaxNestedDepth)
+                throw new InvalidOperationException(
+                    $"Export node '{child.TargetKey}' exceeds the maximum nesting depth of {MaxNestedDepth}."
                 );
+
+            // Synthetic alias, not derived from RelatedTable/TargetKey, numbered in pre-order exactly as the
+            // pre-Arbeitsauftrag-6 correlated subqueries were — so a stored Filter that names it keeps working.
+            var childAlias = $"en{aliasCounter++}";
+            var childPlan = BuildExportNodePlan(
+                child.RelatedTable!,
+                childAlias,
+                child,
+                ref aliasCounter,
+                depth + 1,
+                denylist
+            );
+            members.Add(
+                new TreeChild(
+                    child.TargetKey,
+                    IsArray: child.Kind == ExportNodeKind.Array,
+                    child.JoinKey!,
+                    child.SourceJoinKey!,
+                    childPlan,
+                    ObjectNodeCardinalityErrorMessage
+                )
+            );
         }
 
-        var objectExpr = dialect.BuildJsonObject(members);
-        // Same aggregate-only-for-array reasoning as BuildNestedGroupExpr: an array node over zero rows is
-        // [], but a genuinely absent N:1 object node should stay JSON null.
-        var agg = node.Kind == ExportNodeKind.Array ? dialect.BuildJsonArrayAggregate(objectExpr) : objectExpr;
-
-        var filter = string.IsNullOrWhiteSpace(node.Filter) ? "" : $" AND ({node.Filter})";
-        return $"(SELECT {agg} FROM {QI(node.RelatedTable!)} {alias} "
-            + $"WHERE {alias}.{QI(node.JoinKey!)} = {parentAlias}.{QI(node.SourceJoinKey!)}{filter})";
+        return new TreePlan(table, alias, node.Filter, members, CastScalarsToText: true);
     }
 
     /// <summary>
-    /// Runs one <see cref="ExportNode"/> tree (rooted at <paramref name="rootTable"/>) as a single query
-    /// returning one JSON tree per row — the generic successor to <see cref="ExecuteNestedJsonQueryAsync"/>
-    /// that also covers plain scalar columns, so it is the only query path <see cref="BuildExportNodeAsync"/>
-    /// needs regardless of output format. GDPR enforcement is two layers: a denylisted <see
+    /// Runs one <see cref="ExportNode"/> tree (rooted at <paramref name="rootTable"/>) and returns one JSON tree
+    /// per root row — the generic successor to <see cref="ExecuteNestedJsonQueryAsync"/> that also covers plain
+    /// scalar columns, so it is the only query path <see cref="BuildExportNodeAsync"/> needs regardless of
+    /// output format. The database returns plain rows, one query per tree node; the tree is assembled in C#
+    /// (<see cref="ExecuteTreeQueryAsync"/>). Every scalar is a JSON string of its <c>::text</c> form (or JSON
+    /// null), an array node with no matches is <c>[]</c>, an object node with no match is <c>null</c>, and an
+    /// object node with several matches fails the export. GDPR enforcement is two layers: a denylisted <see
     /// cref="ExportNode.SourceField"/> is excluded from the SELECT list entirely (so it never leaves the
     /// database, and — since this is re-evaluated against the *current* denylist on every run — a
     /// definition saved before a field was denylisted is covered too, not just newly-saved ones), plus
@@ -93,31 +104,9 @@ public static partial class DynamicExportService
     )
     {
         var effectiveDenylist = gdprDenylist ?? GdprDeniedFields;
-        var dialect = DialectOf(provider);
 
-        var members = new List<(string, string)>();
         var aliasCounter = 0;
-        foreach (var child in root.Children.Where(x => x.Enabled))
-        {
-            // See the matching comment in BuildExportNodeExpr: excludes a denylisted field at the root
-            // level too, keyed on SourceField rather than TargetKey.
-            if (child.Kind == ExportNodeKind.ScalarField && effectiveDenylist.Contains(child.SourceField!))
-                continue;
-
-            if (child.Kind == ExportNodeKind.ScalarField)
-                members.Add((child.TargetKey, dialect.CastToText($"s.{dialect.QuoteIdentifier(child.SourceField!)}")));
-            else
-                members.Add(
-                    (
-                        child.TargetKey,
-                        BuildExportNodeExpr(child, "s", ref aliasCounter, depth: 1, effectiveDenylist, dialect)
-                    )
-                );
-        }
-
-        var results = new List<JsonObject>();
-        if (members.Count == 0)
-            return results;
+        var plan = BuildExportNodePlan(rootTable, "s", root, ref aliasCounter, depth: 1, effectiveDenylist);
 
         // An explicit caller limit (e.g. a preview) is honored exactly; otherwise the query is still capped
         // at MaxExportRowsPerRun + 1 server-side so a runaway/unfiltered definition can't read an unbounded
@@ -125,32 +114,11 @@ public static partial class DynamicExportService
         // "more rows exist" without a separate COUNT(*) query.
         var sqlLimit = Math.Min(limit ?? int.MaxValue, MaxExportRowsPerRun + 1);
 
-        var sql = $"SELECT {dialect.BuildJsonObject(members)} AS row_json FROM {dialect.QuoteIdentifier(rootTable)} s";
-        if (!string.IsNullOrWhiteSpace(root.Filter))
-            sql += $" WHERE ({root.Filter})";
-        sql += " " + dialect.BuildLimit(sqlLimit);
-
-        QueryResult queryResult;
-        try
+        var results = await ExecuteTreeQueryAsync(provider, dsConfig, plan, sqlLimit, ct);
+        foreach (var node in results)
         {
-            queryResult = await provider.ExecuteNativeAsync(
-                dsConfig,
-                new NativeSqlQuery(sql, CommandTimeoutSeconds: 30),
-                ct
-            );
-        }
-        catch (DataSourceQueryException dex) when (dex.ErrorCode == "21000")
-        {
-            throw new InvalidOperationException(ObjectNodeCardinalityErrorMessage, dex);
-        }
-
-        foreach (var row in queryResult.ToDictionaries())
-        {
-            var text = row.GetValueOrDefault("row_json") ?? "{}";
-            var node = JsonNode.Parse(text) as JsonObject ?? [];
             StripGdprFieldsRecursive(node, effectiveDenylist);
             ApplyExportNodeMappingsRecursive(node, root);
-            results.Add(node);
         }
 
         // Only the implicit (non-preview) ceiling fails the run — an explicit caller limit is what the
@@ -165,8 +133,8 @@ public static partial class DynamicExportService
         return results;
     }
 
-    /// <summary>See <see cref="ObjectGroupCardinalityErrorMessage"/> — same cardinality-violation guard,
-    /// for the <see cref="ExportNode"/> tree engine's own <see cref="ExportNodeKind.Object"/> nodes.</summary>
+    /// <summary>See <see cref="ObjectGroupCardinalityErrorMessage"/> — same cardinality guard, for the
+    /// <see cref="ExportNode"/> tree engine's own <see cref="ExportNodeKind.Object"/> nodes.</summary>
     private const string ObjectNodeCardinalityErrorMessage =
         "Export failed: an \"object\" export node matched more than one related row for at least one source "
         + "row. \"object\" nodes assume a 1:1 relationship (via JoinKey/SourceJoinKey) between the source row "

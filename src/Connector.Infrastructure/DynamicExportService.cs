@@ -20,7 +20,7 @@ public static partial class DynamicExportService
 {
     /// <summary>
     /// Recursion cap for JSON-only nested groups, enforced at save time (the primary, user-facing
-    /// rejection point) and again defensively inside <see cref="BuildNestedGroupExpr"/> for any config
+    /// rejection point) and again defensively inside <see cref="BuildNestedGroupPlan"/> for any config
     /// that reaches query-build time without going through save-time validation. Far beyond any realistic
     /// use case (item → manufacturer → addresses is depth 2) — this exists solely to turn an unbounded
     /// recursive build into a catchable exception instead of an uncatchable <see cref="StackOverflowException"/>.

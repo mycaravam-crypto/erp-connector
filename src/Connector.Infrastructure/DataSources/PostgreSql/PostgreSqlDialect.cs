@@ -1,12 +1,14 @@
 using System.Globalization;
+using System.Text.Json.Nodes;
 
 namespace Connector.Infrastructure.DataSources.PostgreSql;
 
 /// <summary>
 /// <see cref="ISqlDialect"/> for PostgreSQL — the single home of every PostgreSQL-specific fragment the
 /// generic query builders emit: double-quote identifier quoting, <c>@pN</c> parameter placeholders (Npgsql's
-/// named-parameter syntax), <c>LIMIT n</c>, <c>::text</c> casts, <c>IS NOT DISTINCT FROM</c>, and the
-/// <c>json_build_object</c>/<c>json_agg</c>/<c>string_agg</c> functions. Stateless; use <see cref="Instance"/>.
+/// named-parameter syntax), <c>LIMIT n</c>, <c>::text</c> casts, <c>= ANY(@array)</c>,
+/// <c>IS NOT DISTINCT FROM</c>, <c>string_agg</c>, and how a PostgreSQL text value maps to JSON
+/// (<see cref="PostgreSqlJsonValues"/>). Stateless; use <see cref="Instance"/>.
 /// </summary>
 public sealed class PostgreSqlDialect : ISqlDialect
 {
@@ -31,13 +33,10 @@ public sealed class PostgreSqlDialect : ISqlDialect
 
     public string BuildNullSafeEquals(string left, string right) => $"{left} IS NOT DISTINCT FROM {right}";
 
-    public string BuildJsonObject(IEnumerable<(string Key, string ValueExpression)> members) =>
-        $"json_build_object({string.Join(", ", members.Select(m => $"{QuoteStringLiteral(m.Key)}, {m.ValueExpression}"))})";
+    public string BuildMatchesAny(string expression, string arrayParameter) => $"{expression} = ANY({arrayParameter})";
 
-    // json_agg() over zero rows returns SQL NULL, not '[]' — the COALESCE keeps "no related rows" an empty
-    // JSON array.
-    public string BuildJsonArrayAggregate(string elementExpression) =>
-        $"COALESCE(json_agg({elementExpression}), '[]'::json)";
+    public JsonNode? ConvertNativeTextToJson(string nativeText, string dataType) =>
+        PostgreSqlJsonValues.FromNativeText(nativeText, dataType);
 
     public string BuildStringAggregate(string expression, string delimiter) =>
         $"string_agg({CastToText(expression)}, {QuoteStringLiteral(delimiter)})";
