@@ -77,7 +77,7 @@ it, a table joined twice, duplicate or empty output names, a negative `Limit`, a
 doesn't fit its operator. A compiler may therefore assume every identifier it quotes is one the
 schema itself reported.
 
-## 4. PostgreSQL compilation — `PostgreSqlQueryCompiler` (`Connector.Infrastructure`)
+## 4. PostgreSQL compilation — `PostgreSqlQueryCompiler` (`Connector.Infrastructure.DataSources.PostgreSql`)
 
 `Compile(query, schema)` validates, then emits:
 
@@ -89,7 +89,7 @@ WHERE t0."status" IN (@p0, @p1) AND t0."shipped_at" IS NULL AND t1."name"::text 
 LIMIT 25
 ```
 
-- Identifiers are double-quoted like `DynamicExportService.QI`; table aliases are synthetic (`t0`, `t1`, …).
+- Identifiers, parameter placeholders, `LIMIT` and casts come from `PostgreSqlDialect` ([SQL Dialect](/architecture/sql-dialect.md)); table aliases are synthetic (`t0`, `t1`, …).
 - Every value is a bound `NpgsqlParameter` (`@p0`, `@p1`, …); `In` binds one parameter per value.
   `Limit` is an `int` formatted invariantly.
 - String values are bound with PostgreSQL's `unknown` type, so Postgres infers the type from the

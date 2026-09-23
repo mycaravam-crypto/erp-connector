@@ -3,6 +3,8 @@ using Connector.Api.Endpoints;
 using Connector.Core.DataSources;
 using Connector.Core.DynamicImport;
 using Connector.Infrastructure;
+using Connector.Infrastructure.DataSources;
+using Connector.Infrastructure.DataSources.PostgreSql;
 
 namespace Connector.Integration.Tests;
 

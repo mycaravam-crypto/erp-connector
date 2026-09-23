@@ -1,7 +1,7 @@
 using Connector.Core.DataSources;
 using Npgsql;
 
-namespace Connector.Infrastructure;
+namespace Connector.Infrastructure.DataSources.PostgreSql;
 
 /// <summary>
 /// The <see cref="IDataSourceProvider"/> for <see cref="DataSourceType.PostgreSql"/> — the only backend the
@@ -12,9 +12,11 @@ namespace Connector.Infrastructure;
 /// generically. Registered as a singleton (see <c>Program.cs</c>) — it holds no per-call state; every method
 /// opens and disposes its own <see cref="NpgsqlConnection"/>.
 /// </summary>
-public sealed class PostgreSqlDataSourceProvider : IDataSourceProvider
+public sealed class PostgreSqlDataSourceProvider : ISqlDataSourceProvider
 {
     public DataSourceType Type => DataSourceType.PostgreSql;
+
+    public ISqlDialect Dialect => PostgreSqlDialect.Instance;
 
     // Security-review finding SR-02: this previously interpolated Host/Database/Username/Password straight
     // into the connection-string text. A Password (or Username/Database) value containing ";Host=evil;..."

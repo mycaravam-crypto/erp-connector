@@ -1,5 +1,6 @@
 using Connector.Core.DataSources;
 using Connector.Infrastructure;
+using Connector.Infrastructure.DataSources.PostgreSql;
 using NpgsqlTypes;
 
 namespace Connector.Integration.Tests;
@@ -101,7 +102,7 @@ public sealed class PostgreSqlQueryCompilerTests
                 + """AND t0."id" <> @p2 AND t0."total" < @p3""",
             compiled.Sql
         );
-        Assert.Equal(["p0", "p1", "p2", "p3"], compiled.Parameters.Select(p => p.ParameterName));
+        Assert.Equal(["@p0", "@p1", "@p2", "@p3"], compiled.Parameters.Select(p => p.ParameterName));
         Assert.Equal(["open", 100m, 7, 500m], compiled.Parameters.Select(p => p.Value));
     }
 

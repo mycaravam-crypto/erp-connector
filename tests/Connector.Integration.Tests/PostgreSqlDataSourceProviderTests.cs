@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Connector.Core.DataSources;
 using Connector.Infrastructure;
+using Connector.Infrastructure.DataSources.PostgreSql;
 
 namespace Connector.Integration.Tests;
 

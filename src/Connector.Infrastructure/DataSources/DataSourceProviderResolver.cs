@@ -1,6 +1,6 @@
 using Connector.Core.DataSources;
 
-namespace Connector.Infrastructure;
+namespace Connector.Infrastructure.DataSources;
 
 /// <summary>
 /// Resolves every DI-registered <see cref="IDataSourceProvider"/> by its own <see cref="IDataSourceProvider.Type"/>

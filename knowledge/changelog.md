@@ -10,6 +10,29 @@ Last updated: 2026-09-23
 
 ---
 
+## Phase 24 — PostgreSQL dialect encapsulated ✅
+
+Arbeitsauftrag 5: moved every PostgreSQL-specific SQL fragment out of the generic query builders into
+a minimal `ISqlDialect` with one implementation, `PostgreSqlDialect`. See
+[SQL Dialect](/architecture/sql-dialect.md), whose §4 lists the PostgreSQL-specific references that
+remain and explains why each one stays.
+
+| Item | Notes |
+|---|---|
+| `ISqlDialect` | `QuoteIdentifier`/`BuildParameterName`/`BuildLimit`, extended only where existing code needs it: `QuoteStringLiteral`, `CastToText`, `BuildNullSafeEquals`, `BuildJsonObject`, `BuildJsonArrayAggregate`, `BuildStringAggregate` |
+| `PostgreSqlDialect` | New; now holds the quoting, `@pN`, `LIMIT`, `::text`, `IS NOT DISTINCT FROM`, `json_build_object`/`json_agg`/`string_agg` that were inline |
+| `ISqlDataSourceProvider` | `IDataSourceProvider` + `Dialect`; `PostgreSqlDataSourceProvider` implements it, `DynamicExportService` gets its dialect from it |
+| `DynamicExportService` | `QI`/`SqlLit` removed; legacy flat/nested-JSON and `ExportNode` builders render through the dialect. The "array" relation strategy is now `string_agg(…, ',')` instead of `array_to_string(array_agg(…), ',')`, with identical output |
+| `ImportNodeWalker`, `ImportRunReleaser` | Render their SELECT/UPDATE through `PostgreSqlDialect` (they still run on Npgsql connections) |
+| Layout | `PostgreSqlDataSourceProvider`/`PostgreSqlQueryCompiler`/`PostgreSqlDialect` moved to `Connector.Infrastructure/DataSources/PostgreSql` (namespace `Connector.Infrastructure.DataSources.PostgreSql`), `DataSourceProviderResolver`/`ISqlDialect` to `DataSources` |
+| Tests | New `PostgreSqlDialectTests`; all existing Postgres-backed export/import tests unchanged and green; one compiler assertion updated for parameter names (`p0` → `@p0`) |
+
+**Verification:** `dotnet build -c Release` (warnings-as-errors) clean, `dotnet csharpier check .`
+clean, full test suite (491 tests: 74 `Connector.Core.Tests` + 417 `Connector.Integration.Tests`)
+green against a real PostgreSQL 16 loaded from `testdb/init.sql`.
+
+---
+
 ## Phase 23 — Database-neutral query model ✅
 
 Arbeitsauftrag 4: introduced a database-neutral `SourceQuery`/`QueryResult` model so query intent no

@@ -6,7 +6,7 @@ namespace Connector.Core.DataSources;
 /// column is a plain name that <see cref="SourceQueryValidator"/> checks against a known
 /// <see cref="SourceSchema"/>, and every filter value stays a value (never text spliced into a query), so a
 /// provider's compiler can always bind it as a parameter. Only providers know a dialect; the PostgreSQL one is
-/// <c>Connector.Infrastructure.PostgreSqlQueryCompiler</c>. See knowledge/architecture/source-query-model.md.
+/// <c>Connector.Infrastructure.DataSources.PostgreSql.PostgreSqlQueryCompiler</c>. See knowledge/architecture/source-query-model.md.
 /// </summary>
 public sealed record SourceQuery
 {

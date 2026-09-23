@@ -1,10 +1,9 @@
-using System.Globalization;
 using System.Text;
 using Connector.Core.DataSources;
 using Npgsql;
 using NpgsqlTypes;
 
-namespace Connector.Infrastructure;
+namespace Connector.Infrastructure.DataSources.PostgreSql;
 
 /// <summary>A <see cref="SourceQuery"/> compiled to PostgreSQL: SQL text plus the positional-named
 /// (<c>@p0</c>, <c>@p1</c>, …) parameters it references.</summary>
@@ -14,13 +13,14 @@ public sealed record CompiledPostgreSqlQuery(string Sql, IReadOnlyList<NpgsqlPar
 /// Compiles the database-neutral <see cref="SourceQuery"/> into PostgreSQL (Arbeitsauftrag 4) — the only place
 /// that model meets a SQL dialect. Validates against the given <see cref="SourceSchema"/> first
 /// (<see cref="SourceQueryValidator"/>), so every identifier emitted is one the schema reported, double-quoted
-/// the same way <see cref="DynamicExportService.QI"/> quotes them, and table aliases are synthetic
-/// (<c>t0</c>, <c>t1</c>, …). No caller-supplied text other than those identifiers and output aliases ever
-/// becomes SQL: every filter value is a bound parameter, and <see cref="SourceQuery.Limit"/> is an
-/// <see cref="int"/> formatted invariantly.
+/// by <see cref="PostgreSqlDialect"/>, and table aliases are synthetic (<c>t0</c>, <c>t1</c>, …). No
+/// caller-supplied text other than those identifiers and output aliases ever becomes SQL: every filter value is
+/// a bound parameter, and <see cref="SourceQuery.Limit"/> is an <see cref="int"/> rendered by the dialect.
 /// </summary>
 public static class PostgreSqlQueryCompiler
 {
+    private static readonly PostgreSqlDialect Dialect = PostgreSqlDialect.Instance;
+
     public static CompiledPostgreSqlQuery Compile(SourceQuery query, SourceSchema schema)
     {
         SourceQueryValidator.Validate(query, schema);
@@ -62,7 +62,7 @@ public static class PostgreSqlQueryCompiler
         }
 
         if (query.Limit.HasValue)
-            sql.Append(" LIMIT ").Append(query.Limit.Value.ToString(CultureInfo.InvariantCulture));
+            sql.Append(' ').Append(Dialect.BuildLimit(query.Limit.Value));
 
         return new CompiledPostgreSqlQuery(sql.ToString(), parameters);
     }
@@ -71,15 +71,15 @@ public static class PostgreSqlQueryCompiler
     {
         string Bind(object value)
         {
-            var name = $"p{parameters.Count}";
+            var name = Dialect.BuildParameterName(parameters.Count);
             parameters.Add(CreateParameter(name, value));
-            return "@" + name;
+            return name;
         }
 
         // LIKE patterns match literally: the value's own %, _ and \ are escaped (backslash is Postgres's
         // default LIKE escape character), and the ::text cast lets a non-text column be matched too.
         string Like(string prefix, string suffix) =>
-            $"{column}::text LIKE {Bind(prefix + EscapeLike((string)condition.Value!) + suffix)}";
+            $"{Dialect.CastToText(column)} LIKE {Bind(prefix + EscapeLike((string)condition.Value!) + suffix)}";
 
         return condition.Operator switch
         {
@@ -111,5 +111,5 @@ public static class PostgreSqlQueryCompiler
     private static string EscapeLike(string value) =>
         value.Replace(@"\", @"\\").Replace("%", @"\%").Replace("_", @"\_");
 
-    private static string QI(string identifier) => DynamicExportService.QI(identifier);
+    private static string QI(string identifier) => Dialect.QuoteIdentifier(identifier);
 }

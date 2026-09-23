@@ -1,11 +1,12 @@
 using System.Text.Json.Nodes;
 using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
+using Connector.Infrastructure.DataSources;
 
 namespace Connector.Infrastructure;
 
 // The original ExportMappingConfig-based single-mapping pipeline: flat CSV/Excel/JSON export, plus a
-// JSON-only nested-group extension built straight in SQL (json_build_object/json_agg). Still live — served
+// JSON-only nested-group extension built straight in SQL (the dialect's JSON object/array aggregation). Still live — served
 // today by /api/pipeline/* (PipelineEndpoints) and its SchemaView.vue/ExportView.vue frontend callers —
 // running alongside the newer ExportNode tree engine (DynamicExportService.ExportNode.cs) rather than
 // having been superseded by it. Don't delete any of this without first confirming those endpoints and
@@ -92,6 +93,8 @@ public static partial class DynamicExportService
         // denylist on every run, so a mapping saved before a field was denylisted is covered too, not just
         // newly-saved ones (security-review finding SR-08).
         var effectiveDenylist = gdprDenylist ?? GdprDeniedFields;
+        var dialect = DialectOf(provider);
+        string QI(string identifier) => dialect.QuoteIdentifier(identifier);
 
         var parts = new List<string>();
 
@@ -100,13 +103,14 @@ public static partial class DynamicExportService
 
         foreach (var r in cfg.Relations.Where(x => x.Enabled))
         {
-            var delim = (r.Delimiter ?? ", ").Replace("'", "''");
+            // "string_join" joins with the relation's own delimiter; any other strategy ("array") with a plain
+            // comma. (The "array" form used to be array_to_string(array_agg(x::text), ','), which differs from
+            // string_agg only by yielding '' instead of NULL when every related value is NULL — and both reach
+            // the caller as "" via the null-to-empty conversion below.)
+            var delim = r.FlattenStrategy == "string_join" ? r.Delimiter ?? ", " : ",";
             foreach (var f in (r.Fields ?? []).Where(x => x.Enabled && !effectiveDenylist.Contains(x.SourceField)))
             {
-                var agg =
-                    r.FlattenStrategy == "string_join"
-                        ? $"string_agg({QI(r.RelatedTable)}.{QI(f.SourceField)}::text, '{delim}')"
-                        : $"array_to_string(array_agg({QI(r.RelatedTable)}.{QI(f.SourceField)}::text), ',')";
+                var agg = dialect.BuildStringAggregate($"{QI(r.RelatedTable)}.{QI(f.SourceField)}", delim);
                 parts.Add(
                     $"(SELECT {agg} FROM {QI(r.RelatedTable)} "
                         + $"WHERE {QI(r.RelatedTable)}.{QI(r.JoinKey)} = s.{QI(r.SourceJoinKey)}) AS {QI(f.TargetField)}"
@@ -119,7 +123,7 @@ public static partial class DynamicExportService
 
         var sql = $"SELECT {string.Join(", ", parts)} FROM {QI(cfg.SourceTable)} s";
         if (limit.HasValue)
-            sql += $" LIMIT {limit.Value}";
+            sql += " " + dialect.BuildLimit(limit.Value);
 
         // Date/timestamp columns already arrive ISO-8601-coerced (YYYY-MM-DD) from the provider — same rule
         // the pre-abstraction reader loop applied inline here. A NULL column becomes "" (not the provider's
@@ -146,8 +150,8 @@ public static partial class DynamicExportService
         return results;
     }
 
-    // Recursively emits a json_build_object(...) expression for an "object" (N:1) group, or a
-    // (SELECT json_agg(...) ...) expression for an "array" (1:N) group, recursing into Children so
+    // Recursively emits a JSON-object expression for an "object" (N:1) group, or a (SELECT <JSON array
+    // aggregate> ...) expression for an "array" (1:N) group, recursing into Children so
     // further nested keys are built within the same expression — this is what lets nested groups
     // reach unlimited depth without any depth-specific SQL-building logic.
     private static string BuildNestedGroupExpr(
@@ -155,9 +159,12 @@ public static partial class DynamicExportService
         string parentAlias,
         ref int aliasCounter,
         int depth,
-        IReadOnlySet<string> denylist
+        IReadOnlySet<string> denylist,
+        ISqlDialect dialect
     )
     {
+        string QI(string identifier) => dialect.QuoteIdentifier(identifier);
+
         if (depth > MaxNestedDepth)
             throw new InvalidOperationException(
                 $"Nested group '{g.TargetKey}' exceeds the maximum nesting depth of {MaxNestedDepth}."
@@ -168,22 +175,22 @@ public static partial class DynamicExportService
         // identifier validation against admin-supplied text.
         var alias = $"ng{aliasCounter++}";
 
-        var args = new List<string>();
+        var members = new List<(string, string)>();
         // GDPR denylist check keyed on SourceField, not TargetKey — see the matching comment in
         // DynamicExportService.ExportNode.cs's BuildExportNodeExpr (security-review finding SR-08).
         foreach (var f in g.Fields.Where(x => x.Enabled && !denylist.Contains(x.SourceField)))
-            args.Add($"{SqlLit(f.TargetKey)}, {alias}.{QI(f.SourceField)}");
+            members.Add((f.TargetKey, $"{alias}.{QI(f.SourceField)}"));
         foreach (var child in g.Children.Where(x => x.Enabled))
-            args.Add(
-                $"{SqlLit(child.TargetKey)}, {BuildNestedGroupExpr(child, alias, ref aliasCounter, depth + 1, denylist)}"
+            members.Add(
+                (child.TargetKey, BuildNestedGroupExpr(child, alias, ref aliasCounter, depth + 1, denylist, dialect))
             );
 
-        var objectExpr = $"json_build_object({string.Join(", ", args)})";
-        // json_agg() over zero matching rows returns SQL NULL, not '[]' — without the COALESCE, a
-        // manufacturer with no addresses would wrongly serialize as "addresses": null instead of [].
-        // Object-kind groups deliberately skip the COALESCE: a genuinely absent N:1 row should become
-        // JSON null, which is the correct representation of "no manufacturer".
-        var agg = g.Kind == "array" ? $"COALESCE(json_agg({objectExpr}), '[]'::json)" : objectExpr;
+        var objectExpr = dialect.BuildJsonObject(members);
+        // The array aggregate yields [] (not null) over zero matching rows, so a manufacturer with no
+        // addresses serializes as "addresses": []. Object-kind groups deliberately don't aggregate: a
+        // genuinely absent N:1 row should become JSON null, which is the correct representation of "no
+        // manufacturer".
+        var agg = g.Kind == "array" ? dialect.BuildJsonArrayAggregate(objectExpr) : objectExpr;
 
         return $"(SELECT {agg} FROM {QI(g.RelatedTable)} {alias} "
             + $"WHERE {alias}.{QI(g.JoinKey)} = {parentAlias}.{QI(g.SourceJoinKey)})";
@@ -191,8 +198,8 @@ public static partial class DynamicExportService
 
     /// <summary>
     /// JSON-only sibling of <see cref="ExecuteQueryAsync"/>: builds one query that returns a single
-    /// <c>json</c> column per row (top-level fields plus recursively nested groups), using Postgres's
-    /// native <c>json_build_object</c>/<c>json_agg</c> to construct the nested tree in SQL rather than
+    /// JSON column per row (top-level fields plus recursively nested groups), using the dialect's native
+    /// JSON object/array aggregation to construct the nested tree in SQL rather than
     /// materializing it by hand in C#. Existing flat CSV/Excel/legacy-JSON export is entirely unaffected —
     /// this never calls, and is never called by, <see cref="ExecuteQueryAsync"/>.
     /// </summary>
@@ -209,24 +216,26 @@ public static partial class DynamicExportService
         // excludes a denylisted source column from the SELECT list entirely, re-evaluated against the
         // *current* denylist on every run.
         var effectiveDenylist = gdprDenylist ?? GdprDeniedFields;
+        var dialect = DialectOf(provider);
 
-        var args = new List<string>();
+        var members = new List<(string, string)>();
         foreach (var f in cfg.Fields.Where(x => x.Enabled && !effectiveDenylist.Contains(x.SourceName)))
-            args.Add($"{SqlLit(f.TargetName)}, s.{QI(f.SourceName)}");
+            members.Add((f.TargetName, $"s.{dialect.QuoteIdentifier(f.SourceName)}"));
 
         var aliasCounter = 0;
         foreach (var g in (cfg.NestedGroups ?? []).Where(x => x.Enabled))
-            args.Add(
-                $"{SqlLit(g.TargetKey)}, {BuildNestedGroupExpr(g, "s", ref aliasCounter, depth: 1, effectiveDenylist)}"
+            members.Add(
+                (g.TargetKey, BuildNestedGroupExpr(g, "s", ref aliasCounter, depth: 1, effectiveDenylist, dialect))
             );
 
         var results = new List<JsonObject>();
-        if (args.Count == 0)
+        if (members.Count == 0)
             return results;
 
-        var sql = $"SELECT json_build_object({string.Join(", ", args)}) AS row_json FROM {QI(cfg.SourceTable)} s";
+        var sql =
+            $"SELECT {dialect.BuildJsonObject(members)} AS row_json FROM {dialect.QuoteIdentifier(cfg.SourceTable)} s";
         if (limit.HasValue)
-            sql += $" LIMIT {limit.Value}";
+            sql += " " + dialect.BuildLimit(limit.Value);
 
         QueryResult queryResult;
         try
@@ -259,9 +268,10 @@ public static partial class DynamicExportService
 
     /// <summary>
     /// Surfaced when an "object" (1:N-assumed) nested group's correlated subquery matches more than one
-    /// related row for some source row — Postgres raises SQLSTATE 21000 ("more than one row returned by a
-    /// subquery used as an expression") because a bare <c>json_build_object(...)</c> subquery, unlike an
-    /// "array" group's <c>json_agg(...)</c> one, has no way to hold multiple rows. This turns that opaque
+    /// related row for some source row — the database raises SQLSTATE 21000 (the SQL standard's
+    /// cardinality-violation code; Postgres: "more than one row returned by a subquery used as an expression")
+    /// because a bare JSON-object subquery, unlike an "array" group's aggregated one, has no way to hold
+    /// multiple rows. This turns that opaque
     /// SQL error into an actionable message pointing at the actual fix.
     /// </summary>
     private const string ObjectGroupCardinalityErrorMessage =
