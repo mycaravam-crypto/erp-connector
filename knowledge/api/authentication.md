@@ -117,11 +117,11 @@ explicitly:
 );
 ```
 
-# Authorisation Model (Iteration 1)
+# Authorisation Model
 
 Any authenticated user can list/view export runs, trigger an on-demand run or preview, and act as
 Operator or Approver in the four-eyes release (provided Operator ≠ Approver). No role-based
-access control yet — role separation is planned for Iteration 2. The four-eyes constraint is
+access control yet — role separation is a future iteration. The four-eyes constraint is
 enforced by identity (JWT username), not organisational role; any two registered users satisfy it.
 
 # Related

@@ -3,14 +3,14 @@ type: Domain Type
 title: ImportNode Tree
 description: The recursive tree shape every ImportDefinition is built from — one node type for root/scalar-field/object/array, the write-side mirror of ExportNode, plus the schema-aware AllowedWritableColumns validator.
 resource: src/Connector.Core/DynamicImport/ImportNode.cs
-tags: [domain, dynamic-import, phase-17]
+tags: [domain, dynamic-import]
 timestamp: 2026-09-06T00:00:00Z
 ---
 
 An `ImportDefinition.RootNode` is one `ImportNode` tree — same recursive shape as
 [ExportNode](/dynamic-export/export-node.md) (root/scalar-field/object/array, arbitrarily nested
 via `Children`, reusing `FieldMapping` verbatim), walked in the opposite direction. See [Import
-Definitions §4](/pipeline/import-definitions.md#4-data-model) for why it's a deliberately separate
+Definitions §5](/pipeline/import-definitions.md#5-data-model) for why it's a deliberately separate
 type rather than a merge into `ExportNode`.
 
 # Shape
@@ -34,9 +34,9 @@ to SQL where `ExportNode.TargetKey` writes to JSON. `OnMissingChild` has no expo
 a write-only policy for what happens when an object/array child's `JoinKey` doesn't resolve to an
 existing row. **`OnMissingChild = "insert"` is only reachable for `array` children in principle**
 — root rows are always match-only (`UnmatchedRootPolicy` has no "insert" option at all, see below)
-— and even there, the Slice 5 save-time validator (`ImportDefinitionEndpoints.ValidateNode`)
-rejects any node that sets it, enforcing v1's root-only confirmation-field scope (Open Decision
-#15) at save time, not just by convention.
+— and even there, the save-time validator (`ImportDefinitionEndpoints.ValidateNode`) rejects any
+node that sets it, enforcing the root-only confirmation-field scope at save time, not just by
+convention.
 
 `ImportDefinition` also carries, outside the tree itself:
 
@@ -53,20 +53,19 @@ ImportDefinition
 
 A root row with no correlation-key match is excluded from the accepted set per
 `UnmatchedRootPolicy` — never inserted. Only object/array *children* may ever be created, and only
-when their own `OnMissingChild = "insert"` — a capability the v1 validator currently blocks
+when their own `OnMissingChild = "insert"` — a capability the validator currently blocks
 everywhere, per the paragraph above.
 
 `IntegrationKey`/`ContractVersion` are the write side of [Import Mapping
-Presets §3.1](/pipeline/import-mapping-presets.md#31-integrationkeycontractversioncorrelationkeysourcefield--explicit-paired-fields) —
+Presets §2.1](/pipeline/import-mapping-presets.md#21-integrationkeycontractversioncorrelationkeysourcefield) —
 the same meaning as the identically-named fields on `ExportDefinition` ([ExportNode
 Tree](/dynamic-export/export-node.md)), set on this `ImportDefinition` either by hand or, more
 commonly, by accepting a "Create from export" suggestion built from a paired, provenance-tagged
 export. Purely advisory metadata for auditing which export a definition's tree was built from —
-`ImportNodeWalker`/`ImportWorker` never read either field, and `ImportEnvelope.definition` (Open
-Decision #14) stays the only routing mechanism. Nullable; set together or not at all, and at most
-one *enabled* `ImportDefinition` may ever claim a given pair — enforced by
-`ImportDefinitionEndpoints`'s save-time validator, mirroring `ExportDefinition`'s own copy of the
-same rule.
+`ImportNodeWalker`/`ImportWorker` never read either field, and `ImportEnvelope.definition` stays
+the only routing mechanism. Nullable; set together or not at all, and at most one *enabled*
+`ImportDefinition` may ever claim a given pair — enforced by `ImportDefinitionEndpoints`'s
+save-time validator, mirroring `ExportDefinition`'s own copy of the same rule.
 
 # Reading and writing a persisted tree
 
@@ -76,7 +75,7 @@ recursively backfills `Kind`/`OnMissingChild`/`Mapping`/`Children` the same way 
 does, so a tree saved before a property existed doesn't crash the first consumer that dereferences
 it.
 
-# AllowedWritableColumns — schema-aware validation (Open Decision #9)
+# AllowedWritableColumns — schema-aware validation
 
 The allowlist is checked twice, never trusted from just one:
 
@@ -89,7 +88,7 @@ The allowlist is checked twice, never trusted from just one:
    read for matching, never written. The allowlist is also cross-checked against the [GDPR
    denylist](/operations/gdpr-compliance.md): a column that's GDPR-denied can never appear in
    `AllowedWritableColumns`, defense-in-depth even though personal data isn't expected on this
-   side (Open Decision #7).
+   side.
 2. **At run time** — `ImportNodeWalker` re-checks writable columns against the same allowlist
    before building a diff, so a definition edited to add a bad column after the schema check ran
    (or one from before this validation existed) is never trusted silently.
@@ -104,17 +103,16 @@ JSON property, not a SQL identifier.
 `ImportNodeTreeEditor.vue` is the frontend's recursive tree builder — structurally the same
 component as `ExportNodeTreeEditor.vue`, built against `ImportNode` instead: picking a related
 table for an object/array node prefills its FK-detected `JoinKey`/`SourceJoinKey`, and there is
-deliberately no `OnMissingChild` picker in the UI at all (v1 only permits `"reject"`) and no
+deliberately no `OnMissingChild` picker in the UI at all (only `"reject"` is permitted) and no
 `Filter` input (import matches are always exact correlation-key lookups, not filtered subsets).
 `ImportAllowedColumnsEditor.vue` is a separate, prominent list editor for the allowlist — flagging
 any tree target column that isn't in it — kept visually distinct from the tree itself because it's
-the feature's primary safety control (per import-definitions.md #57's acceptance criteria): an
-operator should not be able to add a writable field to the tree without that field also appearing,
-or being blocked, here.
+the feature's primary safety control: an operator should not be able to add a writable field to
+the tree without that field also appearing, or being blocked, here.
 
 # Related
 
-- [Import Definitions](/pipeline/import-definitions.md) — the full spec this type implements, §4
+- [Import Definitions §5](/pipeline/import-definitions.md#5-data-model) — the full spec this type implements
 - [ExportNode Tree](/dynamic-export/export-node.md) — the read-side sibling this mirrors
 - [GDPR Compliance](/operations/gdpr-compliance.md) — the denylist `AllowedWritableColumns` is cross-checked against
 - [ImportWorker](import-worker.md) — the run-time caller that re-checks the allowlist via `ImportNodeWalker`

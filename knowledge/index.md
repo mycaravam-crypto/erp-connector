@@ -15,11 +15,11 @@ Folders are organized by the question you're asking, not just by topic:
   feature?** Cross-cutting structural decisions like the data source abstraction and the
   database-neutral source query model.
 * [pipeline/](pipeline/) — **How does the export actually run?** The live query/build engine,
-  the scheduler, the staging writer, and the Phase 14 spec it grew into.
+  the scheduler, the staging writer, and the generic export-definitions design it grew into.
 * [dynamic-export/](dynamic-export/) — **How does a saved Export Definition run?** The
-  `ExportNode` tree, its own scheduler, and its run-history entity (Phase 14).
+  `ExportNode` tree, its own scheduler, and its run-history entity.
 * [dynamic-import/](dynamic-import/) — **How does a saved Import Definition run?** The
-  `ImportNode` tree, the inbound folder watcher, and the four-eyes commit path (Phase 17).
+  `ImportNode` tree, the inbound folder watcher, and the four-eyes commit path.
 * [domain/](domain/) — **What are the data shapes?** Live domain types only.
 * [schema/](schema/) — **What's the ICD column contract with the vendor?**
 * [api/](api/) — **How do I call the API?** Authentication, on-demand triggers, and the
@@ -34,7 +34,7 @@ Folders are organized by the question you're asking, not just by topic:
 * [changelog.md](changelog.md) — Phase-by-phase record of what shipped, plus current
   in-progress status.
 
-> **2.0 note:** the original Technical Concept described a fixed six-stage pipeline against a
-> hardcoded ERP shape. That design was superseded during development by the runtime-configurable
+> **Note:** the original Technical Concept described a fixed six-stage pipeline against a
+> hardcoded ERP shape. That design was superseded by the runtime-configurable
 > [DynamicExportService](/pipeline/dynamic-export-service.md); its docs moved to
 > [legacy/](legacy/) and no longer describe running code.

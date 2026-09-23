@@ -1,108 +1,35 @@
 ---
 type: Pipeline Design
-title: Export Definitions 2.0 — generic, tree-based multi-export
-description: Spec and implementation status for Phase 14, generalizing DynamicExportService's one mapping into N independently scheduled, arbitrarily-nested export definitions.
+title: Export Definitions — generic, tree-based multi-export
+description: Any number of independently named, scheduled export definitions, each rooted at any table, with unlimited nesting depth, in every output format — generalizing the single-mapping legacy pipeline into first-class, saved entities.
 resource: src/Connector.Core/DynamicExport/ExportNode.cs
-tags: [pipeline, dynamic-mapping, phase-14]
+tags: [pipeline, dynamic-mapping]
 timestamp: 2026-09-03T00:00:00Z
----
-
-> Status: all 6 slices done and verified (see [Implementation status](#implementation-status) and
-> [Verification](#verification-end-to-end-after-all-slices) — every item passed against a live
-> .NET SDK 10 build, a local Postgres `testdb`, and a real browser). The "legacy fixed CI pipeline"
-> this doc originally treated as a protected, correctness-critical system was in fact already dead
-> code (zero DI registration, zero live traffic) and was deleted in the same Phase 13 pass — see
-> the [changelog](/changelog.md) and [DynamicExportService](/pipeline/dynamic-export-service.md).
-> Nothing live was removed; every requirement below still applies unchanged to the dynamic-mapping
-> path. File paths reflect the codebase as of 2026-09-03 and may have moved since.
-
----
-
-## 0. Engineering Directive (non-negotiable)
-
-Every decision is judged against this before "does it match the requirement." Satisfying the
-requirement while violating the directive means the design isn't done yet.
-
-| Principle | Concretely |
-|---|---|
-| **Minimal code** | Generalize an existing type/service before adding a new one. |
-| **Minimal complexity** | One recursive `ExportNode` tree replaces the three parallel, overlapping shapes today (`Fields`/`Relations`/`NestedGroups` — §2). One mental model, not three. |
-| **Maximal documentation** | Every public type/method gets a why-not-what doc comment; every new subsystem gets a `knowledge/` entry (§9). |
-| **Highest code quality** | No silent failure paths; every validation error is specific and actionable. |
-| **Clean code** | Small, single-purpose functions; enums over boolean flags; no comments restating the code. |
-| **SOLID** | Applied per-layer in §8. |
-
-**Build the smallest possible generic engine, not a framework.** Arbitrary nesting is one
-recursive tree type walked by one recursive service method — not a plugin system, DSL, or codegen.
-
 ---
 
 ## 1. Vision
 
-Today the connector does one job well: extract CIs from ERP, minimize for GDPR, and release to
-the vendor via a four-eyes, air-gapped staging folder — via `DynamicExportService` and
-`SchemaView.vue` (Phase 8–12). Four-eyes release, GDPR-denylist enforcement, audit log, and
-sequence-integrity checks are correctness-critical and **stay exactly as-is** — 2.0 does not
-touch them.
+The connector's core job is to extract CIs from the ERP, minimize for GDPR, and release to the
+vendor via a four-eyes, air-gapped staging folder. Four-eyes release, GDPR-denylist enforcement,
+audit log, and sequence-integrity checks are correctness-critical and apply identically regardless
+of which mapping mechanism produced the export — see [Four-Eyes
+Release](/operations/four-eyes-release.md).
 
-Today the dynamic mapping supports *one* mapping (plus named presets) for *one* source table,
-with relation-flattening for CSV/Excel and JSON-only nested groups. **2.0 turns this into any
+Alongside the legacy single-mapping flow (one mapping, one source table, plus named presets — see
+[DynamicExportService](/pipeline/dynamic-export-service.md)), the connector also supports **any
 number of independently named, saved, scheduled export definitions**, each rooted at any table,
 with unlimited nesting depth, in every output format, each with its own field-level
-transformation, schedule, and run history.
+transformation, schedule, and run history. The legacy flow was deliberately kept, not superseded
+— see [§8 Legacy coexistence](#8-legacy-coexistence).
 
-Mapping the original System A→B brief onto this codebase:
+## 2. Data Model
 
-* **System A (master)** = the ERP Postgres database, read via existing schema-introspection and
-  direct-Npgsql query (`ConnectionEndpoints`, `IntrospectSchemaAsync`, `DynamicExportService`).
-* **System B (slave)** = the existing staging-folder output (Excel/CSV/JSON + SHA-256 manifest).
-  **No live write-back connector to a second database** — see Non-Goals (§10).
-
----
-
-## 2. Current State
-
-| Capability | Current implementation | File(s) |
-|---|---|---|
-| Schema introspection, FK auto-detection | `IntrospectSchemaAsync`, suggested-relations UI | `ConnectionEndpoints.cs`, `SchemaView.vue` |
-| Field rename / exclude | `ExportMappingField(SourceName, TargetName, Enabled)` | `ExportMappingTypes.cs` |
-| Flat 1:N relation flattening (CSV/Excel) | `ExportMappingRelation` + `FlattenStrategy`/`Delimiter` | `ExportMappingTypes.cs`, `DynamicExportService` |
-| Arbitrary-depth nesting — **JSON only** | `ExportMappingNestedGroup` (self-referencing, `Kind: object\|array`) | `ExportMappingTypes.cs` |
-| Recursive tree-editor UI — **JSON only** | `NestedGroupEditor.vue` | `src/connector-ui/src/components/NestedGroupEditor.vue` |
-| Config persistence | One `ExportMappingConfig` blob + presets dict, raw JSON in `AppSettings` | `ExportMappingEndpoints.cs`, `ExportLogDbContext.cs` |
-| GDPR field denylist | Validated recursively at save time, every nesting depth | `ExportMappingEndpoints.ValidateNestedGroups` |
-| Scheduling | One global daily time + one global format for the whole app | `ExportWorker.cs` |
-| Run history | `ExportRunEntity` — hardwired to four-eyes/delivery fields | `ExportRunEntity.cs` |
-| Preview | **Closed (Phase 13).** Shares `BuildExportAsync`/`UsesNestedJson` with Run Now and the worker | `PipelineEndpoints.cs`, `DynamicExportService.cs` |
-| Value transformation, constants, null handling, type conversion | **Does not exist** | — |
-| Filters/conditions on rows | **Does not exist** | — |
-| Multiple independent, named, schedulable exports | **Does not exist** (presets are save-slots, not first-class entities) | — |
-| Per-export enable/disable, duplicate, execution history | **Does not exist** | — |
-
----
-
-## 3. Gap Analysis
-
-| 2.0 Requirement | Blocked by | Resolution |
-|---|---|---|
-| Arbitrary nesting in **every** format | `NestedGroups` is JSON-only; CSV/Excel use the separate flat `Relations` shape | Unify into one `ExportNode` tree (§4); each format writer flattens or nests as appropriate |
-| Field-level transformation | Not modeled | `FieldMapping.Transform` (§5) |
-| Row filters/conditions per node | Not modeled | `ExportNode.Filter` (§4) |
-| N independent, named, schedulable exports | Only one mapping + presets exist | First-class DB rows (§4), not an `AppSettings` blob |
-| Per-export schedule | One global daily time | `ExportDefinition.Schedule` (cron), one generalized scheduler loop |
-| Per-export execution history | `ExportRunEntity` is CI-pipeline-specific | New `ExportDefinitionRunEntity`, separate — four-eyes/delivery semantics don't apply to generic exports |
-| Save, edit, duplicate, enable/disable | Presets support save/edit/delete only | CRUD + `Duplicate` + `IsEnabled` on `ExportDefinition` |
-
----
-
-## 4. Data Model
-
-Replaces the three parallel shapes in `ExportMappingTypes.cs` (`Fields`, `Relations`,
-`NestedGroups`) with **one** recursive tree — one shape, one validator, one query builder, one
-UI component instead of three of each.
+One recursive `ExportNode` tree replaces what would otherwise be three parallel, overlapping
+mapping shapes (flat fields, flat 1:N relations, nested JSON groups) — one mental model instead of
+three, and adding a fourth level of nesting needs zero new types, only a smarter writer.
 
 ```
-ExportDefinition                          (new EF Core entity — replaces the AppSettings blob)
+ExportDefinition                          (EF Core entity)
 ├── Id, Name, Description
 ├── RootTable            : string
 ├── RootNode              : ExportNode      (the tree — see below)
@@ -110,6 +37,9 @@ ExportDefinition                          (new EF Core entity — replaces the A
 ├── IsEnabled             : bool
 ├── Schedule              : string?         (cron expression; null = manual only)
 ├── ConfigVersion         : int             (incremented on every save; carried onto each run)
+├── IntegrationKey        : string?         (see §7 — Import Mapping Presets)
+├── ContractVersion       : int?
+├── CorrelationKeySourceField : string?
 ├── CreatedBy / CreatedAt / UpdatedBy / UpdatedAt
 
 ExportNode                                  (recursive — the arbitrary-nesting mechanism)
@@ -128,7 +58,7 @@ FieldMapping                                 (attached to every scalar-field nod
 ├── TransformArg            : string?          (e.g. the date format string, or the constant value)
 └── DataType                : string | number | boolean | date  (coercion target)
 
-ExportDefinitionRunEntity                    (new — execution history, one row per run)
+ExportDefinitionRunEntity                    (execution history, one row per run)
 ├── Id, ExportDefinitionId, ConfigVersion    (which saved version ran — traceability)
 ├── StartedAt / FinishedAt (UTC)
 ├── Status                : Success | Failed | Running
@@ -137,298 +67,111 @@ ExportDefinitionRunEntity                    (new — execution history, one row
 └── TriggeredBy             : string           (username, or "scheduler")
 ```
 
-**Why a tree, not three shapes:** `Kind` extends `ExportMappingNestedGroup.Kind`
-(`"object"|"array"`) with `scalar-field` and `root`. A flat CSV/Excel row is just the case where
-every node's `Kind` is `scalar-field` at depth 1 — no separate `Relations` shape needed. Adding a
-fourth CSV nesting level requires zero new types, only a smarter writer.
+A `root` node's own fields are unused — it exists only to hold `Children`, one per top-level
+export key. A flat CSV/Excel row is just the case where every node is `scalar-field` at depth 1;
+no separate flat shape is needed.
 
-**Migration:** existing `ExportMappingConfig`/preset JSON is read once at startup by a one-time
-converter (`ExportMappingField`→scalar-field node, `ExportMappingRelation`→array node with
-flattening, `ExportMappingNestedGroup`→object/array node verbatim) and written as `ExportDefinition`
-rows; `AppSettings` keys are left in place but unread. No data loss, no manual re-entry.
+**A scalar column is always read from Postgres as `::text`**, never cast per `FieldMapping.DataType`
+in SQL — a bad value in one row would otherwise fail the entire query. `DataType` coercion happens
+in C# after the row is read, so one malformed field degrades to a best-effort string instead of
+aborting the whole export.
 
----
-
-## 5. Field Mapping & Transformation
+## 3. Field Mapping & Transformation
 
 Every `scalar-field` node's `Mapping` supports, at minimum:
 
 | Capability | Mechanism |
 |---|---|
-| Rename | `TargetKey` differs from `SourceField` (unchanged) |
-| Exclude | `Enabled = false` (unchanged) |
+| Rename | `TargetKey` differs from `SourceField` |
+| Exclude | `Enabled = false` |
 | Constant/default value | `Transform = constant` + `TransformArg`; or `DefaultValue` for null-fallback |
 | Null handling | `DefaultValue` substituted when the source value is `NULL` |
-| Data-type conversion | `DataType` — coerced in C# at read time, not a SQL cast (see Slice 2 deviation below) |
-| Value transformation | `Transform` enum — a small closed set, not a scripting engine (see Non-Goals) |
+| Data-type conversion | `DataType` — coerced in C# at read time, not a SQL cast (see §2) |
+| Value transformation | `Transform` enum — a small closed set, not a scripting engine (see §6) |
 
 Example: `article.article_number → product.sku` is one `scalar-field` node with
 `SourceField = "article_number"`, `TargetKey = "sku"`.
 
----
-
-## 6. Scheduling
+## 4. Scheduling
 
 * `ExportDefinition.Schedule` is a 5-field cron expression, or `null` for manual-only.
-* UI offers presets (Manual/Hourly/Daily/Weekly) plus an advanced free-text cron field.
+* The UI offers presets (Manual/Hourly/Daily/Weekly) plus an advanced free-text cron field. Cron
+  granularity is hourly-or-coarser by convention, matching the project's existing scheduling
+  convention — the matcher itself doesn't reject a finer-grained expression, it simply isn't
+  offered in the UI presets.
 * One background worker (`ExportDefinitionWorker`, a sibling of `ExportWorker`, not a replacement)
   polls enabled `ExportDefinition` rows whose cron is due.
 * Every run — scheduled or manual — writes exactly one `ExportDefinitionRunEntity` row. "Test"
   shares the same run path as "Run Now", just capped and flagged, never a separate untracked path.
 
----
+See [Scheduler](/dynamic-export/scheduler.md) for how the worker and cron matcher actually run.
 
-## 7. UI Requirements
+## 5. UI
 
-Generalizes `NestedGroupEditor.vue` — already the recursive tree-editor this calls for — to stop
-being JSON-only and become the single editor for every `ExportNode`, every format.
+`ExportNodeTreeEditor.vue` is the recursive tree builder: root = table picker (reused from
+`SchemaView.vue`); "Add field" → leaf node with inline mapping editor; "Add related entity" →
+object/array node prefilled from FK auto-detection; reorder/rename/remove inline; the whole tree
+renders as an indented outline. `ExportDefinitionsView.vue` lists definitions (name, root table,
+format, enabled toggle, last run status, next scheduled run, actions). A preview panel runs the
+same query path Run Now uses, capped to N rows; an execution-history panel reads
+`ExportDefinitionRunEntity`. No new UI framework or component library was introduced — this
+extends the existing recursive component and schema-introspection panel.
 
-1. **Export list view**: name, root table, format, enabled toggle, last run status, next
-   scheduled run, actions (edit/duplicate/test/run now/delete).
-2. **Tree builder**: root = table picker (reused from `SchemaView.vue`); "Add field" → leaf node
-   with inline mapping editor; "Add related entity" → object/array node prefilled from FK
-   auto-detection; reorder/rename/remove inline; whole tree rendered as an indented outline.
-3. **Preview panel**: runs the same query path Run Now uses, capped to N rows.
-4. **Execution history panel**: per-definition table from `ExportDefinitionRunEntity`.
-
-No new UI framework or component library — an extension of the existing recursive component and
-schema-introspection panel.
-
----
-
-## 8. Non-Functional Requirements
-
-| Quality | Requirement |
-|---|---|
-| **Usability** | Build a 3-level nested export using only the tree UI — no JSON, no SQL. |
-| **Maintainability** | New source table needs zero new C# types. New transform kinds are the only case requiring code (a new `Transform` enum member), by design (§10). |
-| **Flexibility** | Nesting depth bounded only by `MaxNestedDepth`, not the data model. |
-| **Reliability** | A failed run writes `Status = Failed` + a specific error — never a partial output with `Status = Success`. |
-| **Security** | `RequireAuthorization()` on every endpoint; GDPR denylist applies at every node, every depth. |
-| **Traceability** | Every run carries `ConfigVersion` — "what ran" is reconstructable after later edits. |
-
-**SOLID, concretely:** SRP — validation, SQL generation, and format writing stay three separate
-concerns. OCP — a new nesting shape or source table needs zero code; a new output *format* is the
-one thing needing a new class, behind `IExportFormatWriter`. LSP — every format writer accepts
-the same `ExportNode` tree and either honors nesting or documented-flattens it, never throws on a
-shape another accepts. ISP — the UI talks to a narrow `IExportNodeApi` (CRUD + validate +
-preview). DIP — resolved (Arbeitsauftrag 2): `DynamicExportService` no longer builds or accepts a
-concrete `NpgsqlConnection` — every query method takes an `IDataSourceProvider`/`DataSourceConfig`
-pair instead, resolved via `IDataSourceProviderResolver`, and executes through
-`IDataSourceProvider.ExecuteAsync` rather than a direct `NpgsqlCommand`. See
-[Data Source Abstraction](/architecture/data-source-abstraction.md) for the full picture, including
-what's deliberately still Postgres-specific (SQL dialect generation itself) and what's still direct
-`NpgsqlConnection` (`ImportRunReleaser`'s four-eyes commit transaction).
-
----
-
-## 9. Documentation Requirements
-
-* Every new type in `Connector.Core.DynamicExport` gets a why-not-what doc comment.
-* This page extends [DynamicExportService](/pipeline/dynamic-export-service.md) rather than
-  replacing it.
-* Changelog gets a "Phase 14 — Generic export definitions ✅" entry on completion.
-
----
-
-## 10. Non-Goals
+## 6. Non-Goals
 
 * **No live write-back connector to a second database.** Output stays the staging-folder file
   contract; a real System B API/DB target is a separate, larger effort.
-* **No scripting/expression engine.** `Transform` is a small closed enum (§5), not a formula
+* **No scripting/expression engine.** `Transform` is a small closed enum (§3), not a formula
   language.
-* **No multi-tenant / multi-source-system support.** One ERP source, as today.
+* **No multi-tenant / multi-source-system support.** One ERP source.
 * **No workflow/approval chains for generic exports.** Four-eyes is a regulatory property of the
   legacy CI pipeline, not extended here unless a specific export requires it.
 * **No general-purpose plugin/extension API.** New capability extends `ExportNode`, not a
   registration mechanism.
 
----
+## 7. Design decisions
 
-## 11. Open Decisions
+* **Cron minimum granularity** is hourly, matching the project's existing scheduling convention.
+* **The legacy single-mapping flow stays fully read/write, unconditionally.** `ExportMappingEndpoints`'s
+  `PUT` endpoint (mapping and presets) is never locked out once an `ExportDefinition` exists — the
+  "configure via CMDB Export Mapping, save, trigger via `POST /api/pipeline/run`" workflow doesn't
+  need `ExportDefinition`s at all. `ExportDefinition`s are a separate, opt-in feature: they don't
+  gate or supersede the legacy single-mapping flow. See §8.
+* **Test-run cap** is 50 rows, fixed — not user-configurable.
+* An existing `ExportMappingConfig`/preset is converted once, on startup, into `ExportDefinition`
+  rows by an idempotent migrator (`ExportMappingField`→scalar-field node,
+  `ExportMappingRelation`→array node with flattening, `ExportMappingNestedGroup`→object/array node
+  verbatim); `AppSettings` keys are left in place but unread. No data loss, no manual re-entry.
 
-1. **Cron minimum granularity** — **Resolved: hourly**, matching the project's existing
-   scheduling convention.
-2. **Legacy mapping cutover** — **Resolved: `ExportMappingEndpoints` `PUT` (mapping and presets)
-   stays fully read/write, unconditionally.** A read-only lock once the migrator ran shipped
-   first, then was reversed: it broke the still-supported "configure via CMDB Export Mapping, save,
-   trigger via `POST /api/pipeline/run`" workflow, which never needed ExportDefinitions and got
-   silently locked out the moment the migrator saw a legacy config. ExportDefinitions remains a separate,
-   opt-in feature — it doesn't gate or supersede the legacy single-mapping flow.
-3. **Test-run cap** — **Resolved: 50 rows, fixed** (not user-configurable) for this phase.
+## 8. Legacy coexistence
 
----
+`run`/`test`/`preview` on an `ExportDefinition` deliberately skip `ExportRunEntity`/
+`FileSystemExportSink`/four-eyes — those model the legacy staging contract specifically, out of
+scope for generic definitions (§6). `run` executes synchronously and returns the built artifact
+directly in the HTTP response — usable as a one-shot trigger from an external program. `test`
+shares that exact path (capped at 50 rows, flagged `IsTestRun`) but returns the tracked run row as
+JSON instead of bytes, since its purpose is config validation. `preview` stays the lighter,
+untracked, capped JSON call the UI needs — it writes no history row.
 
-## Appendix — Original Requirements (verbatim, for traceability)
-
-<details>
-<summary>Click to expand the original System A → System B brief this document refines</summary>
-
-Build a generic ERP connector that transfers configurable datasets from **Master System A** to
-**Slave System B**. The two systems have completely different database schemas and no
-native/direct integration.
-
-The connector must not be limited to predefined objects or structures. A user must be able to
-define arbitrary hierarchical/nested exports using data and relationships available in System A —
-for example Articles → related Orders → Serial Numbers / Shipment Details, and Articles → related
-Manufacturers → multiple Addresses — with structure and nesting depth dynamically configurable
-rather than hardcoded.
-
-The primary UI requirement is a tree-based export builder: select a root entity, add fields, add
-related entities as child nodes recursively, remove/reorder/rename/configure nodes and fields, see
-the full tree, and preview representative output before saving or executing.
-
-Every exported field must support explicit source→target mapping (e.g.
-`article.article_number → product.sku`), including custom target names, field exclusion,
-constants/default values, optional transformation, null/default handling, and data-type
-conversion.
-
-An export definition is a persistent configuration (name, description, root entity, fields,
-relationships, filters, mappings, transformations, output structure, target configuration,
-schedule) that can be saved, edited, duplicated, tested, enabled/disabled, and manually executed,
-with scheduled execution (manual/hourly/daily/weekly/cron) and visible execution history.
-
-Architecturally: Source Model → Export Model → Mapping/Transformation → Target Model, interpreted
-recursively at runtime from metadata rather than implemented per object type. Quality bar:
-usable without programming, maintainable without new export types per entity, flexible nesting and
-mapping, reliable (no silent partial data), secure (permission-controlled), and traceable
-(config version, timestamp, result, errors per execution).
-
-</details>
-
----
-
-## Implementation status
-
-6 slices, each roughly PR-sized and independently shippable — all done. Slice 1 came first since
-everything else depended on the `ExportNode`/`ExportDefinition` shape being settled; Slices 4 and
-5 had no dependency on each other and were built in the same pass; Slice 6 (this section) came
-last since it documents both.
-
-- [x] **Slice 1 — Data model + migration converter.** `ExportNode`/`FieldMapping` records,
-      `ExportDefinitionEntity`/`ExportDefinitionRunEntity`, EF migration, and a one-time,
-      idempotent converter from legacy config blobs to `ExportDefinition` rows (`IsEnabled = false`
-      on migrated rows). Verified: build/test/csharpier clean, migration cross-checked against a
-      freshly-generated `dotnet ef migrations add`.
-- [x] **Slice 2 — Query/format-writer engine.** `DynamicExportService` extended with an
-      `ExportNode` tree-walking query builder (generalizes `BuildNestedGroupExpr` to also emit
-      scalar columns, apply `Filter` fragments, and nest arbitrarily in every format). New
-      `IExportFormatWriter`/`CsvExportFormatWriter`/`ExcelExportFormatWriter`/`JsonExportFormatWriter`
-      (`ExportFormatWriters.cs`). 98/98 tests passing including real-DB integration tests.
-      **Deviation:** scalar columns are always read as SQL `::text`, not cast per
-      `FieldMapping.DataType` — a DB-side numeric cast fails the entire query on one bad row, so
-      `DataType` coercion happens in C# instead (`ApplyExportNodeMappingsRecursive`/
-      `CoerceToDataType`), degrading only the one bad field to a best-effort string.
-- [x] **Slice 3 — API endpoints (CRUD + run + history).** New `ExportDefinitionEndpoints.cs`:
-      `GET/POST /api/export-definitions`, `GET/PUT/DELETE /api/export-definitions/{id}`,
-      `.../duplicate`, `PATCH .../enable`, `POST .../preview|run|test`, `GET .../runs`. A
-      recursive validator (depth guard, identifier-safety regex, GDPR denylist at every depth,
-      duplicate-`TargetKey` check).
-      **Design note:** `run`/`test` deliberately skip `ExportRunEntity`/`FileSystemExportSink`/
-      four-eyes — those model the legacy staging contract, out of scope per §10. `run` executes
-      synchronously and returns the built artifact directly in the HTTP response
-      (`Content-Disposition: attachment`, plus `X-Export-Run-Id`/`X-Record-Count`/
-      `X-Config-Version` headers) — usable as a one-shot trigger from an external program. `test`
-      shares that exact path (capped at 50 rows, flagged `IsTestRun`) but returns the tracked run
-      row as JSON instead of bytes, since its purpose is config validation. `preview` stays the
-      lighter, untracked, capped JSON call the UI needs — it writes no history row. Every
-      endpoint requires authentication only, no special role.
-- [x] **Slice 4 — Scheduler.** New `ExportDefinitionWorker : BackgroundService` (a sibling of
-      `ExportWorker`, registered separately in `Program.cs`), polling enabled, scheduled
-      `ExportDefinition` rows once a minute via a new purpose-built `CronSchedule` matcher (no
-      NuGet cron dependency added). Every run — through the same `ExportDefinitionRunner`
-      manual run/test already used — writes one `ExportDefinitionRunEntity` row;
-      **deviation/tightening:** a zero-record result is now `Status = Failed` with a specific
-      `ErrorMessage` for *every* trigger (manual run/test included, not just scheduled), matching
-      `ExportWorker`'s existing convention — this was a gap in Slice 3, closed while unifying the
-      three call sites onto one runner. **Verified live** (not just via `CronScheduleTests`): set
-      `Schedule = "* * * * *"` on an enabled definition against a running app and confirmed a
-      `TriggeredBy = "scheduler"` run appeared, `Status = Success`, within the next minute boundary
-      with no manual trigger. See [Scheduler](/dynamic-export/scheduler.md).
-- [x] **Slice 5 — Frontend.** New `api/exportDefinitions.ts` client (create/duplicate/enable/
-      preview/run/test/run-history endpoints added to Slice 3's initial get/list/update/test).
-      **Deviation:** `NestedGroupEditor.vue` itself was *not* generalized in place — it and the new
-      `ExportNode` tree share the same recursive-editor shape but incompatible underlying data
-      types (`MappingNestedGroup`'s flat per-group field list vs. `ExportNode`'s uniform recursive
-      children), and the legacy `/export-schema` flow that component serves is required to stay
-      untouched (§11 decision #2). Built a new, structurally-parallel `ExportNodeTreeEditor.vue`
-      instead — the single tree editor for every `ExportNode` kind/format, with inline
-      `FieldMapping` transform editing and a `Filter` input, satisfying the same usability
-      requirement without touching the protected legacy component. New
-      `ExportDefinitionsView.vue` (list: enable toggle, schedule, last-run status,
-      edit/duplicate/test/delete) and expanded `ExportDefinitionEditView.vue` (create-or-edit,
-      root-table picker, tree builder, preview panel, execution-history panel); reused
-      `SuggestedRelations.vue`/FK-detection logic (extracted to `lib/suggestedRelations.ts` so
-      both editors share it) rather than rebuilding it. Routes reuse the existing
-      `/export-definitions/:id` route with `id = "new"` for create.
-      **Verified:** `npm run type-check && npm run test` (231/231) clean; `npx fallow audit --base
-      origin/main` clean (0 findings) after scoping `.fallowrc.json`'s `health.thresholdOverrides`
-      to the new tree-builder files (plus the pre-existing `SchemaView.vue`, caught in the same
-      diff) rather than force-splitting components whose size is load-bearing — see
-      [Code Health Backlog](/planning/code-health-backlog.md#phase-14-slice-5-additions-new-files--resolved-via-threshold-override)
-      for the per-file rationale; one advisory (non-gating) CSS-token note remains. Also driven
-      end-to-end in a real browser against a running backend + local `testdb` (create → tree-build
-      → save → preview → run → history); see Verification §3 below.
-- [x] **Slice 6 — Docs.** This `knowledge/dynamic-export/` bundle (`index.md`, `export-node.md`,
-      `scheduler.md`, `run-history.md`) — extends, doesn't replace,
-      [DynamicExportService](/pipeline/dynamic-export-service.md) and the legacy single-mapping
-      docs, which stay as-is. [Export Definition API](/api/export-definition-api.md) updated to
-      drop its "not yet interpreted"/"once Slice 4 ships" scheduler caveats now that the cron
-      column is live. Changelog entry added.
-
-**Before Slice 3:** no outstanding verification debt from Slice 2 (build/test/format green
-against a real database). Slice 3 builds on `BuildExportNodeAsync`/`ExecuteExportNodeQueryAsync`/
-`GetExportNodeColumnNames` as its Preview/Run-Now/Test entry points, and on
-`ExportFormatWriterFactory` to resolve a writer directly. The validator still needs its own
-identifier-safety regex pass over `ExportNode.Filter`/`SourceField`/`RelatedTable`/`JoinKey`/
-`SourceJoinKey` before user-supplied trees reach production — same trust boundary as the legacy
-`DynamicExportService`, which relies on save-time validation, not query-time.
-
-### Verification (end to end, after all slices)
-
-All four items ran for real during the Slice 4–6 pass (a .NET SDK wasn't preinstalled in that
-session, but `apt-get install dotnet-sdk-10.0` plus `DOTNET_ROLL_FORWARD=LatestMajor` — the
-repo targets net9.0 — got a working toolchain; a local `postgresql-16` server loaded with
-`testdb/init.sql` stood in for the `testdb` fixture container):
-
-1. ✅ `dotnet build Connector.sln -c Release` — 0 warnings, 0 errors. `dotnet csharpier check .` —
-   53 files, clean. `dotnet test` on both test projects — `Connector.Core.Tests` 18/18,
-   `Connector.Integration.Tests` 110/110 (20 of them the real-Postgres suites —
-   `DynamicExportServiceNestedJsonPostgresTests`/`ExportNodeQueryPostgresTests` — confirmed
-   actually hitting the database, not no-op'ing), including the new `CronScheduleTests` and
-   `ExportDefinitionWorkerCandidateFilterTests`.
-2. ✅ `npm run type-check && npm run test` in `src/connector-ui` — 231/231 tests green, 0 type
-   errors. `npx fallow audit --base origin/main` clean (0 findings) after scoping
-   `.fallowrc.json`'s `health.thresholdOverrides` to the files whose size is load-bearing; see
-   [Code Health Backlog](/planning/code-health-backlog.md#phase-14-slice-5-additions-new-files--resolved-via-threshold-override).
-3. ✅ Ran the real app (API on SQLite + the local Postgres `testdb`, UI on Vite, driven with
-   Playwright/headless Chromium) rather than `manufacturer`/`manufacturer_address` by hand:
-   configured the ERP connection, created a definition through the tree UI (root-table picker →
-   auto-populated, unchecked scalar-field columns → checked one → **Create**), confirmed the
-   backend validator's error ("...must have at least one enabled field or nested group") renders
-   inline when a newly-added related-entity node is saved with no field checked yet, added
-   `manufacturer_address` via a **Suggested Relations** FK-detected "+ Add", ran **Preview**,
-   **Save**, and **Run Now** (a real file download), and confirmed the run showed up as `Success`
-   in both the edit view's execution-history panel and the list view's "Last run" column. Separately
-   via the API: set `Schedule = "* * * * *"` on an enabled definition and confirmed
-   `ExportDefinitionWorker` picked it up and ran it unattended within the next minute
-   (`TriggeredBy = "scheduler"` in the resulting history row) — genuine proof the scheduler fires
-   automatically, not just that its unit tests pass. `run`'s CSV output correctly flattened the
-   nested array (`addresses.city` column, comma-joined) and applied the `uppercase` transform.
-4. ✅ Confirmed via real restarts: saved a legacy mapping via `PUT /api/export-mapping` before any
-   `ExportDefinition` existed, restarted the app — the migrator converted it into exactly one
-   `ExportDefinition` (`CreatedBy = "migration"`) — restarted again — still exactly one row, no
-   duplicate. `GET`/`PUT /api/export-mapping` remained fully readable/writable throughout, on both
-   sides of the migration.
+**SOLID, concretely:** SRP — validation, SQL generation, and format writing stay three separate
+concerns. OCP — a new nesting shape or source table needs zero code; a new output *format* is the
+one thing needing a new class, behind `IExportFormatWriter`. LSP — every format writer accepts the
+same `ExportNode` tree and either honors nesting or documented-flattens it, never throws on a
+shape another accepts. ISP — the UI talks to a narrow `IExportNodeApi` (CRUD + validate + preview).
+DIP — `DynamicExportService` never builds or accepts a concrete `NpgsqlConnection` directly; every
+query method takes an `IDataSourceProvider`/`DataSourceConfig` pair instead, resolved via
+`IDataSourceProviderResolver`. See [Data Source Abstraction](/architecture/data-source-abstraction.md)
+for the full picture, including what's deliberately still Postgres-specific (SQL dialect
+generation) and what's still direct `NpgsqlConnection` (`ImportRunReleaser`'s four-eyes commit
+transaction).
 
 ## Related
 
 - [DynamicExportService](/pipeline/dynamic-export-service.md) — the live pipeline this design extends
-- [Export Worker](/pipeline/export-worker.md) — the sibling the new scheduler (Slice 4) is modeled on
-- [Dynamic Export (Phase 14)](/dynamic-export/index.md) — the shipped result: `ExportNode` tree, scheduler, run history
+- [Export Worker](/pipeline/export-worker.md) — the sibling `ExportDefinitionWorker` is modeled on
+- [Dynamic Export](/dynamic-export/index.md) — the `ExportNode` tree, scheduler, and run history in operation
 - [Export Definition API](/api/export-definition-api.md) — the CRUD/run/test/preview HTTP surface
-- [Code Health Backlog](/planning/code-health-backlog.md) — orthogonal frontend-complexity backlog, not part of this plan
-- [Import Mapping Presets from Export Provenance](/pipeline/import-mapping-presets.md) — Phase 18,
-  shipped: adds the optional `IntegrationKey`/`ContractVersion` pair and `CorrelationKeySourceField`
-  to the `ExportDefinition` shape above (documented as it runs today in [ExportNode
-  Tree](/dynamic-export/export-node.md))
+- [Code Health Backlog](/planning/code-health-backlog.md) — orthogonal frontend-complexity backlog, not part of this design
+- [Import Mapping Presets from Export Provenance](/pipeline/import-mapping-presets.md) — adds the
+  optional `IntegrationKey`/`ContractVersion` pair and `CorrelationKeySourceField` to the
+  `ExportDefinition` shape above

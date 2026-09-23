@@ -3,7 +3,7 @@ type: Infrastructure Domain Type
 title: ExportDefinitionRunEntity
 description: One row per execution of an ExportDefinition — manual, test, or scheduled — with Status/RecordCount/ErrorMessage and the ConfigVersion that ran.
 resource: src/Connector.Infrastructure/ExportDefinitionEntity.cs
-tags: [domain, infrastructure, dynamic-export, phase-14]
+tags: [domain, infrastructure, dynamic-export]
 timestamp: 2026-09-03T00:00:00Z
 ---
 
@@ -11,7 +11,7 @@ timestamp: 2026-09-03T00:00:00Z
 [ExportRun](/domain/export-run.md) — deliberately a **separate** entity, not a reuse of it:
 `ExportRun` models the legacy CI-to-vendor pipeline's sequence-number/four-eyes/staging-file
 contract, none of which applies to a generic, independently-triggered export (see
-[Export Definitions 2.0 §10](/pipeline/export-definitions-2.0.md#10-non-goals)).
+[Export Definitions §6](/pipeline/export-definitions-2.0.md#6-non-goals)).
 
 # Schema
 
@@ -46,7 +46,7 @@ contract, none of which applies to a generic, independently-triggered export (se
 
 `preview` (`POST .../preview`) is the one exception: it deliberately writes **no** row at all — it's
 the lighter, untracked, capped call the UI's tree builder uses while a definition is still being
-edited, per [Export Definitions 2.0 §6](/pipeline/export-definitions-2.0.md#6-scheduling).
+edited.
 
 # Reading history
 

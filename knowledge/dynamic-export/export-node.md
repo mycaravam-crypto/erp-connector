@@ -3,7 +3,7 @@ type: Domain Type
 title: ExportNode Tree
 description: The recursive tree shape every ExportDefinition is built from — one node type for root/scalar-field/object/array, replacing the legacy Fields/Relations/NestedGroups split.
 resource: src/Connector.Core/DynamicExport/ExportNode.cs
-tags: [domain, dynamic-export, phase-14]
+tags: [domain, dynamic-export]
 timestamp: 2026-09-03T00:00:00Z
 ---
 
@@ -12,7 +12,7 @@ joins, filters, and value transforms are all expressed in. It generalizes the le
 `ExportMappingConfig`'s three parallel shapes (`Fields`/`Relations`/`NestedGroups`, see
 [DynamicExportService](/pipeline/dynamic-export-service.md)) into one recursive type, walked by
 one query builder (`DynamicExportService.BuildExportNodeAsync`) and honored by every format
-writer (CSV/Excel/JSON) — see [Export Definitions 2.0 §4](/pipeline/export-definitions-2.0.md#4-data-model)
+writer (CSV/Excel/JSON) — see [Export Definitions §2](/pipeline/export-definitions-2.0.md#2-data-model)
 for the full rationale.
 
 # Shape
@@ -38,9 +38,8 @@ CSV/Excel row is just the case where every node is a `scalar-field` at depth 1, 
 "flat" shape is needed — a fourth level of CSV nesting needs zero new types, only a smarter writer.
 
 `ExportDefinition` also carries, outside the tree itself, three fields from [Import Mapping
-Presets §3.1](/pipeline/import-mapping-presets.md#31-integrationkeycontractversioncorrelationkeysourcefield--explicit-paired-fields)
-(all nullable; a definition that doesn't opt in has none of them set, which is every definition
-saved before this feature existed):
+Presets §2.1](/pipeline/import-mapping-presets.md#21-integrationkeycontractversioncorrelationkeysourcefield)
+(all nullable; a definition that doesn't opt in has none of them set):
 
 ```
 ExportDefinition
@@ -76,7 +75,7 @@ FieldMapping
 Rename is `TargetKey` differing from `SourceField`; exclusion is `Enabled = false` — both need no
 `FieldMapping` at all. `Transform`/`DataType` are small closed enums (`FieldTransform`/
 `FieldDataType` in `ExportNode.cs`), not a scripting engine — see
-[Export Definitions 2.0 §10](/pipeline/export-definitions-2.0.md#10-non-goals).
+[Export Definitions §6](/pipeline/export-definitions-2.0.md#6-non-goals).
 
 **Deviation from the original DataType design:** a scalar column is always read from Postgres as
 `::text`, never cast per `DataType` in SQL — a bad value in one row would otherwise fail the
@@ -113,7 +112,7 @@ single-mapping flow), so building a multi-level export needs no manually-typed `
 
 # Related
 
-- [Export Definitions 2.0](/pipeline/export-definitions-2.0.md) — the full spec this type implements
+- [Export Definitions](/pipeline/export-definitions-2.0.md) — the full design this type implements
 - [Export Definition API](/api/export-definition-api.md) — the CRUD/validation HTTP surface
 - [DynamicExportService](/pipeline/dynamic-export-service.md) — the query engine that walks this tree
 - [GDPR Compliance](/operations/gdpr-compliance.md) — the denylist enforced on every `SourceField`

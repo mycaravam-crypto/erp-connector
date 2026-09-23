@@ -12,11 +12,10 @@ timestamp: 2026-09-23T00:00:00Z
 
 ## 1. Why this exists
 
-After [Arbeitsauftrag 2](/architecture/data-source-abstraction.md) the connector no longer depended on
-Npgsql connection types, but every query was still Postgres SQL text built by hand in
-`DynamicExportService` and handed to `IDataSourceProvider.ExecuteAsync` as a string. A second
-provider could only ever receive SQL it can't run. Arbeitsauftrag 4 adds a database-neutral query
-model so query *intent* can be described once, with the SQL dialect confined to the provider:
+The [data source abstraction](/architecture/data-source-abstraction.md) keeps callers off Npgsql
+connection types, but a raw SQL string handed to a provider is still written in one dialect — a
+second provider could only ever receive SQL it can't run. `SourceQuery` describes query *intent*
+once, with the SQL dialect confined to the provider:
 
 ```text
 ExportDefinition → ExportNode → SourceQuery → IDataSourceProvider → QueryResult
