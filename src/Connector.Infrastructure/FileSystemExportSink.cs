@@ -7,12 +7,12 @@ using Microsoft.Extensions.Options;
 namespace Connector.Infrastructure;
 
 /// <summary>
-/// Schreibt Export-Paket (Datei + Manifest-JSON) atomar auf den konfigurierten Staging-Pfad.
+/// Writes an export package (data file + manifest JSON) atomically to the configured staging path.
 /// </summary>
 /// <remarks>
-/// "Atomar" bedeutet hier: Datendatei wird zuerst in eine .tmp-Datei geschrieben,
-/// dann umbenannt — so sieht das Gateway nie eine halbfertige Datei.
-/// Das Manifest wird erst geschrieben, nachdem die Datendatei vollständig ist.
+/// "Atomically" here means: the data file is first written to a .tmp file, then renamed — so the
+/// gateway never sees a partially written file. The manifest is only written once the data file is
+/// complete.
 /// </remarks>
 public sealed class FileSystemExportSink(IOptions<ExportSinkOptions> options, ILogger<FileSystemExportSink> logger)
 {
@@ -21,7 +21,7 @@ public sealed class FileSystemExportSink(IOptions<ExportSinkOptions> options, IL
     public async Task WriteAsync(ExportPackage package, CancellationToken ct)
     {
         if (!Directory.Exists(_stagingPath))
-            throw new ExportSinkException($"Staging-Pfad existiert nicht: {_stagingPath}");
+            throw new ExportSinkException($"Staging path does not exist: {_stagingPath}");
 
         var dataFilePath = Path.Combine(_stagingPath, package.DataFileName);
         var tmpFilePath = dataFilePath + ".tmp";
@@ -29,7 +29,7 @@ public sealed class FileSystemExportSink(IOptions<ExportSinkOptions> options, IL
 
         try
         {
-            // Erst .tmp schreiben, dann umbenennen — Gateway sieht keine halbfertige Datei.
+            // Write to .tmp first, then rename — the gateway never sees a partially written file.
             await File.WriteAllBytesAsync(tmpFilePath, package.DataFileBytes, ct);
             File.Move(tmpFilePath, dataFilePath, overwrite: false);
 
@@ -37,7 +37,7 @@ public sealed class FileSystemExportSink(IOptions<ExportSinkOptions> options, IL
             await File.WriteAllTextAsync(manifestPath, manifestJson, ct);
 
             logger.LogInformation(
-                "Export #{Seq} geschrieben: {File} ({Bytes} Bytes, {Count} Records)",
+                "Export #{Seq} written: {File} ({Bytes} bytes, {Count} records)",
                 package.Manifest.SequenceNumber,
                 package.DataFileName,
                 package.DataFileBytes.Length,
@@ -46,11 +46,11 @@ public sealed class FileSystemExportSink(IOptions<ExportSinkOptions> options, IL
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            // Halbfertige Artefakte aufräumen — Gateway darf nur vollständige Pakete sehen.
+            // Clean up partial artifacts — the gateway may only ever see complete packages.
             TryDelete(tmpFilePath);
             TryDelete(dataFilePath);
             TryDelete(manifestPath);
-            throw new ExportSinkException($"Schreiben auf Staging-Pfad fehlgeschlagen: {ex.Message}", ex);
+            throw new ExportSinkException($"Writing to staging path failed: {ex.Message}", ex);
         }
     }
 
@@ -62,7 +62,7 @@ public sealed class FileSystemExportSink(IOptions<ExportSinkOptions> options, IL
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Aufräumen fehlgeschlagen: {Path}", path);
+            logger.LogWarning(ex, "Cleanup failed: {Path}", path);
         }
     }
 
@@ -72,8 +72,8 @@ public sealed class FileSystemExportSink(IOptions<ExportSinkOptions> options, IL
 public sealed class ExportSinkOptions
 {
     /// <summary>
-    /// Absoluter oder relativer Pfad zum Staging-Verzeichnis.
-    /// Das Gateway-System muss Leserecht auf diesen Pfad haben; der Dienst benötigt Schreibrecht.
+    /// Absolute or relative path to the staging directory.
+    /// The gateway system needs read access to this path; the service needs write access.
     /// </summary>
     public string StagingPath { get; set; } = string.Empty;
 }

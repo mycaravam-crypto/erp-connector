@@ -13,11 +13,11 @@ using Microsoft.Extensions.Options;
 namespace Connector.Infrastructure;
 
 /// <summary>
-/// Täglicher Hintergrunddienst: führt die Export-Pipeline einmal pro Tag zur konfigurierten Zeit aus.
+/// Daily background service: runs the export pipeline once per day at the configured time.
 /// </summary>
 /// <remarks>
-/// Fehler beim Export unterdrücken keine Ausnahme — der Run wird als Failed geloggt.
-/// Der nächste Vollsnapshot heilt den Ausfall idempotent, daher kein Retry-Loop.
+/// An export failure is not swallowed — the run is logged as Failed. The next full snapshot
+/// idempotently recovers from the outage, so there is no retry loop.
 /// </remarks>
 public sealed class ExportWorker(
     IServiceScopeFactory scopeFactory,

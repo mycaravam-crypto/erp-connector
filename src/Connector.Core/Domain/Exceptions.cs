@@ -1,6 +1,6 @@
 namespace Connector.Core.Domain;
 
-/// <summary>Staging-Pfad nicht schreibbar oder Datei-Operation fehlgeschlagen.</summary>
+/// <summary>The staging path is not writable or a file operation failed.</summary>
 public sealed class ExportSinkException : Exception
 {
     public ExportSinkException() { }
