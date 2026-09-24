@@ -35,8 +35,8 @@ CREATE TABLE systemconfiguration (
     commission_date date,
     technician_name character varying(100),
     storage_location character varying(200),
-    -- Dedicated to the Phase 17 Slice 5 AllowedWritableColumns validator (import-definitions.md §6 Open
-    -- Decision #9): a real GENERATED ALWAYS AS ... STORED column so its "identity/computed column"
+    -- Dedicated to the AllowedWritableColumns save-time validator tests: a real GENERATED ALWAYS AS ...
+    -- STORED column so its "identity/computed column"
     -- rejection branch has an actual computed column to reject, not just id's PK/DEFAULT. Derives
     -- automatically from `status` for both the seed rows above and any row inserted later, so it never
     -- needs its own INSERT statement.
@@ -80,7 +80,7 @@ INSERT INTO maintenance_plan (id, system_configuration_id, status, allocation_ch
     ('77777777-7777-7777-7777-777777777777', '44444444-4444-4444-4444-444444444444', 'scheduled', 'AC-2024-011'),
     ('88888888-8888-8888-8888-888888888888', '55555555-5555-5555-5555-555555555555', 'scheduled', 'AC-2024-012');
 
--- Dedicated to ImportRunReleaserPostgresTests (Phase 17 Slice 3): unlike every row above, which
+-- Dedicated to ImportRunReleaserPostgresTests: unlike every row above, which
 -- ImportNodeWalkerPostgresTests only ever reads, these rows get actually written to by the commit-path
 -- tests. Kept separate so a commit test's write can never change what a read-only walker test expects to
 -- find; each commit test restores its row's value in a `finally` block regardless, so re-running the suite
@@ -93,8 +93,8 @@ INSERT INTO systemconfiguration (id, serial, article_id, status, commission_date
 INSERT INTO articlestructure (id, parent_id, child_id) VALUES
     ('99999999-9999-9999-9999-999999999999', '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333');
 
--- Dedicated to ExportTreeRegressionTests (Arbeitsauftrag 6: nested export records assembled in C# from plain
--- rows). Read-only for every test. Covers, in one small graph: several root rows, a 1:1 lookup (order →
+-- Dedicated to ExportTreeRegressionTests (nested export records assembled in C# from plain rows).
+-- Read-only for every test. Covers, in one small graph: several root rows, a 1:1 lookup (order →
 -- customer) including a shared parent (orders 100 and 101 → customer 1) and a NULL foreign key (order 102 →
 -- no customer), a 1:n relation (order → lines) including an order with none (101), a second nesting level
 -- (line → tags) including a line with none (1001), and NULL values in otherwise-populated columns.

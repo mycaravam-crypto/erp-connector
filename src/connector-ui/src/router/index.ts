@@ -46,7 +46,7 @@ const router = createRouter({
 
 // Routes that require a stored ERP connection before they're useful. The dashboard is the / landing
 // page once a connection exists — with no connection yet, it has nothing to show, so first-run visitors
-// still land on Connect (Step 1) same as before this route existed.
+// land on Connect (Step 1).
 const REQUIRES_CONNECTION = new Set(['source-schema', 'export-schema', 'dashboard'])
 
 function needsLogin(routeName: unknown): boolean {

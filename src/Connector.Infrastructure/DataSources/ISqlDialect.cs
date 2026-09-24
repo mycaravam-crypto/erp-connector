@@ -4,7 +4,7 @@ namespace Connector.Infrastructure.DataSources;
 
 /// <summary>
 /// The SQL syntax that differs between relational backends, as far as this codebase actually uses it — not a
-/// general-purpose SQL abstraction (Arbeitsauftrag 5: no SQL framework, no AST, no ORM). Generic query
+/// general-purpose SQL abstraction (no SQL framework, no AST, no ORM). Generic query
 /// builders (<see cref="DynamicExportService"/>, <see cref="ImportNodeWalker"/>, <see cref="ImportRunReleaser"/>)
 /// assemble statements from plain ANSI keywords (<c>SELECT</c>/<c>FROM</c>/<c>WHERE</c>/<c>AND</c>/<c>AS</c>)
 /// plus these members; everything else is a dialect's job. Implementations:

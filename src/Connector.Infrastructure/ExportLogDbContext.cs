@@ -18,9 +18,8 @@ public static class SettingsKeys
 }
 
 /// <summary>
-/// Typed find/deserialize/upsert helpers over <see cref="ExportLogDbContext.AppSettings"/>, replacing the
-/// repeated find-null-check-deserialize (read) and find-null-check-add-or-mutate-save (write) pattern that
-/// used to be hand-rolled at every call site.
+/// Typed find/deserialize/upsert helpers over <see cref="ExportLogDbContext.AppSettings"/>: one place for the
+/// find-null-check-deserialize (read) and find-null-check-add-or-mutate-save (write) pattern.
 /// </summary>
 public static class AppSettingsStore
 {
@@ -59,7 +58,7 @@ public sealed class ExportLogDbContext(
     IDataProtectionProvider dataProtectionProvider,
     // Optional — resolved from DI in production (see Program.cs's AddDbContext<ExportLogDbContext>) but
     // defaulted rather than required so every test that constructs this context directly with `new` (there's
-    // no DI container in play there) keeps compiling unchanged; SR-11's plaintext-fallback warning just goes
+    // no DI container in play there) keeps compiling unchanged; the converter's plaintext-fallback warning just goes
     // nowhere for those instead of failing to construct.
     ILogger<EncryptedStringConverter>? encryptedStringConverterLogger = null
 ) : DbContext(options)
@@ -72,14 +71,14 @@ public sealed class ExportLogDbContext(
     /// <summary>Audit trail — one row per significant action performed by an authenticated user.</summary>
     public DbSet<AuditLogEntry> AuditLog => Set<AuditLogEntry>();
 
-    /// <summary>Phase 14 export definitions — the generic, tree-based replacement for the legacy
+    /// <summary>Export definitions — the generic, tree-based replacement for the legacy
     /// single mapping + presets.</summary>
     public DbSet<ExportDefinitionEntity> ExportDefinitions => Set<ExportDefinitionEntity>();
 
     /// <summary>Execution history for <see cref="ExportDefinitions"/> — one row per run.</summary>
     public DbSet<ExportDefinitionRunEntity> ExportDefinitionRuns => Set<ExportDefinitionRunEntity>();
 
-    /// <summary>Phase 17 import definitions — the write-side counterpart to <see cref="ExportDefinitions"/>.</summary>
+    /// <summary>Import definitions — the write-side counterpart to <see cref="ExportDefinitions"/>.</summary>
     public DbSet<ImportDefinitionEntity> ImportDefinitions => Set<ImportDefinitionEntity>();
 
     /// <summary>Execution history for <see cref="ImportDefinitions"/> — one row per run.</summary>
@@ -95,7 +94,7 @@ public sealed class ExportLogDbContext(
             e.HasIndex(r => r.SequenceNo).IsUnique();
             // Status doubles as the optimistic-concurrency token: EF includes its as-loaded value in
             // every UPDATE's WHERE clause, so two concurrent release/skip/deliver calls against the same
-            // row can't both silently win a check-then-act race (security audit finding) — the loser's
+            // row can't both silently win a check-then-act race — the loser's
             // SaveChangesAsync throws DbUpdateConcurrencyException instead of overwriting the winner's
             // write. No schema change: this is purely how EF shapes the UPDATE statement.
             e.Property(r => r.Status).IsConcurrencyToken();
@@ -149,7 +148,7 @@ public sealed class ExportLogDbContext(
             e.HasKey(r => r.Id);
             e.HasIndex(r => r.ImportDefinitionId);
             // Same source file staged twice for the same definition is a no-op, not a second pending
-            // review (Open Decision #13) — enforced at the database level so a race between two worker
+            // review — enforced at the database level so a race between two worker
             // polls can't both insert it.
             e.HasIndex(r => new { r.ImportDefinitionId, r.Sha256Checksum }).IsUnique();
             // Same optimistic-concurrency treatment as ExportRunEntity.Status — see that property's comment.

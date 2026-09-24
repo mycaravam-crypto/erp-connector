@@ -6,7 +6,7 @@ import type { ExportNode } from '@/api/exportDefinitions'
 // tree builder: it edits SourceField/RelatedTable/JoinKey/SourceJoinKey and the Enabled flag on the
 // existing tree in place, but never adds, removes, or re-kinds a node. That's enough to point a
 // migrated definition at real production table/column names; building/restructuring the tree is
-// export-definitions-2.0.md's still-unbuilt Slice 5 tree editor, not this recovery form.
+// ExportNodeTreeEditor.vue's job, not this recovery form's.
 defineOptions({ name: 'ExportNodeFieldEditor' })
 
 defineProps<{

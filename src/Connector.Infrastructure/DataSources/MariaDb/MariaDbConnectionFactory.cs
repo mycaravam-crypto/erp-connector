@@ -7,7 +7,7 @@ namespace Connector.Infrastructure.DataSources.MariaDb;
 /// Builds and opens <see cref="MySqlConnection"/>s for a <see cref="DataSourceType.MariaDb"/>
 /// <see cref="DataSourceConfig"/>. Every field is set as a typed builder property, never interpolated into the
 /// connection-string text, so no value (e.g. a password containing <c>;Server=evil</c>) can add or override a
-/// key — the same SR-02 rule as <c>PostgreSqlDataSourceProvider.BuildConnectionString</c>.
+/// key — the same rule as <c>PostgreSqlDataSourceProvider.BuildConnectionString</c>.
 /// </summary>
 public static class MariaDbConnectionFactory
 {

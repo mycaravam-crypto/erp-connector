@@ -7,9 +7,9 @@ namespace Connector.Integration.Tests;
 
 /// <summary>
 /// Coverage for the optimistic-concurrency guard on <see cref="ExportRunEntity.Status"/> and
-/// <see cref="ImportRunEntity.Status"/> (security audit finding: two concurrent release/skip/deliver
-/// requests against the same run could both pass their "is this still Pending?" check before either
-/// committed, letting the second silently overwrite the first's Operator/Approver/ReleasedAt). Each test
+/// <see cref="ImportRunEntity.Status"/>: two concurrent release/skip/deliver requests against the same run
+/// must not both pass their "is this still Pending?" check and let the second silently overwrite the
+/// first's Operator/Approver/ReleasedAt. Each test
 /// uses two separate <see cref="ExportLogDbContext"/> instances sharing one in-memory Sqlite connection —
 /// mirroring two concurrent HTTP requests, each with its own scoped DbContext, exactly as ASP.NET Core
 /// would hand out in production.

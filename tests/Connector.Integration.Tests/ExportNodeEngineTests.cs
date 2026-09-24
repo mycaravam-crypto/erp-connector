@@ -7,7 +7,7 @@ using Connector.Infrastructure.DataSources.PostgreSql;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Pure-C# coverage for the Phase 14 <see cref="ExportNode"/> engine's non-SQL pieces: column-path
+/// Pure-C# coverage for the <see cref="ExportNode"/> engine's non-SQL pieces: column-path
 /// derivation, arbitrary-depth CSV/Excel flattening, and field-mapping transforms. All of this operates on
 /// hand-built <see cref="JsonObject"/> trees (the shape <see cref="DynamicExportService.ExecuteExportNodeQueryAsync"/>
 /// would have produced from Postgres), so unlike <see cref="ExportNodeQueryPostgresTests"/> it needs no
@@ -432,7 +432,7 @@ public sealed class ExportNodeEngineTests
         Assert.Equal("Acme", manufacturer.GetProperty("name").GetString());
     }
 
-    // knowledge/pipeline/import-mapping-presets.md §3.2 (Slice 2).
+    // JSON output carries the optional provenance key when one is passed.
     [Fact]
     public void JsonExportFormatWriter_Write_WithProvenance_EmitsProvenanceKey()
     {
@@ -495,7 +495,7 @@ public sealed class ExportNodeEngineTests
         Assert.Contains("Austin, Dallas", text);
     }
 
-    // knowledge/pipeline/import-mapping-presets.md §3.2/§5 Non-Goals: CSV/Excel have no natural home for
+    // CSV/Excel have no natural home for
     // structured metadata and stay untouched — a passed-in provenance is silently ignored, never an error.
     [Fact]
     public void CsvExportFormatWriter_Write_IgnoresProvenance()
@@ -545,7 +545,7 @@ public sealed class ExportNodeEngineTests
         Assert.Equal("Austin, Dallas", ws.Cell(3, 2).GetString());
     }
 
-    // knowledge/pipeline/import-mapping-presets.md §3.2/§5 Non-Goals: CSV/Excel have no natural home for
+    // CSV/Excel have no natural home for
     // structured metadata and stay untouched — a passed-in provenance is silently ignored, never an error.
     // Unlike the CSV/JSON writers, xlsx isn't byte-for-byte reproducible between two calls (the OOXML
     // container embeds its own generation timestamp), so this compares cell contents instead of raw bytes.

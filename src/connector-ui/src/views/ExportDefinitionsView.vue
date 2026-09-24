@@ -25,8 +25,8 @@ const definitions = ref<ExportDefinitionSummary[]>([])
 const loading = ref(true)
 const loadError = ref<string | null>(null)
 
-// Latest run's status per definition id, fetched alongside the list — the "last run status" column
-// export-definitions-2.0.md §7 calls for. Absent (undefined) means "not fetched/no runs yet",
+// Latest run's status per definition id, fetched alongside the list for the "last run status"
+// column. Absent (undefined) means "not fetched/no runs yet",
 // distinct from an empty array's "definitely no runs".
 const lastRunStatus = ref<Record<number, string | null>>({})
 

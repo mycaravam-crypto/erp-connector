@@ -3,7 +3,7 @@ using Connector.Infrastructure.DataSources;
 
 namespace Connector.Integration.Tests;
 
-/// <summary><see cref="MeteredDataSourceProvider"/> (Arbeitsauftrag 13): counts queries and rows, forwards
+/// <summary><see cref="MeteredDataSourceProvider"/>: counts queries and rows, forwards
 /// everything else.</summary>
 public sealed class MeteredDataSourceProviderTests
 {

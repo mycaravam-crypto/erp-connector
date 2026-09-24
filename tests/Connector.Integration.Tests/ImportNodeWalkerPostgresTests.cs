@@ -7,8 +7,8 @@ using Npgsql;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Real-Postgres coverage for <see cref="ImportNodeWalker.WalkAsync"/> — Slice 2 of Phase 17
-/// (import-definitions.md), the read-only diff-only counterpart to
+/// Real-Postgres coverage for <see cref="ImportNodeWalker.WalkAsync"/> — the read-only, diff-only
+/// counterpart to
 /// <see cref="DynamicExportServiceNestedJsonPostgresTests"/>. Uses the same local <c>testdb</c> fixture and the
 /// same "no-op instead of fail" convention when it isn't running (see that class's doc comment for why:
 /// this repo's xunit version, 2.9.2, predates <c>Assert.Skip</c>).
@@ -26,7 +26,7 @@ public sealed class ImportNodeWalkerPostgresTests
     private const string NorthbridgeManufacturerId = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"; // has 0 addresses
     private const string UnknownCiId = "ffffffff-ffff-ffff-ffff-ffffffffffff"; // matches no row at all
 
-    // Wraps a bare JSON array of records in the canonical ImportEnvelope (Open Decision #14) every test needs
+    // Wraps a bare JSON array of records in the canonical ImportEnvelope every test needs
     // — schemaVersion first, then records — so individual tests only spell out the part they're actually
     // exercising.
     private static string Envelope(string recordsArrayJson) =>
@@ -169,7 +169,7 @@ public sealed class ImportNodeWalkerPostgresTests
         Assert.Empty(row.Fields);
     }
 
-    // ── ImportEnvelope / schemaVersion gate (Open Decision #14) ──────────────────
+    // ── ImportEnvelope / schemaVersion gate ──────────────────────────────────────
 
     [Fact]
     public async Task WalkAsync_BareArrayWithNoEnvelope_ThrowsValidationException()
@@ -180,7 +180,7 @@ public sealed class ImportNodeWalkerPostgresTests
 
         var root = SystemConfigurationRoot();
         var definition = MakeDefinition("systemconfiguration", "id", ["status"]);
-        // No longer accepted as of Open Decision #14 — every inbound file must be an ImportEnvelope object.
+        // Not accepted — every inbound file must be an ImportEnvelope object.
         var json = $$"""[{ "ciId": "{{ActiveCiId}}", "confirmationStatus": "confirmed" }]""";
 
         await Assert.ThrowsAsync<ImportValidationException>(() =>
@@ -249,12 +249,11 @@ public sealed class ImportNodeWalkerPostgresTests
         );
     }
 
-    // ── ImportEnvelope provenance (Slice 3, import-mapping-presets.md §3.3) ──────
+    // ── ImportEnvelope provenance ────────────────────────────────────────────────
 
-    // Proves the single most important guardrail in that slice: an inbound file's optional "provenance"
-    // block is purely advisory and must have zero effect on staging/matching/commit — the walker only
-    // ever reads schemaVersion/records (ParseRecords' own doc comment), so this is a regression test
-    // against that invariant ever accidentally changing, not a test of new walker behavior.
+    // An inbound file's optional "provenance" block is purely advisory and must have zero effect on
+    // staging/matching/commit — the walker only ever reads schemaVersion/records (ParseRecords' own doc
+    // comment). Regression test for that invariant.
     [Fact]
     public async Task WalkAsync_ProvenanceBlockOnEnvelope_HasNoEffectOnTheWalk()
     {

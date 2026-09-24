@@ -3,7 +3,7 @@ using Connector.Core.DataSources;
 namespace Connector.Infrastructure.DataSources;
 
 /// <summary>
-/// The production transport rule (Arbeitsauftrag 11): <c>POST /api/connection</c> refuses a config its provider
+/// The production transport rule: <c>POST /api/connection</c> refuses a config its provider
 /// doesn't report as always encrypted (<see cref="Connector.Core.DataSources.IDataSourceProvider.IsAlwaysEncrypted"/>)
 /// unless <c>DataSources:AllowUnencryptedConnections</c> is explicitly <c>true</c>.
 /// </summary>

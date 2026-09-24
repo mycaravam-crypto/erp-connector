@@ -7,7 +7,7 @@ using Connector.Infrastructure.DataSources.ServiceNow;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Each provider's own config rules (Arbeitsauftrag 14 moved them out of <c>ConnectionEndpoints</c>):
+/// Each provider's own config rules:
 /// <see cref="IDataSourceProvider.ValidateConfig"/> (required fields per source type, the shared TLS-mode vocabulary,
 /// ServiceNow's HTTPS instance URL), <see cref="IDataSourceProvider.TargetHost"/> and
 /// <see cref="IDataSourceProvider.IsAlwaysEncrypted"/>. Pure unit tests, no connection is opened.

@@ -7,7 +7,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace Connector.Integration.Tests;
 
-/// <summary>Arbeitsauftrag 11 transport security: when an unencrypted config is refused (production, unless
+/// <summary>Transport security: when an unencrypted config is refused (production, unless
 /// explicitly allowed). Which configs are always encrypted is each provider's call — see
 /// <see cref="DataSourceConfigValidationTests"/>. Pure unit tests.</summary>
 public sealed class TransportSecurityTests

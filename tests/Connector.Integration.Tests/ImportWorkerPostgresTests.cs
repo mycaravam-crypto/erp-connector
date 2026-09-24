@@ -14,8 +14,7 @@ using Microsoft.Extensions.Options;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Real-Postgres, real-filesystem coverage for <see cref="ImportWorker"/> — Slice 4 of Phase 17
-/// (import-definitions.md §3 steps 1-2, §5), the folder-watcher counterpart to
+/// Real-Postgres, real-filesystem coverage for <see cref="ImportWorker"/> — the folder-watcher counterpart to
 /// <see cref="ImportNodeWalkerPostgresTests"/>'s read-only walk coverage and
 /// <see cref="ImportRunReleaserPostgresTests"/>'s commit-path coverage. Uses the same local <c>testdb</c>
 /// fixture and the same "no-op instead of fail" convention when it isn't running (see
@@ -176,7 +175,7 @@ public sealed class ImportWorkerPostgresTests
             Assert.Contains("systemconfiguration", run.DefinitionSnapshotJson);
             Assert.NotNull(run.PlanJson);
             Assert.Null(run.FinishedAt);
-            // SR-05: staging must pin the connection identity it ran against so a later release can
+            // Staging must pin the connection identity it ran against so a later release can
             // verify it's still committing to the same target.
             Assert.Equal(
                 DynamicExportService.ConnectionFingerprint(ErpTestFixture.Config),
@@ -218,7 +217,7 @@ public sealed class ImportWorkerPostgresTests
             Assert.Single(db.ImportRuns);
 
             // Same bytes, different filename — a mistaken or re-triggered re-drop of the identical vendor
-            // file, exactly the scenario Open Decision #13's (ImportDefinitionId, Sha256Checksum) uniqueness
+            // file, exactly the scenario the (ImportDefinitionId, Sha256Checksum) uniqueness
             // constraint targets.
             DropFile(inboundDir.FullName, "vendor-drop-1-retry.json", content);
             await worker.PollOnceAsync(CancellationToken.None);

@@ -17,15 +17,14 @@ using Microsoft.Extensions.Options;
 namespace Connector.Infrastructure;
 
 /// <summary>
-/// Slice 4 of Phase 17 (import-definitions.md §3 steps 1-2, §5): a sibling of <see cref="ExportWorker"/>,
-/// polling an <c>inbound/</c> staging folder instead of writing to one. Every vendor-supplied file dropped
-/// there is manifest-checked, idempotency-checked against <c>(ImportDefinitionId, Sha256Checksum)</c> (Open
-/// Decision #13), walked by <see cref="ImportNodeWalker"/> (Slice 2) against the <c>ImportEnvelope</c>
-/// (Open Decision #14) — the <c>definition</c> field says which saved <see cref="ImportDefinitionEntity"/> to
+/// A sibling of <see cref="ExportWorker"/> that polls an <c>inbound/</c> staging folder instead of writing to
+/// one. Every vendor-supplied file dropped there is manifest-checked, idempotency-checked against
+/// <c>(ImportDefinitionId, Sha256Checksum)</c>, walked by <see cref="ImportNodeWalker"/> against the
+/// <c>ImportEnvelope</c> — the <c>definition</c> field says which saved <see cref="ImportDefinitionEntity"/> to
 /// use — and staged as an <see cref="ImportRunEntity"/> at <see cref="ImportRunStatus.PendingReview"/>, with
-/// <see cref="ImportDefinitionEntity"/> frozen onto it as <see cref="ImportRunEntity.DefinitionSnapshotJson"/>
-/// (Open Decision #10). This worker never writes to the ERP itself — that's <see cref="ImportRunReleaser"/>
-/// (Slice 3)'s job, once a human approves the staged plan.
+/// <see cref="ImportDefinitionEntity"/> frozen onto it as <see cref="ImportRunEntity.DefinitionSnapshotJson"/>.
+/// This worker never writes to the ERP itself — that's <see cref="ImportRunReleaser"/>'s job, once a human
+/// approves the staged plan.
 /// </summary>
 public sealed class ImportWorker(
     IServiceScopeFactory scopeFactory,
@@ -201,7 +200,7 @@ public sealed class ImportWorker(
         {
             await RejectAsync(
                 "ImportEnvelope is missing a \"definition\" property naming which saved import definition "
-                    + "this file targets (Open Decision #14)."
+                    + "this file targets."
             );
             return;
         }
@@ -303,7 +302,7 @@ public sealed class ImportWorker(
         catch (DbUpdateException ex)
         {
             // A concurrent staging of this exact (ImportDefinitionId, Sha256Checksum) pair between the
-            // pre-check above and this insert — the unique constraint (Open Decision #13) catches it.
+            // pre-check above and this insert — the unique constraint catches it.
             // Treated the same as the pre-check duplicate case rather than crashing the poll.
             logger.LogInformation(
                 ex,
@@ -333,8 +332,8 @@ public sealed class ImportWorker(
         MoveFiles(dataFilePath, manifestPath, processedDir);
     }
 
-    /// <summary>Reads the <c>definition</c> property off the top-level <c>ImportEnvelope</c> object (Open
-    /// Decision #14) — the only envelope field this worker needs beyond what <see cref="ImportNodeWalker"/>
+    /// <summary>Reads the <c>definition</c> property off the top-level <c>ImportEnvelope</c> object — the
+    /// only envelope field this worker needs beyond what <see cref="ImportNodeWalker"/>
     /// already reads (<c>schemaVersion</c>/<c>records</c>) — without otherwise validating the envelope's
     /// shape; <see cref="ImportNodeWalker.WalkAsync"/> is what actually enforces <c>schemaVersion</c> and
     /// <c>records</c>. Pure and DB-free so it's unit-testable without a database or filesystem. Returns null
@@ -369,7 +368,7 @@ public sealed class ImportWorker(
     }
 
     /// <summary>Maps an existing <see cref="ImportRunEntity"/>'s <see cref="ImportRunStatus"/> to the
-    /// human-readable duplicate classification Open Decision #13 calls for. Pure so it's unit-testable
+    /// human-readable duplicate classification. Pure so it's unit-testable
     /// without a database.</summary>
     public static string ClassifyDuplicate(string existingRunStatus) =>
         existingRunStatus switch

@@ -6,7 +6,7 @@ using NpgsqlTypes;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Pure unit tests (no DB) for <see cref="PostgreSqlQueryCompiler"/> — Arbeitsauftrag 4's required cases
+/// Pure unit tests (no DB) for <see cref="PostgreSqlQueryCompiler"/> — the core cases
 /// (simple SELECT, projection, multiple conditions, null check, IN, limit, unknown field, unknown table) plus
 /// the join/LIKE/parameter-typing rules the compiler adds on top. Live execution of compiled queries is
 /// covered by <see cref="PostgreSqlDataSourceProviderTests"/>.

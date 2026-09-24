@@ -4,9 +4,7 @@ namespace Connector.Infrastructure;
 /// Minimal 5-field cron matcher (minute hour day-of-month month day-of-week, UTC) for
 /// <see cref="ExportDefinitionEntity.Schedule"/>. Not a general cron library: no seconds field, no
 /// `L`/`W`/`#` extensions — only what the UI's Manual/Hourly/Daily/Weekly presets plus a free-text
-/// advanced field (export-definitions-2.0.md §6) can produce. Deliberately new rather than a NuGet
-/// dependency — the matching logic is a few dozen lines and pulling in a scheduling library for it
-/// would violate the "minimal code" directive (§0).
+/// advanced field can produce. The matching logic is a few dozen lines, so no scheduling library is used.
 /// </summary>
 public static class CronSchedule
 {

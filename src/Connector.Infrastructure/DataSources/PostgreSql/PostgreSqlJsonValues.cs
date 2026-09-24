@@ -7,7 +7,7 @@ namespace Connector.Infrastructure.DataSources.PostgreSql;
 /// <summary>
 /// Turns a PostgreSQL value in its text output format into the JSON value PostgreSQL's own <c>to_json</c> would
 /// produce for it — so the export tree engine can assemble JSON in C# that is identical to what the database
-/// used to build with <c>json_build_object</c>. Follows <c>to_json</c>'s type categories:
+/// would build with <c>json_build_object</c>. Follows <c>to_json</c>'s type categories:
 /// <list type="bullet">
 /// <item><c>smallint</c>/<c>integer</c>/<c>bigint</c>/<c>real</c>/<c>double precision</c>/<c>numeric</c> →
 /// a JSON number with the exact same digits (<c>NaN</c>/<c>Infinity</c> stay strings, as in Postgres);</item>

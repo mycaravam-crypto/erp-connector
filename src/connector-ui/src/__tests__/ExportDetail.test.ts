@@ -98,7 +98,7 @@ describe('ExportDetail', () => {
     expect(w.find('.release-dialog').exists()).toBe(false)
   })
 
-  // ── Sequence gap warning (Phase 6.3) ──────────────────────────────────────
+  // ── Sequence gap warning ──────────────────────────────────────────────────
 
   it('shows gap warning banner when sequenceGapWarning is set', async () => {
     vi.spyOn(exportsApi, 'getExport').mockResolvedValueOnce(GAP_WARNING)
@@ -115,7 +115,7 @@ describe('ExportDetail', () => {
     expect(w.find('.gap-warning').exists()).toBe(false)
   })
 
-  // ── Delivery acknowledgement (Phase 6.4) ──────────────────────────────────
+  // ── Delivery acknowledgement ──────────────────────────────────────────────
 
   it('shows delivery form for Released runs not yet delivered', async () => {
     vi.spyOn(exportsApi, 'getExport').mockResolvedValueOnce(RELEASED)
@@ -191,7 +191,7 @@ describe('ExportDetail', () => {
     expect(w.find('.delivery-done').exists()).toBe(true)
   })
 
-  // ── Skip run (Phase 8) ────────────────────────────────────────────────────
+  // ── Skip run ──────────────────────────────────────────────────────────────
 
   it('shows skip form for Pending runs', async () => {
     vi.spyOn(exportsApi, 'getExport').mockResolvedValueOnce(PENDING)

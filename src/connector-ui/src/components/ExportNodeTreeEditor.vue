@@ -9,15 +9,13 @@ import ExportNodeMappingEditor from '@/components/ExportNodeMappingEditor.vue'
 import { X } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
 
-// The Slice 5 tree builder (export-definitions-2.0.md §7): the single recursive editor for every
-// ExportNode kind ("scalar-field" | "object" | "array"), in every output format — no more
-// JSON-only gating, no more read-the-identifiers-only recovery form (see ExportNodeFieldEditor.vue,
-// which this supersedes as the definition editor's tree UI once a definition has real columns to
-// build from). Structurally mirrors NestedGroupEditor.vue (the legacy MappingNestedGroup tree
-// editor this generalizes the *idea* of) but is kept as its own component: the two operate on
-// different, incompatible tree shapes (MappingNestedGroup's flat per-group `fields` list vs.
-// ExportNode's uniform recursive `children`), and the legacy `/export-schema` flow this doc's
-// Non-Goals section requires stay untouched is the one component NestedGroupEditor.vue serves.
+// The export definition tree builder: the single recursive editor for every ExportNode kind
+// ("scalar-field" | "object" | "array"), in every output format. Used as the definition editor's tree
+// UI once a definition has real columns to build from (otherwise see ExportNodeFieldEditor.vue).
+// Structurally mirrors NestedGroupEditor.vue (the legacy MappingNestedGroup tree editor) but is kept
+// as its own component: the two operate on different, incompatible tree shapes (MappingNestedGroup's
+// flat per-group `fields` list vs. ExportNode's uniform recursive `children`), and
+// NestedGroupEditor.vue serves only the legacy `/export-schema` flow.
 defineOptions({ name: 'ExportNodeTreeEditor' })
 
 const props = defineProps<{
@@ -78,7 +76,7 @@ function removeNode(idx: number) {
 // Picking a related table replaces stale children (they'd refer to the previous table's columns)
 // with one disabled scalar-field node per column — the same "pick columns via checkbox" UX
 // FieldPickerTable.vue gives the legacy editor, so a non-programmer never has to hand-type a
-// SourceField (export-definitions-2.0.md §8 Usability).
+// SourceField.
 function onRelatedTableChanged(node: ExportNode) {
   node.children = columnsAsDisabledScalarFields(node.relatedTable, props.availableTables)
   emit('dirty')

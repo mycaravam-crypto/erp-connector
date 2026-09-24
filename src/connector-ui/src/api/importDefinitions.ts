@@ -3,7 +3,7 @@ import type { FieldMapping } from './exportDefinitions'
 
 // Mirrors Connector.Core.DynamicImport.ImportNode (see ImportNode.cs) — the write-side counterpart of
 // ExportNode. Kind is "root" | "scalar-field" | "object" | "array"; OnMissingChild is "insert" | "reject"
-// (the Slice 5 validator rejects "insert" outright for v1, per Open Decision #15).
+// (the save-time validator rejects "insert" outright).
 export interface ImportNode {
   sourceKey: string
   kind: string
@@ -35,7 +35,7 @@ export interface ImportDefinition extends ImportDefinitionSummary {
   rootMatchColumn: string
   rootNode: ImportNode
   allowedWritableColumns: string[]
-  // knowledge/pipeline/import-mapping-presets.md §3.1 — set together when this definition was created from
+  // Set together when this definition was created from
   // (or manually paired with) a provenance-tagged ExportDefinition; null otherwise (the default).
   integrationKey: string | null
   contractVersion: number | null
@@ -54,7 +54,7 @@ export interface ImportDefinitionRequest {
   contractVersion?: number | null
 }
 
-/** One best-effort candidate field alongside the deterministic root prefill (§3.4 step 3) — unchecked by
+/** One best-effort candidate field alongside the deterministic root prefill — unchecked by
  * default; the operator must explicitly enable it before it can ever be saved as writable. */
 export interface ImportMappingSuggestionCandidateField {
   sourceKey: string
@@ -94,7 +94,7 @@ export interface ImportPlanOperation {
   newValue: string | null
 }
 
-/** Response of POST /api/import-definitions/{id}/preview — the computed ImportPlan (Open Decision #11):
+/** Response of POST /api/import-definitions/{id}/preview — the computed ImportPlan:
  * counts plus the structured operation list for matched/changed rows, no ImportRunEntity written. */
 export interface ImportPlan {
   recordCount: number
@@ -236,7 +236,7 @@ export async function setImportDefinitionEnabled(id: number, enabled: boolean): 
 }
 
 /** Parses + walks + plans a sample inbound file against a saved definition — no ImportRunEntity is
- * created and nothing is written to the ERP (Slice 4's folder watcher is the real trigger). */
+ * created and nothing is written to the ERP. */
 export async function previewImportDefinition(id: number, inboundJson: string): Promise<ApiResult<ImportPlan>> {
   return sendJsonForResult<ImportPlan>(`/api/import-definitions/${id}/preview`, 'POST', { inboundJson })
 }
@@ -288,7 +288,7 @@ export async function getImportRun(id: number): Promise<ImportRunDetail | null> 
   return res.json() as Promise<ImportRunDetail>
 }
 
-/** Four-eyes commit: applies every matched/changed row still valid at commit time (Open Decision #12). */
+/** Four-eyes commit: applies every matched/changed row still valid at commit time. */
 export async function releaseImportRun(
   id: number,
   approver: string,

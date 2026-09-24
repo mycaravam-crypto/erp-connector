@@ -37,7 +37,7 @@ builder.Host.UseSerilog(
             .ReadFrom.Configuration(ctx.Configuration)
             .ReadFrom.Services(services);
 
-        // Every sink formats through SanitizingLogFormatter, so no log line carries a credential (Arbeitsauftrag 11).
+        // Every sink formats through SanitizingLogFormatter, so no log line carries a credential.
         cfg.WriteTo.Console(
             new SanitizingLogFormatter(
                 ctx.HostingEnvironment.IsProduction()
@@ -90,11 +90,10 @@ builder
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
         };
-        // Security-review finding SR-16: a signature- and expiry-valid JWT could still be one this user
-        // has explicitly revoked (POST /api/auth/revoke-my-sessions) — check its issued-at claim against
-        // that user's stored revocation cutover on every request. A token minted before this claim existed
-        // (already outstanding when this shipped) has no "iat" claim at all; that's treated as "nothing to
-        // check," not a failure, so this can't itself log out every already-logged-in session on deploy.
+        // A signature- and expiry-valid JWT could still be one this user has explicitly revoked
+        // (POST /api/auth/revoke-my-sessions) — check its issued-at claim against that user's stored
+        // revocation cutover on every request. A token without an "iat" claim is treated as "nothing to
+        // check," not a failure.
         opts.Events = new JwtBearerEvents
         {
             OnTokenValidated = async context =>
@@ -195,8 +194,8 @@ builder.Services.Configure<ImportWorkerOptions>(builder.Configuration.GetSection
 // Backs EncryptedStringConverter (ExportLogDbContext.OnModelCreating), which encrypts the AppSetting.Value
 // column at rest — it holds the ERP connection config, password included. Keys are persisted to disk on
 // their own volume, separate from the SQLite database (see docker-compose.yml's connector-dpkeys volume
-// and appsettings.Production.json's DataProtection comment — SR-11: co-locating them meant a single
-// volume backup/snapshot yielded both the ciphertext and the key to decrypt it), so they survive container
+// and appsettings.Production.json's DataProtection comment — a single volume backup/snapshot must never
+// yield both the ciphertext and the key to decrypt it), so they survive container
 // restarts/redeploys; losing this directory makes every previously-stored setting unrecoverable, same
 // operational tradeoff as losing Auth:JwtSecret.
 var dataProtectionKeysDirectory = builder.Configuration["DataProtection:KeysDirectory"] ?? "dp-keys";
@@ -272,7 +271,7 @@ using (var scope = app.Services.CreateScope())
     await exportLogDb.Database.MigrateAsync();
 
     // AuditLog may be missing on databases where InitialSchema was stamped via bootstrap
-    // before Phase 8 added the table. IF NOT EXISTS makes this a safe no-op on intact DBs.
+    // without the table. IF NOT EXISTS makes this a safe no-op on intact DBs.
     await exportLogDb.Database.ExecuteSqlRawAsync(
         """
         CREATE TABLE IF NOT EXISTS "AuditLog" (
@@ -289,7 +288,7 @@ using (var scope = app.Services.CreateScope())
     );
 
     // Encrypts AppSetting rows still stored as plaintext from before EncryptedStringConverter existed —
-    // otherwise they stay plaintext on disk and log the converter's SR-11 warning on every read. No-op once
+    // otherwise they stay plaintext on disk and log the converter's plaintext warning on every read. No-op once
     // every row is encrypted.
     await AppSettingEncryptionMigrator.EncryptPlaintextRowsAsync(
         exportLogDb,
@@ -297,7 +296,7 @@ using (var scope = app.Services.CreateScope())
         app.Logger
     );
 
-    // Arbeitsauftrag 11: a connection saved before the production TLS rule (or with the opt-out) keeps working,
+    // An unencrypted stored connection (saved before the production TLS rule, or with the opt-out) keeps working,
     // but is called out on every start so it doesn't go unnoticed.
     var storedConnection = await exportLogDb.GetSettingAsync<DataSourceConfig>(SettingsKeys.ErpConnection);
     var storedProvider = storedConnection is null
@@ -311,7 +310,7 @@ using (var scope = app.Services.CreateScope())
             storedConnection.SslMode ?? "Prefer (default)"
         );
 
-    // Phase 14: one-time conversion of the legacy single mapping + presets into ExportDefinition rows.
+    // One-time conversion of the legacy single mapping + presets into ExportDefinition rows.
     // No-ops once any ExportDefinition row exists.
     await ExportDefinitionMigrator.MigrateLegacyMappingsAsync(exportLogDb);
 }

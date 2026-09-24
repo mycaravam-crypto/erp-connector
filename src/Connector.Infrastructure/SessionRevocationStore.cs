@@ -1,18 +1,13 @@
 namespace Connector.Infrastructure;
 
 /// <summary>
-/// Security-review finding SR-16: JWTs previously had no revocation mechanism at all — a leaked token, or
-/// a user who wants to force out any other still-outstanding session of their own, had no effect until the
-/// token's own expiry (default 8h) passed. Stores, per username, the earliest a JWT for that user may have
-/// been issued to still be considered valid — every token carries its own issued-at claim (see
-/// <c>AuthEndpoints</c>), and <c>Program.cs</c>'s <c>OnTokenValidated</c> handler rejects any token issued
-/// before that cutover. Reuses the existing encrypted-at-rest <see cref="AppSettingEntity"/> key/value store
-/// rather than a dedicated table — this is a handful of timestamps, not data that needs its own schema.
+/// JWT revocation: stores, per username, the earliest a JWT for that user may have been issued to still be
+/// considered valid. Every token carries its own issued-at claim (see <c>AuthEndpoints</c>), and
+/// <c>Program.cs</c>'s <c>OnTokenValidated</c> handler rejects any token issued before that cutover. Backed by
+/// the encrypted-at-rest <see cref="AppSettingEntity"/> key/value store rather than a dedicated table.
 ///
-/// Deliberately self-service only for now (a user can revoke their own sessions, see
-/// <c>POST /api/auth/revoke-my-sessions</c>): a genuinely admin-triggered "kick this other user out" action
-/// needs a way to tell who's allowed to act on someone else's session, which doesn't exist yet — see SR-04
-/// (RBAC) tracking issue #134.
+/// Self-service only: a user can revoke their own sessions (<c>POST /api/auth/revoke-my-sessions</c>). There
+/// is no admin action to revoke another user's sessions, since there is no role model to authorize it.
 /// </summary>
 public static class SessionRevocationStore
 {

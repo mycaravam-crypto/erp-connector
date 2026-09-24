@@ -7,7 +7,7 @@ using Connector.Infrastructure.DataSources;
 namespace Connector.Infrastructure;
 
 /// <summary>
-/// Slice 3 of Phase 17 (import-definitions.md §3 steps 6-8, §5): commits an approved <see cref="ImportRunEntity"/>
+/// Commits an approved <see cref="ImportRunEntity"/>
 /// to the ERP under the same Operator/Approver four-eyes contract the export release flow already enforces —
 /// the write-side counterpart to <see cref="ExportDefinitionRunner"/>. <see cref="ReleaseAsync"/> and
 /// <see cref="RejectAsync"/> take an already-loaded <see cref="ImportRunEntity"/> (the caller — an API
@@ -19,11 +19,11 @@ public static class ImportRunReleaser
 {
     /// <summary>
     /// Applies <paramref name="run"/>'s persisted <c>PlanJson</c> to the ERP: one conditional <c>UPDATE</c> per
-    /// row (Open Decision #12) — every column that row's plan changes, guarded by every one of that row's
+    /// row — every column that row's plan changes, guarded by every one of that row's
     /// captured expected-old-values in a single <c>WHERE</c> clause, so a row commits all its changed columns
     /// or none of them, never half. Zero affected rows means the row's ERP state moved on since staging; that
     /// row is excluded, counted in <see cref="ImportRunEntity.ConflictCount"/>, and left untouched — it does
-    /// not fail the run (Open Decision #6). An unrelated failure (a thrown exception — e.g. a constraint
+    /// not fail the run. An unrelated failure (a thrown exception — e.g. a constraint
     /// violation) rolls back everything committed so far in this call and marks the run
     /// <see cref="ImportRunStatus.Failed"/>, matching the "no silent partial success" rule already enforced on
     /// the export side. Caller (an endpoint, in <c>Connector.Api</c>) must have already validated
@@ -69,11 +69,10 @@ public static class ImportRunReleaser
             return;
         }
 
-        // Security-review finding SR-05: the plan/policy/schema context was reviewed against whatever
-        // connection was configured at staging time, but this method always writes to the *current*
-        // connection setting. If that setting changed since staging, an approval given for target A could
-        // otherwise get committed against target B. StagedConnectionFingerprint is null for runs staged
-        // before this fix — those keep the prior (unverified) behavior rather than failing outright.
+        // The plan was reviewed against the connection configured at staging time, but this method writes
+        // to the *current* connection setting. Refuse if the target changed since staging, so an approval
+        // given for target A can't be committed against target B. Runs without a StagedConnectionFingerprint
+        // skip the check.
         var currentFingerprint = DynamicExportService.ConnectionFingerprint(connCfg);
         if (run.StagedConnectionFingerprint is not null && run.StagedConnectionFingerprint != currentFingerprint)
         {
@@ -87,8 +86,8 @@ public static class ImportRunReleaser
         int conflictCount;
         try
         {
-            // One transaction on the provider's own ADO.NET connection; SQL rendered with its dialect
-            // (Arbeitsauftrag 14) — the provider must have the Imports capability.
+            // One transaction on the provider's own ADO.NET connection; SQL rendered with its dialect —
+            // the provider must have the Imports capability.
             await using var import = await ImportConnection.OpenAsync(resolver, connCfg, ct);
             var dialect = import.Dialect;
             await using var tx = await import.Connection.BeginTransactionAsync(ct);
@@ -143,12 +142,10 @@ public static class ImportRunReleaser
             return;
         }
 
-        // Security-review finding SR-09: the ERP transaction above is already committed and irreversible at
-        // this point, so recording that outcome locally must not be skippable via cancellation — same
-        // reasoning FailAsync already applies to its own post-outcome save. Using `ct` here (as this used
-        // to) risked exactly the divergence the review flagged: a cancellation landing in this narrow
-        // window would leave the run stuck at PendingReview locally despite the ERP write having already
-        // gone through, so a retry would replay the plan against rows that no longer match their expected
+        // The ERP transaction above is already committed and irreversible at this point, so recording that
+        // outcome locally must not be skippable via cancellation (same as FailAsync's post-outcome save).
+        // Otherwise a cancellation here would leave the run at PendingReview despite the ERP write having
+        // gone through, and a retry would replay the plan against rows that no longer match their expected
         // old values and misreport a clean release as a conflict.
         run.Status = ImportRunStatus.Released;
         run.OperatedBy = operatorName;

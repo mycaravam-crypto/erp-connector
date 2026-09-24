@@ -10,7 +10,7 @@ using Connector.Infrastructure.DataSources.PostgreSql;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Arbeitsauftrag 7's acceptance criterion: one identical export definition produces the same result against
+/// One identical export definition produces the same result against
 /// PostgreSQL and MariaDB. Runs every tree against the <c>export_*</c> tables of both fixtures (testdb/init.sql,
 /// testdb/mariadb-init.sql — the same rows) and compares the output. No-ops unless both are running.
 /// </summary>

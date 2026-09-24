@@ -14,10 +14,10 @@ import { useToasts } from '@/composables/useToasts'
 
 const toasts = useToasts()
 
-// The Phase 17 Slice 6 review/diff view (import-definitions.md §5): reuses ReleaseDialog.vue's
-// Operator/Approver form pattern, extended with the full Open Decision #11 count breakdown and a
-// field-level diff of the matched/changed rows PlanJson actually carries — a run's plan is the write-side
-// source of truth (Open Decision #11), so this dialog only ever displays it, never recomputes its own.
+// The import run review/diff view: reuses ReleaseDialog.vue's Operator/Approver form pattern, extended
+// with the full count breakdown and a field-level diff of the matched/changed rows PlanJson actually
+// carries — a run's plan is the write-side source of truth, so this dialog only ever displays it, never
+// recomputes its own.
 const props = defineProps<{ runId: number | null }>()
 const emit = defineEmits<{ resolved: [] }>()
 const open = defineModel<boolean>('open', { default: false })

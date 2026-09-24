@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Connector.Api.Endpoints;
 
 /// <summary>
-/// Phase 14 Slice 3 — CRUD, manual trigger, test, preview, and run history for
+/// CRUD, manual trigger, test, preview, and run history for
 /// <see cref="ExportDefinitionEntity"/>: the generic, named, tree-based replacement for the legacy single
 /// export mapping (see knowledge/pipeline/export-definitions-2.0.md). This is the surface an external
 /// program uses to configure a saved export once and trigger it later via a single authenticated
@@ -19,13 +19,13 @@ namespace Connector.Api.Endpoints;
 ///
 /// Deliberately does not reuse <see cref="ExportRunEntity"/>/<see cref="FileSystemExportSink"/>/four-eyes
 /// release: those model the legacy CI-to-vendor staging contract (sequence numbers, physical staging
-/// folder, approval workflow), which export-definitions-2.0.md §10 explicitly keeps out of scope for
-/// generic exports. A run here is synchronous request/response plus one <see cref="ExportDefinitionRunEntity"/>
+/// folder, approval workflow), which don't apply to generic exports. A run here is synchronous
+/// request/response plus one <see cref="ExportDefinitionRunEntity"/>
 /// history row — no separate storage or delivery mechanism is introduced.
 /// </summary>
 static class ExportDefinitionEndpoints
 {
-    // Fixed per export-definitions-2.0.md §11 decision #3 — not user-configurable in this phase.
+    // Fixed row caps for test runs and previews — not user-configurable.
     private const int TestRunLimit = 50;
     private const int PreviewLimit = 50;
 
@@ -476,7 +476,7 @@ static class ExportDefinitionEndpoints
             e.UpdatedAt
         );
 
-    // Arbeitsauftrag 13: what the run read from the source, recorded with it in the audit log.
+    // What the run read from the source, recorded with it in the audit log.
     private static string MetricsDetail(ExportQueryMetrics m) =>
         $"queries={m.QueryCount} rows_read={m.RecordsRead} duration_ms={m.DurationMs}";
 
@@ -486,7 +486,7 @@ static class ExportDefinitionEndpoints
     // dialect-quoted (ISqlDialect.QuoteIdentifier) query builder.
     private static readonly Regex SqlIdentifierRegex = new("^[A-Za-z_][A-Za-z0-9_]*$", RegexOptions.Compiled);
 
-    // Filter is a WHERE-clause fragment by design (export-definitions-2.0.md §4), not a single identifier,
+    // Filter is a WHERE-clause fragment by design, not a single identifier,
     // so it can't go through SqlIdentifierRegex. It still gets concatenated verbatim into the query
     // (DynamicExportService.ExecuteExportNodeQueryAsync's per-node queries), so it's restricted to a safe
     // character set — comparisons/boolean logic against already-validated column names, e.g.
@@ -507,16 +507,12 @@ static class ExportDefinitionEndpoints
         RegexOptions.Compiled | RegexOptions.IgnoreCase
     );
 
-    // Security-review finding SR-01: DangerousFilterKeywordRegex enumerates specific dangerous function
-    // names, but \b doesn't stop at '_' (it's a word character), so "pg_sleep_for"/"pg_sleep_until" —
-    // real, callable Postgres functions distinct from "pg_sleep" — sailed straight through, and any other
-    // dangerous function not on the list (present or future) would too. Rather than keep extending an
-    // inherently-incomplete enumeration, this rejects the general shape of a function call — an
-    // identifier immediately followed by '(' — unless that identifier is one of the handful of keywords a
-    // plain comparison/boolean-logic filter (per this class's own SafeFilterCharsRegex comment) actually
-    // needs parens for: AND (...)/OR (...) grouping and IN (...) list membership. No legitimate filter of
-    // that shape ever calls a function, so this can only reject strictly more filters than before, never
-    // accept one DangerousFilterKeywordRegex would have caught.
+    // DangerousFilterKeywordRegex enumerates specific dangerous function names, but \b doesn't stop at '_'
+    // (it's a word character), so e.g. "pg_sleep_for"/"pg_sleep_until" wouldn't match it, and any function
+    // not on the list wouldn't either. So this additionally rejects the general shape of a function call —
+    // an identifier immediately followed by '(' — unless that identifier is one of the handful of keywords
+    // a plain comparison/boolean-logic filter (per this class's own SafeFilterCharsRegex comment) actually
+    // needs parens for: AND (...)/OR (...) grouping and IN (...) list membership.
     private static readonly Regex FunctionCallCandidateRegex = new(
         @"([A-Za-z_][A-Za-z0-9_]*)\s*\(",
         RegexOptions.Compiled
@@ -569,7 +565,7 @@ static class ExportDefinitionEndpoints
         if (request.RootNode is null)
             return (null, "RootNode is required.");
 
-        // knowledge/pipeline/import-mapping-presets.md §3.1: IntegrationKey/ContractVersion are set
+        // IntegrationKey/ContractVersion are set
         // together or not at all, and at most one *enabled* definition may ever claim a given pair.
         if ((request.IntegrationKey is null) != (request.ContractVersion is null))
             return (null, "IntegrationKey and ContractVersion must be set together, or not at all.");
@@ -686,8 +682,8 @@ static class ExportDefinitionEndpoints
 
     private static bool ContainsControlCharacters(string s) => s.Any(char.IsControl);
 
-    // Enforces knowledge/pipeline/import-mapping-presets.md §3.1's uniqueness rule: at most one *enabled*
-    // ExportDefinition may ever claim a given (IntegrationKey, ContractVersion) pair, so Slice 3's
+    // Enforces the uniqueness rule: at most one *enabled*
+    // ExportDefinition may ever claim a given (IntegrationKey, ContractVersion) pair, so the import-side
     // suggestion lookup is always an exact match, never a ranking. Shared between ValidateRequestAsync
     // (create/update) and the /enable endpoint, since either path can turn a definition enabled.
     private static async Task<string?> ValidateIntegrationKeyPairEnabledAsync(

@@ -6,12 +6,11 @@ namespace Connector.Infrastructure;
 
 /// <summary>
 /// One-time startup converter: reads the legacy AppSetting-backed <c>export_mapping</c>/<c>export_presets</c>
-/// blobs and writes one <see cref="ExportDefinitionEntity"/> per legacy config, so Phase 14's N-definitions
+/// blobs and writes one <see cref="ExportDefinitionEntity"/> per legacy config, so the N-definitions
 /// model starts populated from whatever a deployment already had configured. Idempotent — guarded by "any
 /// <see cref="ExportDefinitionEntity"/> row already exists" so a later app restart never re-runs it or
 /// duplicates rows. Leaves the AppSettings rows in place and does not touch them again — the legacy
-/// <c>/api/export-mapping</c> endpoints remain fully read/write independently of this snapshot (§11's
-/// original read-only-after-migration lock was removed; see knowledge/pipeline/export-definitions-2.0.md §11).
+/// <c>/api/export-mapping</c> endpoints remain fully read/write independently of this snapshot.
 /// </summary>
 public static class ExportDefinitionMigrator
 {
@@ -20,7 +19,7 @@ public static class ExportDefinitionMigrator
     public static async Task MigrateLegacyMappingsAsync(ExportLogDbContext db, CancellationToken ct = default)
     {
         if (await db.ExportDefinitions.AnyAsync(ct))
-            return; // already migrated (or Phase 14 definitions already exist) — never re-run
+            return; // already migrated (or definitions already exist) — never re-run
 
         var defaultFormat = await GetDefaultFormatAsync(db);
         var now = DateTimeOffset.UtcNow.ToString("O");
@@ -118,8 +117,8 @@ public static class ExportDefinitionMigrator
         );
 
     // Legacy relation flattening (FlattenStrategy/Delimiter merging several related-table fields into one
-    // joined column) has no equivalent in the tree model: Phase 14's format writers flatten arbitrary-depth
-    // nesting generically instead (the actual new capability), so a relation converts to a plain array node
+    // joined column) has no equivalent in the tree model: the format writers flatten arbitrary-depth
+    // nesting generically instead, so a relation converts to a plain array node
     // with one scalar-field child per relation field, and the per-relation strategy setting is dropped.
     private static ExportNode ToRelationNode(ExportMappingRelation relation) =>
         new(

@@ -1,22 +1,17 @@
 namespace Connector.Core.DynamicImport;
 
 /// <summary>
-/// Reshapes Slice 2's <see cref="ImportWalkResult"/> (a per-row diff tree, built for preview/review) into
-/// Slice 3's <see cref="ImportPlan"/> (a flat, structured write list plus the six <c>ImportRunEntity</c>
-/// (Connector.Infrastructure) statistics) — the reshaping <c>ImportNodeWalker</c>'s own doc comment flags as
-/// deferred to this slice (Open Decision #11). Pure and DB-free: everything it needs is already in the walk
+/// Reshapes an <see cref="ImportWalkResult"/> (a per-row diff tree, built for preview/review) into an
+/// <see cref="ImportPlan"/> (a flat, structured write list plus the six <c>ImportRunEntity</c>
+/// (Connector.Infrastructure) statistics). Pure and DB-free: everything it needs is already in the walk
 /// result.
 ///
 /// <para><b>Only root-row fields become operations.</b> <see cref="ImportChildResult"/> diffs (an
 /// object-kind child like <c>maintenancePlan</c>) stay visible in the walk result for the review UI, but are
-/// never turned into a write here. This isn't a gap: v1's only real <c>AllowedWritableColumns</c> scope is
-/// "confirmation/status fields on the root entity" (Open Decision #5) — no shipped definition writes to a
-/// child table — and building a generic child-row write path would need a stable single-row key for an
-/// object child (today's <see cref="ImportChildResult"/> confirms a child matched but, deliberately, doesn't
-/// carry the matched row's own key value out of the walker) and a per-item key for an array child that
-/// <see cref="ImportChildResult"/>'s own doc comment says the data model doesn't have yet. Extending this is
-/// a v2+ change with its own review, matching the precedent Open Decision #15 sets for
-/// <c>OnMissingChild = insert</c>: the type/walker can represent more than v1 commits.</para>
+/// never turned into a write here: <c>AllowedWritableColumns</c> covers root-entity columns only. A child-row
+/// write path would need a stable single-row key for an object child (<see cref="ImportChildResult"/>
+/// confirms a child matched but doesn't carry the matched row's own key value out of the walker) and a
+/// per-item key for an array child, which the data model doesn't have.</para>
 /// </summary>
 public static class ImportPlanBuilder
 {

@@ -35,7 +35,7 @@ public sealed class ExportRunEntity
     /// <summary>Dateiname der Excel-Datei auf dem Staging-Pfad. Leer bei Status Failed.</summary>
     public string DataFileName { get; set; } = string.Empty;
 
-    // ── Delivery fields (Phase 6.4) ───────────────────────────────────────────
+    // ── Delivery fields ───────────────────────────────────────────────────────
     // Populated after the export package has been physically transferred to the vendor.
     // All nullable — delivery tracking is optional and post-release.
 

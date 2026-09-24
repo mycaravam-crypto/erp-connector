@@ -10,15 +10,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    # Security-review finding SR-15: every Postgres-backed integration test previously no-op'd
-    # (rather than failing) when it couldn't reach a database — which every test in this job did,
-    # since none was ever started here. That made "green CI" not real evidence for any of them,
-    # including the fixes in #148/#149 that added coverage on the assumption these tests actually
-    # run. This service, plus the schema-load step below, gives them a real erp_testdb to hit —
+    # Postgres-backed integration tests no-op (rather than fail) when they can't reach a database.
+    # This service, plus the schema-load step below, gives them a real erp_testdb to hit in CI —
     # same image/credentials/schema as the local `docker-compose --profile test up -d testdb`
     # fixture (see testdb/init.sql), just started as a GitHub Actions service instead. The
-    # ErpTestFixture no-op path itself is untouched: it still matters for a contributor running
-    # `dotnet test` locally without that compose profile up.
+    # ErpTestFixture no-op path still matters for a contributor running `dotnet test` locally
+    # without that compose profile up.
     services:
       postgres:
         image: postgres:16-alpine
@@ -33,7 +30,7 @@ jobs:
           --health-interval=5s
           --health-timeout=5s
           --health-retries=10
-      # Arbeitsauftrag 7: MariaDB fixture for MariaDbDataSourceProviderTests/MariaDbExportParityTests — same
+      # MariaDB fixture for MariaDbDataSourceProviderTests/MariaDbExportParityTests — same
       # credentials as the Postgres one, seeded from testdb/mariadb-init.sql below.
       mariadb:
         image: mariadb:11.4

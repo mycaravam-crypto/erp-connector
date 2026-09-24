@@ -2,18 +2,14 @@ namespace Connector.Api.Endpoints;
 
 /// <summary>
 /// The Operator/Approver-distinctness check shared by every release endpoint that commits a change under
-/// four-eyes review — export release (<see cref="ExportEndpoints"/>) and, per import-definitions.md §5, the
-/// import commit path (<see cref="ImportRunEndpoints"/>). Generalized out of the export release handler,
-/// where it used to live inline, rather than duplicated for the import side (import-definitions.md §5: "The
-/// four-eyes Operator/Approver-distinctness check currently inline in the export release endpoint —
-/// generalized into a shared helper both directions call, rather than duplicated").
+/// four-eyes review — export release (<see cref="ExportEndpoints"/>) and the import commit path
+/// (<see cref="ImportRunEndpoints"/>).
 /// </summary>
 internal static class FourEyesReview
 {
     // Registered against AddRateLimiter in Program.cs — per-client-IP fixed window on the release endpoints
     // that call ValidateApprover (ExportEndpoints, ImportRunEndpoints), so a brute-force attempt against an
-    // approver's password gets throttled the same way /api/auth/login already is (security review SR-10:
-    // this check previously had no rate limit at all).
+    // approver's password gets throttled the same way /api/auth/login already is.
     internal const string ApprovalRateLimiterPolicyName = "four-eyes-approval";
 
     /// <summary>
@@ -21,8 +17,8 @@ internal static class FourEyesReview
     /// <paramref name="operatorName"/> and <paramref name="userStore"/>, or <c>null</c> if it passes.
     /// <paramref name="approverPassword"/> is verified against the approver's own stored hash — without this,
     /// the operator's session alone could "approve" a release by typing any other registered username, which
-    /// defeats the point of a dual-control check (security audit finding: the approver never actually
-    /// authenticated). Requiring their password here is a lightweight stand-in for a real second login.
+    /// defeats the point of a dual-control check. Requiring their password here is a lightweight stand-in for
+    /// a real second login.
     /// </summary>
     public static string? ValidateApprover(
         string operatorName,

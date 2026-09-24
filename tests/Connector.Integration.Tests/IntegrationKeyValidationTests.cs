@@ -11,8 +11,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Slice 1 coverage (knowledge/pipeline/import-mapping-presets.md §3.1) for the two save-time guardrails
-/// added to <see cref="ExportDefinitionEndpoints.ValidateRequestAsync"/> and
+/// Coverage for the two save-time guardrails in <see cref="ExportDefinitionEndpoints.ValidateRequestAsync"/> and
 /// <see cref="ImportDefinitionEndpoints.ValidateRequestAsync"/>: IntegrationKey/ContractVersion must be
 /// set together or not at all, and at most one *enabled* definition of a given type may ever claim the
 /// same (IntegrationKey, ContractVersion) pair. Runs entirely against the in-memory Sqlite
@@ -262,7 +261,7 @@ public sealed class IntegrationKeyValidationTests
         );
 
     // Deliberately never reaches the schema-aware AllowedWritableColumns pass: the IntegrationKey checks
-    // added in Slice 1 all return before ValidateRequestAsync ever opens an ERP connection, same ordering
+    // all return before ValidateRequestAsync ever opens an ERP connection, same ordering
     // ImportDefinitionEndpointsPostgresTests' own OnMissingChildInsert test relies on.
     private static ImportDefinitionRequest ImportRequest(
         string? integrationKey = null,
@@ -321,7 +320,7 @@ public sealed class IntegrationKeyValidationTests
     {
         await using var local = await LocalDb.NewAsync();
         // Inserted directly rather than routed through ValidateRequestAsync: the full validator's
-        // schema-aware AllowedWritableColumns pass (Open Decision #9) needs a real Postgres connection,
+        // schema-aware AllowedWritableColumns pass needs a real Postgres connection,
         // which this test — unlike ImportDefinitionEndpointsPostgresTests — deliberately doesn't depend
         // on. `first`'s tree is already well-formed via the ImportRoot/ImportScalar helpers above.
         var first = ImportRequest(integrationKey: "ci-confirmation", contractVersion: 1);
@@ -360,7 +359,7 @@ public sealed class IntegrationKeyValidationTests
     {
         // Unlike the sibling "rejected" test above, a *successful* second validation here runs all the
         // way through to ImportDefinitionEndpoints.ValidateRequestAsync's schema-aware
-        // AllowedWritableColumns pass (Open Decision #9), which needs a real Postgres connection — same
+        // AllowedWritableColumns pass, which needs a real Postgres connection — same
         // "no-op instead of fail" convention as ImportDefinitionEndpointsPostgresTests.
         if (!await ErpTestFixture.IsAvailableAsync())
             return;

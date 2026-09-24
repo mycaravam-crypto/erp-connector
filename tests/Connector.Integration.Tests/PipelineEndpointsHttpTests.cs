@@ -11,7 +11,7 @@ namespace Connector.Integration.Tests;
 /// pipeline (see <see cref="ApiFactory"/>/<see cref="ApiCollection"/>). Every action here eventually opens
 /// a live Postgres connection to the ERP, which this sandbox doesn't have — but each one validates
 /// configuration (export mapping present, ERP connection present) *before* attempting that connection, so
-/// those guard paths, and the SR-07 ApiKey-only auth requirement on the named-preset route, are reachable
+/// those guard paths, and the ApiKey-only auth requirement on the named-preset route, are reachable
 /// without one. <see cref="ApiSettings"/> actively arranges each test's AppSetting preconditions rather
 /// than assuming them, since every class in the collection shares one DB.</summary>
 [Collection(ApiCollection.Name)]
@@ -78,7 +78,7 @@ public sealed class PipelineEndpointsHttpTests
         Assert.Contains("No database connection configured", await response.Content.ReadAsStringAsync());
     }
 
-    // SR-07: a normal logged-in user's JWT must not authenticate this route — only a configured API key
+    // A normal logged-in user's JWT must not authenticate this route — only a configured API key
     // (machine-to-machine caller) may, precisely so an interactive session can't bypass four-eyes review
     // via the named-preset route.
     [Fact]

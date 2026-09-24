@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The Open Decision #11 count breakdown for one import run — pulled out of ImportRunReviewDialog.vue
+// The count breakdown for one import run — pulled out of ImportRunReviewDialog.vue
 // purely to keep that file's already-branchy template (loading/error/pending/terminal states) from
 // growing further; this piece itself has almost no branching of its own.
 import Badge from '@/components/ui/Badge.vue'
@@ -36,6 +36,6 @@ defineProps<{
   </div>
   <p v-if="conflictCount > 0" class="text-xs text-warning mt-0 mb-3">
     Conflicted rows were excluded because the ERP value moved since this run was staged — they were
-    never overwritten (Open Decision #12).
+    never overwritten.
   </p>
 </template>

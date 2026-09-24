@@ -5,8 +5,8 @@ namespace Connector.Integration.Tests;
 
 /// <summary>
 /// Coverage for <see cref="ImportWorker"/>'s pure, DB-free helpers — <see cref="ImportWorker.ExtractDefinitionName(string)"/>
-/// (Open Decision #14's <c>definition</c> routing field) and <see cref="ImportWorker.ClassifyDuplicate"/> (Open
-/// Decision #13's duplicate/already-staged/already-released/rejected-duplicate split) — without a database,
+/// (the envelope's <c>definition</c> routing field) and <see cref="ImportWorker.ClassifyDuplicate"/> (the
+/// duplicate/already-staged/already-released/rejected-duplicate split) — without a database,
 /// filesystem, or testdb fixture, matching <see cref="ExportDefinitionWorkerCandidateFilterTests"/>'s precedent
 /// for isolating a worker's pure selection logic from its I/O.
 /// </summary>
@@ -47,7 +47,7 @@ public sealed class ImportWorkerLogicTests
     [Fact]
     public void ExtractDefinitionName_BareJsonArray_ReturnsNull()
     {
-        // Not an ImportEnvelope object at all (Open Decision #14) — the same "not a recognized envelope
+        // Not an ImportEnvelope object at all — the same "not a recognized envelope
         // shape" case ImportNodeWalker.ParseRecords rejects.
         Assert.Null(ImportWorker.ExtractDefinitionName("[]"));
     }

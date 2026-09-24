@@ -11,23 +11,21 @@ using Microsoft.EntityFrameworkCore;
 namespace Connector.Api.Endpoints;
 
 /// <summary>
-/// Phase 17 Slice 5 (import-definitions.md §5): CRUD, preview, and run history for
-/// <see cref="ImportDefinitionEntity"/> — the API surface Slice 6's frontend and any external caller use to
-/// configure an inbound mapping and inspect what it would do, without waiting on Slice 4's file watcher.
+/// CRUD, preview, and run history for <see cref="ImportDefinitionEntity"/> — the API surface the frontend and
+/// any external caller use to configure an inbound mapping and inspect what it would do.
 /// The four-eyes commit/reject endpoints (<c>POST /api/import-runs/{id}/release</c> and <c>.../reject</c>)
-/// already shipped in Slice 3 as <see cref="ImportRunEndpoints"/> and aren't duplicated here.
+/// live in <see cref="ImportRunEndpoints"/>.
 ///
 /// This file (the route registrations) is the entry point; request validation lives in
 /// <c>ImportDefinitionEndpoints.Validation.cs</c> and entity/DTO mapping plus the "create from export"
 /// suggestion in <c>ImportDefinitionEndpoints.Mapping.cs</c> — split across files, kept as one `partial`
 /// class rather than separate classes so the `internal` methods each already exposes to
-/// <c>Connector.Integration.Tests</c> keep working unchanged. This file also owns the two save-time
-/// guardrails the external design review flagged as the primary safety boundary of the whole feature (Open
-/// Decisions #9 and #15): <see cref="ValidateRequestAsync"/> rejects a <c>TargetColumn</c> outside
+/// <c>Connector.Integration.Tests</c> keep working unchanged. The two save-time guardrails are the primary
+/// safety boundary of the import feature: <see cref="ValidateRequestAsync"/> rejects a <c>TargetColumn</c> outside
 /// <see cref="ImportDefinitionRequest.AllowedWritableColumns"/>, one that doesn't exist on its table per the
 /// live introspected ERP schema, or one that's a primary key, identity/computed column, or foreign key —
-/// and rejects any node whose <c>OnMissingChild</c> is <c>"insert"</c> outright, since v1 has no real
-/// requirement for child-row creation yet.
+/// and rejects any node whose <c>OnMissingChild</c> is <c>"insert"</c> outright, since child-row creation
+/// is not supported.
 /// </summary>
 static partial class ImportDefinitionEndpoints
 {
@@ -266,8 +264,7 @@ static partial class ImportDefinitionEndpoints
 
         // Parses + walks + plans an inbound file against a saved definition with zero persistence: no
         // ImportRunEntity row is created and nothing is written to the ERP (mirrors ExportDefinitionEndpoints'
-        // own untracked preview). The operator supplies the file content directly since Slice 4's inbound/
-        // folder watcher doesn't exist yet.
+        // own untracked preview). The operator supplies the file content directly.
         app.MapPost(
                 "/api/import-definitions/{id:int}/preview",
                 async (
@@ -311,11 +308,11 @@ static partial class ImportDefinitionEndpoints
             )
             .RequireAuthorization();
 
-        // Slice 4 (knowledge/pipeline/import-mapping-presets.md §3.4/§4): the "Create from export"
+        // The "Create from export"
         // suggestion the New Import Definition flow offers. Takes the same sample ImportEnvelope JSON the
         // preview panel already accepts and looks for an ExportDefinition whose provenance pair matches it.
         // No persistence, no ERP connection — this only ever reads ExportDefinitions. Always 200 OK — a
-        // miss is a normal lookup outcome, never a 4xx — but unlike Slice 3's pure
+        // miss is a normal lookup outcome, never a 4xx — but unlike the pure
         // ImportMappingSuggestion.SuggestFrom, a miss here always carries a `Reason` explaining which gate
         // stopped it (malformed/no-provenance sample, no export tagged with that key/version, one tagged
         // but disabled, or one tagged and enabled but missing CorrelationKeySourceField) instead of a flat

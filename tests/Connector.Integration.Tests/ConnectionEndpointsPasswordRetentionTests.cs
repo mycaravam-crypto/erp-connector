@@ -4,7 +4,7 @@ using Connector.Core.DataSources;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Pure unit tests (no DB) for <c>ConnectionEndpoints.WithStoredPasswordIfUnchanged</c> (Arbeitsauftrag 8): the
+/// Pure unit tests (no DB) for <c>ConnectionEndpoints.WithStoredPasswordIfUnchanged</c>: the
 /// connection form re-submits an empty password to mean "keep the stored one", which is only honored while the
 /// request still targets the same system with the same account.
 /// </summary>

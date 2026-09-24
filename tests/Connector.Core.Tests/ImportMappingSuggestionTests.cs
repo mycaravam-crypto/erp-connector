@@ -4,7 +4,7 @@ using Connector.Core.DynamicImport;
 namespace Connector.Core.Tests;
 
 /// <summary>
-/// Slice 3 coverage (knowledge/pipeline/import-mapping-presets.md §3.4) for
+/// Coverage for
 /// <see cref="ImportMappingSuggestion.SuggestFrom"/> — a pure function, so every case here is a plain
 /// in-memory value, no database or JSON parsing involved. Mirrors <see cref="ImportPlanBuilderTests"/>'s
 /// posture of testing a diff/plan-shaping type in complete isolation from I/O.
@@ -128,7 +128,7 @@ public sealed class ImportMappingSuggestionTests
     [Fact]
     public void SuggestFrom_MatchedExportHasNoCorrelationKeySourceField_NoSuggestion()
     {
-        // Slice 1 never required CorrelationKeySourceField to be set alongside IntegrationKey — without it
+        // CorrelationKeySourceField is optional even when IntegrationKey is set — without it
         // there is no deterministic RootMatchColumn to prefill, so this must degrade to no suggestion.
         var export = Export(Root(Scalar("guid", "guid")), correlationKeySourceField: null);
 
@@ -150,7 +150,7 @@ public sealed class ImportMappingSuggestionTests
     [Fact]
     public void SuggestFrom_AmbiguousCandidates_NeverThrows_PicksOneDeterministically()
     {
-        // Simulates a hypothetical Slice 1 uniqueness-constraint violation: SuggestFrom itself must stay
+        // Simulates a hypothetical uniqueness-constraint violation: SuggestFrom itself must stay
         // safe (never throw) even if handed a candidate list with more than one match for the same pair.
         var first = Export(Root(Scalar("guid", "guid")), rootTable: "table_one");
         var second = Export(Root(Scalar("guid", "guid")), rootTable: "table_two");

@@ -10,11 +10,11 @@ import ExportNodeMappingEditor from '@/components/ExportNodeMappingEditor.vue'
 import { X } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
 
-// The write-side mirror of ExportNodeTreeEditor.vue (import-definitions.md §5): same recursive-editor
+// The write-side mirror of ExportNodeTreeEditor.vue: same recursive-editor
 // idea, built against ImportNode instead of ExportNode. Two differences follow directly from the data
 // model, not from UI taste: there's no Filter input (ImportNode has no such field — every matched row is
 // in scope, filtering happens at the correlation-key match, not here), and OnMissingChild has no picker at
-// all — v1 only permits "reject" (the Slice 5 validator rejects "insert" outright, Open Decision #15), so
+// all — only "reject" is permitted (the save-time validator rejects "insert" outright), so
 // offering a choice that always fails server-side would be actively misleading.
 defineOptions({ name: 'ImportNodeTreeEditor' })
 
@@ -184,7 +184,7 @@ const showAddMenu = ref(false)
                 <option value="array">List (1:N)</option>
               </select>
             </div>
-            <span class="text-xs text-text-muted self-end mb-1.5" title="v1 only matches existing rows — a related row that doesn't resolve is rejected, never created (Open Decision #15).">
+            <span class="text-xs text-text-muted self-end mb-1.5" title="Only existing rows are matched — a related row that doesn't resolve is rejected, never created.">
               match-only, never created
             </span>
           </template>

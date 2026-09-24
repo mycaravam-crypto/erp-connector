@@ -9,7 +9,7 @@ using Connector.Infrastructure.DataSources.PostgreSql;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Arbeitsauftrag 11 security review, executed for real against both SQL backends (the <c>export_*</c> fixture
+/// Security tests executed for real against both SQL backends (the <c>export_*</c> fixture
 /// tables in testdb/init.sql and testdb/mariadb-init.sql; no-op per backend when its fixture isn't running):
 /// injection payloads in every identifier and value position of a query, and the GDPR denylist applied at
 /// every depth of an export tree before any SQL is sent. ServiceNow's equivalents live in

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
-// Runs POST /api/export-definitions/{id}/preview — the *same* query path Run Now uses
-// (export-definitions-2.0.md §7), just capped and untracked. Records are arbitrary nested JSON
+// Runs POST /api/export-definitions/{id}/preview — the *same* query path Run Now uses,
+// just capped and untracked. Records are arbitrary nested JSON
 // (every ExportNode shape, regardless of the definition's own OutputFormat, since the format writer
 // only applies at Run Now/Test time) — rendered as pretty-printed JSON rather than a flattened table,
 // since a 3-level nested tree has no single flat column set to render as a grid.

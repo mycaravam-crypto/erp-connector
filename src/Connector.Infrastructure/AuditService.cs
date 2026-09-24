@@ -6,7 +6,7 @@ namespace Connector.Infrastructure;
 /// Writes non-fatal, append-only audit entries to the AuditLog table.
 /// Failures are logged as warnings and never propagate — audit must not interrupt business logic.
 /// Every detail is scrubbed of credentials (<see cref="ErrorSanitizer.Scrub"/>) before it is stored, whatever
-/// the caller put into it (Arbeitsauftrag 11).
+/// the caller put into it.
 /// </summary>
 public sealed class AuditService(ExportLogDbContext db, ILogger<AuditService> logger)
 {

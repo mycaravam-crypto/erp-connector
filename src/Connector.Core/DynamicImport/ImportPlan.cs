@@ -3,15 +3,15 @@ using System.Text.Json;
 namespace Connector.Core.DynamicImport;
 
 /// <summary>
-/// One column-level write the commit step (Slice 3) will make: the value observed on the ERP row when the
+/// One column-level write the commit step makes: the value observed on the ERP row when the
 /// plan was built (<see cref="ExpectedOldValue"/>) and the value to write in its place. This is the same
 /// value <see cref="ImportFieldDiff.OldValue"/> already carries — the field is renamed here, not
 /// re-derived, to make its second job explicit: <c>ImportRunReleaser</c>'s (Connector.Infrastructure)
-/// conditional <c>UPDATE ... WHERE ... IS NOT DISTINCT FROM @expectedOldValue</c> guard (Open Decision #12)
+/// conditional <c>UPDATE ... WHERE ... IS NOT DISTINCT FROM @expectedOldValue</c> guard
 /// uses this exact value, so a row whose ERP state moved on since staging is excluded from the commit rather
 /// than silently overwritten. <see cref="CorrelationValue"/> is carried for audit/troubleshooting only — the
 /// commit itself addresses the row via <see cref="Table"/>/<see cref="KeyColumn"/>/<see cref="KeyValue"/>,
-/// which for a v1 real definition are always <c>RootTable</c>/<c>RootMatchColumn</c>/the matched root row's
+/// which are always <c>RootTable</c>/<c>RootMatchColumn</c>/the matched root row's
 /// correlation value (see <see cref="ImportPlanBuilder"/> for why child-table writes aren't emitted here).
 /// </summary>
 public sealed record ImportPlanOperation(
@@ -25,7 +25,7 @@ public sealed record ImportPlanOperation(
 );
 
 /// <summary>
-/// The persisted write protocol for one <c>ImportRunEntity</c> (Connector.Infrastructure; Open Decision #11):
+/// The persisted write protocol for one <c>ImportRunEntity</c> (Connector.Infrastructure):
 /// <see cref="Operations"/> is the structured, versioned list <c>ImportRunReleaser</c> commits from, and the
 /// only authoritative source for what a release actually writes — a UI diff or audit-log line is a read
 /// projection of this, never a second independently-computed shape. The five counts mirror

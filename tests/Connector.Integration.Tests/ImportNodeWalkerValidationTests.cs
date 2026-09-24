@@ -74,7 +74,7 @@ public sealed class ImportNodeWalkerValidationTests
     public void ValidateWritableColumns_MatchFieldItself_IsNeverReported()
     {
         // The correlation-key field is read for matching only — it must never need to appear in
-        // AllowedWritableColumns, since v1 definitions only allowlist confirmation/status columns (§1).
+        // AllowedWritableColumns, since definitions only allowlist the columns they write.
         var matchField = Scalar("ciId", "id");
         var root = Root(matchField);
 
@@ -87,8 +87,8 @@ public sealed class ImportNodeWalkerValidationTests
     public void ValidateWritableColumns_GdprDeniedColumn_IsReportedEvenIfAllowlisted()
     {
         var matchField = Scalar("ciId", "id");
-        // "technician_name" is on DynamicExportService.GdprDeniedFields — defence-in-depth per Open Decision #7
-        // means it's rejected even if a misconfigured definition also allowlists it.
+        // "technician_name" is on DynamicExportService.GdprDeniedFields — as defence-in-depth it's rejected
+        // even if a misconfigured definition also allowlists it.
         var technicianField = Scalar("technicianName", "technician_name");
         var root = Root(matchField, technicianField);
 

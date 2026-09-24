@@ -10,18 +10,13 @@ namespace Connector.Core.DataSources;
 /// knowledge/architecture/data-source-configuration.md for the full design and back-compat contract.
 /// </summary>
 /// <remarks>
-/// Arbeitsauftrag 3: generalized from a positional record with required Host/Port/Database (Arbeitsauftrag
-/// 2's <c>ErpConnectionConfig</c> shape) into this init-only shape so a non-relational source doesn't need
-/// to fake a Host/Port/Database it doesn't have. <b>Back-compat is load-bearing, not incidental:</b> every
-/// property here defaults exactly the way a JSON payload missing that property already deserialized under
-/// the old positional record — <see cref="Type"/> to <see cref="DataSourceType.PostgreSql"/> (enum's 0
-/// value), <see cref="Username"/>/<see cref="Password"/> to <c>""</c> (the old record had no way to omit
-/// them, so no stored row ever needs this default in practice, but it keeps this record's own parameterless
-/// construction total) — so every <c>AppSettings</c> row persisted before this change, and before
-/// Arbeitsauftrag 2's own <c>Type</c> field existed, keeps deserializing as an equivalent PostgreSql config,
-/// unchanged. No EF migration is involved: <c>AppSetting.Value</c> is a schemaless encrypted JSON blob
-/// (<see cref="Connector.Infrastructure.EncryptedStringConverter"/>), not a typed column, so evolving this
-/// record's shape has never required one.
+/// Init-only, so a non-relational source doesn't need to fake a Host/Port/Database it doesn't have.
+/// <b>Back-compat:</b> every property defaults the way a JSON payload missing it must deserialize —
+/// <see cref="Type"/> to <see cref="DataSourceType.PostgreSql"/> (the enum's 0 value),
+/// <see cref="Username"/>/<see cref="Password"/> to <c>""</c> — so a stored <c>AppSettings</c> row without a
+/// <c>type</c> key deserializes as an equivalent PostgreSql config. <c>AppSetting.Value</c> is a schemaless
+/// encrypted JSON blob (<see cref="Connector.Infrastructure.EncryptedStringConverter"/>), not a typed column,
+/// so changing this record's shape needs no EF migration.
 /// </remarks>
 public sealed record DataSourceConfig
 {
@@ -48,11 +43,9 @@ public sealed record DataSourceConfig
     public string Password { get; init; } = "";
 
     /// <summary>
-    /// Security-review finding SR-03: was previously hardcoded to Npgsql's "Prefer" everywhere (silently
-    /// downgrades to an unencrypted connection if the server doesn't offer TLS) with no way for an operator to
-    /// require and verify it instead. One of Npgsql's <c>SslMode</c> names — "Disable", "Allow", "Prefer",
-    /// "Require", "VerifyCA", or "VerifyFull" (validated in <c>Connector.Api.Endpoints.ConnectionEndpoints</c>)
-    /// — or null/empty to keep that same "Prefer" default. Relational sources only.
+    /// The TLS mode for a relational source: one of Npgsql's <c>SslMode</c> names — "Disable", "Allow",
+    /// "Prefer", "Require", "VerifyCA", or "VerifyFull" (validated by the provider) — or null/empty for the
+    /// "Prefer" default. Relational sources only.
     /// </summary>
     public string? SslMode { get; init; }
 

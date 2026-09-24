@@ -32,7 +32,7 @@ export function clearSession(): void {
 }
 
 /**
- * Security-review finding SR-16: invalidates every JWT issued to the current user, including the one this
+ * Invalidates every JWT issued to the current user, including the one this
  * request itself used — the caller must treat the local session as dead and re-login afterward regardless
  * of whether this call succeeds or fails, since a network error here shouldn't block signing out locally.
  */

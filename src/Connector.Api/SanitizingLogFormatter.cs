@@ -5,7 +5,7 @@ using Serilog.Formatting;
 namespace Connector.Api;
 
 /// <summary>
-/// Arbeitsauftrag 11: the last stop before a log line is written. Wraps the real formatter and hands it a copy of
+/// The last stop before a log line is written. Wraps the real formatter and hands it a copy of
 /// each event with credentials scrubbed — from the exception (<see cref="ErrorSanitizer.ForLogging"/>; Npgsql can
 /// echo a connection string, password included, in an exception message) and from every string property — and any
 /// destructured property named <c>Password</c> dropped. One choke point for every logger in the process, so no

@@ -28,7 +28,7 @@ public sealed record ServiceNowQueryPlan(
 }
 
 /// <summary>
-/// Compiles the database-neutral <see cref="SourceQuery"/> into Table API reads (Arbeitsauftrag 9). ServiceNow's
+/// Compiles the database-neutral <see cref="SourceQuery"/> into Table API reads. ServiceNow's
 /// encoded-query syntax exists only here — never in <c>Connector.Core</c> or stored configuration. Validates
 /// against the schema first (<see cref="SourceQueryValidator"/>), so every field name is one ServiceNow reported;
 /// every value is checked for the encoded-query separators (<c>^</c>, and <c>,</c> inside <c>IN</c>) and rejected

@@ -5,7 +5,7 @@ using MySqlConnector;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Real-MariaDB coverage for <see cref="MariaDbDataSourceProvider"/> (Arbeitsauftrag 7): connection test, schema
+/// Real-MariaDB coverage for <see cref="MariaDbDataSourceProvider"/>: connection test, schema
 /// read (tables, columns, primary and foreign keys), neutral queries (SELECT/WHERE/JOIN/LIMIT, bound
 /// parameters), native SQL, cancellation and command timeout. Uses the <c>export_*</c> tables from
 /// testdb/mariadb-init.sql; every DB-backed test no-ops if the MariaDB fixture isn't running.

@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Connector.Api.Endpoints;
 
 // Request validation for ImportDefinitionEndpoints: the save-time guardrails described in this class's
-// main file (Open Decisions #9 and #15), plus the IntegrationKey/ContractVersion uniqueness check shared
+// main file, plus the IntegrationKey/ContractVersion uniqueness check shared
 // with the /enable endpoint.
 static partial class ImportDefinitionEndpoints
 {
@@ -22,9 +22,8 @@ static partial class ImportDefinitionEndpoints
     /// <summary>
     /// Validates a create/update request end to end and returns the normalized <see cref="ImportNode"/> tree
     /// to persist. `internal` rather than `private` so <c>Connector.Integration.Tests</c> can exercise the
-    /// schema-aware AllowedWritableColumns check directly against a real Postgres schema — the acceptance
-    /// criteria for this slice require proving each specific rejection reason, not just that *some* 400 comes
-    /// back.
+    /// schema-aware AllowedWritableColumns check directly against a real Postgres schema, asserting each
+    /// specific rejection reason rather than just that *some* 400 comes back.
     /// </summary>
     internal static async Task<(ImportNode? Root, string? Error)> ValidateRequestAsync(
         ImportDefinitionRequest request,
@@ -48,7 +47,7 @@ static partial class ImportDefinitionEndpoints
         if (request.RootNode is null)
             return (null, "RootNode is required.");
 
-        // knowledge/pipeline/import-mapping-presets.md §3.1: IntegrationKey/ContractVersion are set
+        // IntegrationKey/ContractVersion are set
         // together or not at all, and at most one *enabled* definition may ever claim a given pair.
         if ((request.IntegrationKey is null) != (request.ContractVersion is null))
             return (null, "IntegrationKey and ContractVersion must be set together, or not at all.");
@@ -149,8 +148,8 @@ static partial class ImportDefinitionEndpoints
     }
 
     // One (table, column) writable-target check — split out of ValidateRequestAsync purely to keep that
-    // method's own cognitive complexity down; the four checks are the (a)/(b)/(c) rules Open Decision #9
-    // spells out, evaluated in that same order so the first one that fails is the one reported.
+    // method's own cognitive complexity down. Checks run in a fixed order (allowlist, existence, primary
+    // key, identity/generated, foreign key) and the first one that fails is the one reported.
     private static string? ValidateTargetAgainstSchema(
         string table,
         string column,
@@ -226,7 +225,7 @@ static partial class ImportDefinitionEndpoints
                 if (string.IsNullOrWhiteSpace(node.SourceJoinKey) || !SqlIdentifierRegex.IsMatch(node.SourceJoinKey))
                     return $"Node '{path}': SourceJoinKey is required and must be a valid identifier.";
                 if (node.OnMissingChild == OnMissingChildPolicy.Insert)
-                    return $"Node '{path}': OnMissingChild = \"insert\" is not permitted in v1 (Open Decision #15).";
+                    return $"Node '{path}': OnMissingChild = \"insert\" is not permitted in v1.";
                 if (node.OnMissingChild != OnMissingChildPolicy.Reject)
                     return $"Node '{path}': OnMissingChild must be \"{OnMissingChildPolicy.Reject}\" "
                         + $"(got \"{node.OnMissingChild}\").";
@@ -262,8 +261,8 @@ static partial class ImportDefinitionEndpoints
 
     private static bool ContainsControlCharacters(string s) => s.Any(char.IsControl);
 
-    // Enforces knowledge/pipeline/import-mapping-presets.md §3.1's uniqueness rule: at most one *enabled*
-    // ImportDefinition may ever claim a given (IntegrationKey, ContractVersion) pair, so Slice 3's
+    // Enforces the uniqueness rule: at most one *enabled*
+    // ImportDefinition may ever claim a given (IntegrationKey, ContractVersion) pair, so the
     // suggestion lookup is always an exact match, never a ranking. Shared between ValidateRequestAsync
     // (create/update) and the /enable endpoint, since either path can turn a definition enabled. Mirrors
     // ExportDefinitionEndpoints' own copy of this check, duplicated rather than shared per this file's own

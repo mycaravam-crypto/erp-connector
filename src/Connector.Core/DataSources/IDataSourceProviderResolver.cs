@@ -8,7 +8,6 @@ namespace Connector.Core.DataSources;
 public interface IDataSourceProviderResolver
 {
     /// <summary>Returns the registered provider for <paramref name="type"/>, or throws
-    /// <see cref="UnsupportedDataSourceException"/> if none is registered (Arbeitsauftrag 2: only
-    /// <see cref="DataSourceType.PostgreSql"/> is implemented today).</summary>
+    /// <see cref="UnsupportedDataSourceException"/> if none is registered.</summary>
     IDataSourceProvider Resolve(DataSourceType type);
 }

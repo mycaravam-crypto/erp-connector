@@ -1,4 +1,4 @@
--- MariaDB counterpart of the export_* fixture tables in init.sql (Arbeitsauftrag 7): the same tables, columns
+-- MariaDB counterpart of the export_* fixture tables in init.sql: the same tables, columns
 -- and rows, in MariaDB types, so one ExportDefinition can be run against both backends and compared
 -- (MariaDbExportParityTests). Keep the two in sync. Loaded into erp_testdb by CI and by the local
 -- `docker-compose --profile test up -d testdb-mariadb` fixture. Read-only for every test.

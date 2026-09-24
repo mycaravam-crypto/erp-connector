@@ -40,7 +40,7 @@ export interface ErpConnectionInfo {
   instanceUrl?: string | null
   username: string
   /** One of Npgsql's SslMode names (Disable/Allow/Prefer/Require/VerifyCA/VerifyFull), or null/empty to
-   *  use the default (Prefer — falls back to unencrypted if the server doesn't offer TLS). See SR-03.
+   *  use the default (Prefer — falls back to unencrypted if the server doesn't offer TLS).
    *  MariaDB uses the same names. */
   sslMode: string | null
   hasPassword?: boolean

@@ -7,7 +7,7 @@ using Connector.Infrastructure;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// HTTP-layer coverage for <c>GET /api/connection</c> (Arbeitsauftrag 3): the response must never carry a
+/// HTTP-layer coverage for <c>GET /api/connection</c>: the response must never carry a
 /// password, in any field or under any name — the most it may say is <c>hasPassword</c>. Seeds
 /// <c>SettingsKeys.ErpConnection</c> directly via <see cref="ApiSettings"/> rather than going through
 /// <c>POST /api/connection</c>, so this doesn't need a live Postgres <c>testdb</c>.

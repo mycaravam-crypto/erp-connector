@@ -244,7 +244,7 @@ async function mountView() {
   return w
 }
 
-describe('ConnectionView — source types (Arbeitsauftrag 8)', () => {
+describe('ConnectionView — source types', () => {
   it('defaults to PostgreSQL with port 5432', async () => {
     const w = await mountView()
     expect((w.find('#source-type').element as HTMLSelectElement).value).toBe('postgres')

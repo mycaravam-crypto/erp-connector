@@ -10,7 +10,7 @@ namespace Connector.Infrastructure.DataSources.PostgreSql;
 public sealed record CompiledPostgreSqlQuery(string Sql, IReadOnlyList<NpgsqlParameter> Parameters);
 
 /// <summary>
-/// Compiles the database-neutral <see cref="SourceQuery"/> into PostgreSQL (Arbeitsauftrag 4) — the only place
+/// Compiles the database-neutral <see cref="SourceQuery"/> into PostgreSQL — the only place
 /// that model meets a SQL dialect. Validates against the given <see cref="SourceSchema"/> first
 /// (<see cref="SourceQueryValidator"/>), so every identifier emitted is one the schema reported, double-quoted
 /// by <see cref="PostgreSqlDialect"/>, and table aliases are synthetic (<c>t0</c>, <c>t1</c>, …). No

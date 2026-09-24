@@ -4,10 +4,10 @@ using Connector.Core.DynamicExport;
 namespace Connector.Infrastructure;
 
 /// <summary>
-/// knowledge/pipeline/import-mapping-presets.md §3.2 — the optional <c>provenance</c> key
+/// The optional <c>provenance</c> key
 /// <see cref="JsonExportFormatWriter"/> emits when <see cref="ExportDefinitionEntity.IntegrationKey"/> is
-/// set. Only <see cref="IntegrationKey"/>/<see cref="ContractVersion"/> are ever matched on by the (not
-/// yet built) import-side suggestion function; <see cref="ConfigVersion"/> rides along purely for an
+/// set. Only <see cref="IntegrationKey"/>/<see cref="ContractVersion"/> are ever matched on by the
+/// import-side suggestion (<c>ImportMappingSuggestion</c>); <see cref="ConfigVersion"/> rides along purely for an
 /// operator-facing tooltip, reusing the existing per-run traceability field rather than inventing a new
 /// one. No internal database id (<see cref="ExportDefinitionEntity.Id"/>, any run id) is ever placed on
 /// the wire — this is an external interchange payload, and an internal primary key has no meaning outside
@@ -16,7 +16,7 @@ namespace Connector.Infrastructure;
 public sealed record ExportProvenance(string IntegrationKey, int ContractVersion, int ConfigVersion);
 
 /// <summary>
-/// OCP seam for output formats (knowledge/pipeline/export-definitions-2.0.md §8): every implementation accepts the exact same
+/// Extension point for output formats: every implementation accepts the exact same
 /// tree-shaped records <see cref="DynamicExportService.ExecuteExportNodeQueryAsync"/> produces for any
 /// <see cref="ExportNode"/> tree (LSP — none may reject a shape another accepts), so adding a new format
 /// is a new class here, never a change to the query engine, <c>ExportDefinitionEndpoints</c>, or the
@@ -31,8 +31,7 @@ public interface IExportFormatWriter
     string FileExtension { get; }
 
     /// <summary><paramref name="provenance"/> is honored only by <see cref="JsonExportFormatWriter"/>
-    /// (knowledge/pipeline/import-mapping-presets.md §3.2) — CSV/Excel have no natural home for
-    /// structured metadata and ignore it entirely, per that proposal's Non-Goals.</summary>
+    /// — CSV/Excel have no natural home for structured metadata and ignore it entirely.</summary>
     byte[] Write(
         ExportNode root,
         IReadOnlyList<JsonObject> records,

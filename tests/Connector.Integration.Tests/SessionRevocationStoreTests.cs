@@ -3,8 +3,8 @@ using Connector.Infrastructure;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Coverage for <see cref="SessionRevocationStore"/> (security-review finding SR-16: a JWT previously had
-/// no way to be invalidated before its own expiry). Runs entirely against the in-memory Sqlite
+/// Coverage for <see cref="SessionRevocationStore"/> (invalidating a user's JWTs before their own expiry).
+/// Runs entirely against the in-memory Sqlite
 /// <see cref="LocalDb"/> fixture — no Postgres testdb required.
 /// </summary>
 public sealed class SessionRevocationStoreTests

@@ -10,7 +10,7 @@ namespace Connector.Infrastructure;
 /// One-time, idempotent startup step that encrypts every <c>AppSetting.Value</c> still stored as plaintext —
 /// rows written before <see cref="EncryptedStringConverter"/> existed. The converter only encrypts a row when
 /// it is saved again, and several keys (e.g. <c>scheduler_config</c>, read on every worker tick) are rarely
-/// re-saved, so without this they would stay plaintext on disk indefinitely and trigger the converter's SR-11
+/// re-saved, so without this they would stay plaintext on disk indefinitely and trigger the converter's
 /// plaintext warning on every single read.
 /// </summary>
 public static class AppSettingEncryptionMigrator

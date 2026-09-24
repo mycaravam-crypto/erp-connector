@@ -21,7 +21,7 @@ function logout() {
   router.push({ name: 'login' })
 }
 
-// SR-16: the revoke call also invalidates the token this request itself would use, so the local session
+// The revoke call also invalidates the token this request itself would use, so the local session
 // is cleared unconditionally afterward — an already-dead token isn't worth keeping around either way.
 async function revokeSessions() {
   await revokeAllSessions()

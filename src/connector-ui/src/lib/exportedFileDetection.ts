@@ -1,6 +1,6 @@
 /** The ImportEnvelope schemaVersion this frontend targets — mirrors
- * Connector.Infrastructure.ImportNodeWalker.SupportedSchemaVersion (import-definitions.md Open Decision
- * #14). A literal, not fetched from the backend: it's part of the wire contract, not runtime state. */
+ * Connector.Infrastructure.ImportNodeWalker.SupportedSchemaVersion. A literal, not fetched from the
+ * backend: it's part of the wire contract, not runtime state. */
 export const IMPORT_ENVELOPE_SCHEMA_VERSION = '1'
 
 /** sessionStorage key used to hand a pasted export sample from the Preview panel of an *existing* Import
@@ -42,8 +42,8 @@ export function detectExportFile(raw: string): DetectedExportFile | null {
 }
 
 /** Rewraps a detected export file as a minimal ImportEnvelope: the same records array, the same
- * provenance block carried through untouched (ImportNodeWalker ignores it entirely — see the Slice 3
- * regression test WalkAsync_ProvenanceBlockOnEnvelope_HasNoEffectOnTheWalk), just the wrapper the walker
+ * provenance block carried through untouched (ImportNodeWalker ignores it entirely — see the regression
+ * test WalkAsync_ProvenanceBlockOnEnvelope_HasNoEffectOnTheWalk), just the wrapper the walker
  * actually reads. Never touches AllowedWritableColumns or field data — a pure reshape of already-pasted
  * JSON, not a new trust boundary. */
 export function toImportEnvelope(detected: DetectedExportFile): string {
@@ -56,7 +56,7 @@ export function toImportEnvelope(detected: DetectedExportFile): string {
 }
 
 /** True when a detected export's provenance block carries a non-empty integrationKey — the signal that
- * "Create Import Definition from this export" (import-mapping-presets.md §3.4) has anything to work
+ * "Create Import Definition from this export" has anything to work
  * with. This never claims a match itself: ImportMappingSuggestion.Evaluate still does the real
  * (IntegrationKey, ContractVersion) lookup server-side once the operator follows through. */
 export function hasIntegrationKeyProvenance(detected: DetectedExportFile): boolean {

@@ -3,7 +3,7 @@ using Connector.Infrastructure;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Coverage for <see cref="ErrorSanitizer.Detail"/> — the SR-14 choke point that keeps a leaked ERP
+/// Coverage for <see cref="ErrorSanitizer.Detail"/> — the choke point that keeps a leaked ERP
 /// connection-string password out of exception messages returned to callers.
 /// </summary>
 public sealed class ErrorSanitizerTests

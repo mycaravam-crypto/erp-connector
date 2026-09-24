@@ -9,9 +9,8 @@ using Connector.Infrastructure.DataSources.PostgreSql;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Real-Postgres coverage for <see cref="ImportDefinitionEndpoints.ValidateRequestAsync"/> — Phase 17
-/// Slice 5's save-time guardrails (import-definitions.md §6 Open Decisions #9 and #15), the primary safety
-/// boundary of the whole import feature. Uses the same local <c>testdb</c> fixture and the same "no-op
+/// Real-Postgres coverage for <see cref="ImportDefinitionEndpoints.ValidateRequestAsync"/> — the save-time
+/// guardrails that are the primary safety boundary of the whole import feature. Uses the same local <c>testdb</c> fixture and the same "no-op
 /// instead of fail" convention as <see cref="ImportNodeWalkerPostgresTests"/>/<see cref="ImportRunReleaserPostgresTests"/>
 /// when it isn't running — every test that needs to introspect the real schema opens a throwaway
 /// connection first and returns early if that fails.

@@ -2,8 +2,8 @@ namespace Connector.Core.DataSources;
 
 /// <summary>
 /// Provider-native SQL text (plus optional named parameters) for
-/// <see cref="IDataSourceProvider.ExecuteNativeAsync"/>. Named <c>SourceQuery</c> before Arbeitsauftrag 4,
-/// which gave that name to the database-neutral <see cref="SourceQuery"/> model instead.
+/// <see cref="IDataSourceProvider.ExecuteNativeAsync"/>. The database-neutral counterpart is
+/// <see cref="SourceQuery"/>.
 /// </summary>
 /// <remarks>
 /// Two producers exist: a provider's own compiler for <see cref="SourceQuery"/> (e.g.

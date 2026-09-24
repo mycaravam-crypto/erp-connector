@@ -4,7 +4,7 @@ using Connector.Core.DataSources;
 namespace Connector.Infrastructure.DataSources;
 
 /// <summary>
-/// The import path's handle on the ERP (Arbeitsauftrag 14): an open ADO.NET connection plus the SQL dialect to
+/// The import path's handle on the ERP: an open ADO.NET connection plus the SQL dialect to
 /// render statements with, both from the configured provider — so <see cref="ImportNodeWalker"/> and
 /// <see cref="ImportRunReleaser"/> never name a database driver. Only a provider with the
 /// <see cref="DataSourceCapabilities.Imports"/> capability hands one out.
