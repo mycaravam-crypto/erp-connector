@@ -90,7 +90,7 @@ public sealed class ExportLogDbContext(
         {
             e.ToTable("ExportRun");
             e.HasKey(r => r.Id);
-            // SequenceNo muss einmalig und lückenlos sein — unique constraint deckt Duplikate ab.
+            // SequenceNo must be unique and gapless — the unique constraint rules out duplicates.
             e.HasIndex(r => r.SequenceNo).IsUnique();
             // Status doubles as the optimistic-concurrency token: EF includes its as-loaded value in
             // every UPDATE's WHERE clause, so two concurrent release/skip/deliver calls against the same

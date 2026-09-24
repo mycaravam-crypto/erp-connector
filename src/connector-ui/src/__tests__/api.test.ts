@@ -60,11 +60,11 @@ describe('releaseExport', () => {
 
   it('returns ok:false with message on 400', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
-      ok: false, status: 400, text: async () => 'Operator und Approver müssen verschiedene Personen sein.',
+      ok: false, status: 400, text: async () => 'Operator and approver must be different users (four-eyes principle).',
     } as Response)
     const result = await releaseExport(1, { approver: 'alice' })
     expect(result.ok).toBe(false)
-    expect(result.message).toContain('verschiedene')
+    expect(result.message).toContain('must be different users')
   })
 
   it('sends correct JSON body (approver only — operator inferred from JWT)', async () => {

@@ -1,22 +1,21 @@
 namespace Connector.Core.Schema;
 
 /// <summary>
-/// Einzige Quelle für die Export-Schemadefinition (ICD-Kontrakt mit dem Hersteller).
+/// Single source of truth for the export schema definition (the ICD contract with the vendor).
 /// </summary>
 /// <remarks>
-/// Alle Spaltenbezeichnungen, die in der Excel-Datei erscheinen, sowie alle Typregeln
-/// sind hier zentralisiert. Änderungen an Feldern ohne Anpassung von <see cref="Version"/>
-/// werden durch einen Unit-Test verhindert.
+/// All column names that appear in the Excel file, and all type rules, are centralized here.
+/// A unit test prevents field changes without a matching <see cref="Version"/> bump.
 ///
-/// Breaking Change = MAJOR erhöhen + mit Hersteller koordinieren.
-/// Additive Ergänzung = MINOR erhöhen.
+/// Breaking change = increment MAJOR + coordinate with the vendor.
+/// Additive change = increment MINOR.
 /// </remarks>
 public static class ExportSchema
 {
-    /// <summary>Aktuelle Schema-Version. Reist im Manifest mit jeder Export-Datei mit.</summary>
+    /// <summary>Current schema version. Carried in the manifest of every export file.</summary>
     public const string Version = "2.0";
 
-    /// <summary>Spaltenköpfe in der Reihenfolge, wie sie in der Excel-Datei erscheinen.</summary>
+    /// <summary>Column headers in the order they appear in the Excel file.</summary>
     public static readonly IReadOnlyList<string> Columns =
     [
         ColumnNames.Guid,
@@ -28,7 +27,7 @@ public static class ExportSchema
         ColumnNames.MaintenanceState,
     ];
 
-    /// <summary>Spaltennamen als typsichere Konstanten — verhindert Tippfehler bei der Zuordnung.</summary>
+    /// <summary>Column names as type-safe constants — prevents typos when mapping.</summary>
     public static class ColumnNames
     {
         public const string Guid = "guid";
@@ -41,13 +40,13 @@ public static class ExportSchema
     }
 
     /// <summary>
-    /// Dateiname-Template. Sequenznummer 4-stellig nullgepuffert, Datum UTC ISO-8601 kompakt.
-    /// Beispiel: export_0042_20260628T060000Z.xlsx
+    /// File name template: sequence number zero-padded to 4 digits, date as compact UTC ISO-8601.
+    /// Example: export_0042_20260628T060000Z.xlsx
     /// </summary>
     public static string BuildFileName(int sequenceNumber, DateTimeOffset extractedAt, string extension = "xlsx") =>
         $"export_{sequenceNumber:D4}_{extractedAt:yyyyMMdd'T'HHmmss'Z'}.{extension}";
 
-    /// <summary>Manifest-Dateiname zum zugehörigen Daten-Dateinamen.</summary>
+    /// <summary>Manifest file name for the given data file name.</summary>
     public static string BuildManifestFileName(string dataFileName) =>
         Path.GetFileNameWithoutExtension(dataFileName) + ".manifest.json";
 }

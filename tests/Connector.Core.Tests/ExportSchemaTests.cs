@@ -3,16 +3,16 @@ using Connector.Core.Schema;
 namespace Connector.Core.Tests;
 
 /// <summary>
-/// Verhindert unabsichtliche Schema-Änderungen ohne Version-Bump.
-/// Wer eine Spalte hinzufügt oder umbenennt, muss auch <see cref="ExportSchema.Version"/> anpassen.
+/// Guards against unintentional schema changes without a version bump.
+/// Adding or renaming a column requires updating <see cref="ExportSchema.Version"/> too.
 /// </summary>
 public sealed class ExportSchemaTests
 {
     [Fact]
     public void Schema_HasExpectedColumns()
     {
-        // Snapshot der erwarteten Spalten für Schema-Version 2.0.
-        // Änderungen hier = ICD-Änderung = Abstimmung mit Hersteller erforderlich.
+        // Snapshot of the expected columns for schema version 2.0.
+        // A change here is an ICD change and must be coordinated with the vendor.
         var expected = new[]
         {
             "guid",

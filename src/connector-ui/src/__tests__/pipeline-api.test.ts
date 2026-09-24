@@ -36,10 +36,10 @@ describe('runNow', () => {
 
   it('returns ok:false with error detail from JSON problem response on 500', async () => {
     // Server returns RFC 7807 problem JSON: { detail: "..." }
-    mockFetch({ detail: 'Staging-Pfad existiert nicht' }, 500)
+    mockFetch({ detail: 'Staging path does not exist' }, 500)
     const result = await runNow()
     expect(result.ok).toBe(false)
-    expect(result.error).toContain('Staging-Pfad')
+    expect(result.error).toContain('Staging path')
   })
 
   it('returns ok:false with fallback message when JSON has no detail or title', async () => {
