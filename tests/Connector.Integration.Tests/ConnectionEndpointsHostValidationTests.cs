@@ -3,9 +3,9 @@ using Connector.Api.Endpoints;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Coverage for <see cref="ConnectionEndpoints.ValidateHostAsync"/> (security audit finding: the ERP
-/// connection endpoints let any authenticated caller point the server at an arbitrary host, which is
-/// SSRF-able against cloud-provider instance-metadata services). Uses IP literals so no DNS resolution is
+/// Coverage for <see cref="ConnectionEndpoints.ValidateHostAsync"/>, which keeps the ERP connection endpoints
+/// from pointing the server at an arbitrary host (SSRF against cloud-provider instance-metadata services).
+/// Uses IP literals so no DNS resolution is
 /// needed — deterministic and network-independent.
 /// </summary>
 public sealed class ConnectionEndpointsHostValidationTests

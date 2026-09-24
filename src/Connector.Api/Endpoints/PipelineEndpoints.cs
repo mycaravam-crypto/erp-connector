@@ -146,18 +146,14 @@ static class PipelineEndpoints
         // the synchronous, external-system-friendly counterpart to /api/pipeline/run above. Unlike that
         // endpoint this does NOT create an ExportRun, does not write to the staging folder, and is not
         // subject to Four-Eyes Release: those model the legacy CI-to-vendor delivery contract
-        // specifically (see knowledge/processes/four-eyes-release.md), which a generic API-triggered pull
+        // specifically (see knowledge/operations/four-eyes-release.md), which a generic API-triggered pull
         // is out of scope for — same reasoning ExportDefinitionEndpoints' /run already applies. Every call
         // still writes one audit log entry (success or failure), so triggering is never silent.
         //
-        // Security-review finding SR-07: this is a deliberate, accepted exception to four-eyes, not an
-        // oversight — but it must only be reachable by a dedicated machine caller, never by any logged-in
-        // human's interactive session. ApiKey-only (X-Api-Key header, see ApiKeyAuthenticationHandler): a
-        // JWT from a normal user login no longer authenticates here, closing the gap where any interactive
-        // user (not just a configured Auth:ApiKeys service account) could pull preset data without review.
-        // The frontend never calls this route (it uses the four-eyes-gated /api/pipeline/run instead), so
-        // this has no UI-facing impact — only external systems already configured with an API key are
-        // affected, and they were always expected to use one.
+        // This is a deliberate exception to four-eyes, so it must only be reachable by a dedicated machine
+        // caller, never by a logged-in human's interactive session: ApiKey-only (X-Api-Key header, see
+        // ApiKeyAuthenticationHandler) — a JWT from a normal user login does not authenticate here. The
+        // frontend never calls this route (it uses the four-eyes-gated /api/pipeline/run instead).
         app.MapPost(
                 "/api/pipeline/run/{name}",
                 async (

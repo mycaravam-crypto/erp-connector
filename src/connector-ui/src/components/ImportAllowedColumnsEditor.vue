@@ -5,11 +5,10 @@ import Icon from '@/components/ui/Icon.vue'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
-// This is the primary safety boundary of the whole import feature (import-definitions.md §1, Open
-// Decision #9): a saved mapping can never write outside this explicit allowlist, checked against the
-// live schema at save time. Deliberately its own component, separate from the tree, so it's never
-// something an operator can miss while scrolling past field rows — the acceptance criteria for this
-// slice require it to be "visibly and separately editable from the tree itself."
+// This is the primary safety boundary of the whole import feature: a saved mapping can never write
+// outside this explicit allowlist, checked against the live schema at save time. Deliberately its own
+// component, visibly separate from the tree, so it's never something an operator can miss while
+// scrolling past field rows.
 const props = defineProps<{
   columns: string[]
   /** TargetColumn values the tree currently references (excluding the root match field) — used only

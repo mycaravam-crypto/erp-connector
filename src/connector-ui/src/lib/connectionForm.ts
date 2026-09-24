@@ -1,6 +1,6 @@
 import { DataSourceType, type ConnectionConfig, type ErpConnectionInfo } from '@/api/connection'
 
-// The connection form's state and the pure rules around it (Arbeitsauftrag 8): which fields each source type
+// The connection form's state and the pure rules around it: which fields each source type
 // uses, default ports, required-field validation, and the mapping to/from the backend's DataSourceConfig.
 
 export type SourceType = 'postgres' | 'mariadb' | 'servicenow'
@@ -17,7 +17,7 @@ export interface ConnectionForm {
   instanceUrl: string
   username: string
   password: string
-  /** Empty string means "use the default" (Prefer) — see SR-03. */
+  /** Empty string means "use the default" (Prefer). */
   sslMode: string
 }
 

@@ -14,16 +14,16 @@ public enum DataSourceType
 {
     PostgreSql = 0,
 
-    /// <summary>MariaDB (Arbeitsauftrag 7), over MySqlConnector. Uses the relational fields
+    /// <summary>MariaDB, over MySqlConnector. Uses the relational fields
     /// (<c>Host</c>/<c>Port</c>/<c>Database</c>/<c>SslMode</c>) like <see cref="PostgreSql"/>.</summary>
     MariaDb = 1,
 
-    /// <summary>ServiceNow's Table API (REST, one JSON object per record), Arbeitsauftrag 9. Uses
+    /// <summary>ServiceNow's Table API (REST, one JSON object per record). Uses
     /// <c>InstanceUrl</c> (HTTPS only)/<c>Username</c>/<c>Password</c>.</summary>
     ServiceNowTableApi = 2,
 
-    /// <summary>ServiceNow's (deprecated but still deployed) SOAP/SQL-style query API. Modeled only (Arbeitsauftrag
-    /// 3): <see cref="IDataSourceProviderResolver.Resolve"/> throws <see cref="UnsupportedDataSourceException"/>
+    /// <summary>ServiceNow's (deprecated but still deployed) SOAP/SQL-style query API. Modeled only:
+    /// <see cref="IDataSourceProviderResolver.Resolve"/> throws <see cref="UnsupportedDataSourceException"/>
     /// for this value.</summary>
     ServiceNowSqlApi = 3,
 }

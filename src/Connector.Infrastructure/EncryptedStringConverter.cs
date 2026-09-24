@@ -8,15 +8,14 @@ namespace Connector.Infrastructure;
 
 /// <summary>
 /// Encrypts a string column at rest via ASP.NET Core Data Protection. Applied to
-/// <see cref="AppSettingEntity.Value"/> (security audit finding: that column stores the ERP connection
-/// config — including its password — and was previously written as plain JSON straight into the SQLite
-/// file, so a stolen backup or disk snapshot handed over the live ERP database password). EF Core runs the
+/// <see cref="AppSettingEntity.Value"/>, which stores the ERP connection config including its password, so
+/// a stolen backup or disk snapshot of the SQLite file doesn't expose it. EF Core runs the
 /// conversion on every SaveChanges/materialization, so every caller — <see cref="AppSettingsStore"/>'s
 /// helpers and the several call sites that read <see cref="ExportLogDbContext.AppSettings"/> directly —
 /// keeps seeing plaintext JSON; only the bytes actually persisted to disk are ciphertext.
 /// </summary>
 // Public rather than internal: ExportLogDbContext's constructor (public) now takes an
-// ILogger<EncryptedStringConverter> parameter (see the SR-11 comment there), and a public member can't
+// ILogger<EncryptedStringConverter> parameter, and a public member can't
 // expose a less-accessible type.
 public sealed class EncryptedStringConverter : ValueConverter<string, string>
 {
@@ -53,14 +52,10 @@ public sealed class EncryptedStringConverter : ValueConverter<string, string>
         }
         catch (CryptographicException ex)
         {
-            // Security-review finding SR-11: this used to fail silently, forever — indistinguishable from
-            // the one-time pre-encryption migration case this fallback exists for. A hit here means this
-            // row's Value wasn't a Data Protection payload at all: either that intended one-time case (an
-            // old row not yet re-saved), or something less innocuous — a manual DB edit, or a future bug
-            // that wrote plaintext into an encrypted column. Both look identical to Unprotect, so this can't
-            // tell them apart — it can only make sure neither goes unnoticed. A handful of warnings right
-            // after this fix ships is expected (each row stops firing once AppSettingsStore.SetSettingAsync
-            // re-saves it); one still firing well after that is the signal an operator needs to investigate.
+            // The row's Value wasn't a Data Protection payload: either an old plaintext row not yet
+            // re-saved (it stops firing once AppSettingsStore.SetSettingAsync re-saves it), or something less
+            // innocuous — a manual DB edit, or a bug that wrote plaintext into an encrypted column. Unprotect
+            // can't tell them apart, so the fallback is logged as a warning rather than passing silently.
             logger.LogWarning(
                 ex,
                 "An AppSetting.Value column was read as plaintext instead of a Data Protection payload — "

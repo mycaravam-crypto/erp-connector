@@ -6,8 +6,8 @@ using Connector.Infrastructure.DataSources.PostgreSql;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Real-Postgres coverage for <see cref="PostgreSqlDataSourceProvider"/> — Arbeitsauftrag 2's explicit test
-/// list items "Connection Test", "Schema Reading", and "Query Execution". Requires the local test fixture
+/// Real-Postgres coverage for <see cref="PostgreSqlDataSourceProvider"/>: connection test, schema reading,
+/// and query execution. Requires the local test fixture
 /// (<c>docker-compose --profile test up -d testdb</c>; see testdb/init.sql); every test no-ops rather than
 /// failing if it isn't running, matching every other Postgres-backed test in this project (this repo's xunit
 /// version, 2.9.2, predates <c>Assert.Skip</c>).
@@ -20,10 +20,9 @@ public sealed class PostgreSqlDataSourceProviderTests
     private const string AcmeManufacturerId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"; // has 2 addresses
 
     // ── BuildConnectionString ────────────────────────────────────────────────
-    // Pure unit tests, no DB required — moved here from DynamicExportServiceTests since BuildConnectionString
-    // itself now lives on PostgreSqlDataSourceProvider rather than on DynamicExportService.
+    // Pure unit tests, no DB required.
 
-    // Security-review finding SR-02: a connection-string-injection payload smuggled through Password (or
+    // A connection-string-injection payload smuggled through Password (or
     // any other field) must never be able to append/override keys like Host in the string Npgsql actually
     // parses. NpgsqlConnectionStringBuilder treats the whole value as the literal password, not as syntax.
     [Fact]
@@ -78,10 +77,9 @@ public sealed class PostgreSqlDataSourceProviderTests
         Assert.Equal("erp_user;Database=other_db", parsed.Username);
     }
 
-    // Security-review finding SR-03: SslMode was previously hardcoded to Prefer everywhere. This proves
-    // an explicit choice is actually honored, and that an unset/unrecognized value falls back to the
-    // prior Prefer default rather than throwing (so a config saved before this field existed, or corrupted
-    // input, can never itself turn a working connection into a hard failure).
+    // An explicit SslMode is honored, and an unset/unrecognized value falls back to the Prefer default
+    // rather than throwing (so a config saved without the field, or corrupted input, can never itself
+    // turn a working connection into a hard failure).
     [Theory]
     [InlineData("Require", Npgsql.SslMode.Require)]
     [InlineData("VerifyFull", Npgsql.SslMode.VerifyFull)]

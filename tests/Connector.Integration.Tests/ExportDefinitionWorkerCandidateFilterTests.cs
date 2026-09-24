@@ -5,8 +5,8 @@ namespace Connector.Integration.Tests;
 
 /// <summary>
 /// Covers <see cref="ExportDefinitionWorker.ScheduledCandidates"/> against a real (in-memory SQLite)
-/// <see cref="ExportLogDbContext"/> — the acceptance criteria from issue #21 that a disabled definition,
-/// or one with <c>Schedule = null</c>, never runs automatically, before <see cref="CronSchedule"/> is even
+/// <see cref="ExportLogDbContext"/>: a disabled definition, or one with <c>Schedule = null</c>, never runs
+/// automatically, before <see cref="CronSchedule"/> is even
 /// consulted. Like <see cref="ExportDefinitionMigratorTests"/>, this needs no live Postgres/testdb fixture.
 /// </summary>
 public sealed class ExportDefinitionWorkerCandidateFilterTests : SqliteDbContextTestBase

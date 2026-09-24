@@ -6,7 +6,7 @@ using Connector.Infrastructure.DataSources.PostgreSql;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Real-Postgres coverage for <see cref="DynamicExportService.ExecuteExportNodeQueryAsync"/> — the Phase 14
+/// Real-Postgres coverage for <see cref="DynamicExportService.ExecuteExportNodeQueryAsync"/> — the
 /// generic tree query builder (<see cref="DynamicExportService"/>'s ExportNode-tree region). Same fixture,
 /// same "no-op if the fixture isn't running" convention as <see cref="DynamicExportServiceNestedJsonPostgresTests"/>
 /// (this repo's xunit 2.9.2 predates <c>Assert.Skip</c>). Requires
@@ -61,8 +61,7 @@ public sealed class ExportNodeQueryPostgresTests
 
         // This test is about nested-object embedding mechanics, not GDPR enforcement (that's the
         // dedicated _GdprDeniedField_ tests below) — "contact_email" happens to be on the *default*
-        // denylist, so an explicit empty one here keeps the two concerns from coupling by accident
-        // (see security-review finding SR-08).
+        // denylist, so an explicit empty one here keeps the two concerns from coupling by accident.
         var results = await DynamicExportService.ExecuteExportNodeQueryAsync(
             Provider,
             ErpTestFixture.Config,
@@ -309,11 +308,10 @@ public sealed class ExportNodeQueryPostgresTests
         Assert.False(row["manufacturer"]!.AsObject().ContainsKey("contact_email"));
     }
 
-    // Security-review finding SR-08: the above test's SourceField and TargetKey happen to be identical
-    // ("contact_email" both ways), so it can't tell a correct SourceField-based exclusion apart from the
-    // TargetKey-matching bug the review found (a definition that renames a denylisted field survived the
-    // old output-key-only strip). These two tests use a TargetKey that deliberately does NOT match the
-    // denylisted SourceField, so they only pass once the denylist is enforced by SourceField.
+    // The above test's SourceField and TargetKey happen to be identical ("contact_email" both ways), so it
+    // can't tell SourceField-based exclusion apart from matching by TargetKey (which a renamed denylisted
+    // field would survive). These two tests use a TargetKey that deliberately does NOT match the
+    // denylisted SourceField, so they only pass when the denylist is enforced by SourceField.
     [Fact]
     public async Task ExecuteExportNodeQueryAsync_GdprDeniedField_ExcludedEvenWhenRenamedAtRoot()
     {

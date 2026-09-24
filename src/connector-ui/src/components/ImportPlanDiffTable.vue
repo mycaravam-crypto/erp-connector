@@ -5,9 +5,9 @@ import ImportDiffValue from '@/components/ImportDiffValue.vue'
 
 // Shared by ImportDefinitionPreviewPanel.vue (a sample-file preview) and ImportRunReviewDialog.vue (a
 // staged run's four-eyes review) — both need the same "one row's changed fields, grouped by
-// CorrelationValue" rendering of a plan's operations, the field-level diff import-definitions.md's
-// Slice 6 acceptance criteria calls for. PlanJson is the write-side source of truth (Open Decision
-// #11); this component only ever displays operations handed to it, never recomputes anything.
+// CorrelationValue" rendering of a plan's operations as a field-level diff. PlanJson is the
+// write-side source of truth; this component only ever displays operations handed to it, never
+// recomputes anything.
 const props = defineProps<{ operations: ImportPlanOperation[] }>()
 
 const groupedByRow = computed(() => {

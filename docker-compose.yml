@@ -26,8 +26,8 @@ services:
       # AllowedOrigins__0: "https://your-domain.com"
     volumes:
       - connector-db:/data/db
-      # Security-review finding SR-11: previously shared connector-db with export_log.db (the encrypted
-      # AppSetting.Value column's ciphertext). A backup/snapshot of a single volume must not hand over both
+      # Data Protection key ring, kept on its own volume apart from export_log.db (the encrypted
+      # AppSetting.Value column's ciphertext): a backup/snapshot of a single volume must not hand over both
       # the ciphertext and the key needed to decrypt it — see appsettings.Production.json's DataProtection
       # comment.
       - connector-dpkeys:/data/dpkeys
@@ -40,7 +40,7 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-    # Security-review finding SR-03 (suggestion #3): container hardening additive to the Dockerfile's
+    # Container hardening, additive to the Dockerfile's
     # existing non-root user. A .NET web app needs no Linux capabilities beyond what's already granted by
     # running unprivileged and binding a port >1024 — cap_drop/no-new-privileges cost this container
     # nothing. Resource limits are a starting point, not a measured figure: tune memory/cpus for your real
@@ -79,7 +79,7 @@ services:
       timeout: 5s
       retries: 10
 
-  # MariaDB counterpart of testdb (Arbeitsauftrag 7) for the MariaDB provider/parity tests.
+  # MariaDB counterpart of testdb for the MariaDB provider/parity tests.
   # Start explicitly with: docker-compose --profile test up -d testdb-mariadb
   testdb-mariadb:
     image: mariadb:11.4

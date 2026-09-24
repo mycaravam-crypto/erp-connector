@@ -8,8 +8,8 @@ using Npgsql;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Real-Postgres coverage for <see cref="ImportRunReleaser"/> — Slice 3 of Phase 17 (import-definitions.md
-/// §3 steps 6-8), the commit-path counterpart to <see cref="ImportNodeWalkerPostgresTests"/>'s read-only
+/// Real-Postgres coverage for <see cref="ImportRunReleaser"/> — the commit-path counterpart to
+/// <see cref="ImportNodeWalkerPostgresTests"/>'s read-only
 /// walk coverage. Uses the same local <c>testdb</c> fixture and the same "no-op instead of fail" convention
 /// when it isn't running (see that class's doc comment for why). Unlike that class, these tests actually
 /// write to <c>testdb</c> — always to the three <c>c000000...</c> <c>systemconfiguration</c> rows
@@ -162,7 +162,7 @@ public sealed class ImportRunReleaserPostgresTests
 
             await ImportRunReleaser.ReleaseAsync(db, run, "alice", "bob", audit, Resolver, CancellationToken.None);
 
-            // Still Released, not Failed: a conflicted row doesn't fail the run (Open Decision #6).
+            // Still Released, not Failed: a conflicted row doesn't fail the run.
             Assert.Equal(ImportRunStatus.Released, run.Status);
             Assert.Equal(1, run.ConflictCount);
 
@@ -259,7 +259,7 @@ public sealed class ImportRunReleaserPostgresTests
         Assert.Equal("alice", auditEntry.Username);
     }
 
-    // Security-review finding SR-05: LocalDb.NewAsync() pre-seeds SettingsKeys.ErpConnection with
+    // LocalDb.NewAsync() pre-seeds SettingsKeys.ErpConnection with
     // ErpTestFixture.Config, so a run staged with that same connection's fingerprint must still release —
     // this proves the equality check itself passes, not just that a null fingerprint skips it (the other
     // tests in this class all rely on that skip, since they never set StagedConnectionFingerprint).

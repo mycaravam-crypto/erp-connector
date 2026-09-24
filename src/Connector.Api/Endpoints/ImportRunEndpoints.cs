@@ -6,11 +6,10 @@ using Microsoft.EntityFrameworkCore;
 namespace Connector.Api.Endpoints;
 
 /// <summary>
-/// Slice 3 of Phase 17 (import-definitions.md §3 steps 6-8, §5): the four-eyes commit path for a staged
-/// <c>ImportRunEntity</c>. Deliberately just release/reject — CRUD, preview, and run history for
-/// <c>ImportDefinitionEntity</c> are Slice 5's <c>ImportDefinitionEndpoints.cs</c>, and how a run reaches
-/// <see cref="ImportRunStatus.PendingReview"/> in the first place is Slice 4's file-watcher trigger (both out
-/// of this slice's scope per its own issue). The actual commit/rollback/audit logic lives in
+/// The four-eyes commit path for a staged <c>ImportRunEntity</c>: read, release and reject. CRUD, preview,
+/// and run history for <c>ImportDefinitionEntity</c> live in <c>ImportDefinitionEndpoints.cs</c>; a run
+/// reaches <see cref="ImportRunStatus.PendingReview"/> via <c>ImportWorker</c> or the stage endpoint. The
+/// actual commit/rollback/audit logic lives in
 /// <see cref="ImportRunReleaser"/>, not here, so it's testable without going through HTTP — this file only
 /// does request validation and status-code mapping.
 /// </summary>
@@ -18,7 +17,7 @@ static class ImportRunEndpoints
 {
     internal static void MapImportRunEndpoints(this WebApplication app, IReadOnlyDictionary<string, string> userStore)
     {
-        // Slice 6: the frontend's review/diff view needs a run's full plan before an Approver can meaningfully
+        // The frontend's review/diff view needs a run's full plan before an Approver can meaningfully
         // decide anything — GET .../{id}/runs on ImportDefinitionEndpoints only returns the summary counts.
         // This is a plain read, so unlike release/reject it's not restricted to PendingReview runs: revisiting
         // a Released/Rejected/Failed run's plan after the fact is useful too, and costs nothing extra here.

@@ -3,7 +3,7 @@ using Connector.Core.DataSources;
 
 namespace Connector.Infrastructure.DataSources;
 
-/// <summary>What one export read from its source (Arbeitsauftrag 13): how many queries it sent, how many rows came
+/// <summary>What one export read from its source: how many queries it sent, how many rows came
 /// back, and how long the whole build took (queries, assembly and writing the output).</summary>
 public readonly record struct ExportQueryMetrics(int QueryCount, long RecordsRead, long DurationMs);
 

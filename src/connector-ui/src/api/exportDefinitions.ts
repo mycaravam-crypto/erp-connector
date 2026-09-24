@@ -39,8 +39,8 @@ export interface ExportDefinitionSummary {
 
 export interface ExportDefinition extends ExportDefinitionSummary {
   rootNode: ExportNode
-  // knowledge/pipeline/import-mapping-presets.md §3.1 — optional, paired provenance tagging. Null on every
-  // export that doesn't opt into the import-mapping-presets suggestion feature (the default).
+  // Optional, paired provenance tagging. Null on every export that doesn't opt into the import-mapping
+  // suggestion feature (the default).
   integrationKey: string | null
   contractVersion: number | null
   correlationKeySourceField: string | null
@@ -163,7 +163,7 @@ export async function setExportDefinitionEnabled(id: number, enabled: boolean): 
   return sendJsonForResult<ExportDefinition>(`/api/export-definitions/${id}/enable`, 'PATCH', { enabled })
 }
 
-/** Capped, untracked query preview — runs the same query path Run Now uses (export-definitions-2.0.md §7). */
+/** Capped, untracked query preview — runs the same query path Run Now uses. */
 export async function previewExportDefinition(id: number): Promise<ApiResult<ExportDefinitionPreview>> {
   return postForResult<ExportDefinitionPreview>(`/api/export-definitions/${id}/preview`)
 }

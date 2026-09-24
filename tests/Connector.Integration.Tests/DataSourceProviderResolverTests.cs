@@ -7,9 +7,8 @@ using Connector.Infrastructure.DataSources.PostgreSql;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Pure unit coverage for <see cref="DataSourceProviderResolver"/> — no database required. Covers
-/// Arbeitsauftrag 2's explicit test list items "Provider-Auflösung" and "Fehlerszenario bei nicht
-/// unterstütztem Provider".
+/// Pure unit coverage for <see cref="DataSourceProviderResolver"/> — no database required. Covers provider
+/// resolution and the error for an unsupported provider.
 /// </summary>
 public sealed class DataSourceProviderResolverTests
 {
@@ -49,7 +48,7 @@ public sealed class DataSourceProviderResolverTests
         Assert.Equal(type, ex.RequestedType);
     }
 
-    // Arbeitsauftrag 3: a DataSourceConfig can carry a numeric Type value outside every known enum member
+    // A DataSourceConfig can carry a numeric Type value outside every known enum member
     // (e.g. deserialized from a future/foreign payload) — Resolve must reject it the same way as any other
     // unregistered type, not throw an unrelated error or silently match PostgreSql via a bad default.
     [Fact]

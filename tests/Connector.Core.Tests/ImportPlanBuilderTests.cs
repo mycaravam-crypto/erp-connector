@@ -3,8 +3,8 @@ using Connector.Core.DynamicImport;
 namespace Connector.Core.Tests;
 
 /// <summary>
-/// Coverage for <see cref="ImportPlanBuilder"/> — Slice 3's reshaping of Slice 2's
-/// <see cref="ImportWalkResult"/> into the persisted <see cref="ImportPlan"/> (Open Decision #11). Pure and
+/// Coverage for <see cref="ImportPlanBuilder"/> — the reshaping of an
+/// <see cref="ImportWalkResult"/> into the persisted <see cref="ImportPlan"/>. Pure and
 /// DB-free, unlike <c>ImportNodeWalker</c> itself, so no Postgres fixture is needed here (see
 /// <c>ImportNodeWalkerPostgresTests</c> in Connector.Integration.Tests for the walker's own coverage).
 /// </summary>
@@ -78,8 +78,8 @@ public sealed class ImportPlanBuilderTests
     [Fact]
     public void Build_QuarantinedRow_FoldsIntoRejectedCount()
     {
-        // ImportRunEntity has no separate quarantine counter (Open Decision #11 lists only
-        // matched/changed, matched/unchanged, rejected, invalid) — see ImportRowStatus's doc comment.
+        // ImportRunEntity has no separate quarantine counter (only matched/changed, matched/unchanged,
+        // rejected, invalid) — see ImportRowStatus's doc comment.
         var walkResult = new ImportWalkResult(
             1,
             0,

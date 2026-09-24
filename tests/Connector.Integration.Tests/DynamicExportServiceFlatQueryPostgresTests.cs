@@ -6,11 +6,9 @@ namespace Connector.Integration.Tests;
 
 /// <summary>
 /// Real-Postgres coverage for <see cref="DynamicExportService.ExecuteQueryAsync"/> — the flat legacy
-/// CSV/Excel/JSON query path. Previously untested against a live database (unlike its nested-JSON sibling,
-/// <see cref="DynamicExportServiceNestedJsonPostgresTests"/>); added alongside the security-review SR-08 fix
-/// (GDPR denylist enforcement moved from a post-query, output-key-only strip to excluding a denylisted
-/// SourceName/SourceField from the SELECT list itself) so that fix has real query-level coverage, not just
-/// unit-level coverage of C#-side serialization.
+/// CSV/Excel/JSON query path (the nested-JSON sibling is
+/// <see cref="DynamicExportServiceNestedJsonPostgresTests"/>). Covers GDPR denylist enforcement at query
+/// level: a denylisted SourceName/SourceField is excluded from the SELECT list itself.
 ///
 /// Requires the local test fixture: <c>docker-compose --profile test up -d testdb</c> (see testdb/init.sql).
 /// If the fixture isn't running, every test in this class no-ops rather than failing, matching every other
@@ -49,10 +47,9 @@ public sealed class DynamicExportServiceFlatQueryPostgresTests
         Assert.Equal("Compressor Unit CU-200", row["articleName"]);
     }
 
-    // Security-review finding SR-08: "technician_name" is denylisted by default
-    // (DynamicExportService.GdprDeniedFields) but this mapping renames it to a TargetName that isn't
-    // itself denylisted — the old post-query strip (which removed dictionary keys matching the denylist
-    // verbatim) would have missed this; the field must never reach the SELECT list at all.
+    // "technician_name" is denylisted by default (DynamicExportService.GdprDeniedFields) but this mapping
+    // renames it to a TargetName that isn't itself denylisted — a strip by output key would miss it; the
+    // field must never reach the SELECT list at all.
     [Fact]
     public async Task ExecuteQueryAsync_GdprDeniedField_ExcludedEvenWhenRenamed()
     {

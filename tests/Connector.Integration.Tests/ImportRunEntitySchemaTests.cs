@@ -4,8 +4,8 @@ using Microsoft.EntityFrameworkCore;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Coverage for Slice 1b's <see cref="ImportRunEntity"/>/<see cref="ImportDefinitionEntity"/> schema
-/// amendments (import-definitions.md §4/§6, Open Decisions #10-13) against an in-memory SQLite
+/// Coverage for the <see cref="ImportRunEntity"/>/<see cref="ImportDefinitionEntity"/> schema (definition
+/// snapshot, counts, plan, checksum uniqueness) against an in-memory SQLite
 /// <see cref="ExportLogDbContext"/> — no live ERP/testdb connection needed, since this only exercises
 /// the local metadata store's own schema.
 /// </summary>

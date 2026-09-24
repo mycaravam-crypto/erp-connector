@@ -20,7 +20,7 @@ static class ConnectionEndpoints
         IPNetwork.Parse("fe80::/10"),
     ];
 
-    // Arbeitsauftrag 8: GET /api/connection never returns the password, so the form re-submits an empty one to
+    // GET /api/connection never returns the password, so the form re-submits an empty one to
     // mean "keep the stored password". It is only carried over when the request still points at the same
     // system with the same account — otherwise a changed Host/InstanceUrl could send the stored credential to
     // a different server.
@@ -65,7 +65,7 @@ static class ConnectionEndpoints
         return null;
     }
 
-    // Arbeitsauftrag 11: in production an ERP connection must be encrypted unless an operator explicitly opts out;
+    // In production an ERP connection must be encrypted unless an operator explicitly opts out;
     // elsewhere (local dev, the docker test database) plaintext stays allowed unless configured otherwise.
     internal static bool AllowUnencryptedConnections(IConfiguration configuration, IHostEnvironment environment) =>
         configuration.GetValue<bool?>(TransportSecurity.AllowUnencryptedSetting) ?? !environment.IsProduction();
@@ -111,7 +111,7 @@ static class ConnectionEndpoints
                 ) =>
                 {
                     // Every per-source-type rule (required fields, TLS mode, instance URL, which host is reached,
-                    // whether the transport is always encrypted) belongs to the provider (Arbeitsauftrag 14). A type
+                    // whether the transport is always encrypted) belongs to the provider. A type
                     // without one — an unknown value, or one this version doesn't implement — is a 400.
                     IDataSourceProvider provider;
                     try
@@ -160,10 +160,9 @@ static class ConnectionEndpoints
 
         // Returns schema from the persisted Postgres connection when one is configured, falling back to
         // the hardcoded demo schema only when no connection has been stored yet. A stored connection that
-        // fails to introspect is reported as an error rather than silently substituting the demo schema —
-        // swallowing that failure previously let a mapping get built against demo-only tables (e.g.
-        // "masterdata") that don't exist in the real database, surfacing much later as a confusing
-        // "relation ... does not exist" error at preview/export time instead of here.
+        // fails to introspect is reported as an error rather than silently substituting the demo schema, so
+        // a mapping can't be built against demo-only tables (e.g. "masterdata") that don't exist in the real
+        // database.
         app.MapGet(
                 "/api/source-schema",
                 async (ExportLogDbContext db, IDataSourceProviderResolver resolver, CancellationToken ct) =>

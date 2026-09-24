@@ -5,7 +5,7 @@ using Connector.Infrastructure.DataSources.PostgreSql;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// The contract every <see cref="IDataSourceProvider"/> must meet (Arbeitsauftrag 12), run unchanged against each
+/// The contract every <see cref="IDataSourceProvider"/> must meet, run unchanged against each
 /// provider by a concrete subclass. Every provider serves the same <c>export_order</c>/<c>export_customer</c> rows
 /// (testdb/init.sql, testdb/mariadb-init.sql, <see cref="FakeServiceNow.WithExportFixture"/>). Where providers
 /// legitimately differ, the test asserts the behavior its <see cref="DataSourceCapabilities"/> declares — both

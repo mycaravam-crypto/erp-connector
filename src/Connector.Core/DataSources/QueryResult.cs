@@ -13,8 +13,7 @@ public sealed record QueryResult
 
     public required IReadOnlyList<QueryResultRow> Rows { get; init; }
 
-    /// <summary>Each row keyed by column name — the shape <c>QueryResult</c> had before Arbeitsauftrag 4. If
-    /// two columns share a name the later one wins, as the pre-abstraction row readers did.</summary>
+    /// <summary>Each row keyed by column name. If two columns share a name the later one wins.</summary>
     public IEnumerable<Dictionary<string, string?>> ToDictionaries()
     {
         foreach (var row in Rows)

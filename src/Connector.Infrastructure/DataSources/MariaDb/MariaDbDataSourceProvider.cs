@@ -5,7 +5,7 @@ using MySqlConnector;
 namespace Connector.Infrastructure.DataSources.MariaDb;
 
 /// <summary>
-/// The <see cref="IDataSourceProvider"/> for <see cref="DataSourceType.MariaDb"/> (Arbeitsauftrag 7), over
+/// The <see cref="IDataSourceProvider"/> for <see cref="DataSourceType.MariaDb"/>, over
 /// MySqlConnector — the same contract as <c>PostgreSqlDataSourceProvider</c>: connection test and schema read
 /// (<see cref="MariaDbSchemaReader"/>), neutral queries (<see cref="MariaDbQueryCompiler"/>) and native SQL the
 /// export builders render with <see cref="MariaDbDialect"/>. Stateless singleton; every call opens and disposes

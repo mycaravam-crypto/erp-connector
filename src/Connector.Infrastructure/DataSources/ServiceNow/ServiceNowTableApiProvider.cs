@@ -3,7 +3,7 @@ using Connector.Core.DataSources;
 namespace Connector.Infrastructure.DataSources.ServiceNow;
 
 /// <summary>
-/// The <see cref="IDataSourceProvider"/> for <see cref="DataSourceType.ServiceNowTableApi"/> (Arbeitsauftrag 9):
+/// The <see cref="IDataSourceProvider"/> for <see cref="DataSourceType.ServiceNowTableApi"/>:
 /// ServiceNow read over its REST Table API, behind the same interface as the SQL providers — callers see
 /// <see cref="SourceSchema"/>, <see cref="SourceQuery"/> and <see cref="QueryResult"/>, never HTTP. Not an
 /// <see cref="ISqlDataSourceProvider"/>: there is no SQL to run, so <see cref="ExecuteNativeAsync"/> and the

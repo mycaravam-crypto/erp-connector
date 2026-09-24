@@ -30,7 +30,7 @@ function findReverseRelations(schema: SourceSchema, tableName: string): Suggeste
  * actually express (see {@link findForwardRelations} and {@link findReverseRelations}). Shared by
  * the legacy mapping tree (SchemaView.vue, which only wants the reverse/array shape — see its
  * `.filter(s => s.kind === 'array')`) and the Export Definitions tree builder
- * (export-definitions-2.0.md §7 — "reuse, don't rebuild"), so both editors detect relations from
+ * (ExportNodeTreeEditor.vue), so both editors detect relations from
  * one piece of logic instead of two copies drifting apart.
  */
 export function findSuggestedRelations(

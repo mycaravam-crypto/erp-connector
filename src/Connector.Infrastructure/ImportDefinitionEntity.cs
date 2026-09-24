@@ -3,7 +3,7 @@ namespace Connector.Infrastructure;
 /// <summary>
 /// One saved import mapping: the ERP table/column an inbound record's correlation key must resolve
 /// against, its <see cref="Connector.Core.DynamicImport.ImportNode"/> tree, and the explicit allowlist
-/// of columns it may ever write. Phase 17's write-side counterpart to <see cref="ExportDefinitionEntity"/>.
+/// of columns it may ever write. The write-side counterpart to <see cref="ExportDefinitionEntity"/>.
 /// </summary>
 public sealed class ImportDefinitionEntity
 {
@@ -13,7 +13,7 @@ public sealed class ImportDefinitionEntity
     public string RootTable { get; set; } = string.Empty;
 
     /// <summary>Column on <see cref="RootTable"/> an inbound record's correlation key (the same Guid
-    /// exported today, per Open Point #1) is matched against. No match → the record is excluded per
+    /// the export carries) is matched against. No match → the record is excluded per
     /// <see cref="UnmatchedRootPolicy"/> — never auto-created.</summary>
     public string RootMatchColumn { get; set; } = string.Empty;
 
@@ -26,12 +26,12 @@ public sealed class ImportDefinitionEntity
     /// <summary>Explicit allowlist of columns this definition may ever write, serialized as a JSON
     /// string array (same storage approach as <see cref="RootNode"/>) — the inverse of the export
     /// side's GDPR denylist (default-deny instead of default-allow-except). Validated at save time
-    /// (Slice 5) and re-checked by the walker at run time (Slice 2), so a stale saved definition can
+    /// and re-checked by the walker at run time, so a stale saved definition can
     /// never be trusted silently.</summary>
     public string AllowedWritableColumns { get; set; } = "[]";
 
     /// <summary>reject | quarantine — see <see cref="Connector.Core.DynamicImport.UnmatchedRootPolicy"/>.
-    /// Deliberately has no "auto-create" option (see import-definitions.md §1).</summary>
+    /// Deliberately has no "auto-create" option.</summary>
     public string UnmatchedRootPolicy { get; set; } = Connector.Core.DynamicImport.UnmatchedRootPolicy.Reject;
 
     public bool IsEnabled { get; set; }
@@ -73,7 +73,7 @@ public static class ImportRunStatus
 /// <see cref="ExportDefinitionRunEntity"/>'s per-definition run-history shape, combined with
 /// <see cref="ExportRunEntity"/>'s four-eyes fields (an import commits to the system of record, a
 /// materially bigger risk than reading, so it requires the same Operator/Approver review as export
-/// release — see import-definitions.md §3).
+/// release).
 /// </summary>
 public sealed class ImportRunEntity
 {
@@ -85,14 +85,14 @@ public sealed class ImportRunEntity
     /// AllowedWritableColumns, UnmatchedRootPolicy), serialized exactly as it stood at staging time.
     /// <see cref="ConfigVersion"/> names *which* version; this field *is* that version, frozen — so an
     /// approver reviewing this run is never looking at a diff computed against a definition that's
-    /// since been edited (Open Decision #10).</summary>
+    /// since been edited.</summary>
     public string? DefinitionSnapshotJson { get; set; }
 
     public string SourceFileName { get; set; } = string.Empty;
 
-    /// <summary>SHA-256 of the inbound file, hex lowercase. No SequenceNumber field — per resolved
-    /// Open Decision #8, the manifest alone covers file integrity for v1 (see import-definitions.md §6).
-    /// Unique together with <see cref="ImportDefinitionId"/> (Open Decision #13) so the same vendor file
+    /// <summary>SHA-256 of the inbound file, hex lowercase. No SequenceNumber field — the manifest
+    /// checksum alone covers file integrity.
+    /// Unique together with <see cref="ImportDefinitionId"/> so the same vendor file
     /// can never be staged twice.</summary>
     public string Sha256Checksum { get; set; } = string.Empty;
 
@@ -110,22 +110,22 @@ public sealed class ImportRunEntity
     public int ChangedCount { get; set; }
 
     /// <summary>Matched rows whose target fields already equal the incoming values — counted
-    /// explicitly rather than folded into "accepted" (Open Decision #11).</summary>
+    /// explicitly rather than folded into "accepted".</summary>
     public int UnchangedCount { get; set; }
 
     public int RejectedCount { get; set; }
 
     /// <summary>Matched/changed rows excluded at commit time because the ERP row's value no longer
-    /// matched the expected-old-value captured when this run was staged (Open Decision #12). Stays 0
-    /// until Slice 3 populates it at commit time.</summary>
+    /// matched the expected-old-value captured when this run was staged. Stays 0 until the run is
+    /// released.</summary>
     public int ConflictCount { get; set; }
 
     public int InvalidCount { get; set; }
 
     /// <summary>A structured, versioned list of write operations (table, row-key, column, old value,
     /// new value, expected old value) — the write-side source of truth for this run. A UI diff is a
-    /// read-only projection of this, never a second authoritative shape (Open Decision #11). Reused
-    /// verbatim by both the review UI and the commit step (Slice 3) so preview and commit can never
+    /// read-only projection of this, never a second authoritative shape. Reused
+    /// verbatim by both the review UI and the commit step so preview and commit can never
     /// disagree about what a row means.</summary>
     public string? PlanJson { get; set; }
 
@@ -141,15 +141,14 @@ public sealed class ImportRunEntity
     public string? ReleasedAt { get; set; }
 
     /// <summary>Username for a manually triggered run, or a fixed marker (e.g. "watcher") for the
-    /// inbound folder-poll trigger (Slice 4).</summary>
+    /// inbound folder-poll trigger.</summary>
     public string TriggeredBy { get; set; } = string.Empty;
 
-    /// <summary>Security-review finding SR-05: the ERP connection's identity (host/port/database — no
-    /// credentials, see <see cref="DynamicExportService.ConnectionFingerprint"/>) at the moment this run
-    /// was staged. <see cref="ImportRunReleaser.ReleaseAsync"/> re-reads the *current* connection setting
-    /// at release time to build the ERP connection it actually writes to; without this, an approval given
-    /// while reviewing a plan built against target A could end up committed against a target B the
-    /// connection setting was changed to in the meantime. Null for runs staged before this fix — release
-    /// skips the check for those rather than failing every already-staged run.</summary>
+    /// <summary>The ERP connection's identity (host/port/database — no credentials, see
+    /// <see cref="DynamicExportService.ConnectionFingerprint"/>) at the moment this run was staged.
+    /// <see cref="ImportRunReleaser.ReleaseAsync"/> compares it with the *current* connection setting, so an
+    /// approval given for a plan built against target A can't be committed against a target B the connection
+    /// setting was changed to in the meantime. Null for runs staged without a fingerprint — release skips the
+    /// check for those.</summary>
     public string? StagedConnectionFingerprint { get; set; }
 }

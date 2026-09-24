@@ -6,7 +6,7 @@ using Connector.Infrastructure;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Slice 4 coverage (knowledge/pipeline/import-mapping-presets.md §3.4/§4) for
+/// Coverage for
 /// <see cref="ImportDefinitionEndpoints.BuildSuggestionAsync"/> — the "Create from export" API the New
 /// Import Definition flow calls. Runs entirely against the in-memory Sqlite <see cref="LocalDb"/> fixture,
 /// same as <see cref="IntegrationKeyValidationTests"/>: this method never opens an ERP connection, so no

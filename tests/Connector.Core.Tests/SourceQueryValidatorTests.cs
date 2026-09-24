@@ -4,7 +4,7 @@ namespace Connector.Core.Tests;
 
 /// <summary>
 /// Dialect-free validation of <see cref="SourceQuery"/> against a known <see cref="SourceSchema"/> — the checks
-/// every provider's compiler relies on before emitting native syntax (Arbeitsauftrag 4).
+/// every provider's compiler relies on before emitting native syntax.
 /// </summary>
 public sealed class SourceQueryValidatorTests
 {

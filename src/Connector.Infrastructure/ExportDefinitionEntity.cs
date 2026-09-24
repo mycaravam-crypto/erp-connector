@@ -3,7 +3,7 @@ namespace Connector.Infrastructure;
 /// <summary>
 /// One saved, independently named and scheduled export: a name, the table it's rooted at, its
 /// <see cref="Connector.Core.DynamicExport.ExportNode"/> tree, and the output format/schedule it runs
-/// with. Phase 14's replacement for the single AppSetting-backed mapping + presets
+/// with. Replaces the single AppSetting-backed mapping + presets
 /// (<see cref="SettingsKeys.ExportMapping"/>/<see cref="SettingsKeys.ExportPresets"/>).
 /// </summary>
 public sealed class ExportDefinitionEntity
@@ -41,7 +41,7 @@ public sealed class ExportDefinitionEntity
     /// <summary>Short, stable slug identifying the business exchange this export belongs to (e.g.
     /// "ci-confirmation") — independent of <see cref="Name"/> (renamable) and <see cref="Id"/>
     /// (DB-internal, not portable across environments/restores). Free text, not an enum — see
-    /// knowledge/pipeline/import-mapping-presets.md §3.1. Null means this export doesn't opt into the
+    /// knowledge/pipeline/import-mapping-presets.md. Null means this export doesn't opt into the
     /// provenance-tagging feature at all.</summary>
     public string? IntegrationKey { get; set; }
 
@@ -51,7 +51,7 @@ public sealed class ExportDefinitionEntity
     public int? ContractVersion { get; set; }
 
     /// <summary>Names which enabled root-level scalar-field node's SourceField is the correlation key
-    /// (e.g. "guid") — purely advisory metadata for <c>ImportMappingSuggestion</c> (Slice 3); does not
+    /// (e.g. "guid") — purely advisory metadata for <c>ImportMappingSuggestion</c>; does not
     /// change <see cref="Connector.Infrastructure.DynamicExportService"/>'s query building in any way.</summary>
     public string? CorrelationKeySourceField { get; set; }
 }
@@ -67,7 +67,7 @@ public static class ExportDefinitionRunStatus
 }
 
 /// <summary>One completed, failed, or in-progress run of an <see cref="ExportDefinitionEntity"/> — the
-/// Phase 14 per-definition analogue of <see cref="ExportRunEntity"/>, which stays scoped to the legacy
+/// per-definition analogue of <see cref="ExportRunEntity"/>, which stays scoped to the legacy
 /// single-mapping pipeline. Every run (scheduled, manual, or test) writes exactly one row here, with
 /// <see cref="Status"/> set to <see cref="ExportDefinitionRunStatus.Failed"/> and
 /// <see cref="ErrorMessage"/> populated on any failure — never a silent partial success.</summary>
@@ -85,7 +85,7 @@ public sealed class ExportDefinitionRunEntity
     /// <summary>Username for a manual/test run, or a fixed marker (e.g. <c>"scheduler"</c>) for a scheduled one.</summary>
     public string TriggeredBy { get; set; } = string.Empty;
 
-    /// <summary>True for a capped preview/test run (see Phase 14's 50-row test cap) — kept out of
+    /// <summary>True for a capped preview/test run (50-row test cap) — kept out of
     /// normal execution-history summaries the same way a dry run shouldn't count as a real export.</summary>
     public bool IsTestRun { get; set; }
 }

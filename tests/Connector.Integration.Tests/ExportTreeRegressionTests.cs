@@ -8,10 +8,10 @@ using Connector.Infrastructure.DataSources.PostgreSql;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Real-Postgres regression tests for Arbeitsauftrag 6: nested export records are assembled in C# from plain
-/// rows (DynamicExportService's tree query engine) instead of by <c>json_build_object</c>/<c>json_agg</c> in
-/// SQL. Every expectation below is the exact record the SQL-built version produced for the same tree — the
-/// JSON structure must not change. Uses the dedicated <c>export_*</c> tables in testdb/init.sql (orders →
+/// Real-Postgres regression tests for the tree query engine: nested export records are assembled in C# from
+/// plain rows (DynamicExportService's tree query engine). Every expectation below is the exact record
+/// <c>json_build_object</c>/<c>json_agg</c> would produce in SQL for the same tree. Uses the dedicated
+/// <c>export_*</c> tables in testdb/init.sql (orders →
 /// customer 1:1, orders → lines 1:n → tags). Same "no-op if the fixture isn't running" convention as every
 /// other Postgres-backed test here.
 /// </summary>

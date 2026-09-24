@@ -5,7 +5,7 @@ import Button from '@/components/ui/Button.vue'
 import { formatDate } from '@/lib/dates'
 
 // The import-side analogue of ExportDefinitionRunsTable.vue: same per-definition run-history shape, but
-// carries the full Open Decision #11 count breakdown (matched/changed/unchanged/rejected/conflicted/
+// carries the full count breakdown (matched/changed/unchanged/rejected/conflicted/
 // invalid) instead of a bare record count, and a Review action on PendingReview rows — the entry point
 // into ImportRunReviewDialog.vue's four-eyes commit flow.
 defineProps<{

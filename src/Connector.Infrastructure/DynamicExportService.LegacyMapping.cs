@@ -116,7 +116,7 @@ public static partial class DynamicExportService
         // — keyed on SourceName/SourceField, not the export's TargetName/TargetField alias — is excluded
         // from the SELECT list entirely and never leaves the database. Re-evaluated against the *current*
         // denylist on every run, so a mapping saved before a field was denylisted is covered too, not just
-        // newly-saved ones (security-review finding SR-08).
+        // newly-saved ones.
         var effectiveDenylist = gdprDenylist ?? GdprDeniedFields;
         var dialect = DialectOf(provider);
         string QI(string identifier) => dialect.QuoteIdentifier(identifier);
@@ -129,9 +129,8 @@ public static partial class DynamicExportService
         foreach (var r in cfg.Relations.Where(x => x.Enabled))
         {
             // "string_join" joins with the relation's own delimiter; any other strategy ("array") with a plain
-            // comma. (The "array" form used to be array_to_string(array_agg(x::text), ','), which differs from
-            // string_agg only by yielding '' instead of NULL when every related value is NULL — and both reach
-            // the caller as "" via the null-to-empty conversion below.)
+            // comma. When every related value is NULL, string_agg yields NULL, which reaches the caller as ""
+            // via the null-to-empty conversion below.
             var delim = r.FlattenStrategy == "string_join" ? r.Delimiter ?? ", " : ",";
             foreach (var f in (r.Fields ?? []).Where(x => x.Enabled && !effectiveDenylist.Contains(x.SourceField)))
             {
@@ -194,7 +193,7 @@ public static partial class DynamicExportService
 
         var members = new List<TreeMember>();
         // GDPR denylist check keyed on SourceField, not TargetKey — see the matching comment in
-        // DynamicExportService.ExportNode.cs's BuildExportNodePlan (security-review finding SR-08).
+        // DynamicExportService.ExportNode.cs's BuildExportNodePlan.
         foreach (var f in g.Fields.Where(x => x.Enabled && !denylist.Contains(x.SourceField)))
             members.Add(new TreeScalar(f.TargetKey, f.SourceField));
         foreach (var child in g.Children.Where(x => x.Enabled))
@@ -226,8 +225,8 @@ public static partial class DynamicExportService
     /// JSON-only sibling of <see cref="ExecuteQueryAsync"/>: returns one JSON object per source row — top-level
     /// fields plus recursively nested groups — assembled in C# from plain rows by the tree query engine (one
     /// query per group, never per row). Values keep their column's JSON type exactly as PostgreSQL's own JSON
-    /// encoding gave them when this tree used to be built in SQL. Existing flat CSV/Excel/legacy-JSON export is
-    /// entirely unaffected — this never calls, and is never called by, <see cref="ExecuteQueryAsync"/>.
+    /// encoding would give them. Independent of the flat CSV/Excel/legacy-JSON export — this never calls, and
+    /// is never called by, <see cref="ExecuteQueryAsync"/>.
     /// </summary>
     public static async Task<List<JsonObject>> ExecuteNestedJsonQueryAsync(
         IDataSourceProvider provider,
@@ -238,7 +237,7 @@ public static partial class DynamicExportService
         IReadOnlySet<string>? gdprDenylist = null
     )
     {
-        // Computed up front — see ExecuteQueryAsync's matching comment (security-review finding SR-08):
+        // Computed up front — see ExecuteQueryAsync's matching comment:
         // excludes a denylisted source column from the SELECT list entirely, re-evaluated against the
         // *current* denylist on every run.
         var effectiveDenylist = gdprDenylist ?? GdprDeniedFields;

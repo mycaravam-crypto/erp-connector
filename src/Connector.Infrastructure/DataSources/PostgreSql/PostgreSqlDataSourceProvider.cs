@@ -5,8 +5,7 @@ namespace Connector.Infrastructure.DataSources.PostgreSql;
 
 /// <summary>
 /// The <see cref="IDataSourceProvider"/> for <see cref="DataSourceType.PostgreSql"/>. Owns every piece of
-/// PostgreSQL-specific connection/schema/query logic that used to live directly in
-/// <c>Connector.Api.Endpoints.ConnectionEndpoints</c> and <c>DynamicExportService</c>: building an Npgsql
+/// PostgreSQL-specific connection/schema/query logic: building an Npgsql
 /// connection string, introspecting <c>information_schema</c>, and executing a caller-built SQL query
 /// generically. Registered as a singleton (see <c>Program.cs</c>) — it holds no per-call state; every method
 /// opens and disposes its own <see cref="NpgsqlConnection"/>.
@@ -43,17 +42,13 @@ public sealed class PostgreSqlDataSourceProvider : ISqlDataSourceProvider
 
     public ISqlDialect Dialect => PostgreSqlDialect.Instance;
 
-    // Security-review finding SR-02: this previously interpolated Host/Database/Username/Password straight
-    // into the connection-string text. A Password (or Username/Database) value containing ";Host=evil;..."
-    // would append/override keys in the string Npgsql actually parses, letting a caller redirect the
-    // connection despite host validation only checking the Host field. NpgsqlConnectionStringBuilder sets
-    // each value as a typed property instead, so no field value can ever be interpreted as connection-string
-    // syntax. No TrustServerCertificate: Npgsql 10 removed the behavior it used to control (SslMode=Prefer
-    // already governs cert handling), and the property is now an obsolete no-op.
-    // Port defaults to Postgres's own standard port when unset — DataSourceConfig.Port is nullable (Arbeitsauftrag
-    // 3: not every DataSourceType has a Host/Port at all), but every caller reaching this provider has already
-    // gone through ConnectionEndpoints' required-field validation for PostgreSql/MariaDb, so null here only
-    // ever means "use the default," never "unset by mistake."
+    // Builds the connection string through NpgsqlConnectionStringBuilder, which sets each value as a typed
+    // property, so no field value (e.g. a Password containing ";Host=evil;...") can ever be interpreted as
+    // connection-string syntax. No TrustServerCertificate: it is an obsolete no-op in Npgsql 10 (SslMode
+    // governs cert handling).
+    // Port defaults to Postgres's standard port when unset — DataSourceConfig.Port is nullable because not
+    // every DataSourceType has a Host/Port; a PostgreSql config has already passed required-field validation,
+    // so null here only ever means "use the default."
     // A config for any other source type is refused with a clear message instead of Npgsql trying to speak
     // PostgreSQL's wire protocol to, say, a MariaDB server.
     public static string BuildConnectionString(DataSourceConfig config) =>
@@ -73,12 +68,9 @@ public sealed class PostgreSqlDataSourceProvider : ISqlDataSourceProvider
                 CommandTimeout = 10,
             }.ConnectionString;
 
-    // Security-review finding SR-03: SslMode was previously hardcoded to Prefer everywhere — silently
-    // downgrading to an unencrypted connection whenever the server doesn't offer TLS, with no way for an
-    // operator to require and verify it instead. config.SslMode is validated against these same names at save
-    // time (ConnectionEndpoints), but this falls back to the prior Prefer default rather than throwing for
-    // null/empty/unrecognized input, so it can never itself turn a previously-working connection (or a config
-    // saved before this field existed) into a hard failure.
+    // Maps config.SslMode to Npgsql's SslMode. The value is validated against these names at save time; this
+    // falls back to Prefer for null/empty/unrecognized input rather than throwing, so a config saved without
+    // the field keeps working.
     private static SslMode ParseSslMode(string? sslMode) =>
         !string.IsNullOrWhiteSpace(sslMode) && Enum.TryParse<SslMode>(sslMode, ignoreCase: true, out var parsed)
             ? parsed
@@ -86,9 +78,8 @@ public sealed class PostgreSqlDataSourceProvider : ISqlDataSourceProvider
 
     /// <summary>Opens a connection and reads its schema; never throws for a reachability/credential failure —
     /// that's reported via <see cref="TestConnectionResult.Failed"/> instead, sanitized of any
-    /// connection-string/credential detail by <see cref="ErrorSanitizer.Detail"/> (security-review finding
-    /// SR-14: Npgsql can echo the offending connection string, password included, back inside an exception
-    /// message).</summary>
+    /// connection-string/credential detail by <see cref="ErrorSanitizer.Detail"/> (Npgsql can echo the
+    /// offending connection string, password included, back inside an exception message).</summary>
     public async Task<TestConnectionResult> TestConnectionAsync(
         DataSourceConfig config,
         CancellationToken cancellationToken

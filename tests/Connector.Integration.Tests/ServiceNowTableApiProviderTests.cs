@@ -6,7 +6,7 @@ using Connector.Infrastructure.DataSources.ServiceNow;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// <see cref="ServiceNowTableApiProvider"/> (Arbeitsauftrag 9) against <see cref="FakeServiceNow"/>, an in-memory
+/// <see cref="ServiceNowTableApiProvider"/> against <see cref="FakeServiceNow"/>, an in-memory
 /// Table API — no real instance or credentials. Covers authentication (success, 401, 403), schema (table metadata,
 /// inherited fields, reference fields as relations), queries (projection, server-side filter, pagination, joins,
 /// limit, empty-as-null), retry on 429/502/503 only, request timeout and cancellation.

@@ -10,16 +10,15 @@ using Microsoft.Extensions.Logging;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Coverage for <see cref="EncryptedStringConverter"/> (security audit finding: <c>AppSetting.Value</c> —
-/// which holds the ERP connection config, password included — was written as plain JSON straight into the
-/// SQLite file). Confirms the bytes actually persisted are not plaintext, that the public
+/// Coverage for <see cref="EncryptedStringConverter"/> (<c>AppSetting.Value</c> holds the ERP connection
+/// config, password included). Confirms the bytes actually persisted are not plaintext, that the public
 /// <see cref="AppSettingsStore"/> API still round-trips correctly through a fresh, untracked read (not just
 /// served back from the writer's own change tracker), and that a row written before this converter existed
 /// (plain JSON) is still readable rather than hard-breaking on upgrade.
 /// </summary>
 public sealed class AppSettingEncryptionTests
 {
-    // Captures Warning-level log calls so SR-11's "plaintext fallback must be observable" fix has
+    // Captures Warning-level log calls so the "plaintext fallback must be observable" behavior has
     // something to assert against, without pulling in a fake-logger test package for one call site.
     private sealed class CapturingLogger : ILogger<EncryptedStringConverter>
     {
@@ -115,9 +114,8 @@ public sealed class AppSettingEncryptionTests
         Assert.Equal(ErpTestFixture.Config, roundTripped);
     }
 
-    // Security-review finding SR-11: the plaintext fallback above must never again go unnoticed — a row
-    // still hitting it long after the encryption migration shipped is a signal an operator needs, not a
-    // silently-accepted no-op.
+    // The plaintext fallback above must never go unnoticed — a row still hitting it is a signal an
+    // operator needs, not a silently-accepted no-op.
     [Fact]
     public async Task PreEncryptionPlaintextRow_LogsWarningOnEachRead()
     {
@@ -172,7 +170,7 @@ public sealed class AppSettingEncryptionTests
     }
 
     // AppSettingEncryptionMigrator: rows written before the converter existed must not stay plaintext on
-    // disk (and keep logging SR-11's warning) just because nobody happens to re-save that key.
+    // disk (and keep logging the plaintext warning) just because nobody happens to re-save that key.
     [Fact]
     public async Task Migrator_EncryptsPlaintextRows_LeavesCiphertextAlone_AndIsIdempotent()
     {

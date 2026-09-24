@@ -8,9 +8,9 @@ namespace Connector.Infrastructure;
 /// <summary>
 /// The one execution path behind every trigger of an <see cref="ExportDefinitionEntity"/> — manual
 /// <c>run</c>/<c>test</c> (<c>ExportDefinitionEndpoints</c>) and scheduled runs
-/// (<see cref="ExportDefinitionWorker"/>) all call <see cref="ExecuteAsync"/> rather than duplicating it,
-/// per export-definitions-2.0.md §6: "every run — scheduled or manual — writes exactly one
-/// ExportDefinitionRunEntity row", with identical Failed/error-message semantics regardless of trigger.
+/// (<see cref="ExportDefinitionWorker"/>) all call <see cref="ExecuteAsync"/>, so every run — scheduled or
+/// manual — writes exactly one <see cref="ExportDefinitionRunEntity"/> row, with identical
+/// Failed/error-message semantics regardless of trigger.
 /// </summary>
 public static class ExportDefinitionRunner
 {
@@ -68,8 +68,8 @@ public static class ExportDefinitionRunner
             var extractedAt = DateTimeOffset.UtcNow;
             var gdprDenylist = await DynamicExportService.GetDeniedFieldsAsync(db);
 
-            // knowledge/pipeline/import-mapping-presets.md §3.2 — only set (and only ever read by
-            // JsonExportFormatWriter) when this definition opted into provenance tagging.
+            // Only set (and only ever read by JsonExportFormatWriter) when this definition opted into
+            // provenance tagging.
             var provenance = def.IntegrationKey is null
                 ? null
                 : new ExportProvenance(def.IntegrationKey, def.ContractVersion!.Value, def.ConfigVersion);

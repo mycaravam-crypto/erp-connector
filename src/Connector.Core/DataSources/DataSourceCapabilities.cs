@@ -1,7 +1,7 @@
 namespace Connector.Core.DataSources;
 
 /// <summary>
-/// What a provider can and can't do, stated explicitly (Arbeitsauftrag 12) — so callers and the shared provider
+/// What a provider can and can't do, stated explicitly — so callers and the shared provider
 /// contract tests branch on a named capability, never on <c>provider.Type == …</c>. Only differences that exist
 /// between the implemented providers are modeled; everything else in <see cref="IDataSourceProvider"/> (connection
 /// test, schema with relations, projection, filters, null checks, limit, joins, cancellation, sanitized errors)

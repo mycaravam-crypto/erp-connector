@@ -5,7 +5,7 @@ using Serilog.Parsing;
 
 namespace Connector.Integration.Tests;
 
-/// <summary>Arbeitsauftrag 11: nothing the process logs may carry a credential — not an exception's text, not a
+/// <summary>Nothing the process logs may carry a credential — not an exception's text, not a
 /// string property, not a destructured <c>Password</c>.</summary>
 public sealed class SanitizingLogFormatterTests
 {

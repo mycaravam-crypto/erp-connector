@@ -4,7 +4,7 @@ using Connector.Core.DataSources;
 namespace Connector.Core.Tests;
 
 /// <summary>
-/// Coverage for <see cref="DataSourceConfig"/>'s Arbeitsauftrag 3 back-compat contract — see
+/// Coverage for <see cref="DataSourceConfig"/>'s back-compat contract — see
 /// knowledge/architecture/data-source-configuration.md. Pure JSON/model tests: no database, no HTTP, no
 /// provider. <c>AppSetting.Value</c> (the only place a <see cref="DataSourceConfig"/> is actually persisted,
 /// see <c>Connector.Infrastructure.AppSettingsStore</c>) is a schemaless JSON blob, so "migration" for this
@@ -15,9 +15,8 @@ public sealed class DataSourceConfigTests
 {
     // ── Existing PostgreSQL configuration without Type ──────────────────────────────────
 
-    // The exact shape every AppSettings row persisted before Arbeitsauftrag 2 introduced `Type` at all —
-    // no "type" key, and (since Arbeitsauftrag 3 renamed the property casing/shape but not the JSON contract)
-    // still no "instanceUrl"/"hasPassword" keys either.
+    // A stored AppSettings row from before the `Type` field existed: no "type" key, and no
+    // "instanceUrl"/"hasPassword" keys either.
     private const string LegacyJsonWithoutType = """
         {"Host":"legacy-host","Port":5432,"Database":"legacy_db","Username":"legacy_user","Password":"legacy_pw"}
         """;
@@ -38,8 +37,7 @@ public sealed class DataSourceConfigTests
         Assert.Null(config.SslMode);
     }
 
-    // Arbeitsauftrag 2's own back-compat case (Type field added, SslMode not yet) must keep working under
-    // Arbeitsauftrag 3's generalized shape too.
+    // A stored row with a Type field but no SslMode/InstanceUrl must deserialize under the current shape.
     [Fact]
     public void JsonWithTypeButWithoutSslModeOrInstanceUrl_DeserializesCorrectly()
     {

@@ -89,7 +89,7 @@ public sealed class DynamicExportServiceTests
 
     // ── ConnectionFingerprint ─────────────────────────────────────────────────
 
-    // Security-review finding SR-05: the fingerprint pins *which system* a connection is (host/port/db),
+    // The fingerprint pins *which system* a connection is (host/port/db),
     // so a plan staged against one target can be verified against the same target at release time.
     [Fact]
     public void ConnectionFingerprint_SameHostPortDatabase_IsStableAcrossDifferentCredentials()
@@ -208,7 +208,7 @@ public sealed class DynamicExportServiceTests
         Assert.Equal("Smith, John", csv.Rows[0][0]);
     }
 
-    // Security review SR-12: a value starting with =, +, -, @, tab, or CR is evaluated as a formula by
+    // A value starting with =, +, -, @, tab, or CR is evaluated as a formula by
     // Excel/Sheets/LibreOffice regardless of producer intent. A leading apostrophe is those apps' own
     // "force text" escape, so it neutralizes the formula while staying otherwise unchanged.
     [Theory]

@@ -4,10 +4,9 @@ using Connector.Api.Endpoints;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Coverage for <see cref="FourEyesReview.ValidateApprover"/> (security audit finding: the approver was
-/// previously just a free-text username picked by the operator, never independently authenticated — any
-/// single account could "approve" its own release by typing a colleague's name). Verifies the approver's
-/// own password is now required and checked against their real hash.
+/// Coverage for <see cref="FourEyesReview.ValidateApprover"/>: the approver must be independently
+/// authenticated, so no single account can "approve" its own release by typing a colleague's name.
+/// Verifies the approver's own password is required and checked against their real hash.
 /// </summary>
 public sealed class FourEyesReviewTests
 {

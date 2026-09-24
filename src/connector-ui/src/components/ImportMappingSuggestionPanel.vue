@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// "Create from export" (knowledge/pipeline/import-mapping-presets.md §3.4/§4, Open Decision #1): the New
+// "Create from export": the New
 // Import Definition flow's other starting point besides "Start blank." A dedicated step rather than
 // reusing ImportDefinitionPreviewPanel.vue's paste-a-sample affordance verbatim — that panel drives
 // POST .../{id}/preview against an *already-saved* definition's live ERP connection, which doesn't exist

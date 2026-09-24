@@ -6,7 +6,7 @@ import { formatDate } from '@/lib/dates'
 
 // The per-definition analogue of ExportRunsTable.vue — deliberately a separate component, not a
 // reuse of that one: ExportDefinitionRunEntity has no SHA-256/staging-file/four-eyes fields (those
-// model the legacy CI pipeline this doesn't touch, per export-definitions-2.0.md §10), but it does
+// model the legacy CI pipeline), but it does
 // carry ConfigVersion/TriggeredBy/IsTestRun, which ExportRunEntity doesn't.
 defineProps<{
   runs: ExportDefinitionRun[]

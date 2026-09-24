@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 namespace Connector.Infrastructure.DataSources.MariaDb;
 
 /// <summary>
-/// <see cref="ISqlDialect"/> for MariaDB (Arbeitsauftrag 7) — every MariaDB-specific fragment the generic query
+/// <see cref="ISqlDialect"/> for MariaDB — every MariaDB-specific fragment the generic query
 /// builders emit: backtick identifier quoting, <c>@pN</c> parameter placeholders (MySqlConnector's named-parameter
 /// syntax), <c>LIMIT n</c>, <c>CAST(… AS CHAR)</c>, <c>&lt;=&gt;</c>, <c>GROUP_CONCAT</c>, and how a value in
 /// <see cref="MariaDbDataSourceProvider"/>'s native text format maps to JSON. Stateless; use <see cref="Instance"/>.

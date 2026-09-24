@@ -5,13 +5,13 @@ using Connector.Infrastructure.DataSources;
 
 namespace Connector.Infrastructure;
 
-// ── ExportNode tree engine (Phase 14) ───────────────────────────────────────
+// ── ExportNode tree engine ──────────────────────────────────────────────────
 // Generalizes the legacy nested-JSON path (DynamicExportService.LegacyMapping.cs's BuildNestedGroupPlan/
 // ExecuteNestedJsonQueryAsync) to a single recursive tree walk that also emits plain scalar-field columns,
 // so one query shape serves every output format instead of the legacy flat-vs-nested-JSON fork. There is
 // deliberately no ExportNode counterpart to UsesNestedJson: every ExportNode tree is queried the same way
 // regardless of format (see BuildExportNodeAsync) — only the format WRITER differs (IExportFormatWriter in
-// ExportFormatWriters.cs), which is the actual OCP seam knowledge/pipeline/export-definitions-2.0.md §8 asks for.
+// ExportFormatWriters.cs).
 // The database only returns relational rows; the nested records are assembled in C# by the tree query
 // engine (DynamicExportService.TreeQuery.cs).
 public static partial class DynamicExportService
@@ -38,7 +38,7 @@ public static partial class DynamicExportService
             if (child.Kind == ExportNodeKind.ScalarField)
             {
                 // GDPR denylist check keyed on SourceField (the actual column), not TargetKey (the export's
-                // chosen output name) — security-review finding SR-08: a field renamed away from its source
+                // chosen output name): a field renamed away from its source
                 // name must still be excluded, including a definition saved before this field was
                 // denylisted, since this filter re-applies fresh against the *current* denylist on every
                 // run. Excluding it from the SELECT list entirely (rather than relying only on
@@ -53,8 +53,8 @@ public static partial class DynamicExportService
                     $"Export node '{child.TargetKey}' exceeds the maximum nesting depth of {MaxNestedDepth}."
                 );
 
-            // Synthetic alias, not derived from RelatedTable/TargetKey, numbered in pre-order exactly as the
-            // pre-Arbeitsauftrag-6 correlated subqueries were — so a stored Filter that names it keeps working.
+            // Synthetic alias, not derived from RelatedTable/TargetKey, numbered in pre-order — stable, so a
+            // stored Filter that names it keeps working.
             var childAlias = $"en{aliasCounter++}";
             var childPlan = BuildExportNodePlan(
                 child.RelatedTable!,
@@ -91,7 +91,7 @@ public static partial class DynamicExportService
     /// database, and — since this is re-evaluated against the *current* denylist on every run — a
     /// definition saved before a field was denylisted is covered too, not just newly-saved ones), plus
     /// <see cref="StripGdprFieldsRecursive"/>'s output-key match as a second, independent layer of
-    /// defence-in-depth (security-review finding SR-08).
+    /// defence-in-depth.
     /// </summary>
     public static async Task<List<JsonObject>> ExecuteExportNodeQueryAsync(
         IDataSourceProvider provider,
@@ -175,7 +175,7 @@ public static partial class DynamicExportService
     }
 
     /// <summary>Internal (not private) so <see cref="ImportNodeWalker"/> can reuse this verbatim for the
-    /// write direction (import-definitions.md §5) instead of re-implementing transform/data-type coercion.</summary>
+    /// write direction instead of re-implementing transform/data-type coercion.</summary>
     internal static JsonNode? ApplyFieldMapping(JsonNode? value, FieldMapping? mapping)
     {
         if (mapping is null)
@@ -262,11 +262,10 @@ public static partial class DynamicExportService
     /// <summary>
     /// Flattens one <see cref="ExecuteExportNodeQueryAsync"/> row into the same
     /// <c>Dictionary&lt;string,string&gt;</c> shape <see cref="BuildCsvBytes"/>/<see cref="BuildExcelBytes"/>
-    /// already consume, so CSV/Excel gain arbitrary-depth nesting (the actual new Phase 14 capability over
-    /// the legacy relation-only flattening) without changing either builder. An object path contributes at
-    /// most one value; an array path contributes one value per matching row, joined the same way the legacy
-    /// <c>string_join</c> relation strategy already did — Phase 14 has no per-node flatten-strategy
-    /// equivalent (see knowledge/log.md's Phase 14 Slice 1 entry), so this is the one generic rule for every tree.
+    /// already consume, so CSV/Excel support arbitrary-depth nesting without changing either builder. An
+    /// object path contributes at most one value; an array path contributes one value per matching row,
+    /// joined the same way the legacy <c>string_join</c> relation strategy does. There is no per-node flatten
+    /// strategy, so this is the one generic rule for every tree.
     /// </summary>
     public static Dictionary<string, string> FlattenExportNodeRecord(JsonObject row, IReadOnlyList<string> columns)
     {
@@ -304,11 +303,11 @@ public static partial class DynamicExportService
     }
 
     /// <summary>
-    /// Single execution+build path for <see cref="ExportNode"/> trees, the Phase 14 counterpart of
+    /// Single execution+build path for <see cref="ExportNode"/> trees, the counterpart of
     /// <see cref="BuildExportAsync"/>: one query (<see cref="ExecuteExportNodeQueryAsync"/>) regardless of
     /// format, then dispatches to the requested <see cref="IExportFormatWriter"/>. Unlike the legacy path
     /// there is no per-format query fork to keep in sync — every format writer receives the same tree-shaped
-    /// records, which is what makes adding a new format later an OCP-clean addition (knowledge/pipeline/export-definitions-2.0.md §8).
+    /// records, so adding a new format only means adding a writer.
     /// </summary>
     public static async Task<ExportBuildResult> BuildExportNodeAsync(
         IDataSourceProvider provider,

@@ -50,11 +50,7 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
 
         // This test is about nested-object embedding mechanics, not GDPR enforcement (that's the
         // dedicated _GdprDeniedField_ tests below) — "contact_email" happens to be on the *default*
-        // denylist, so an explicit empty one here keeps the two concerns from coupling by accident
-        // (see security-review finding SR-08: before that fix, this coupling was invisible because
-        // the denylist wrongly matched by output key name, and separately because CI never actually
-        // ran these tests against Postgres at all until #145's fix — this is the first time either
-        // gap would have been caught).
+        // denylist, so an explicit empty one here keeps the two concerns from coupling by accident.
         var results = await DynamicExportService.ExecuteNestedJsonQueryAsync(
             Provider,
             ErpTestFixture.Config,
@@ -280,10 +276,9 @@ public sealed class DynamicExportServiceNestedJsonPostgresTests
         Assert.False(row["manufacturer"]!.AsObject().ContainsKey("contact_email"));
     }
 
-    // Security-review finding SR-08: the test above uses the same string for SourceField and TargetKey, so
-    // it can't distinguish correct SourceField-based exclusion from the TargetKey-matching bug the review
-    // found (a mapping that renames a denylisted field survived the old output-key-only strip). This one
-    // uses a TargetKey that deliberately does NOT match the denylisted SourceField.
+    // The test above uses the same string for SourceField and TargetKey, so it can't distinguish
+    // SourceField-based exclusion from matching by TargetKey (which a renamed denylisted field would
+    // survive). This one uses a TargetKey that deliberately does NOT match the denylisted SourceField.
     [Fact]
     public async Task ExecuteNestedJsonQueryAsync_GdprDeniedField_ExcludedEvenWhenRenamed()
     {

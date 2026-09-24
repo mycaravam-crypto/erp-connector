@@ -117,9 +117,9 @@ const correlationKeySourceFieldInput = nullableTextInput('correlationKeySourceFi
   <h2 class="text-base font-semibold text-text-primary mb-2.5">Output</h2>
   <ExportFormatPicker v-model="definition.outputFormat as 'xlsx' | 'csv' | 'json'" />
 
-  <!-- knowledge/pipeline/import-mapping-presets.md §3.1/§3.2 — optional provenance tagging. Setting
-       IntegrationKey is what makes JsonExportFormatWriter emit a provenance block an ImportDefinition can
-       later be suggested from (§3.4); until it's set, this export is invisible to that feature entirely. -->
+  <!-- Optional provenance tagging. Setting IntegrationKey makes JsonExportFormatWriter emit a provenance
+       block an ImportDefinition can later be suggested from; until it's set, this export is invisible to
+       that feature entirely. -->
   <div class="flex flex-col gap-3 mt-5 pt-5 border-t border-border-strong">
     <span class="inline-flex items-center gap-1.5">
       <h3 class="m-0 text-sm font-semibold text-text-primary">Integration tagging (optional)</h3>

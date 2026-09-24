@@ -63,9 +63,8 @@ public static partial class DynamicExportService
                 ["schema_version"] = schemaVersion,
                 ["extracted_at"] = extractedAt.ToString("O"),
             };
-            // knowledge/pipeline/import-mapping-presets.md §3.2: additive, optional key, omitted entirely
-            // when the exporting definition doesn't opt in — zero shape change for every export that
-            // doesn't set IntegrationKey. `wrapper is null` is also the legacy single-mapping flow's
+            // Optional provenance key, omitted entirely when the exporting definition doesn't set an
+            // IntegrationKey. `wrapper is null` is also the legacy single-mapping flow's
             // fallback shape (no ExportDefinitionEntity to source a key from), but that caller never
             // passes provenance, so this stays inert there.
             if (provenance is not null)
@@ -196,7 +195,7 @@ public static partial class DynamicExportService
         return $"{slug}_{extractedAt:yyyyMMdd'T'HHmmss'Z'}.{extension}";
     }
 
-    // Security-review finding SR-12 (CSV/spreadsheet formula injection, OWASP): a cell opened in Excel/
+    // CSV/spreadsheet formula injection (OWASP): a cell opened in Excel/
     // Sheets/LibreOffice is evaluated as a formula if its first character is one of these, regardless of
     // what produced the CSV. Prefixing with an apostrophe is those same applications' own "force text"
     // escape, so it neutralizes the formula without changing what a human sees in the cell.

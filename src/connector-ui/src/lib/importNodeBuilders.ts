@@ -60,7 +60,7 @@ export function columnsAsDisabledScalarFields(
 }
 
 /**
- * "Create from export" (knowledge/pipeline/import-mapping-presets.md §3.4/§4): builds the root node a New
+ * "Create from export": builds the root node a New
  * Import Definition starts from once an operator accepts a suggestion. Same starting point as picking the
  * root table by hand (one disabled scalar-field node per column), except the deterministic root match
  * field is pre-enabled and correctly keyed to the export's own JSON field name, and every best-effort

@@ -56,9 +56,8 @@ record SchemaColumnDto(string Name, string ErpSource, string Type, string Notes,
 
 record SchemaDto(string Version, SchemaColumnDto[] Columns);
 
-// SourceColumn/SourceTable/SourceSchema moved to Connector.Core.DataSources (Arbeitsauftrag 2): they're
-// IDataSourceProvider.ReadSchemaAsync's return shape, not an API-only Dto, so this file references the Core
-// types directly instead of keeping a parallel copy.
+// SourceColumn/SourceTable/SourceSchema live in Connector.Core.DataSources: they're
+// IDataSourceProvider.ReadSchemaAsync's return shape, not an API-only Dto.
 
 record RunNowResult(int SequenceNo, int RecordCount, string Sha256Short);
 
@@ -79,7 +78,7 @@ record PreviewResult(
 );
 
 /// <summary>Public view of the stored connection — no password field, ever. <see cref="HasPassword"/> is the
-/// most any API response is allowed to say about it (Arbeitsauftrag 3). Host/Port/Database are populated for
+/// most any API response is allowed to say about it. Host/Port/Database are populated for
 /// a relational source (<see cref="DataSourceType.PostgreSql"/>/<see cref="DataSourceType.MariaDb"/>),
 /// InstanceUrl for an HTTP API source (<see cref="DataSourceType.ServiceNowTableApi"/>/
 /// <see cref="DataSourceType.ServiceNowSqlApi"/>) — never both.</summary>
@@ -113,8 +112,8 @@ record BrandingConfig(string? AppName, string? LogoDataUrl, string? FaviconDataU
 
 /// <summary>Body for POST/PUT /api/export-definitions — everything an operator configures for one saved,
 /// independently triggerable export. RootNode must be a "root"-kind <see cref="Connector.Core.DynamicExport.ExportNode"/>.
-/// IntegrationKey/ContractVersion/CorrelationKeySourceField (knowledge/pipeline/import-mapping-presets.md
-/// §3.1) are optional and only used by the not-yet-built import-mapping-presets suggestion feature — set
+/// IntegrationKey/ContractVersion/CorrelationKeySourceField are optional and only used by the
+/// import-mapping suggestion feature (knowledge/pipeline/import-mapping-presets.md) — set
 /// together or not at all, validated at save time by
 /// <see cref="Connector.Api.Endpoints.ExportDefinitionEndpoints"/>.</summary>
 record ExportDefinitionRequest(
@@ -202,10 +201,10 @@ record ExportDefinitionRunDto(
 /// written to run history (see <see cref="Connector.Api.Endpoints.ExportDefinitionEndpoints"/>).</summary>
 record ExportDefinitionPreviewDto(int RecordCount, System.Text.Json.Nodes.JsonArray Records);
 
-/// <summary>Response for the Phase 17 import-run release/reject endpoints
+/// <summary>Response for the import-run release/reject endpoints
 /// (<see cref="Connector.Api.Endpoints.ImportRunEndpoints"/>) — the post-action state of one
-/// <c>ImportRunEntity</c> (Connector.Infrastructure), including the six Open Decision #11 counts and, once
-/// released, the conflict count Open Decision #12's optimistic-concurrency check populated.</summary>
+/// <c>ImportRunEntity</c> (Connector.Infrastructure), including the six run counts and, once released, the
+/// conflict count from the commit's optimistic-concurrency check.</summary>
 record ImportRunDto(
     int Id,
     int ImportDefinitionId,
@@ -224,7 +223,7 @@ record ImportRunDto(
 );
 
 /// <summary>One <see cref="Connector.Core.DynamicImport.ImportPlanOperation"/>, projected verbatim for the
-/// Slice 6 review UI's field-level diff — see <see cref="ImportRunDetailDto"/>.</summary>
+/// review UI's field-level diff — see <see cref="ImportRunDetailDto"/>.</summary>
 record ImportRunOperationDto(
     string CorrelationValue,
     string Table,
@@ -235,8 +234,8 @@ record ImportRunOperationDto(
     string? NewValue
 );
 
-/// <summary>Response for GET /api/import-runs/{id} (Phase 17 Slice 6): everything the review/diff view needs
-/// to render a <c>PendingReview</c> run before an Approver commits — the Open Decision #11 count breakdown
+/// <summary>Response for GET /api/import-runs/{id}: everything the review/diff view needs
+/// to render a <c>PendingReview</c> run before an Approver commits — the count breakdown
 /// plus the persisted <c>PlanJson</c> operations (empty once none exist, e.g. a Failed run that never
 /// produced a plan). Not returned by the release/reject endpoints themselves, which stay on the smaller
 /// <see cref="ImportRunDto"/> shape — this is a read, not a mutation response.</summary>
@@ -264,14 +263,14 @@ record ImportRunDetailDto(
     IReadOnlyList<ImportRunOperationDto> Operations
 );
 
-/// <summary>Body for POST/PUT /api/import-definitions (Phase 17 Slice 5) — everything an operator
+/// <summary>Body for POST/PUT /api/import-definitions — everything an operator
 /// configures for one saved inbound mapping. RootNode must be a "root"-kind
 /// <see cref="Connector.Core.DynamicImport.ImportNode"/>, and must have an enabled scalar-field child
 /// whose TargetColumn equals RootMatchColumn (see <c>ImportNodeWalker.FindMatchField</c>).
-/// AllowedWritableColumns is validated against the live ERP schema at save time (Open Decision #9) — see
-/// <see cref="Connector.Api.Endpoints.ImportDefinitionEndpoints"/>. IntegrationKey/ContractVersion
-/// (knowledge/pipeline/import-mapping-presets.md §3.1) are optional and only used by the not-yet-built
-/// import-mapping-presets suggestion feature — set together or not at all, validated at save time by the
+/// AllowedWritableColumns is validated against the live ERP schema at save time — see
+/// <see cref="Connector.Api.Endpoints.ImportDefinitionEndpoints"/>. IntegrationKey/ContractVersion are
+/// optional and only used by the import-mapping suggestion feature — set together or not at all, validated
+/// at save time by the
 /// same endpoints class.</summary>
 record ImportDefinitionRequest(
     string Name,
@@ -325,8 +324,7 @@ record ImportDefinitionSummaryDto(
 /// <summary>Body for POST .../duplicate. Name is optional — defaults to "{original} (Copy)".</summary>
 record DuplicateImportDefinitionRequest(string? Name);
 
-/// <summary>Body for POST /api/import-definitions/suggest-from-export (Slice 4,
-/// knowledge/pipeline/import-mapping-presets.md §3.4/§4) — the same sample <c>ImportEnvelope</c> JSON the
+/// <summary>Body for POST /api/import-definitions/suggest-from-export — the same sample <c>ImportEnvelope</c> JSON the
 /// preview panel already accepts, pasted before any <c>ImportDefinition</c> exists yet.</summary>
 record ImportMappingSuggestionRequest(string InboundJson);
 
@@ -357,9 +355,9 @@ record ImportMappingSuggestionDto(
 /// is a lookup that can legitimately come up empty, not a client error.</summary>
 record ImportMappingSuggestionCheckResult(ImportMappingSuggestionDto? Suggestion, string? Reason);
 
-/// <summary>Body for POST .../preview: the raw inbound file content, since Slice 4's inbound/ folder
-/// watcher doesn't exist yet — an operator pastes/uploads the vendor JSON directly to preview against a
-/// saved definition. Must be a well-formed <c>ImportEnvelope</c> (schemaVersion + records) per
+/// <summary>Body for POST .../preview: the raw inbound file content — an operator pastes/uploads the vendor
+/// JSON directly to preview against a saved definition without going through the inbound/ folder. Must be a
+/// well-formed <c>ImportEnvelope</c> (schemaVersion + records) per
 /// <c>ImportNodeWalker.SupportedSchemaVersion</c>.</summary>
 record ImportDefinitionPreviewRequest(string InboundJson);
 
@@ -369,7 +367,7 @@ record ImportDefinitionPreviewRequest(string InboundJson);
 /// cosmetic (shown in run history); falls back to a placeholder when omitted.</summary>
 record ImportDefinitionStageRequest(string InboundJson, string? SourceFileName);
 
-/// <summary>One row returned by GET /api/import-definitions/{id}/runs — the full Open Decision #11 count
+/// <summary>One row returned by GET /api/import-definitions/{id}/runs — the full count
 /// breakdown plus the four-eyes fields, mirroring <see cref="ImportRunDto"/> with the run-history fields
 /// <see cref="ExportDefinitionRunDto"/> also carries (StartedAt/FinishedAt/TriggeredBy).</summary>
 record ImportDefinitionRunDto(

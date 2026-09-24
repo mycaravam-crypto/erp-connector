@@ -1,7 +1,7 @@
 namespace Connector.Core.DataSources;
 
 /// <summary>
-/// Database-neutral description of one read query (Arbeitsauftrag 4): a root table, the columns to project,
+/// Database-neutral description of one read query: a root table, the columns to project,
 /// equi-joins to further tables, and AND-combined filter conditions. Carries no SQL at all — every table and
 /// column is a plain name that <see cref="SourceQueryValidator"/> checks against a known
 /// <see cref="SourceSchema"/>, and every filter value stays a value (never text spliced into a query), so a

@@ -39,7 +39,7 @@ static class AuthEndpoints
                         claims:
                         [
                             new Claim(ClaimTypes.Name, req.Username),
-                            // Security-review finding SR-16: lets Program.cs's OnTokenValidated handler
+                            // Lets Program.cs's OnTokenValidated handler
                             // reject this specific token once RevokeAllSessionsAsync moves this user's
                             // cutover past it — the only way to invalidate an outstanding token before its
                             // own expiry, since nothing else about the token changes on revocation.
@@ -58,7 +58,7 @@ static class AuthEndpoints
             )
             .RequireRateLimiting(LoginRateLimiterPolicyName);
 
-        // Security-review finding SR-16: self-service "log me out everywhere" — invalidates every JWT
+        // Self-service "log me out everywhere" — invalidates every JWT
         // issued to the caller (including, after this response, the very token used to call it) before
         // its own expiry. Deliberately scoped to the caller's own sessions only; see
         // SessionRevocationStore's doc comment for why an admin-triggered "revoke someone else's session"

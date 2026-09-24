@@ -4,7 +4,7 @@ using Connector.Infrastructure.DataSources;
 
 namespace Connector.Infrastructure;
 
-// ── Tree query engine (Arbeitsauftrag 6) ─────────────────────────────────────
+// ── Tree query engine ────────────────────────────────────────────────────────
 // Builds nested export records in C# from plain relational rows — the database no longer assembles any JSON.
 // Both nested paths compile their own config shape into a TreePlan (the ExportNode tree engine in
 // DynamicExportService.ExportNode.cs, the legacy nested-group JSON export in .LegacyMapping.cs) and hand it
@@ -25,9 +25,9 @@ public static partial class DynamicExportService
 
     /// <summary>One table of a compiled export tree: its rows become JSON objects with <see cref="Members"/>
     /// as keys, in order.</summary>
-    /// <param name="Alias">The SQL alias the table gets in its query — kept identical to the alias the
-    /// pre-Arbeitsauftrag-6 SQL used for this node (<c>s</c> for the root, <c>en0</c>/<c>ng0</c>… in
-    /// pre-order below it), since a stored <see cref="Filter"/> may refer to it.</param>
+    /// <param name="Alias">The SQL alias the table gets in its query (<c>s</c> for the root,
+    /// <c>en0</c>/<c>ng0</c>… in pre-order below it). Stable, since a stored <see cref="Filter"/> may refer
+    /// to it.</param>
     /// <param name="Filter">A stored WHERE fragment scoped to this node's own rows, or null.</param>
     /// <param name="CastScalarsToText">True renders every scalar as a JSON string of its SQL <c>::text</c>
     /// form (the ExportNode engine's contract); false renders it as the database's own JSON encoding of the

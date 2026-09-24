@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
-// export-definitions-2.0.md §6: "UI offers presets (Manual/Hourly/Daily/Weekly) plus an advanced
-// free-text cron field." modelValue is the raw ExportDefinition.Schedule (a 5-field cron string, or
+// Schedule picker: presets (Manual/Hourly/Daily/Weekly) plus an advanced free-text cron field.
+// modelValue is the raw ExportDefinition.Schedule (a 5-field cron string, or
 // null for manual-only) — this never invents a second source of truth for it.
 const PRESETS: Record<string, string | null> = {
   manual: null,

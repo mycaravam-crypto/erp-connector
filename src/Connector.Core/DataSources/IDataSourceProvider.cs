@@ -1,7 +1,7 @@
 namespace Connector.Core.DataSources;
 
 /// <summary>
-/// Abstraction over one kind of ERP data source backend — see Arbeitsauftrag 2 /
+/// Abstraction over one kind of ERP data source backend — see
 /// knowledge/architecture/data-source-abstraction.md. Implemented for PostgreSQL, MariaDB and the ServiceNow Table
 /// API (<c>Connector.Infrastructure.DataSources.*</c>); obtained via <see cref="IDataSourceProviderResolver"/>,
 /// never constructed directly outside DI registration. Where providers differ, <see cref="Capabilities"/> says so.

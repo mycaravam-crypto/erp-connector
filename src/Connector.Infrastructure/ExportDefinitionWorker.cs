@@ -7,8 +7,8 @@ using Microsoft.Extensions.Logging;
 namespace Connector.Infrastructure;
 
 /// <summary>
-/// Phase 14 Slice 4 — a sibling of <see cref="ExportWorker"/>, not a replacement: that worker still owns
-/// the legacy CI-to-vendor four-eyes pipeline exactly as before. This one polls
+/// Scheduler for export definitions — a sibling of <see cref="ExportWorker"/>, which owns the legacy
+/// CI-to-vendor four-eyes pipeline. This one polls
 /// <see cref="ExportDefinitionEntity"/> rows instead, running any enabled definition whose
 /// <see cref="ExportDefinitionEntity.Schedule"/> cron is due this minute, via the same
 /// <see cref="ExportDefinitionRunner"/> path manual run/test already use — so a scheduled run and a manual
@@ -118,8 +118,7 @@ public sealed class ExportDefinitionWorker(IServiceScopeFactory scopeFactory, IL
 
     /// <summary>The SQL-translatable prefilter — enabled, with a schedule — applied before any per-row
     /// cron evaluation. Exposed so a test can assert a disabled or manual-only (<c>Schedule = null</c>)
-    /// definition is excluded before <see cref="CronSchedule"/> ever sees it (export-definitions-2.0.md
-    /// #21 acceptance criteria).</summary>
+    /// definition is excluded before <see cref="CronSchedule"/> ever sees it.</summary>
     public static IQueryable<ExportDefinitionEntity> ScheduledCandidates(IQueryable<ExportDefinitionEntity> source) =>
         source.Where(d => d.IsEnabled && d.Schedule != null);
 

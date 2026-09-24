@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import type { FieldMapping } from '@/api/exportDefinitions'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
-// Inline editor for one scalar-field node's FieldMapping (export-definitions-2.0.md §5): rename is
+// Inline editor for one scalar-field node's FieldMapping: rename is
 // the node's own TargetKey input (owned by the caller), so this only covers the four FieldMapping
 // members — transform, transform argument, null-fallback, and data-type coercion target. Mirrors
 // Connector.Core.DynamicExport.FieldTransform/FieldDataType exactly (see ExportNode.cs) so every

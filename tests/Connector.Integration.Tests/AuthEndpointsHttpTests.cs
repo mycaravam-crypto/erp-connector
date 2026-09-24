@@ -8,8 +8,8 @@ namespace Connector.Integration.Tests;
 
 /// <summary>
 /// HTTP-layer coverage for <see cref="AuthEndpoints"/> against the real <see cref="Program"/> pipeline (see
-/// <see cref="ApiFactory"/>) — login (including the SR-14 unknown-username-vs-wrong-password timing-safety
-/// branch), the dev-only <c>/api/auth/hash</c> endpoint, and the SR-16 session-revocation flow. Shares one
+/// <see cref="ApiFactory"/>) — login (including the unknown-username-vs-wrong-password timing-safety
+/// branch), the dev-only <c>/api/auth/hash</c> endpoint, and the session-revocation flow. Shares one
 /// <see cref="ApiFactory"/> (and therefore one login rate-limit bucket, capped at 20/minute) across every
 /// test in this class, so the handful of tests here stay well under that ceiling.
 /// </summary>
@@ -52,7 +52,7 @@ public sealed class AuthEndpointsHttpTests
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    // SR-14: an unknown username must fail the same way (401, same rough latency shape) as a known
+    // An unknown username must fail the same way (401, same rough latency shape) as a known
     // username with a wrong password — never a distinguishable response that leaks which usernames exist.
     [Fact]
     public async Task Login_UnknownUsername_ReturnsUnauthorizedNotNotFound()
@@ -92,7 +92,7 @@ public sealed class AuthEndpointsHttpTests
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    // SR-16: revoking invalidates every outstanding token for that user, including — after this call
+    // Revoking invalidates every outstanding token for that user, including — after this call
     // completes — the very token used to make it (validated against the pre-revocation cutover, so this
     // first call still succeeds; a second call with the same now-stale token must not).
     [Fact]

@@ -5,10 +5,10 @@ using Connector.Core.DynamicExport;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Coverage for the Filter validation added to <see cref="ExportDefinitionEndpoints.ValidateRequestAsync"/>
-/// (security audit finding: Filter is concatenated verbatim into the WHERE clause run against the ERP
-/// Postgres source by <c>DynamicExportService.ExecuteExportNodeQueryAsync</c>/<c>BuildExportNodeExpr</c>, so
-/// it must be screened for SQL-injection primitives at save time). Runs entirely against the in-memory
+/// Coverage for the Filter validation in <see cref="ExportDefinitionEndpoints.ValidateRequestAsync"/>
+/// (Filter is concatenated verbatim into the WHERE clause run against the ERP source by
+/// <c>DynamicExportService.ExecuteExportNodeQueryAsync</c>, so it must be screened for SQL-injection
+/// primitives at save time). Runs entirely against the in-memory
 /// Sqlite <see cref="LocalDb"/> fixture — no Postgres testdb required.
 /// </summary>
 public sealed class ExportFilterValidationTests
@@ -72,7 +72,7 @@ public sealed class ExportFilterValidationTests
     [InlineData("status = 'active'")]
     [InlineData("amount > 100 AND category = 'x'")]
     [InlineData("created_at >= '2024-01-01' AND created_at < '2025-01-01'")]
-    // SR-01 regression coverage: the general function-call rejection must not reject the parenthesized
+    // The general function-call rejection must not reject the parenthesized
     // boolean-grouping and IN-list syntax that legitimate filters (per SafeFilterCharsRegex's own
     // comment) actually need — only real function calls.
     [InlineData("status = 'active' AND (category = 'x' OR category = 'y')")]
@@ -101,9 +101,8 @@ public sealed class ExportFilterValidationTests
     [InlineData("pg_sleep(10) IS NULL")]
     [InlineData("1=1; SELECT 1")]
     [InlineData("current_setting('x') = 'y'")]
-    // SR-01: pg_sleep_for/pg_sleep_until are real Postgres functions distinct from pg_sleep, but
-    // \b in DangerousFilterKeywordRegex doesn't stop at '_' — these bypassed the name blacklist
-    // entirely before the general function-call rejection was added.
+    // pg_sleep_for/pg_sleep_until are real Postgres functions distinct from pg_sleep, and \b in
+    // DangerousFilterKeywordRegex doesn't stop at '_' — the general function-call rejection catches them.
     [InlineData("pg_sleep_for('5 seconds') IS NULL")]
     [InlineData("pg_sleep_until(now() + interval '5 seconds') IS NULL")]
     [InlineData("query_to_xml('select 1', false, false, '') IS NOT NULL")]

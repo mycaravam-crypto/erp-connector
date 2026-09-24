@@ -35,8 +35,7 @@ public static class OnMissingChildPolicy
 
 /// <summary>Discriminator values for <c>ImportDefinitionEntity.UnmatchedRootPolicy</c>. Deliberately
 /// excludes an "auto-create" option: every inbound record's correlation key must resolve to an
-/// existing root row, or it's excluded from the accepted set per this policy (see
-/// import-definitions.md §1).</summary>
+/// existing root row, or it's excluded from the accepted set per this policy.</summary>
 public static class UnmatchedRootPolicy
 {
     public const string Reject = "reject";

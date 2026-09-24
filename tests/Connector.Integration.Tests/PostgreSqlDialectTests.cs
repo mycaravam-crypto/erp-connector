@@ -8,7 +8,7 @@ namespace Connector.Integration.Tests;
 /// <summary>
 /// Pure unit tests (no DB) pinning the exact PostgreSQL text <see cref="PostgreSqlDialect"/> renders — the
 /// fragments <c>DynamicExportService</c>, <c>ImportNodeWalker</c>, <c>ImportRunReleaser</c> and
-/// <see cref="PostgreSqlQueryCompiler"/> used to emit inline before Arbeitsauftrag 5. The Postgres-backed
+/// <see cref="PostgreSqlQueryCompiler"/> build their SQL from. The Postgres-backed
 /// export/import tests cover the same fragments executing for real.
 /// </summary>
 public sealed class PostgreSqlDialectTests

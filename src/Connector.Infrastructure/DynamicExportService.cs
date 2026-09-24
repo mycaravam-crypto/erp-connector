@@ -7,7 +7,7 @@ namespace Connector.Infrastructure;
 /// <summary>
 /// Query/build engine behind the connector's export paths: the legacy single-mapping flat/nested-JSON
 /// pipeline (<see cref="ExportMappingConfig"/>, still served by <c>/api/pipeline/*</c> — see
-/// <c>DynamicExportService.LegacyMapping.cs</c>) and the Phase 14 <see cref="ExportNode"/> tree engine
+/// <c>DynamicExportService.LegacyMapping.cs</c>) and the <see cref="ExportNode"/> tree engine
 /// (Export Definitions 2.0 — see <c>DynamicExportService.ExportNode.cs</c>) side by side, plus the shared
 /// GDPR denylist (<c>DynamicExportService.Gdpr.cs</c>) and output-format writers
 /// (<c>DynamicExportService.Output.cs</c>) both paths use. Kept as one <c>partial</c> class split across
@@ -28,16 +28,14 @@ public static partial class DynamicExportService
     public const int MaxNestedDepth = 16;
 
     /// <summary>
-    /// Security-review finding SR-13: a real (non-preview) <see cref="ExportNode"/> run previously had no
-    /// upper bound on rows at all — a pathological or accidentally-unfiltered definition could run
-    /// unbounded. Generous on purpose (far beyond any current definition's real result size) so no existing
-    /// export is affected; <see cref="ExecuteExportNodeQueryAsync"/> fails the run loudly if a query would
-    /// exceed it, rather than silently truncating output a caller might mistake for a complete export.
+    /// Upper bound on rows for a real (non-preview) <see cref="ExportNode"/> run, so a pathological or
+    /// accidentally-unfiltered definition can't run unbounded. Generous on purpose (far beyond any real
+    /// result size); <see cref="ExecuteExportNodeQueryAsync"/> fails the run loudly if a query would exceed it,
+    /// rather than silently truncating output a caller might mistake for a complete export.
     /// </summary>
     public const int MaxExportRowsPerRun = 500_000;
 
-    /// <summary>A built export file. <see cref="Metrics"/> says what the build read from the source
-    /// (Arbeitsauftrag 13).</summary>
+    /// <summary>A built export file. <see cref="Metrics"/> says what the build read from the source.</summary>
     public readonly record struct ExportBuildResult(
         byte[] Bytes,
         int RecordCount,
@@ -46,7 +44,7 @@ public static partial class DynamicExportService
     );
 
     /// <summary>
-    /// Security-review finding SR-05: identifies *which system* a connection points at — host, port, and
+    /// Identifies *which system* a connection points at — host, port, and
     /// database — deliberately excluding Username/Password so a pure credential rotation against the same
     /// logical target (a password change, a different service account for the same database) never counts
     /// as a target change. Used to pin the connection an import run was staged against and verify it still

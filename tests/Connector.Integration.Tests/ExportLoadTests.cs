@@ -12,7 +12,7 @@ using Xunit.Abstractions;
 namespace Connector.Integration.Tests;
 
 /// <summary>
-/// Load tests for the export query plan (Arbeitsauftrag 13): an order → lines tree over 1 000, 10 000 and 100 000
+/// Load tests for the export query plan: an order → lines tree over 1 000, 10 000 and 100 000
 /// root records (two lines each) against real PostgreSQL and MariaDB. Asserts the query count is independent of
 /// the row count (one root query plus one child query per 10 000-key batch — never one per root record), that
 /// exactly the needed rows are read, and reports duration, allocated memory and output size. The <c>perf_*</c>

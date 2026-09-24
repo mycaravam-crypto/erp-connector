@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Connector.Api.Endpoints;
 
 // Entity/DTO mapping for ImportDefinitionEndpoints, plus the "create from export" mapping-suggestion
-// lookup (knowledge/pipeline/import-mapping-presets.md §3.4/§4).
+// lookup (see knowledge/pipeline/import-mapping-presets.md).
 static partial class ImportDefinitionEndpoints
 {
     private static ImportDefinitionDto ToDto(ImportDefinitionEntity e) =>
@@ -126,7 +126,7 @@ static partial class ImportDefinitionEndpoints
 
         // Guaranteed to exist: `outcome.Result` is only non-null when Evaluate found a shape built from one
         // of these exact entities, matching the same (IntegrationKey, ContractVersion) pair as `sample`. The
-        // Slice 1 uniqueness constraint means there is never more than one enabled one.
+        // save-time uniqueness constraint means there is never more than one enabled one.
         var matched = shapes.First(s =>
             s.Entity.IsEnabled
             && s.Entity.IntegrationKey == sample.IntegrationKey
@@ -167,9 +167,9 @@ static partial class ImportDefinitionEndpoints
     /// <see cref="ImportMappingSuggestion.SuggestFrom"/> needs: the <c>provenance</c> pair and the first
     /// record's top-level key names. Never throws — anything short of a well-formed envelope carrying a
     /// <c>provenance.integrationKey</c> degrades to <c>null</c> ("nothing to suggest"), matching the
-    /// pure function's own silent-degrade contract (knowledge/pipeline/import-mapping-presets.md §3.4 step
-    /// 1). Deliberately independent of <c>ImportNodeWalker.ParseRecords</c> — that parser must never read
-    /// <c>provenance</c> at all (Slice 3's core guardrail), so this stays a separate, UI-only reader.
+    /// pure function's own silent-degrade contract. Deliberately independent of
+    /// <c>ImportNodeWalker.ParseRecords</c> — that parser must never read <c>provenance</c> at all (provenance
+    /// is never a trust or routing input), so this stays a separate, UI-only reader.
     /// </summary>
     private static ImportSampleShape? TryParseSample(string inboundJson)
     {
