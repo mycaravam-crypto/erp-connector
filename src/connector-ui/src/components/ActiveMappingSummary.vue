@@ -3,8 +3,13 @@ import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { ExportMappingConfig } from '@/api/mapping'
 
+// Card on the Managed Export page summarising the saved CMDB export mapping: source table, enabled fields,
+// relations and nested groups, with a link to edit it (or to configure one when none is saved). Renders
+// nothing while loading.
 const props = defineProps<{
+  /** The saved export mapping, or null when none is configured. */
   mapping: ExportMappingConfig | null
+  /** True while the mapping is being fetched; hides the card. */
   loading: boolean
 }>()
 

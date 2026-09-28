@@ -10,6 +10,7 @@ static class SchemaEndpoints
 {
     internal static void MapSchemaEndpoints(this WebApplication app)
     {
+        // Returns the fixed ICD export column contract (column, source, type, notes) with its schema version.
         app.MapGet(
                 "/api/schema",
                 () =>

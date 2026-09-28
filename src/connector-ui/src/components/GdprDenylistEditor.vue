@@ -10,9 +10,16 @@ import SaveStatusAlert from '@/components/ui/SaveStatusAlert.vue'
 import { useToasts } from '@/composables/useToasts'
 import { useSaveStatus } from '@/composables/useSaveStatus'
 
+// Settings editor for the GDPR denylist: source fields that are never exported. Add or remove field names,
+// then save; the new list applies to the next export or preview.
 const toasts = useToasts()
 
-const props = defineProps<{ initialFields: string[] }>()
+const props = defineProps<{
+
+  /** The currently stored denylist, used as the starting list. */
+  initialFields: string[]
+
+}>()
 
 const deniedFields = ref<string[]>([...props.initialFields])
 const newField = ref('')

@@ -15,6 +15,9 @@ import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useToasts } from '@/composables/useToasts'
 
+// /exports ("Managed Export"): the CMDB pipeline's run page. Summarises the active mapping, previews its
+// output, runs an export now in the chosen format (remembered per browser), and lists past runs with links to
+// each run's detail page.
 const toasts = useToasts()
 
 const FORMAT_KEY = 'connector_export_format'

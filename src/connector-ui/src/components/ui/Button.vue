@@ -1,9 +1,15 @@
 <script setup lang="ts">
+// Standard button in four visual variants. While `loading`, it shows a spinner (hiding the `icon` slot) and
+// is disabled; the default slot is the label.
 withDefaults(
   defineProps<{
+    /** Visual style: primary (default) and danger are solid main actions, secondary and ghost are flat. */
     variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
+    /** Native button type; 'button' by default so it never submits a form by accident. */
     type?: 'button' | 'submit'
+    /** Disables the button. */
     disabled?: boolean
+    /** Shows a spinner in place of the icon and disables the button while an action runs. */
     loading?: boolean
   }>(),
   { variant: 'primary', type: 'button', disabled: false, loading: false },

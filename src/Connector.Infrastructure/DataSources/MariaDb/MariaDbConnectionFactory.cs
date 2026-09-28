@@ -29,6 +29,10 @@ public static class MariaDbConnectionFactory
             ConvertZeroDateTime = true,
         }.ConnectionString;
 
+    /// <summary>
+    /// Opens a MariaDB/MySQL connection from the stored config (5s connect timeout, zero dates read as
+    /// DateTime.MinValue). The connection is disposed if opening fails; on success the caller owns it.
+    /// </summary>
     public static async Task<MySqlConnection> OpenAsync(DataSourceConfig config, CancellationToken cancellationToken)
     {
         var connection = new MySqlConnection(BuildConnectionString(config));

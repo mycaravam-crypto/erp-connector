@@ -34,6 +34,10 @@ import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useToasts } from '@/composables/useToasts'
 
+// /import-definitions/:id ("new" to create): editor for one import job. Basic fields, the writable-column
+// allowlist, the node tree, a preview of the plan for a pasted sample, and run history. A new job can start
+// from a matching export's suggestion (including a sample handed over via sessionStorage). "Run"
+// stages the sample as a PendingReview run and opens the four-eyes review dialog.
 const toasts = useToasts()
 
 const route = useRoute()

@@ -8,6 +8,8 @@ import Input from '@/components/ui/Input.vue'
 import Button from '@/components/ui/Button.vue'
 import AppVersion from '@/components/AppVersion.vue'
 
+// /login: username/password sign-in. On success it goes to the dashboard, whose route guard sends first-time
+// users without a connection on to /connect.
 const { appName, logoUrl } = useBranding()
 
 const router = useRouter()

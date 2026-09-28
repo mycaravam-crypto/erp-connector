@@ -5,10 +5,16 @@ import Icon from '@/components/ui/Icon.vue'
 import Button from '@/components/ui/Button.vue'
 import FieldShell from '@/components/ui/FieldShell.vue'
 
+// Image picker for one branding asset, bound with v-model as a data URL (null = use the default). Rejects
+// non-images and files over maxBytes inline, shows a preview, and can remove the image.
 const props = defineProps<{
+  /** Field label. */
   label: string
+  /** Hint shown under the field when there is no error. */
   helpText?: string
+  /** Accepted file types for the file input, e.g. 'image/png,image/svg+xml'. */
   accept: string
+  /** Largest file accepted, in bytes; also shown in the size error. */
   maxBytes: number
   /** Preview thumbnail shape — logo/favicon read best as a small square, a background as a wide strip. */
   previewShape?: 'square' | 'wide'

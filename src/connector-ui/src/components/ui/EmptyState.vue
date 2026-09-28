@@ -5,7 +5,17 @@ import Icon from '@/components/ui/Icon.vue'
 // Shared "nothing here yet" block for lists/tables — replaces the one-off
 // `<div class="text-text-secondary text-sm mt-4">No … yet.</div>` lines duplicated across views with a
 // consistent, slightly more prominent treatment, while staying just as easy to drop in.
-withDefaults(defineProps<{ icon?: Component; title: string; description?: string }>(), {})
+withDefaults(
+  defineProps<{
+    /** Optional icon shown above the title. */
+    icon?: Component
+    /** Main message, e.g. "No export jobs yet". */
+    title: string
+    /** Optional secondary line under the title. */
+    description?: string
+  }>(),
+  {},
+)
 </script>
 
 <template>

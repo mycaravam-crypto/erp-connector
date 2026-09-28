@@ -19,9 +19,13 @@ import Icon from '@/components/ui/Icon.vue'
 defineOptions({ name: 'ImportNodeTreeEditor' })
 
 const props = defineProps<{
+  /** The nodes at this level; edited in place (add/remove/change), with `dirty` emitted after each change. */
   nodes: ImportNode[]
+  /** Table this level's columns are written to: the root table, or the parent node's related table. */
   contextTable: string
+  /** Introspected source tables and their columns, used for column pickers and suggested relations. */
   availableTables: SourceTable[]
+  /** Nesting level (0 at the root): indents the level and hides "add" once MAX_NESTED_DEPTH is reached. */
   depth: number
 }>()
 

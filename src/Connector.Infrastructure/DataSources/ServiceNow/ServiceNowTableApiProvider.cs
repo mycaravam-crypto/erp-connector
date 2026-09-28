@@ -162,6 +162,11 @@ public sealed class ServiceNowTableApiProvider : IDataSourceProvider
             ct
         );
 
+    /// <summary>
+    /// Emulates one join, which the Table API can't do itself: reads the joined table filtered to the parent
+    /// rows' key values (IN batches of JoinKeyBatchSize), then pairs each parent row with every match. A left
+    /// join keeps unmatched parents with a null entry; an inner join drops them.
+    /// </summary>
     private async Task<List<Dictionary<string, Dictionary<string, string?>?>>> JoinAsync(
         DataSourceConfig config,
         List<Dictionary<string, Dictionary<string, string?>?>> rows,

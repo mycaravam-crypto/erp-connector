@@ -31,6 +31,7 @@ static partial class ImportDefinitionEndpoints
 {
     internal static void MapImportDefinitionEndpoints(this WebApplication app)
     {
+        // Lists all import definitions, ordered by name, as summaries (no node tree).
         app.MapGet(
                 "/api/import-definitions",
                 async (ExportLogDbContext db, CancellationToken ct) =>
@@ -41,6 +42,9 @@ static partial class ImportDefinitionEndpoints
             )
             .RequireAuthorization();
 
+        // Creates a definition after the save-time guardrails in ValidateRequestAsync (writable-column allowlist
+        // checked against the live ERP schema, no key/identity/computed/FK targets, no child inserts) and the
+        // IntegrationKey/ContractVersion pair check; starts at ConfigVersion 1. Audited.
         app.MapPost(
                 "/api/import-definitions",
                 async (
@@ -86,6 +90,7 @@ static partial class ImportDefinitionEndpoints
             )
             .RequireAuthorization();
 
+        // Returns one definition including its full node tree and writable-column allowlist.
         app.MapGet(
                 "/api/import-definitions/{id:int}",
                 async (int id, ExportLogDbContext db, CancellationToken ct) =>
@@ -96,6 +101,7 @@ static partial class ImportDefinitionEndpoints
             )
             .RequireAuthorization();
 
+        // Replaces a definition after the same validation as create and bumps its ConfigVersion. Audited.
         app.MapPut(
                 "/api/import-definitions/{id:int}",
                 async (
@@ -147,6 +153,7 @@ static partial class ImportDefinitionEndpoints
             )
             .RequireAuthorization();
 
+        // Deletes a definition. Audited.
         app.MapDelete(
                 "/api/import-definitions/{id:int}",
                 async (
@@ -174,6 +181,8 @@ static partial class ImportDefinitionEndpoints
             )
             .RequireAuthorization();
 
+        // Copies a definition under a new name (default "<name> (Copy)"). The copy starts disabled at
+        // ConfigVersion 1 and without the IntegrationKey/ContractVersion pair. Audited.
         app.MapPost(
                 "/api/import-definitions/{id:int}/duplicate",
                 async (
@@ -219,6 +228,8 @@ static partial class ImportDefinitionEndpoints
             )
             .RequireAuthorization();
 
+        // Enables or disables a definition. Enabling is refused when another enabled definition already claims
+        // the same IntegrationKey/ContractVersion pair. Audited.
         app.MapPatch(
                 "/api/import-definitions/{id:int}/enable",
                 async (
@@ -324,6 +335,7 @@ static partial class ImportDefinitionEndpoints
             )
             .RequireAuthorization();
 
+        // Returns the definition's latest 200 import runs, newest first, with their match/change/reject counts.
         app.MapGet(
                 "/api/import-definitions/{id:int}/runs",
                 async (int id, ExportLogDbContext db, CancellationToken ct) =>

@@ -15,6 +15,9 @@ static class PipelineEndpoints
 {
     internal static void MapPipelineEndpoints(this WebApplication app)
     {
+        // "Run Now": builds the saved Step-3 export mapping (?format=json|csv|xlsx, default json), writes the
+        // package to the staging folder and records it as the next Pending ExportRun awaiting four-eyes
+        // release. Fails the run (400) when no mapping/connection is configured or the query returns 0 records.
         app.MapPost(
                 "/api/pipeline/run",
                 async (
@@ -237,6 +240,9 @@ static class PipelineEndpoints
                 policy.AddAuthenticationSchemes(ApiKeyAuthenticationHandler.SchemeName).RequireAuthenticatedUser()
             );
 
+        // Returns up to 50 records of what the saved export mapping would produce, nested or flat to match a
+        // JSON export, with GDPR-denied fields removed. Errors are reported in the body (status "error"), not
+        // as HTTP failures, so the mapping screen can show them inline.
         app.MapGet(
                 "/api/pipeline/preview",
                 async (ExportLogDbContext db, IDataSourceProviderResolver resolver, CancellationToken ct) =>

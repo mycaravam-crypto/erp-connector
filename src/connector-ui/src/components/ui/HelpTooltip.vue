@@ -10,7 +10,9 @@ import Icon from './Icon.vue'
 withDefaults(defineProps<{
   /** Accessible name for the trigger button — say what it explains, e.g. "About contract versions". */
   label?: string
+  /** Optional bold heading at the top of the panel. */
   title?: string
+  /** Which edge of the trigger the panel lines up with: left (default), right or center. */
   align?: 'left' | 'right' | 'center'
 }>(), {
   label: 'Help',

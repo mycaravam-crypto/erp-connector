@@ -182,11 +182,13 @@ static partial class ImportDefinitionEndpoints
         return null;
     }
 
-    // Recursive identifier-safety + shape validator over the ImportNode tree, collecting every enabled
-    // scalar-field node's (owning table, TargetColumn) pair into `targets` for the schema-aware pass above —
-    // the ImportNode counterpart of ExportDefinitionEndpoints.ValidateNode, generalized for the write-side
-    // shape (owning table changes per-branch: a root-level scalar writes RootTable, one nested under an
-    // object/array node writes that node's own RelatedTable).
+    /// <summary>
+    /// Recursive identifier-safety + shape validator over the ImportNode tree, collecting every enabled scalar-
+    /// field node's (owning table, TargetColumn) pair into `targets` for the schema-aware pass above — the
+    /// ImportNode counterpart of ExportDefinitionEndpoints.ValidateNode, generalized for the write-side shape
+    /// (owning table changes per-branch: a root-level scalar writes RootTable, one nested under an object/array
+    /// node writes that node's own RelatedTable).
+    /// </summary>
     private static string? ValidateNode(
         ImportNode node,
         ImportNode matchField,

@@ -22,6 +22,10 @@ public sealed class ExportDefinitionWorker(IServiceScopeFactory scopeFactory, IL
     /// distinguishing it from a username on a manual run/test.</summary>
     public const string SchedulerTriggeredBy = "scheduler";
 
+    /// <summary>
+    /// Wakes at the start of every UTC minute and runs each enabled definition whose cron schedule is due,
+    /// until the host stops.
+    /// </summary>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation("ExportDefinitionWorker started");

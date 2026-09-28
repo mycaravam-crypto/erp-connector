@@ -21,6 +21,10 @@ public static class PostgreSqlQueryCompiler
 {
     private static readonly PostgreSqlDialect Dialect = PostgreSqlDialect.Instance;
 
+    /// <summary>
+    /// Validates the query against the schema, then renders it as PostgreSQL SQL plus its bound parameters. Throws
+    /// InvalidSourceQueryException when the query fails that validation.
+    /// </summary>
     public static CompiledPostgreSqlQuery Compile(SourceQuery query, SourceSchema schema)
     {
         SourceQueryValidator.Validate(query, schema);

@@ -36,6 +36,14 @@ public static partial class DynamicExportService
     /// Run Now's copy supported nested JSON — Preview and the nightly worker silently fell back to the
     /// flat shape for a nested-group mapping.
     /// </summary>
+    /// <param name="provider">Data source the queries run against; also picks the SQL dialect.</param>
+    /// <param name="dsConfig">Connection settings for provider.</param>
+    /// <param name="cfg">The legacy export mapping.</param>
+    /// <param name="format">"json", "csv" or "xlsx"; anything else is treated as JSON.</param>
+    /// <param name="schemaVersion">Export schema version written into the output's metadata.</param>
+    /// <param name="extractedAt">Extraction timestamp written into the output's metadata.</param>
+    /// <param name="ct">Cancels the queries.</param>
+    /// <param name="gdprDenylist">Source fields to exclude; defaults to GdprDeniedFields.</param>
     public static async Task<ExportBuildResult> BuildExportAsync(
         IDataSourceProvider provider,
         DataSourceConfig dsConfig,
@@ -103,6 +111,19 @@ public static partial class DynamicExportService
         };
     }
 
+    /// <summary>
+    /// Flat query behind the legacy single-mapping export (CSV/Excel/flat JSON) and its preview: one row per
+    /// source-table row, enabled fields as columns and each enabled relation flattened into a delimited string
+    /// via a correlated string-aggregate subquery. GDPR-denied fields are left out of the SELECT and stripped
+    /// again from the results; NULLs come back as "".
+    /// </summary>
+    /// <param name="provider">Data source the query runs against; also picks the SQL dialect.</param>
+    /// <param name="dsConfig">Connection settings for <paramref name="provider"/>.</param>
+    /// <param name="cfg">The export mapping: source table, fields and relations.</param>
+    /// <param name="ct">Cancels the query.</param>
+    /// <param name="limit">Maximum rows to return (previews), or null for all rows.</param>
+    /// <param name="gdprDenylist">Source fields to exclude; defaults to the built-in GDPR denylist.</param>
+    /// <returns>One column-name → value dictionary per row; empty when no field or relation is enabled.</returns>
     public static async Task<List<Dictionary<string, string>>> ExecuteQueryAsync(
         IDataSourceProvider provider,
         DataSourceConfig dsConfig,
@@ -228,6 +249,12 @@ public static partial class DynamicExportService
     /// encoding would give them. Independent of the flat CSV/Excel/legacy-JSON export — this never calls, and
     /// is never called by, <see cref="ExecuteQueryAsync"/>.
     /// </summary>
+    /// <param name="provider">Data source the queries run against; also picks the SQL dialect.</param>
+    /// <param name="dsConfig">Connection settings for provider.</param>
+    /// <param name="cfg">The legacy export mapping, including its nested groups.</param>
+    /// <param name="ct">Cancels the queries.</param>
+    /// <param name="limit">Maximum source rows (previews), or null for all rows.</param>
+    /// <param name="gdprDenylist">Source fields to exclude; defaults to GdprDeniedFields.</param>
     public static async Task<List<JsonObject>> ExecuteNestedJsonQueryAsync(
         IDataSourceProvider provider,
         DataSourceConfig dsConfig,

@@ -18,6 +18,8 @@ import ConfirmAction from '@/components/ui/ConfirmAction.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import { useToasts } from '@/composables/useToasts'
 
+// /import-definitions: the list of import jobs with each job's last run status, plus per-row enable/disable,
+// duplicate and delete (with confirm).
 const toasts = useToasts()
 
 const definitions = ref<ImportDefinitionSummary[]>([])

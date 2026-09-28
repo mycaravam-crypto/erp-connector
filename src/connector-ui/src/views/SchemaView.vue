@@ -29,6 +29,9 @@ import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useToasts } from '@/composables/useToasts'
 
+// Step 3, /export-schema: the legacy single export mapping editor. Pick a source table, then map columns,
+// flattened relations, nested JSON groups and the JSON wrapper; preview the result, load or save presets,
+// and save the mapping that /api/pipeline/run uses. Warns before leaving with unsaved changes.
 const toasts = useToasts()
 
 const router = useRouter()

@@ -6,9 +6,15 @@ import FieldPickerTable from '@/components/FieldPickerTable.vue'
 import { X } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
 
+// Collapsible editor for one flattened relation in the legacy mapping: related table, join columns, which
+// related fields to include, and how multiple matches are flattened (strategy and delimiter). Can be removed
+// or converted into a nested group.
 const props = defineProps<{
+  /** The relation being edited; mutated in place, with `dirty` emitted after each change. */
   relation: MappingRelation
+  /** Tables that can be joined, with their columns. */
   relatableTables: SourceTable[]
+  /** Columns of the mapping's source table, offered for the source-side join column. */
   selectedTableColumns: SourceColumn[]
 }>()
 

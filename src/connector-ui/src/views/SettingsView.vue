@@ -9,6 +9,7 @@ import BrandingSettingsForm from '@/components/BrandingSettingsForm.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 
+// /settings: loads and shows the three settings forms: managed-export scheduler, GDPR denylist and branding.
 const loading = ref(true)
 const loadError = ref<string | null>(null)
 

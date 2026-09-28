@@ -39,6 +39,8 @@ static class ImportRunEndpoints
             )
             .RequireAuthorization();
 
+        // Four-eyes commit of a PendingReview run: a second user's credentials must approve, then
+        // ImportRunReleaser writes the staged plan to the target. 500 with the error if the commit fails.
         app.MapPost(
                 "/api/import-runs/{id:int}/release",
                 async (
@@ -95,6 +97,7 @@ static class ImportRunEndpoints
             .RequireAuthorization()
             .RequireRateLimiting(FourEyesReview.ApprovalRateLimiterPolicyName);
 
+        // Discards a PendingReview run without writing anything to the target (no second approver needed).
         app.MapPost(
                 "/api/import-runs/{id:int}/reject",
                 async (

@@ -93,6 +93,13 @@ public static partial class DynamicExportService
     /// <see cref="StripGdprFieldsRecursive"/>'s output-key match as a second, independent layer of
     /// defence-in-depth.
     /// </summary>
+    /// <param name="provider">Data source the queries run against; also picks the SQL dialect.</param>
+    /// <param name="dsConfig">Connection settings for provider.</param>
+    /// <param name="rootTable">Table the tree's root rows come from.</param>
+    /// <param name="root">The export tree to run.</param>
+    /// <param name="ct">Cancels the queries.</param>
+    /// <param name="limit">Maximum root rows (previews and test runs), or null for all rows.</param>
+    /// <param name="gdprDenylist">Source fields to exclude; defaults to GdprDeniedFields.</param>
     public static async Task<List<JsonObject>> ExecuteExportNodeQueryAsync(
         IDataSourceProvider provider,
         DataSourceConfig dsConfig,
@@ -309,6 +316,17 @@ public static partial class DynamicExportService
     /// there is no per-format query fork to keep in sync — every format writer receives the same tree-shaped
     /// records, so adding a new format only means adding a writer.
     /// </summary>
+    /// <param name="provider">Data source the queries run against; also picks the SQL dialect.</param>
+    /// <param name="dsConfig">Connection settings for provider.</param>
+    /// <param name="rootTable">Table the tree's root rows come from.</param>
+    /// <param name="root">The export tree to run.</param>
+    /// <param name="format">"json", "csv" or "xlsx"; anything else is treated as JSON.</param>
+    /// <param name="schemaVersion">Export schema version written into the output's metadata.</param>
+    /// <param name="extractedAt">Extraction timestamp written into the output's metadata.</param>
+    /// <param name="ct">Cancels the queries.</param>
+    /// <param name="limit">Maximum root rows (previews and test runs), or null for all rows.</param>
+    /// <param name="gdprDenylist">Source fields to exclude; defaults to GdprDeniedFields.</param>
+    /// <param name="provenance">IntegrationKey/ContractVersion tag for JSON output, or null when the definition doesn't opt in.</param>
     public static async Task<ExportBuildResult> BuildExportNodeAsync(
         IDataSourceProvider provider,
         DataSourceConfig dsConfig,

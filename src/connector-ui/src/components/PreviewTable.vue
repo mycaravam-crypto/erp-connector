@@ -5,9 +5,17 @@ import FlatPreviewTable from './FlatPreviewTable.vue'
 import NestedPreviewList from './NestedPreviewList.vue'
 import Button from '@/components/ui/Button.vue'
 
+// Preview panel for the legacy export mapping: shows loading, errors, an empty state, or the first 20
+// records, as nested JSON or a flat table depending on the mapping. Emits `refresh` to re-run the preview.
 const props = defineProps<{
+  /** Result of GET /api/pipeline/preview, or null before the first load. */
   preview: PreviewResult | null
+  /** True while the preview request runs. */
   loading: boolean
+  /**
+   * Error from the request itself (e.g. backend unreachable), or null. Query errors arrive inside preview
+   * instead.
+   */
   error: string | null
 }>()
 defineEmits<{ (e: 'refresh'): void }>()

@@ -9,9 +9,16 @@ import SaveStatusAlert from '@/components/ui/SaveStatusAlert.vue'
 import { useToasts } from '@/composables/useToasts'
 import { useSaveStatus } from '@/composables/useSaveStatus'
 
+// Settings form for the nightly managed export: run time (UTC), how many days staged export files are kept,
+// and the output format. Takes effect on the next export cycle.
 const toasts = useToasts()
 
-const props = defineProps<{ config: SchedulerConfig }>()
+const props = defineProps<{
+
+  /** The currently stored scheduler settings, used as the form's initial values. */
+  config: SchedulerConfig
+
+}>()
 
 const scheduledTime = ref(props.config.scheduledTimeUtc)
 const retentionDays = ref(props.config.retentionDays)

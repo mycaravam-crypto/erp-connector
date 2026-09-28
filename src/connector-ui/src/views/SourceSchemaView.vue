@@ -10,6 +10,8 @@ import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import Alert from '@/components/ui/Alert.vue'
 
+// /source-schema: browse the connected source's tables and their columns (expand one or all), as introspected
+// from the live connection.
 const router = useRouter()
 
 const schema = ref<{ connectionLabel: string; tables: SourceTable[] } | null>(null)

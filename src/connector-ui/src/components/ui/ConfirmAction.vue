@@ -7,9 +7,16 @@ import Button from '@/components/ui/Button.vue'
 // prompt + confirm/cancel pair in place, matching how each call site already laid things out.
 withDefaults(
   defineProps<{
+    /**
+     * True while the confirmed action runs: shows a spinner on Confirm (button variant) or disables it
+     * (link variant).
+     */
     busy?: boolean
+    /** Question shown next to the buttons in the button variant; defaults to "Delete permanently?". */
     prompt?: string
+    /** Label of the confirm control. */
     confirmLabel?: string
+    /** Label of the cancel control. */
     cancelLabel?: string
     /** 'button' renders confirm/cancel as full Button components with a text prompt (toolbar-style
      * actions); 'link' renders them as bare text links (table-row actions). */

@@ -8,9 +8,16 @@ import Input from '@/components/ui/Input.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import { useToasts } from '@/composables/useToasts'
 
+// Four-eyes release for a pending export run: a button that opens a dialog where a second user enters their
+// credentials to approve. The approver can't be the signed-in operator. Emits `released` on success.
 const toasts = useToasts()
 
-const props = defineProps<{ seqNo: number }>()
+const props = defineProps<{
+
+  /** Sequence number of the export run to release. */
+  seqNo: number
+
+}>()
 const emit = defineEmits<{ (e: 'released'): void }>()
 
 const open = ref(false)

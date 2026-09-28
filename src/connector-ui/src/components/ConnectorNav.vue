@@ -4,6 +4,8 @@ import { useRoute } from 'vue-router'
 import { Menu, X } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
 
+// Main navigation bar: a flat row of links to each area, highlighted for the current route. Below the nav
+// breakpoint it collapses into a toggle and dropdown that closes on outside click, Escape or navigation.
 const route = useRoute()
 
 // One flat list, not a "setup wizard you finish then leave" — the old version drew Connect/Source

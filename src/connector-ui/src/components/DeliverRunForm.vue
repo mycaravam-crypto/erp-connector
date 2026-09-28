@@ -7,9 +7,16 @@ import TextField from '@/components/ui/TextField.vue'
 import Button from '@/components/ui/Button.vue'
 import { useToasts } from '@/composables/useToasts'
 
+// Form on a released export run's detail page for recording that the file reached the vendor, with an
+// optional imported-record count and notes. Emits `delivered` on success.
 const toasts = useToasts()
 
-const props = defineProps<{ seqNo: number }>()
+const props = defineProps<{
+
+  /** Sequence number of the export run being marked delivered. */
+  seqNo: number
+
+}>()
 const emit = defineEmits<{ (e: 'delivered'): void }>()
 
 const importCount = ref<number | null>(null)

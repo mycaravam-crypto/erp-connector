@@ -5,10 +5,15 @@ import SectionHeader from '@/components/ui/SectionHeader.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import { useToasts } from '@/composables/useToasts'
 
+// Named export-mapping presets for the legacy mapping screen: load the saved presets, apply one (emits
+// `apply` with its config), save the current mapping under a name ("Save As…", overwriting a same-named
+// preset), or delete the selected preset.
 const toasts = useToasts()
 
 const props = defineProps<{
+  /** False until the mapping has a source table; saving is refused with an inline hint until then. */
   canSave: boolean
+  /** Returns the current mapping config to store when saving a preset. */
   getConfig: () => ExportMappingConfig
 }>()
 

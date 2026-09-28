@@ -11,13 +11,14 @@ import ConfirmAction from '@/components/ui/ConfirmAction.vue'
 import { useToasts } from '@/composables/useToasts'
 import { useSaveStatus } from '@/composables/useSaveStatus'
 
-const toasts = useToasts()
-
 // The import-side analogue of ExportDefinitionRunControls.vue — deliberately narrower: there's no
 // "Test against live connection" here (an import definition has no query to sanity-check). Staging a
 // real run (manual file select or the inbound/ folder watcher) and previewing a sample file both live on
 // ImportDefinitionPreviewPanel.vue instead, since both act on the same pasted/selected JSON it already owns.
+const toasts = useToasts()
+
 const props = defineProps<{
+  /** The definition being edited; saved as-is, and updated in place with the server's response. */
   definition: ImportDefinition
 }>()
 const emit = defineEmits<{

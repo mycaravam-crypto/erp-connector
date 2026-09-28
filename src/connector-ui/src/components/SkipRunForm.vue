@@ -6,9 +6,16 @@ import Input from '@/components/ui/Input.vue'
 import Button from '@/components/ui/Button.vue'
 import { useToasts } from '@/composables/useToasts'
 
+// Form on a pending or failed export run's detail page for skipping it, with an optional reason for the audit
+// log. Emits `skipped` on success.
 const toasts = useToasts()
 
-const props = defineProps<{ seqNo: number }>()
+const props = defineProps<{
+
+  /** Sequence number of the export run to skip. */
+  seqNo: number
+
+}>()
 const emit = defineEmits<{ (e: 'skipped'): void }>()
 
 const reason = ref('')

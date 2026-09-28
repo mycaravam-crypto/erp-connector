@@ -18,12 +18,18 @@ import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 const inboundJson = defineModel<string>('inboundJson', { default: '' })
 
 const props = defineProps<{
+  /** Result of the last preview: per-record matches and planned changes, or null before the first preview. */
   plan: ImportPlan | null
+  /** True while a preview request runs. */
   loading: boolean
+  /** Error from the last preview, or null. */
   error: string | null
+  /** True while the parent stages a real run from the sample. */
   running: boolean
-  // Optional: the saved definition's field tree, used only for the client-side "unmapped field" hint
-  // below — never sent anywhere, never affects what Preview actually runs.
+  /**
+   * Optional: the saved definition's field tree, used only for the client-side "unmapped field" hint
+   * below — never sent anywhere, never affects what Preview actually runs.
+   */
   rootNode?: ImportNode | null
 }>()
 const emit = defineEmits<{
