@@ -4,7 +4,7 @@
 # not by hand.
 
 # ── Stage 1: Build the Vue UI ─────────────────────────────────────────────────
-FROM node:24-alpine@sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf AS ui-build
+FROM node:25-alpine@sha256:bdf2cca6fe3dabd014ea60163eca3f0f7015fbd5c7ee1b0e9ccb4ced6eb02ef4 AS ui-build
 WORKDIR /app/ui
 COPY src/connector-ui/package*.json ./
 RUN npm ci --prefer-offline
@@ -12,7 +12,7 @@ COPY src/connector-ui/ ./
 RUN npm run build-only
 
 # ── Stage 2: Build the .NET API ───────────────────────────────────────────────
-FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine@sha256:730abfea9d28f7d643bc29857363b35ddff06d8f22a388d912acfba5bf78fab2 AS api-build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine@sha256:3cc3bbbbf93d82104892f42aa9106b6be4d120346dea0649643a97c801525256 AS api-build
 WORKDIR /app
 COPY Directory.Build.props VERSION ./
 COPY src/ ./src/
@@ -25,7 +25,7 @@ RUN dotnet publish src/Connector.Api/Connector.Api.csproj \
     --self-contained false
 
 # ── Stage 3: Runtime image ────────────────────────────────────────────────────
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine@sha256:7e9c4b5dd81f7f319c91f54e490e83d0f6c9a62686d1d1418ce492d6f961828d AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine@sha256:f62a272ac1b46e83f56b8ed0416572f31cd1128e2c4a5e63eb34d348e4a36095 AS runtime
 WORKDIR /app
 
 # Copy published API
