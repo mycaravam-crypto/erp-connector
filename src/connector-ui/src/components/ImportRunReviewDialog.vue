@@ -12,13 +12,16 @@ import ImportRunOutcome from '@/components/ImportRunOutcome.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import { useToasts } from '@/composables/useToasts'
 
-const toasts = useToasts()
-
 // The import run review/diff view: reuses ReleaseDialog.vue's Operator/Approver form pattern, extended
 // with the full count breakdown and a field-level diff of the matched/changed rows PlanJson actually
 // carries — a run's plan is the write-side source of truth, so this dialog only ever displays it, never
 // recomputes its own.
-const props = defineProps<{ runId: number | null }>()
+const toasts = useToasts()
+
+const props = defineProps<{
+  /** Import run to load when the dialog opens; null renders nothing to review. */
+  runId: number | null
+}>()
 const emit = defineEmits<{ resolved: [] }>()
 const open = defineModel<boolean>('open', { default: false })
 

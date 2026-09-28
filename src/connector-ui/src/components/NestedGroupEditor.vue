@@ -19,12 +19,17 @@ import IssuesAlert from '@/components/ui/IssuesAlert.vue'
 defineOptions({ name: 'NestedGroupEditor' })
 
 const props = defineProps<{
+  /** The nested group being edited; mutated in place, with `dirty` emitted after each change. */
   group: MappingNestedGroup
+  /** Introspected source tables and their columns, used for the related-table and field pickers. */
   availableTables: SourceTable[]
+  /** Nesting level (0 at the top): child groups can't be added once MAX_NESTED_DEPTH is reached. */
   depth: number
-  // The full list of groups at this same level (including this one) — used to detect a
-  // duplicate export key among siblings, which would otherwise silently overwrite a key
-  // in the exported JSON. Defaults to just this group when no siblings are known.
+  /**
+   * The full list of groups at this same level (including this one) — used to detect a
+   * duplicate export key among siblings, which would otherwise silently overwrite a key
+   * in the exported JSON. Defaults to just this group when no siblings are known.
+   */
   siblings?: MappingNestedGroup[]
 }>()
 

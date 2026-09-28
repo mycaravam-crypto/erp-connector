@@ -22,6 +22,9 @@ import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useToasts } from '@/composables/useToasts'
 
+// /export-definitions/:id ("new" to create): editor for one export job. Basic fields, the node tree built
+// from the root table's columns, a preview panel and run history; a new job is created first, after which
+// ExportDefinitionRunControls handles save/test/run/duplicate/delete.
 const toasts = useToasts()
 
 const route = useRoute()

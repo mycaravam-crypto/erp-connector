@@ -19,6 +19,8 @@ import ConfirmAction from '@/components/ui/ConfirmAction.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import { useToasts } from '@/composables/useToasts'
 
+// /export-definitions: the list of export jobs with each job's last run status, plus per-row enable/disable,
+// test run, duplicate and delete (with confirm).
 const toasts = useToasts()
 
 const definitions = ref<ExportDefinitionSummary[]>([])

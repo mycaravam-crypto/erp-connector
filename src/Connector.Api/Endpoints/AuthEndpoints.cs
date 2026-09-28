@@ -19,6 +19,8 @@ static class AuthEndpoints
 
     internal static void MapAuthEndpoints(this WebApplication app, IReadOnlyDictionary<string, string> userStore)
     {
+        // Exchanges username/password for a signed JWT (HS256, Auth:JwtExpiryHours, default 8h) and audits the
+        // login. Unknown usernames still pay a BCrypt verify so timing doesn't reveal which accounts exist.
         app.MapPost(
                 "/api/auth/login",
                 async (LoginRequest req, AuditService audit) =>
@@ -75,9 +77,9 @@ static class AuthEndpoints
             )
             .RequireAuthorization();
 
-        // Dev-only: returns a BCrypt hash for a plaintext password (to seed appsettings for production users).
         if (app.Environment.IsDevelopment())
         {
+            // Dev-only: returns a BCrypt hash for a plaintext password (to seed appsettings for production users).
             app.MapPost(
                 "/api/auth/hash",
                 (HashRequest req) =>

@@ -9,6 +9,8 @@ static class HealthEndpoints
 {
     internal static void MapHealthEndpoints(this WebApplication app)
     {
+        // Checks the log DB connection and that the staging directory is writable; 200 "healthy" when both
+        // pass, otherwise 503 "degraded" with per-check flags.
         app.MapGet(
             "/api/health",
             async (ExportLogDbContext logDb, IOptions<ExportSinkOptions> sinkOpts) =>

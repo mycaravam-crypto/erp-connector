@@ -31,6 +31,7 @@ static class ExportDefinitionEndpoints
 
     internal static void MapExportDefinitionEndpoints(this WebApplication app)
     {
+        // Lists all export definitions, ordered by name, as summaries (no node tree).
         app.MapGet(
                 "/api/export-definitions",
                 async (ExportLogDbContext db, CancellationToken ct) =>
@@ -43,6 +44,8 @@ static class ExportDefinitionEndpoints
             )
             .RequireAuthorization();
 
+        // Creates a definition after validating its node tree (identifiers, filters, GDPR denylist) and the
+        // IntegrationKey/ContractVersion pair; starts at ConfigVersion 1. Audited.
         app.MapPost(
                 "/api/export-definitions",
                 async (
@@ -87,6 +90,7 @@ static class ExportDefinitionEndpoints
             )
             .RequireAuthorization();
 
+        // Returns one definition including its full node tree.
         app.MapGet(
                 "/api/export-definitions/{id:int}",
                 async (int id, ExportLogDbContext db, CancellationToken ct) =>
@@ -97,6 +101,7 @@ static class ExportDefinitionEndpoints
             )
             .RequireAuthorization();
 
+        // Replaces a definition after the same validation as create and bumps its ConfigVersion. Audited.
         app.MapPut(
                 "/api/export-definitions/{id:int}",
                 async (
@@ -141,6 +146,7 @@ static class ExportDefinitionEndpoints
             )
             .RequireAuthorization();
 
+        // Deletes a definition. Audited.
         app.MapDelete(
                 "/api/export-definitions/{id:int}",
                 async (
@@ -168,6 +174,8 @@ static class ExportDefinitionEndpoints
             )
             .RequireAuthorization();
 
+        // Copies a definition under a new name (default "<name> (Copy)"). The copy starts disabled, unscheduled,
+        // at ConfigVersion 1 and without the IntegrationKey/ContractVersion pair. Audited.
         app.MapPost(
                 "/api/export-definitions/{id:int}/duplicate",
                 async (
@@ -213,6 +221,8 @@ static class ExportDefinitionEndpoints
             )
             .RequireAuthorization();
 
+        // Enables or disables a definition. Enabling is refused when another enabled definition already claims
+        // the same IntegrationKey/ContractVersion pair. Audited.
         app.MapPatch(
                 "/api/export-definitions/{id:int}/enable",
                 async (
@@ -256,6 +266,8 @@ static class ExportDefinitionEndpoints
             )
             .RequireAuthorization();
 
+        // Runs the definition's tree against the configured source and returns up to 50 records, GDPR-denied
+        // fields removed. Records no run history; returns an empty preview when no connection is configured.
         app.MapPost(
                 "/api/export-definitions/{id:int}/preview",
                 async (int id, ExportLogDbContext db, IDataSourceProviderResolver resolver, CancellationToken ct) =>
@@ -305,6 +317,8 @@ static class ExportDefinitionEndpoints
             )
             .RequireAuthorization();
 
+        // Runs the definition in full and returns the built file directly, with X-Export-Run-Id, X-Record-Count
+        // and X-Config-Version headers. Records a run-history row and an audit entry, success or failure.
         app.MapPost(
                 "/api/export-definitions/{id:int}/run",
                 async (
@@ -361,6 +375,8 @@ static class ExportDefinitionEndpoints
             )
             .RequireAuthorization();
 
+        // Test run capped at 50 records (TestRunLimit): records a run-history row flagged IsTestRun and returns the
+        // run result, not the file. Audited.
         app.MapPost(
                 "/api/export-definitions/{id:int}/test",
                 async (
@@ -411,6 +427,7 @@ static class ExportDefinitionEndpoints
             )
             .RequireAuthorization();
 
+        // Returns the definition's latest 200 runs (test and real), newest first.
         app.MapGet(
                 "/api/export-definitions/{id:int}/runs",
                 async (int id, ExportLogDbContext db, CancellationToken ct) =>

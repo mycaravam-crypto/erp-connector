@@ -96,6 +96,8 @@ static class ExportEndpoints
             )
             .RequireAuthorization();
 
+        // Four-eyes release: a second user's credentials must approve moving a Pending run to Released.
+        // 409 if the run is not Pending or was changed concurrently; rate-limited and audited.
         app.MapPost(
                 "/api/exports/{seqNo:int}/release",
                 async (
@@ -146,6 +148,8 @@ static class ExportEndpoints
             .RequireAuthorization()
             .RequireRateLimiting(FourEyesReview.ApprovalRateLimiterPolicyName);
 
+        // Records that a Released run reached the vendor: who delivered it, the imported record count and
+        // optional notes (max 2,000 chars). Can only be recorded once per run.
         app.MapPost(
                 "/api/exports/{seqNo:int}/deliver",
                 async (
@@ -186,6 +190,8 @@ static class ExportEndpoints
             )
             .RequireAuthorization();
 
+        // Marks a Pending or Failed run as Skipped so it no longer blocks the sequence; the optional reason is
+        // written to the audit log.
         app.MapPost(
                 "/api/exports/{seqNo:int}/skip",
                 async (

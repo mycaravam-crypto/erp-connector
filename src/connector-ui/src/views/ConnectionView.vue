@@ -26,6 +26,9 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import ConnectionTlsSelect from '@/components/ConnectionTlsSelect.vue'
 import { useToasts } from '@/composables/useToasts'
 
+// Step 1, /connect: the source-system connection form (PostgreSQL, MariaDB or ServiceNow). "Test Connection"
+// validates the form, saves it and reports how many tables the connection exposes; an empty password keeps
+// the one already stored. A 401 ends the session and returns to login. Continues to /source-schema.
 const toasts = useToasts()
 
 const router = useRouter()

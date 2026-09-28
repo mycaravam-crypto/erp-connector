@@ -22,6 +22,8 @@ static partial class BrandingEndpoints
             }
         );
 
+        // Validates and stores the app name and logo/favicon/background images as size-capped base64 data URLs.
+        // An empty value clears that asset back to the default. Audited as branding_updated.
         app.MapPut(
                 "/api/branding",
                 async (BrandingConfig dto, ExportLogDbContext db, HttpContext httpContext, AuditService audit) =>

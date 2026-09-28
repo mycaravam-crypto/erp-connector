@@ -103,6 +103,19 @@ public static partial class DynamicExportService
         };
     }
 
+    /// <summary>
+    /// Flat query behind the legacy single-mapping export (CSV/Excel/flat JSON) and its preview: one row per
+    /// source-table row, enabled fields as columns and each enabled relation flattened into a delimited string
+    /// via a correlated string-aggregate subquery. GDPR-denied fields are left out of the SELECT and stripped
+    /// again from the results; NULLs come back as "".
+    /// </summary>
+    /// <param name="provider">Data source the query runs against; also picks the SQL dialect.</param>
+    /// <param name="dsConfig">Connection settings for <paramref name="provider"/>.</param>
+    /// <param name="cfg">The export mapping: source table, fields and relations.</param>
+    /// <param name="ct">Cancels the query.</param>
+    /// <param name="limit">Maximum rows to return (previews), or null for all rows.</param>
+    /// <param name="gdprDenylist">Source fields to exclude; defaults to the built-in GDPR denylist.</param>
+    /// <returns>One column-name → value dictionary per row; empty when no field or relation is enabled.</returns>
     public static async Task<List<Dictionary<string, string>>> ExecuteQueryAsync(
         IDataSourceProvider provider,
         DataSourceConfig dsConfig,

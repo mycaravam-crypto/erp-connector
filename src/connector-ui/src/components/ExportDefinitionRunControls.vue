@@ -14,9 +14,13 @@ import ConfirmAction from '@/components/ui/ConfirmAction.vue'
 import { useToasts } from '@/composables/useToasts'
 import { useSaveStatus } from '@/composables/useSaveStatus'
 
+// Action bar for the export definition editor: Save (PUT, merged back into `definition`), Test against the
+// live connection (capped test run), Run Now (downloads the built file), Duplicate and Delete (with confirm).
+// Parents react to `duplicated` / `deleted` to navigate away.
 const toasts = useToasts()
 
 const props = defineProps<{
+  /** The definition being edited; saved as-is, and updated in place with the server's response. */
   definition: ExportDefinition
 }>()
 const emit = defineEmits<{

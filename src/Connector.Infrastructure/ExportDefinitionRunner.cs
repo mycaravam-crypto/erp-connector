@@ -14,6 +14,12 @@ namespace Connector.Infrastructure;
 /// </summary>
 public static class ExportDefinitionRunner
 {
+    /// <summary>
+    /// Runs <paramref name="def"/> once: inserts a Running history row, builds the export from its node tree
+    /// against the configured connection (GDPR denylist and provenance tag applied), then finalizes the row as
+    /// Success or Failed (a build returning 0 records counts as Failed). A failure is returned as <c>Error</c>
+    /// with <c>Built</c> null rather than thrown; only cancellation propagates.
+    /// </summary>
     public static async Task<(
         ExportDefinitionRunEntity Run,
         DynamicExportService.ExportBuildResult? Built,
