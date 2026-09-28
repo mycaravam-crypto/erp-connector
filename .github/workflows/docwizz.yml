@@ -12,7 +12,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 env:
   DOCWIZZ_REF: c5df23e1add9b9eccf5791f26e6330b4d4f10b93
@@ -21,10 +20,14 @@ jobs:
   check:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # the PR comment
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0 # check --since needs the base commit
+          persist-credentials: false
       - uses: mycaravam-crypto/docwizz@c5df23e1add9b9eccf5791f26e6330b4d4f10b93
         with:
           path: .
@@ -36,11 +39,13 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           path: connector
+          persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: mycaravam-crypto/docwizz
           ref: ${{ env.DOCWIZZ_REF }}
           path: docwizz
+          persist-credentials: false
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: 10.0.x

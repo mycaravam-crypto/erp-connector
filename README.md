@@ -1,6 +1,7 @@
 # X5 Connector
 
 [![CI](https://github.com/mycaravam-crypto/erp-connector/actions/workflows/ci.yml/badge.svg)](https://github.com/mycaravam-crypto/erp-connector/actions/workflows/ci.yml)
+[![Security](https://github.com/mycaravam-crypto/erp-connector/actions/workflows/security.yml/badge.svg)](https://github.com/mycaravam-crypto/erp-connector/actions/workflows/security.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 ![.NET 9](https://img.shields.io/badge/.NET-9.0-512BD4)
 ![Vue 3](https://img.shields.io/badge/Vue-3-42b883)
@@ -366,6 +367,11 @@ cd src/connector-ui && npm run check:fallow   # dead code, duplication and compl
 
 GitHub Actions runs the format check, the Release build and the full test suite, with PostgreSQL
 and MariaDB service containers, on every push and pull request to `main`.
+
+Security scans (`.github/workflows/security.yml`) run on the same triggers and weekly: gitleaks for
+secrets, Trivy on the built Docker image, and actionlint plus zizmor on the workflows. Findings
+appear in the repository's Security tab. Restore fails on NuGet packages with known high or critical
+vulnerabilities, and Dependabot keeps actions, packages and base images up to date.
 
 ### Adding a migration
 

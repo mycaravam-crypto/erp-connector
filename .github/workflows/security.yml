@@ -1,0 +1,116 @@
+name: Security
+
+# Open-source security scans, results in the repository's Security tab (code scanning) as SARIF.
+# - secrets: gitleaks over the full git history.
+# - container-scan: builds the production image from the Dockerfile and scans it with Trivy (Alpine
+#   OS packages plus the published app's NuGet dependencies, read from its .deps.json). This is also
+#   the only CI job that checks the Dockerfile still builds.
+# - workflow-lint: actionlint (syntax, expressions, shellcheck on run blocks) and zizmor (workflow
+#   security: permissions, credential persistence, injection, Dependabot cooldown).
+# NuGet and npm dependency CVEs are covered elsewhere: NuGet audit on restore in ci.yml, and
+# Dependabot alerts / .github/dependabot.yml. CodeQL runs via the repository's default setup.
+# The weekly schedule re-scans main, since new CVEs show up without any code change.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "17 6 * * 1" # Mondays 06:17 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: security-${{ github.ref }}
+  # Supersede stale PR runs; always let runs on main finish so the Security tab stays current.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions: {}
+
+jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read # gitleaks-action lists the PR's commits to scan only those
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # No license needed: the repository belongs to a personal account (see gitleaks-action README).
+      # PR comments are off, so the token only needs read access.
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
+          GITLEAKS_VERSION: "8.30.1"
+
+  container-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Build production image
+        run: docker build -t erp-connector:scan .
+
+      # trivy-action v0.36.0 postdates the March 2026 tag hijack (GHSA-69fq-xp46-6x23); it installs
+      # Trivy v0.70.0 through setup-trivy pinned to the known-good v0.2.6 commit. Keep this pinned by
+      # SHA and check any update against Aqua's advisories.
+      - name: Scan image (SARIF, CRITICAL + HIGH)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: erp-connector:scan
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-image.sarif
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          sarif_file: trivy-image.sarif
+          category: trivy-image
+
+      # The gate: fail on CRITICAL findings that have a fix available. HIGH shows up in the Security
+      # tab without blocking. Reuses the vulnerability DB downloaded by the step above.
+      - name: Fail on fixable CRITICAL
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: erp-connector:scan
+          severity: CRITICAL
+          ignore-unfixed: true
+          format: table
+          exit-code: "1"
+          skip-setup-trivy: true
+
+  workflow-lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      # Installer script pinned to the v1.7.12 commit; shellcheck comes preinstalled on the runner.
+      - name: actionlint
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/914e7df21a07ef503a81201c76d2b11c789d3fca/scripts/download-actionlint.bash) 1.7.12 "$RUNNER_TEMP"
+          "$RUNNER_TEMP/actionlint" -color
+
+      # Fails on any finding and uploads SARIF to the Security tab.
+      - name: zizmor
+        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          version: 1.30.1
+          inputs: .github
