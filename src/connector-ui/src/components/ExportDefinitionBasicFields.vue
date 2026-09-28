@@ -6,8 +6,13 @@ import ExportFormatPicker from '@/components/ExportFormatPicker.vue'
 import ExportScheduleField from '@/components/ExportScheduleField.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
+// The export definition editor's basic settings: name, description, root table, output format, cron schedule,
+// enabled flag and the provenance fields (IntegrationKey, ContractVersion, CorrelationKeySourceField). Edits
+// `definition` in place; cleared optional inputs are stored as null, not ''.
 const props = defineProps<{
+  /** The definition being edited; mutated in place. */
   definition: ExportDefinition
+  /** Introspected source tables offered in the root-table picker. */
   availableTables: SourceTable[]
   /** Disables the root-table picker once children reference it — changing tables out from under an
    * already-built tree would silently invalidate every SourceField/RelatedTable in it. */

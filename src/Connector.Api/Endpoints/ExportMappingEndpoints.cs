@@ -180,6 +180,11 @@ static class ExportMappingEndpoints
         return null;
     }
 
+    /// <summary>
+    /// Recursive validator for one legacy nested group and its children: depth guard, required join fields,
+    /// object/array kind, identifier safety, at least one enabled field or child, GDPR denylist, and duplicate
+    /// export keys among siblings. Returns the first error found, or null when the group is valid.
+    /// </summary>
     private static string? ValidateNestedGroup(
         ExportMappingNestedGroup g,
         IReadOnlySet<string> denylist,

@@ -15,6 +15,10 @@ public sealed class ImportConnection(DbConnection connection, ISqlDialect dialec
 
     public ISqlDialect Dialect { get; } = dialect;
 
+    /// <summary>
+    /// Opens a connection to the configured data source for an import, paired with that provider's SQL dialect.
+    /// Throws UnsupportedDataSourceException when the provider isn't SQL-based or lacks the Imports capability.
+    /// </summary>
     public static async Task<ImportConnection> OpenAsync(
         IDataSourceProviderResolver resolver,
         DataSourceConfig config,

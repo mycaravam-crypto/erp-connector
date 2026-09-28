@@ -38,6 +38,11 @@ public sealed record ServiceNowQueryPlan(
 /// </summary>
 public static partial class ServiceNowQueryCompiler
 {
+    /// <summary>
+    /// Validates the query against the schema, then plans it as Table API reads: one encoded-query read for the
+    /// root table plus one follow-up read per join. Throws InvalidSourceQueryException when validation fails,
+    /// including for a value containing an encoded-query separator.
+    /// </summary>
     public static ServiceNowQueryPlan Compile(SourceQuery query, SourceSchema schema)
     {
         SourceQueryValidator.Validate(query, schema);

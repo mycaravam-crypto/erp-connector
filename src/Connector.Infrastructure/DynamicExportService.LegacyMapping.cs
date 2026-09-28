@@ -36,6 +36,14 @@ public static partial class DynamicExportService
     /// Run Now's copy supported nested JSON — Preview and the nightly worker silently fell back to the
     /// flat shape for a nested-group mapping.
     /// </summary>
+    /// <param name="provider">Data source the queries run against; also picks the SQL dialect.</param>
+    /// <param name="dsConfig">Connection settings for provider.</param>
+    /// <param name="cfg">The legacy export mapping.</param>
+    /// <param name="format">"json", "csv" or "xlsx"; anything else is treated as JSON.</param>
+    /// <param name="schemaVersion">Export schema version written into the output's metadata.</param>
+    /// <param name="extractedAt">Extraction timestamp written into the output's metadata.</param>
+    /// <param name="ct">Cancels the queries.</param>
+    /// <param name="gdprDenylist">Source fields to exclude; defaults to GdprDeniedFields.</param>
     public static async Task<ExportBuildResult> BuildExportAsync(
         IDataSourceProvider provider,
         DataSourceConfig dsConfig,
@@ -241,6 +249,12 @@ public static partial class DynamicExportService
     /// encoding would give them. Independent of the flat CSV/Excel/legacy-JSON export — this never calls, and
     /// is never called by, <see cref="ExecuteQueryAsync"/>.
     /// </summary>
+    /// <param name="provider">Data source the queries run against; also picks the SQL dialect.</param>
+    /// <param name="dsConfig">Connection settings for provider.</param>
+    /// <param name="cfg">The legacy export mapping, including its nested groups.</param>
+    /// <param name="ct">Cancels the queries.</param>
+    /// <param name="limit">Maximum source rows (previews), or null for all rows.</param>
+    /// <param name="gdprDenylist">Source fields to exclude; defaults to GdprDeniedFields.</param>
     public static async Task<List<JsonObject>> ExecuteNestedJsonQueryAsync(
         IDataSourceProvider provider,
         DataSourceConfig dsConfig,

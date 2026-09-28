@@ -15,6 +15,9 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import BackLink from '@/components/ui/BackLink.vue'
 import { formatDate } from '@/lib/dates'
 
+// /exports/:seqNo: one managed export run: status, a sequence-gap warning when an earlier run wasn't
+// released, and the run details. Offers the next step for its state: four-eyes release, skip (pending or
+// failed runs), or record delivery (released, not yet delivered).
 const route = useRoute()
 
 const seqNo = computed(() => Number(route.params.seqNo))

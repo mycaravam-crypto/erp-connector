@@ -1,8 +1,14 @@
 <script setup lang="ts">
+// Read-only grid of flat preview rows (numbered, one column per export column, '—' for a missing value), with
+// a note when the preview was capped.
 const props = defineProps<{
+  /** Column names, in display order. */
   columns: string[]
+  /** Rows to show, keyed by column name. */
   rows: Record<string, string>[]
+  /** Total rows the preview returned; the cap note shows when it exceeds max. */
   totalCount: number
+  /** The preview row cap, shown in the cap note. */
   max: number
 }>()
 

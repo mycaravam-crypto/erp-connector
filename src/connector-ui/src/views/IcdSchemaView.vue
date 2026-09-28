@@ -7,6 +7,8 @@ import IcdExcludedFieldsList from '@/components/IcdExcludedFieldsList.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 
+// /icd-schema: read-only reference for the negotiated ICD export contract: the active columns from GET
+// /api/schema, plus ERP fields that are deliberately excluded and why.
 const schema = ref<SchemaDefinition | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)

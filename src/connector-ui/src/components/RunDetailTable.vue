@@ -5,7 +5,14 @@ import { Check, Copy } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
 import { formatDate } from '@/lib/dates'
 
-defineProps<{ run: ExportDetail }>()
+// Read-only table of an export run's details: sequence, extraction time, record count, SHA-256 (copyable),
+// file name, and release and delivery information.
+defineProps<{
+
+  /** The export run to show. */
+  run: ExportDetail
+
+}>()
 
 const shacopied = ref(false)
 async function copySha(hash: string) {

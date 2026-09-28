@@ -23,6 +23,10 @@ namespace Connector.Infrastructure.DataSources.PostgreSql;
 /// </summary>
 internal static partial class PostgreSqlJsonValues
 {
+    /// <summary>
+    /// Converts one value, given in PostgreSQL's text output format, to the JSON node to_json would produce for
+    /// a column of dataType (rules in the class summary).
+    /// </summary>
     public static JsonNode? FromNativeText(string text, string dataType)
     {
         var type = NormalizeType(dataType);

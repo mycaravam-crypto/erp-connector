@@ -2,19 +2,33 @@
 import { useId, computed } from 'vue'
 import FieldShell from './FieldShell.vue'
 
+// Labelled text input bound with v-model (string or number), built on FieldShell. Wires aria-invalid and
+// aria-describedby to the error or help text; the id is generated when not given.
 const props = withDefaults(
   defineProps<{
+    /** Id for the input; generated when omitted. */
     id?: string
+    /** Label shown above the input. */
     label?: string
+    /** Hint shown under the input when there is no error. */
     helpText?: string
+    /** Error message shown under the input; also marks it aria-invalid. */
     error?: string
+    /** Native input type; 'text' by default. */
     type?: string
+    /** Placeholder text. */
     placeholder?: string
+    /** Disables the input. */
     disabled?: boolean
+    /** Marks the field required, natively and with a * on the label. */
     required?: boolean
+    /** Native autocomplete hint, e.g. 'username'. */
     autocomplete?: string
+    /** Maximum length in characters. */
     maxlength?: number
+    /** Minimum value for number inputs. */
     min?: number
+    /** Maximum value for number inputs. */
     max?: number
   }>(),
   { type: 'text', disabled: false, required: false },

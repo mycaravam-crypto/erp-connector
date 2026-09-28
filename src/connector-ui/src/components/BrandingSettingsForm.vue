@@ -10,10 +10,17 @@ import BrandingImageField from '@/components/BrandingImageField.vue'
 import { useToasts } from '@/composables/useToasts'
 import { useSaveStatus } from '@/composables/useSaveStatus'
 
+// Settings form for the app name, logo, favicon and background image. Saves via PUT /api/branding and reloads
+// the app-wide branding so the change shows immediately.
 const toasts = useToasts()
 const { reload: reloadBranding } = useBranding()
 
-const props = defineProps<{ config: BrandingConfig }>()
+const props = defineProps<{
+
+  /** The currently stored branding, used as the form's initial values. */
+  config: BrandingConfig
+
+}>()
 
 const appName = ref(props.config.appName ?? '')
 const logoDataUrl = ref(props.config.logoDataUrl)

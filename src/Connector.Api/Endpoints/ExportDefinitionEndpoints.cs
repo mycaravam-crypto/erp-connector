@@ -556,11 +556,15 @@ static class ExportDefinitionEndpoints
         && !DangerousFilterKeywordRegex.IsMatch(filter)
         && !ContainsFunctionCall(filter);
 
-    // Returns the normalized RootNode on success (null on failure) alongside the error, so callers store
-    // exactly the tree that was validated instead of re-normalizing (or re-validating null-prone raw
-    // input) a second time. `internal` rather than `private` so Connector.Integration.Tests can exercise
-    // the IntegrationKey/ContractVersion save-time guardrails directly, mirroring
-    // ImportDefinitionEndpoints.ValidateRequestAsync's own visibility.
+    /// <summary>
+    /// Validates a create/update request: name, root table, output format, cron schedule, the
+    /// IntegrationKey/ContractVersion pair (including uniqueness among enabled definitions), the root filter and
+    /// the whole node tree via ValidateNode. Returns the normalized RootNode on success (null on failure) alongside the error, so callers store
+    /// exactly the tree that was validated instead of re-normalizing (or re-validating null-prone raw input) a
+    /// second time. `internal` rather than `private` so Connector.Integration.Tests can exercise the
+    /// IntegrationKey/ContractVersion save-time guardrails directly, mirroring
+    /// ImportDefinitionEndpoints.ValidateRequestAsync's own visibility.
+    /// </summary>
     internal static async Task<(ExportNode? Root, string? Error)> ValidateRequestAsync(
         ExportDefinitionRequest request,
         ExportLogDbContext db,
@@ -641,9 +645,11 @@ static class ExportDefinitionEndpoints
             : (root, null);
     }
 
-    // Recursive validator over the ExportNode tree: depth guard, identifier-safety, GDPR denylist, and
-    // duplicate-key checks at every depth — the ExportNode counterpart of
-    // ExportMappingEndpoints.ValidateNestedGroup, generalized for the unified scalar-field/object/array shape.
+    /// <summary>
+    /// Recursive validator over the ExportNode tree: depth guard, identifier-safety, GDPR denylist, and
+    /// duplicate-key checks at every depth — the ExportNode counterpart of
+    /// ExportMappingEndpoints.ValidateNestedGroup, generalized for the unified scalar-field/object/array shape.
+    /// </summary>
     private static string? ValidateNode(ExportNode node, IReadOnlySet<string> denylist, string path, int depth)
     {
         if (depth > DynamicExportService.MaxNestedDepth)

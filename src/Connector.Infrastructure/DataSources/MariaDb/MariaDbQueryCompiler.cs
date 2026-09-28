@@ -19,6 +19,10 @@ public static class MariaDbQueryCompiler
 {
     private static readonly MariaDbDialect Dialect = MariaDbDialect.Instance;
 
+    /// <summary>
+    /// Validates the query against the schema, then renders it as MariaDB SQL plus its bound parameters. Throws
+    /// InvalidSourceQueryException when the query fails that validation.
+    /// </summary>
     public static CompiledMariaDbQuery Compile(SourceQuery query, SourceSchema schema)
     {
         SourceQueryValidator.Validate(query, schema);

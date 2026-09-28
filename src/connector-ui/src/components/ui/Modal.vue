@@ -3,7 +3,18 @@ import { ref, watch, nextTick, onBeforeUnmount, useId } from 'vue'
 import { X } from 'lucide-vue-next'
 import Icon from './Icon.vue'
 
-withDefaults(defineProps<{ title?: string; closeOnBackdrop?: boolean }>(), { closeOnBackdrop: true })
+// Accessible dialog shown while v-model:open is true: traps Tab focus inside, closes on Escape (and
+// optionally on a backdrop click), and returns focus to the previously focused element when it closes.
+// Default slot is the body; the `footer` slot holds the actions.
+withDefaults(
+  defineProps<{
+    /** Heading shown with a close button; also labels the dialog. No header is rendered when omitted. */
+    title?: string
+    /** Whether clicking the backdrop closes the dialog; true by default. */
+    closeOnBackdrop?: boolean
+  }>(),
+  { closeOnBackdrop: true },
+)
 
 const open = defineModel<boolean>('open', { default: false })
 

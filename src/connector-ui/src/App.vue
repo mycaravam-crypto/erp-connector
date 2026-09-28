@@ -9,6 +9,9 @@ import ToastHost from '@/components/ui/ToastHost.vue'
 import AppVersion from '@/components/AppVersion.vue'
 import { useBranding } from '@/composables/useBranding'
 
+// App shell: a header with the branded logo and app name and the theme toggle, plus (when signed in) the
+// navigation and a user menu for signing out or signing out of all sessions; then the current route's view,
+// toasts and, when signed in, the app version.
 const { appName, logoUrl } = useBranding()
 
 const router = useRouter()

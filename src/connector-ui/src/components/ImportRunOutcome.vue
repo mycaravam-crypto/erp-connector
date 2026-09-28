@@ -5,9 +5,13 @@ import { formatDate } from '@/lib/dates'
 // counterpart to its own pending-review Operator/Approver form, pulled out for the same reason as
 // ImportRunCountSummary.vue: keeping the dialog's own template from growing another branch.
 defineProps<{
+  /** User who released or rejected the run, or null. */
   operatedBy: string | null
+  /** Second user who approved a release, or null (rejections need no approver). */
   approvedBy: string | null
+  /** When the run was released (ISO 8601), or null. */
   releasedAt: string | null
+  /** Why the release failed, or null. */
   errorMessage: string | null
 }>()
 </script>

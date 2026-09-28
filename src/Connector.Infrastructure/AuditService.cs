@@ -10,6 +10,13 @@ namespace Connector.Infrastructure;
 /// </summary>
 public sealed class AuditService(ExportLogDbContext db, ILogger<AuditService> logger)
 {
+    /// <summary>
+    /// Appends one audit entry stamped with the current UTC time. The detail is credential-scrubbed; a failure
+    /// to save is logged as a warning and swallowed.
+    /// </summary>
+    /// <param name="username">Who performed the action.</param>
+    /// <param name="action">Machine-readable action name, e.g. export_released.</param>
+    /// <param name="detail">Optional free-text context (ids, names, counts); scrubbed of credentials before it is stored.</param>
     public async Task LogAsync(string username, string action, string? detail = null)
     {
         try

@@ -7,9 +7,13 @@ import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 // only applies at Run Now/Test time) — rendered as pretty-printed JSON rather than a flattened table,
 // since a 3-level nested tree has no single flat column set to render as a grid.
 defineProps<{
+  /** Number of records the last preview returned, or null before the first preview. */
   recordCount: number | null
+  /** The previewed records (nested JSON), pretty-printed as-is. */
   records: unknown[]
+  /** True while a preview request runs. */
   loading: boolean
+  /** Error from the last preview, or null. */
   error: string | null
 }>()
 defineEmits<{ refresh: [] }>()

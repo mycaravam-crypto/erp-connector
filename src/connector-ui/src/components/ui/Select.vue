@@ -2,13 +2,21 @@
 import { useId, computed } from 'vue'
 import FieldShell from './FieldShell.vue'
 
+// Labelled native select bound with v-model, built on FieldShell; the options go in the default slot. Wires
+// aria-invalid and aria-describedby like Input.
 const props = withDefaults(
   defineProps<{
+    /** Id for the select; generated when omitted. */
     id?: string
+    /** Label shown above the select. */
     label?: string
+    /** Hint shown under the select when there is no error. */
     helpText?: string
+    /** Error message shown under the select; also marks it aria-invalid. */
     error?: string
+    /** Disables the select. */
     disabled?: boolean
+    /** Marks the field required, natively and with a * on the label. */
     required?: boolean
   }>(),
   { disabled: false, required: false },

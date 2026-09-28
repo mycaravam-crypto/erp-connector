@@ -46,6 +46,11 @@ public static partial class DynamicExportService
     /// all via <c>PipelineEndpoints</c>), not just "produces equivalent bytes." When <paramref name="wrapper"/>
     /// is null this still reproduces the exact legacy envelope shape as a defensive fallback.
     /// </summary>
+    /// <param name="records">The nested records to write.</param>
+    /// <param name="wrapper">Envelope layout (root, metadata and items keys), or null for the legacy envelope.</param>
+    /// <param name="schemaVersion">Export schema version written into the output's metadata.</param>
+    /// <param name="extractedAt">Extraction timestamp written into the output's metadata.</param>
+    /// <param name="provenance">IntegrationKey/ContractVersion tag added to the metadata, or null for none.</param>
     public static byte[] BuildNestedJsonBytes(
         IReadOnlyList<JsonObject> records,
         ExportJsonWrapperConfig? wrapper,
@@ -114,6 +119,16 @@ public static partial class DynamicExportService
         return JsonSerializer.SerializeToUtf8Bytes(root, new JsonSerializerOptions { WriteIndented = true });
     }
 
+    /// <summary>
+    /// Writes flat records to a one-sheet .xlsx workbook: a metadata row (schema version, extraction time), a
+    /// header row, then one row per record. Columns whose values are yyyy-MM-dd dates become real date cells;
+    /// every other cell is stored as text so Excel doesn't reinterpret it.
+    /// </summary>
+    /// <param name="records">Rows to write, keyed by column name; a missing value is written as empty.</param>
+    /// <param name="columns">Column order for the header and every row.</param>
+    /// <param name="schemaVersion">Export schema version written into the output's metadata.</param>
+    /// <param name="extractedAt">Extraction timestamp written into the output's metadata.</param>
+    /// <returns>The workbook bytes.</returns>
     public static byte[] BuildExcelBytes(
         IReadOnlyList<Dictionary<string, string>> records,
         IReadOnlyList<string> columns,

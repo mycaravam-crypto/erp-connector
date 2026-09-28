@@ -112,6 +112,14 @@ public sealed class ImportWorker(
         }
     }
 
+    /// <summary>
+    /// Stages one inbound data file as a PendingReview import run. The file needs a manifest whose SHA-256 matches
+    /// and a JSON envelope naming an enabled import definition; it is then walked and planned against the
+    /// configured connection, the run is saved and audited, and the file moves to processedDir. Anything invalid is
+    /// quarantined to rejectedDir with an audited reason; a file already staged for the same definition and
+    /// checksum is audited as a duplicate and moved to processedDir. A file that can't be read yet (still being
+    /// copied) is left for the next poll.
+    /// </summary>
     private async Task ProcessFileAsync(
         string dataFilePath,
         string processedDir,

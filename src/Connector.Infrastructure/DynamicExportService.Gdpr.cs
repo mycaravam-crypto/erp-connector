@@ -24,6 +24,7 @@ public static partial class DynamicExportService
     /// <summary>
     /// Returns the active GDPR denylist: the DB-stored list if present, else <see cref="GdprDeniedFields"/>.
     /// </summary>
+    /// <param name="db">Settings store holding the gdpr_denied_fields override.</param>
     public static async Task<IReadOnlySet<string>> GetDeniedFieldsAsync(ExportLogDbContext db)
     {
         var setting = await db.AppSettings.FindAsync("gdpr_denied_fields");

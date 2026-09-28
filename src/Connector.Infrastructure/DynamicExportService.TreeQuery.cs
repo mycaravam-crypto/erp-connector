@@ -76,8 +76,18 @@ public static partial class DynamicExportService
         return rows.Select(r => r.Record).ToList();
     }
 
-    // Fetches one node's rows — all of them for the root, or those whose joinKeyColumn is in parentKeys for a
-    // child — then recursively its children's rows for all of them at once, and assembles the records.
+    /// <summary>
+    /// Fetches one node's rows — all of them for the root, or those whose joinKeyColumn is in parentKeys for a
+    /// child — then recursively its children's rows for all of them at once, and assembles the records.
+    /// </summary>
+    /// <param name="provider">Data source the queries run against; also picks the SQL dialect.</param>
+    /// <param name="dsConfig">Connection settings for provider.</param>
+    /// <param name="dialect">SQL dialect used to render the queries.</param>
+    /// <param name="plan">The tree node to fetch.</param>
+    /// <param name="joinKeyColumn">This node's column matched against parentKeys; null for the root.</param>
+    /// <param name="parentKeys">Parent-side key values to fetch child rows for, queried in batches of TreeChildKeyBatchSize; null for the root.</param>
+    /// <param name="limit">Maximum rows for the root query; child levels are never limited.</param>
+    /// <param name="ct">Cancels the queries.</param>
     private static async Task<List<TreeRow>> FetchTreeLevelAsync(
         IDataSourceProvider provider,
         DataSourceConfig dsConfig,
@@ -166,10 +176,20 @@ public static partial class DynamicExportService
     // can only have one parent, so every further use gets its own copy.
     private static JsonNode Detached(JsonObject record) => record.Parent is null ? record : record.DeepClone();
 
-    // SELECT <member columns>[, <join key>] FROM <table> <alias> [WHERE <join key> IN <parent keys> AND (<filter>)]
-    // [LIMIT n]. Column i of the result is member i: a scalar's value, or a child's parent-side join key; the
-    // optional last column is this row's own join key. Keys are compared and returned as text so both sides of
-    // the grouping agree on one representation.
+    /// <summary>
+    /// SELECT &lt;member columns&gt;[, &lt;join key&gt;] FROM &lt;table&gt; &lt;alias&gt; [WHERE &lt;join
+    /// key&gt; IN &lt;parent keys&gt; AND (&lt;filter&gt;)] [LIMIT n]. Column i of the result is member i: a
+    /// scalar's value, or a child's parent-side join key; the optional last column is this row's own join key.
+    /// Keys are compared and returned as text so both sides of the grouping agree on one representation.
+    /// </summary>
+    /// <param name="provider">Data source the queries run against; also picks the SQL dialect.</param>
+    /// <param name="dsConfig">Connection settings for provider.</param>
+    /// <param name="dialect">SQL dialect used to quote identifiers and render the key match and limit.</param>
+    /// <param name="plan">The tree node whose table, filter and members are selected.</param>
+    /// <param name="joinKeyColumn">Column matched against parentKeys and returned as the last column; null for the root.</param>
+    /// <param name="parentKeys">Key values the join column must match; null for the root.</param>
+    /// <param name="limit">Row limit, or null for none.</param>
+    /// <param name="ct">Cancels the query.</param>
     private static Task<QueryResult> RunTreeQueryAsync(
         IDataSourceProvider provider,
         DataSourceConfig dsConfig,
