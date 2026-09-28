@@ -57,6 +57,7 @@ const SCHEMA: SourceSchema = {
 
 beforeEach(() => {
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
   vi.spyOn(erpApi, 'getExportMapping').mockResolvedValue(null)
   vi.spyOn(erpApi, 'saveExportMapping').mockResolvedValue({ ok: true })
   vi.spyOn(erpApi, 'getPresets').mockResolvedValue({})
@@ -792,7 +793,7 @@ describe('SchemaView', () => {
 
   it('converts a relation to an equivalent nested group and keeps the relation when declined', async () => {
     vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
-    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    vi.stubGlobal('confirm', vi.fn(() => false))
     const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
 
@@ -812,7 +813,7 @@ describe('SchemaView', () => {
 
   it('removes the source relation when the user confirms after converting', async () => {
     vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValueOnce(SCHEMA)
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    vi.stubGlobal('confirm', vi.fn(() => true))
     const w = mount(SchemaView, { global: { plugins: [buildRouter()] } })
     await flushPromises()
 
