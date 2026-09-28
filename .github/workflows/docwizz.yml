@@ -1,0 +1,78 @@
+name: docwizz
+
+# Documentation gaps and architecture violations, via mycaravam-crypto/docwizz.
+# - check: what a pull request introduces, posted as one PR comment (updated on each push).
+# - report: the whole codebase (docwizz analyze + architecture), in the job summary and as an artifact.
+# Both are report-only for now; flip `fail` to 'true' once the existing gaps are paid down.
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  DOCWIZZ_REF: a21c6d662a0179dfc043b5415acde8916d150eba
+
+jobs:
+  check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0 # check --since needs the base commit
+      - uses: mycaravam-crypto/docwizz@a21c6d662a0179dfc043b5415acde8916d150eba
+        with:
+          path: .
+          fail: 'false'
+
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: connector
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: mycaravam-crypto/docwizz
+          ref: ${{ env.DOCWIZZ_REF }}
+          path: docwizz
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      - name: Build docwizz
+        run: |
+          npm ci --prefix docwizz/scanner-vue --silent
+          dotnet build docwizz/src/DocWizz -c Release -o "$RUNNER_TEMP/docwizz" --nologo -v q
+
+      - name: Analyze documentation and architecture
+        env:
+          DOCWIZZ_SCANNER_VUE: ${{ github.workspace }}/docwizz/scanner-vue/index.mjs
+        run: |
+          dw() { dotnet "$RUNNER_TEMP/docwizz/DocWizz.dll" "$@"; }
+          out="$RUNNER_TEMP/docwizz-report"
+          mkdir -p "$out"
+          dw analyze connector | tee "$out/analyze.txt"
+          # architecture exits 1 when it finds violations; here they are findings, not a job failure.
+          dw architecture connector | tee "$out/architecture.txt" || true
+          dw analyze connector --format json > "$out/analyze.json"
+          dw architecture connector --format json > "$out/architecture.json" || true
+          {
+            echo "## DocWizz: documentation gaps"
+            echo '```text'; cat "$out/analyze.txt"; echo '```'
+            echo "## DocWizz: architecture"
+            echo '```text'; cat "$out/architecture.txt"; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: docwizz-report
+          path: ${{ runner.temp }}/docwizz-report
