@@ -123,8 +123,12 @@ public static class ImportRunReleaser
                 );
                 var keyClause =
                     $"{dialect.CastToText(dialect.QuoteIdentifier(rowOps.Key.KeyColumn))} = {Bind(rowOps.Key.KeyValue)}";
+                // Sonar S2077 false-positives on the interpolation — only dialect-quoted identifiers are spliced
+                // into the SQL text; every value goes through Bind() as a DbParameter.
+#pragma warning disable S2077
                 cmd.CommandText =
                     $"UPDATE {dialect.QuoteIdentifier(rowOps.Key.Table)} SET {setClause} WHERE {keyClause} AND {guardClause}";
+#pragma warning restore S2077
 
                 var affected = await cmd.ExecuteNonQueryAsync(ct);
                 if (affected == 0)

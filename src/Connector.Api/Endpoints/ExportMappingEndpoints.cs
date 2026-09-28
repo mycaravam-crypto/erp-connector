@@ -127,7 +127,11 @@ static class ExportMappingEndpoints
     // onto the pre-existing Fields/Relations inputs, which are already in production protected only by
     // the SQL dialect's identifier quoting (ISqlDialect.QuoteIdentifier); adding a stricter regex there risks breaking an existing saved mapping
     // whose SourceName/RelatedTable happens to contain a character outside this charset on next re-save.
-    private static readonly Regex SqlIdentifierRegex = new("^[A-Za-z_][A-Za-z0-9_]*$", RegexOptions.Compiled);
+    private static readonly Regex SqlIdentifierRegex = new(
+        "^[A-Za-z_][A-Za-z0-9_]*$",
+        RegexOptions.Compiled,
+        TimeSpan.FromSeconds(1)
+    );
 
     // Shared by both the mapping PUT and the preset PUT: blank-field / GDPR / relation-shape checks
     // (unchanged from before this refactor) plus new recursive checks over NestedGroups.

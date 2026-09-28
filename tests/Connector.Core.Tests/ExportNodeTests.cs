@@ -32,7 +32,7 @@ public sealed class ExportNodeTests
         var node = ExportNodeJson.Deserialize(json);
 
         Assert.NotNull(node);
-        Assert.Equal(ExportNodeKind.Object, node!.Kind); // missing Kind backfills to "object"
+        Assert.Equal(ExportNodeKind.Object, node.Kind); // missing Kind backfills to "object"
 
         var manufacturer = Assert.Single(node.Children);
         Assert.Equal(ExportNodeKind.Object, manufacturer.Kind);
@@ -58,7 +58,7 @@ public sealed class ExportNodeTests
         var node = ExportNodeJson.Deserialize(json);
 
         Assert.NotNull(node!.Mapping);
-        Assert.Equal(FieldTransform.None, node.Mapping!.Transform);
+        Assert.Equal(FieldTransform.None, node.Mapping.Transform);
         Assert.Equal(FieldDataType.String, node.Mapping.DataType);
         Assert.Equal("unknown@example.com", node.Mapping.DefaultValue);
     }

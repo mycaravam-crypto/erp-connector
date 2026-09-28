@@ -81,7 +81,7 @@ public sealed class ImportMappingSuggestionTests
         var result = ImportMappingSuggestion.SuggestFrom([export], SampleWithKeys("guid"));
 
         Assert.NotNull(result);
-        Assert.Equal("system_configuration", result!.RootTable);
+        Assert.Equal("system_configuration", result.RootTable);
         Assert.Equal("guid", result.RootMatchColumn);
     }
 
@@ -158,7 +158,7 @@ public sealed class ImportMappingSuggestionTests
         var result = ImportMappingSuggestion.SuggestFrom([first, second], Sample());
 
         Assert.NotNull(result);
-        Assert.Equal("table_one", result!.RootTable);
+        Assert.Equal("table_one", result.RootTable);
     }
 
     [Fact]
@@ -169,7 +169,7 @@ public sealed class ImportMappingSuggestionTests
         var result = ImportMappingSuggestion.SuggestFrom([export], SampleWithKeys("guid", "confirmationStatus"));
 
         Assert.NotNull(result);
-        var candidate = Assert.Single(result!.CandidateFields);
+        var candidate = Assert.Single(result.CandidateFields);
         Assert.Equal("confirmationStatus", candidate.SourceKey);
         Assert.Equal("status", candidate.TargetColumn);
     }
@@ -182,7 +182,7 @@ public sealed class ImportMappingSuggestionTests
         var result = ImportMappingSuggestion.SuggestFrom([export], SampleWithKeys("guid"));
 
         Assert.NotNull(result);
-        Assert.Empty(result!.CandidateFields);
+        Assert.Empty(result.CandidateFields);
     }
 
     [Fact]
@@ -193,7 +193,7 @@ public sealed class ImportMappingSuggestionTests
         var result = ImportMappingSuggestion.SuggestFrom([export], SampleWithKeys("guid", "confirmationStatus"));
 
         Assert.NotNull(result);
-        Assert.Empty(result!.CandidateFields);
+        Assert.Empty(result.CandidateFields);
     }
 
     [Fact]
@@ -204,7 +204,7 @@ public sealed class ImportMappingSuggestionTests
         var result = ImportMappingSuggestion.SuggestFrom([export], SampleWithKeys("guid"));
 
         Assert.NotNull(result);
-        Assert.Empty(result!.CandidateFields);
+        Assert.Empty(result.CandidateFields);
     }
 
     [Fact]
@@ -215,7 +215,7 @@ public sealed class ImportMappingSuggestionTests
         var result = ImportMappingSuggestion.SuggestFrom([export], SampleWithKeys("guid", "innerStatus"));
 
         Assert.NotNull(result);
-        Assert.Empty(result!.CandidateFields);
+        Assert.Empty(result.CandidateFields);
     }
 
     // Evaluate coverage: same lookup as SuggestFrom, but names which gate stopped a miss instead of

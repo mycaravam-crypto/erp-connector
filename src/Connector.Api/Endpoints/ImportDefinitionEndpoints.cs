@@ -201,7 +201,7 @@ static partial class ImportDefinitionEndpoints
                     var now = DateTimeOffset.UtcNow.ToString("O");
                     var copy = new ImportDefinitionEntity
                     {
-                        Name = string.IsNullOrWhiteSpace(request?.Name) ? $"{source.Name} (Copy)" : request!.Name,
+                        Name = string.IsNullOrWhiteSpace(request?.Name) ? $"{source.Name} (Copy)" : request.Name,
                         Description = source.Description,
                         RootTable = source.RootTable,
                         RootMatchColumn = source.RootMatchColumn,

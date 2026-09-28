@@ -228,7 +228,7 @@ public sealed class ExportNodeQueryPostgresTests
         var row = results.Single(r => r["itemId"]!.GetValue<string>() == NorthbridgeItemId);
         var addresses = row["manufacturer"]!["addresses"];
         Assert.NotNull(addresses);
-        Assert.Equal(System.Text.Json.JsonValueKind.Array, addresses!.GetValueKind());
+        Assert.Equal(System.Text.Json.JsonValueKind.Array, addresses.GetValueKind());
         Assert.Empty(addresses.AsArray());
     }
 

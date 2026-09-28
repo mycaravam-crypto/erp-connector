@@ -77,6 +77,10 @@ public sealed class ExportMappingEndpointsHttpTests
     [Fact]
     public async Task PutExportMapping_GdprDeniedFieldEnabled_ReturnsBadRequest()
     {
+        // Actively arranged rather than assumed: SettingsEndpointsHttpTests's PatchGdprDeniedFields_Valid test
+        // replaces the stored denylist (dropping technician_name) in the same shared ApiCollection DB, so
+        // clear it to fall back to the hardcoded defaults this test relies on.
+        await _factory.ClearAsync(SettingsKeys.GdprDeniedFields);
         using var client = await _factory.CreateAuthenticatedClientAsync();
         var config = new ExportMappingConfig(
             "systemconfiguration",
