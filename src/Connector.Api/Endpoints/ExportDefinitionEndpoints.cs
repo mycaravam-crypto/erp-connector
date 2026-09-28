@@ -194,7 +194,7 @@ static class ExportDefinitionEndpoints
                     var now = DateTimeOffset.UtcNow.ToString("O");
                     var copy = new ExportDefinitionEntity
                     {
-                        Name = string.IsNullOrWhiteSpace(request?.Name) ? $"{source.Name} (Copy)" : request!.Name,
+                        Name = string.IsNullOrWhiteSpace(request?.Name) ? $"{source.Name} (Copy)" : request.Name,
                         Description = source.Description,
                         RootTable = source.RootTable,
                         RootNode = source.RootNode,
@@ -501,7 +501,11 @@ static class ExportDefinitionEndpoints
     // ExportMappingEndpoints.SqlIdentifierRegex, applied here to every identifier field of an ExportNode tree
     // (RootTable/RelatedTable/JoinKey/SourceJoinKey/SourceField) before it can reach DynamicExportService's
     // dialect-quoted (ISqlDialect.QuoteIdentifier) query builder.
-    private static readonly Regex SqlIdentifierRegex = new("^[A-Za-z_][A-Za-z0-9_]*$", RegexOptions.Compiled);
+    private static readonly Regex SqlIdentifierRegex = new(
+        "^[A-Za-z_][A-Za-z0-9_]*$",
+        RegexOptions.Compiled,
+        TimeSpan.FromSeconds(1)
+    );
 
     // Filter is a WHERE-clause fragment by design, not a single identifier,
     // so it can't go through SqlIdentifierRegex. It still gets concatenated verbatim into the query
@@ -512,7 +516,8 @@ static class ExportDefinitionEndpoints
     // not a SQL parser: it does not verify referenced column names exist.
     private static readonly Regex SafeFilterCharsRegex = new(
         @"^[A-Za-z0-9_ \t\r\n.,()'=<>!~+\-*/%]*$",
-        RegexOptions.Compiled
+        RegexOptions.Compiled,
+        TimeSpan.FromSeconds(1)
     );
 
     private static readonly Regex DangerousFilterKeywordRegex = new(
@@ -521,7 +526,8 @@ static class ExportDefinitionEndpoints
             + @"pg_sleep|pg_read_file|pg_read_binary_file|pg_ls_dir|pg_terminate_backend|pg_cancel_backend|"
             + @"dblink|lo_import|lo_export|information_schema|pg_catalog|pg_shadow|pg_authid|"
             + @"current_setting|set_config|xp_cmdshell)\b",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase
+        RegexOptions.Compiled | RegexOptions.IgnoreCase,
+        TimeSpan.FromSeconds(1)
     );
 
     // DangerousFilterKeywordRegex enumerates specific dangerous function names, but \b doesn't stop at '_'
@@ -532,7 +538,8 @@ static class ExportDefinitionEndpoints
     // needs parens for: AND (...)/OR (...) grouping and IN (...) list membership.
     private static readonly Regex FunctionCallCandidateRegex = new(
         @"([A-Za-z_][A-Za-z0-9_]*)\s*\(",
-        RegexOptions.Compiled
+        RegexOptions.Compiled,
+        TimeSpan.FromSeconds(1)
     );
 
     private static readonly HashSet<string> FilterParenKeywordAllowlist = new(StringComparer.OrdinalIgnoreCase)

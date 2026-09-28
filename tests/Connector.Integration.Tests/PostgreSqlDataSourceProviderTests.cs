@@ -121,7 +121,7 @@ public sealed class PostgreSqlDataSourceProviderTests
         Assert.True(result.Success);
         Assert.Null(result.Error);
         Assert.NotNull(result.Schema);
-        Assert.Contains(result.Schema!.Tables, t => t.Name == "masterdata");
+        Assert.Contains(result.Schema.Tables, t => t.Name == "masterdata");
     }
 
     [Fact]

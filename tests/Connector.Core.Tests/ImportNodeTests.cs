@@ -31,7 +31,7 @@ public sealed class ImportNodeTests
         var node = ImportNodeJson.Deserialize(json);
 
         Assert.NotNull(node);
-        Assert.Equal(ImportNodeKind.Object, node!.Kind); // missing Kind backfills to "object"
+        Assert.Equal(ImportNodeKind.Object, node.Kind); // missing Kind backfills to "object"
         Assert.Equal(OnMissingChildPolicy.Reject, node.OnMissingChild); // missing OnMissingChild backfills to "reject"
 
         var child = Assert.Single(node.Children);
@@ -59,7 +59,7 @@ public sealed class ImportNodeTests
         var node = ImportNodeJson.Deserialize(json);
 
         Assert.NotNull(node!.Mapping);
-        Assert.Equal(Connector.Core.DynamicExport.FieldTransform.None, node.Mapping!.Transform);
+        Assert.Equal(Connector.Core.DynamicExport.FieldTransform.None, node.Mapping.Transform);
         Assert.Equal(Connector.Core.DynamicExport.FieldDataType.String, node.Mapping.DataType);
         Assert.Equal("pending", node.Mapping.DefaultValue);
     }

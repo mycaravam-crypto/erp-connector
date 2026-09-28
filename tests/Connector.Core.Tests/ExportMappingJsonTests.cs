@@ -33,7 +33,7 @@ public sealed class ExportMappingJsonTests
         var config = ExportMappingJson.DeserializeConfig(LegacyConfigJson);
 
         Assert.NotNull(config);
-        var relation = Assert.Single(config!.Relations);
+        var relation = Assert.Single(config.Relations);
         Assert.NotNull(relation.Fields);
         Assert.Empty(relation.Fields);
     }
@@ -110,7 +110,7 @@ public sealed class ExportMappingJsonTests
         var config = ExportMappingJson.DeserializeConfig(LegacyConfigJson);
 
         Assert.NotNull(config!.NestedGroups);
-        Assert.Empty(config.NestedGroups!);
+        Assert.Empty(config.NestedGroups);
         Assert.Null(config.JsonWrapper);
     }
 
@@ -206,7 +206,7 @@ public sealed class ExportMappingJsonTests
         var config = ExportMappingJson.DeserializeConfig(json);
 
         Assert.NotNull(config!.JsonWrapper);
-        Assert.NotNull(config.JsonWrapper!.MetadataFields);
+        Assert.NotNull(config.JsonWrapper.MetadataFields);
         Assert.Empty(config.JsonWrapper.MetadataFields);
     }
 

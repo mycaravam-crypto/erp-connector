@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Connector.Api;
 using Connector.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Connector.Integration.Tests;
@@ -97,6 +98,18 @@ public sealed class ExportEndpointsHttpTests
     [Fact]
     public async Task GetExportDetail_NoUnresolvedEarlierRuns_HasNoGapWarning()
     {
+        // Actively arranged rather than assumed: the gap check scans every earlier run, not just this test's
+        // block, so an unresolved run another test in the collection left behind (e.g. 90101 from
+        // GetExportDetail_PendingRunWithEarlierUnresolvedRuns_IncludesGapWarning) would otherwise leak in.
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ExportLogDbContext>();
+            await db
+                .ExportRuns.Where(r =>
+                    r.SequenceNo < 90201 && r.Status != ExportRunStatus.Released && r.Status != ExportRunStatus.Skipped
+                )
+                .ExecuteUpdateAsync(s => s.SetProperty(r => r.Status, ExportRunStatus.Skipped));
+        }
         await SeedRunAsync(90201, ExportRunStatus.Released);
         await SeedRunAsync(90202, ExportRunStatus.Pending);
         using var client = await _factory.CreateAuthenticatedClientAsync();

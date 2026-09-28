@@ -27,7 +27,7 @@ public sealed class DataSourceConfigTests
         var config = JsonSerializer.Deserialize<DataSourceConfig>(LegacyJsonWithoutType);
 
         Assert.NotNull(config);
-        Assert.Equal(DataSourceType.PostgreSql, config!.Type);
+        Assert.Equal(DataSourceType.PostgreSql, config.Type);
         Assert.Equal("legacy-host", config.Host);
         Assert.Equal(5432, config.Port);
         Assert.Equal("legacy_db", config.Database);
@@ -48,7 +48,7 @@ public sealed class DataSourceConfigTests
         var config = JsonSerializer.Deserialize<DataSourceConfig>(json);
 
         Assert.NotNull(config);
-        Assert.Equal(DataSourceType.PostgreSql, config!.Type);
+        Assert.Equal(DataSourceType.PostgreSql, config.Type);
         Assert.Null(config.SslMode);
         Assert.Null(config.InstanceUrl);
     }
@@ -146,7 +146,7 @@ public sealed class DataSourceConfigTests
         var config = JsonSerializer.Deserialize<DataSourceConfig>(json);
 
         Assert.NotNull(config);
-        Assert.Null(config!.Host);
+        Assert.Null(config.Host);
         Assert.Null(config.Port);
     }
 
@@ -165,6 +165,6 @@ public sealed class DataSourceConfigTests
         var config = JsonSerializer.Deserialize<DataSourceConfig>(json);
 
         Assert.NotNull(config);
-        Assert.Equal((DataSourceType)999, config!.Type);
+        Assert.Equal((DataSourceType)999, config.Type);
     }
 }

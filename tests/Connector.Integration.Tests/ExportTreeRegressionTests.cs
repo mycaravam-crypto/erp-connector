@@ -156,7 +156,7 @@ public sealed class ExportTreeRegressionTests
 
         var lines = Order(records, "101")["lines"];
         Assert.IsType<JsonArray>(lines);
-        Assert.Empty(lines!.AsArray());
+        Assert.Empty(lines.AsArray());
     }
 
     [Fact]

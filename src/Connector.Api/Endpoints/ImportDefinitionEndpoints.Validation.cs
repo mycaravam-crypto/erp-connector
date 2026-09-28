@@ -17,7 +17,11 @@ static partial class ImportDefinitionEndpoints
     // duplicated rather than shared, matching that file's own precedent (it duplicates
     // ExportMappingEndpoints.SqlIdentifierRegex for the same reason: a one-line regex isn't worth a shared
     // helper type across two independent validators).
-    private static readonly Regex SqlIdentifierRegex = new("^[A-Za-z_][A-Za-z0-9_]*$", RegexOptions.Compiled);
+    private static readonly Regex SqlIdentifierRegex = new(
+        "^[A-Za-z_][A-Za-z0-9_]*$",
+        RegexOptions.Compiled,
+        TimeSpan.FromSeconds(1)
+    );
 
     /// <summary>
     /// Validates a create/update request end to end and returns the normalized <see cref="ImportNode"/> tree
