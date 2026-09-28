@@ -38,6 +38,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Keys and certificates
+*.pem
+*.key
+*.pfx
+*.p12
+
 # OS
 .DS_Store
 Thumbs.db

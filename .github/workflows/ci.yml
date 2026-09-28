@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -49,6 +52,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Install postgresql-client
         # `|| true` on the update: the runner image ships a pre-configured Google Chrome apt source
@@ -66,7 +71,9 @@ jobs:
 
       - name: Load MariaDB test fixture schema
         # Runs the service container's own client, so no client install/version mismatch on the runner.
-        run: docker exec -i ${{ job.services.mariadb.id }} mariadb -u erp_test -perp_test_pw erp_testdb < testdb/mariadb-init.sql
+        env:
+          MARIADB_CONTAINER: ${{ job.services.mariadb.id }}
+        run: docker exec -i "$MARIADB_CONTAINER" mariadb -u erp_test -perp_test_pw erp_testdb < testdb/mariadb-init.sql
 
       - name: Setup .NET
         uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
@@ -80,7 +87,9 @@ jobs:
         run: dotnet csharpier check .
 
       - name: Restore packages
-        run: dotnet restore Connector.sln
+        # NuGet audit runs on every restore; fail on known high/critical CVEs in direct or transitive
+        # packages (moderate/low stay warnings).
+        run: dotnet restore Connector.sln -p:WarningsAsErrors=NU1903%3BNU1904
 
       - name: Build (Release — warnings treated as errors)
         run: dotnet build Connector.sln -c Release --no-restore
@@ -99,6 +108,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4

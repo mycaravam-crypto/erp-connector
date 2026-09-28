@@ -1,0 +1,48 @@
+# Dependency update PRs. Security alerts for vulnerable dependencies come from Dependabot alerts
+# (repository settings) independently of this schedule. Updates are grouped per ecosystem to keep
+# the PR count down; each merged PR bumps VERSION via version.yml. The 7-day cooldown skips releases
+# younger than a week, so a hijacked or broken release is usually pulled before it reaches a PR
+# (security updates are not delayed).
+version: 2
+updates:
+  # Keeps the SHA-pinned actions in .github/workflows current (the "# vX" comments are updated too).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      nuget:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /src/connector-ui
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      npm:
+        patterns: ["*"]
+
+  # Re-resolves the digest-pinned base images in the Dockerfile.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      docker:
+        patterns: ["*"]
