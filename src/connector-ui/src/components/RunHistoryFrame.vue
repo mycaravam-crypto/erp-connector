@@ -5,12 +5,17 @@ import Button from '@/components/ui/Button.vue'
 // ImportDefinitionRunsTable.vue): heading with Refresh, loading/error states, the empty message, and the
 // table with its header row. Callers supply only the body rows, through the default slot.
 defineProps<{
+  /** Heading shown above the table, e.g. "Run History". */
   title: string
   /** Header cells, in order; `numeric` right-aligns the column. */
   columns: { label: string; numeric?: boolean }[]
+  /** True while the runs are being fetched; shows "Loading…" and spins the Refresh button. */
   loading: boolean
+  /** Load error to show instead of the table, or null. */
   error: string | null
+  /** True when there are no runs; shows `emptyText` instead of the table. */
   empty: boolean
+  /** Message shown when `empty` is true. */
   emptyText: string
 }>()
 defineEmits<{ refresh: [] }>()
