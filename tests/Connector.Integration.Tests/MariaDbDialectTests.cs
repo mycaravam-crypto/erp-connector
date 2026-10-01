@@ -47,6 +47,28 @@ public sealed class MariaDbDialectTests
     }
 
     [Fact]
+    public void BuildSetClause_BindsOneParameterPerColumn()
+    {
+        var parameters = new Dictionary<string, object?> { ["@p0"] = "taken" };
+
+        var sql = Dialect.BuildSetClause("t", ["d", "s"], ["2026-10-01", null], parameters);
+
+        Assert.Equal("`d` = @p1, `s` = @p2", sql);
+        Assert.Equal("2026-10-01", parameters["@p1"]);
+        Assert.Null(parameters["@p2"]);
+    }
+
+    [Fact]
+    public void BuildInsertRow_BindsOneParameterPerColumn()
+    {
+        var parameters = new Dictionary<string, object?>();
+
+        var sql = Dialect.BuildInsertRow("t", ["id", "s"], ["abc", "x"], parameters);
+
+        Assert.Equal("INSERT INTO `t` (`id`, `s`) VALUES (@p0, @p1)", sql);
+    }
+
+    [Fact]
     public void BuildStringAggregate_UsesGroupConcatWithSeparator() =>
         Assert.Equal("GROUP_CONCAT(CAST(r.`x` AS CHAR) SEPARATOR ', ')", Dialect.BuildStringAggregate("r.`x`", ", "));
 

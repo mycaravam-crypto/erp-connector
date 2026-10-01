@@ -301,7 +301,8 @@ the run, four-eyes review before anything is written.
   column default); object/array children are not inserted. The plan marks these operations
   `IsInsert` and counts them in `InsertCount`. At release, an insert whose key already exists
   counts as a conflict and is skipped. Values are converted to the column types by the dialect
-  (`ISqlDialect.BuildInsertRow`; on PostgreSQL via `json_populate_record`). A required column that
+  (`ISqlDialect.BuildInsertRow`; on PostgreSQL via `json_populate_record`; updates use the same
+  conversion via `BuildSetClause`). A required column that
   the mapping doesn't supply fails the release, which rolls back the whole run.
 * **Deletes** are soft deletes, carried as updates (§8).
 * **Two-way (A ↔ B)** is two independent one-way flows. Conflicts surface as ordinary release

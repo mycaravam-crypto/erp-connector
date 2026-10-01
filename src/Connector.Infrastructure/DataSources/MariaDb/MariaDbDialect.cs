@@ -81,6 +81,23 @@ public sealed partial class MariaDbDialect : ISqlDialect
         $"GROUP_CONCAT({CastToText(expression)} SEPARATOR {QuoteStringLiteral(delimiter)})";
 
     // MariaDB converts a text value to the column's type on assignment, so plain parameters suffice.
+    public string BuildSetClause(
+        string table,
+        IReadOnlyList<string> columns,
+        IReadOnlyList<string?> values,
+        IDictionary<string, object?> parameters
+    )
+    {
+        var assignments = new List<string>(columns.Count);
+        for (var i = 0; i < columns.Count; i++)
+        {
+            var name = BuildParameterName(parameters.Count);
+            parameters[name] = values[i];
+            assignments.Add($"{QuoteIdentifier(columns[i])} = {name}");
+        }
+        return string.Join(", ", assignments);
+    }
+
     public string BuildInsertRow(
         string table,
         IReadOnlyList<string> columns,

@@ -51,8 +51,15 @@ concern, and `Connector.Core` stays dialect-free.
 | `ConvertNativeTextToJson` | `to_json`'s rules, applied in C# (`PostgreSqlJsonValues`) | export tree engine's typed values for legacy nested groups |
 | `BuildStringAggregate` | `string_agg(x::text, 'delim')` | legacy flat export's relation flattening |
 | `FormatValue` | dates/timestamps as `yyyy-MM-dd`, else `ToString()` | provider row materialization, import walker's old values |
+| `BuildSetClause` | `("a", "b") = (SELECT "a", "b" FROM json_populate_record(NULL::"t", CAST(@p0 AS json)))` (MariaDB: `` `a` = @p0, `b` = @p1 ``) | import releaser's updates |
+| `BuildInsertRow` | `INSERT INTO "t" ("a") SELECT "a" FROM json_populate_record(NULL::"t", CAST(@p0 AS json))` (MariaDB: `VALUES (@p0, …)`) | import releaser's root-row inserts |
 
-The first three are the ones the work order asked for. The other six are extensions, each backed by a
+The import releaser binds every value as text, and PostgreSQL rejects a `text` parameter assigned to a
+`uuid`/`date`/numeric column. `BuildSetClause`/`BuildInsertRow` therefore pass the whole row as one JSON
+parameter and let `json_populate_record` convert each value with the column's own type. MariaDB converts
+text on assignment, so it binds one parameter per column.
+
+The first three are the ones the work order asked for. The other eight are extensions, each backed by a
 builder listed in the right-hand column. `BuildJsonObject`/`BuildJsonArrayAggregate` existed until
 the export trees moved to C# ([Export Tree Assembly](/architecture/export-tree-assembly.md)) and were
 removed with them. The work order allowed extensions only for a concrete need

@@ -68,6 +68,18 @@ public interface ISqlDialect
     /// one string joined by <paramref name="delimiter"/>; null values are skipped.</summary>
     string BuildStringAggregate(string expression, string delimiter);
 
+    /// <summary>The <c>SET</c> clause (without the keyword) of an <c>UPDATE</c> on <paramref name="table"/> that
+    /// assigns each of <paramref name="columns"/> the matching text value in <paramref name="values"/>, converted by
+    /// the backend to the column's own type. Binds the values into <paramref name="parameters"/> (named from
+    /// <see cref="BuildParameterName"/>, continuing at its current count). Used by the import releaser's
+    /// updates.</summary>
+    string BuildSetClause(
+        string table,
+        IReadOnlyList<string> columns,
+        IReadOnlyList<string?> values,
+        IDictionary<string, object?> parameters
+    );
+
     /// <summary>An <c>INSERT</c> of one row into <paramref name="table"/>, setting each of
     /// <paramref name="columns"/> to the matching text value in <paramref name="values"/>, converted by the backend
     /// to the column's own type (uuid, date, number…). Binds the values into <paramref name="parameters"/> (named

@@ -117,10 +117,21 @@ public static class ImportRunReleaser
                     return parameter.ParameterName;
                 }
 
-                var setClause = string.Join(
-                    ", ",
-                    ops.Select(o => $"{dialect.QuoteIdentifier(o.Column)} = {Bind(o.NewValue)}")
+                // Bound first, so the Bind() calls below continue the parameter numbering after it.
+                var setParameters = new Dictionary<string, object?>();
+                var setClause = dialect.BuildSetClause(
+                    rowOps.Key.Table,
+                    [.. ops.Select(o => o.Column)],
+                    [.. ops.Select(o => o.NewValue)],
+                    setParameters
                 );
+                foreach (var (name, value) in setParameters)
+                {
+                    var parameter = cmd.CreateParameter();
+                    parameter.ParameterName = name;
+                    parameter.Value = value ?? DBNull.Value;
+                    cmd.Parameters.Add(parameter);
+                }
                 var guardClause = string.Join(
                     " AND ",
                     ops.Select(o =>
