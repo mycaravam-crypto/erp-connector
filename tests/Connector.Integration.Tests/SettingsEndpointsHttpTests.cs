@@ -156,4 +156,26 @@ public sealed class SettingsEndpointsHttpTests
         var body = await response.Content.ReadFromJsonAsync<JsonElement[]>(ApiAuth.Json);
         Assert.Single(body!);
     }
+
+    [Fact]
+    public async Task GetInstance_Authenticated_ReturnsProducerIdentity()
+    {
+        using var client = await _factory.CreateAuthenticatedClientAsync();
+
+        var body = await client.GetFromJsonAsync<JsonElement>("/api/settings/instance", ApiAuth.Json);
+
+        Assert.Equal("x5-connector", body.GetProperty("application").GetString());
+        Assert.True(Guid.TryParse(body.GetProperty("instanceId").GetString(), out _));
+        Assert.False(string.IsNullOrWhiteSpace(body.GetProperty("version").GetString()));
+    }
+
+    [Fact]
+    public async Task GetInstance_Unauthenticated_ReturnsUnauthorized()
+    {
+        using var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/api/settings/instance");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
 }

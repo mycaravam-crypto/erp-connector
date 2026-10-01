@@ -99,6 +99,18 @@ static class SettingsEndpoints
             )
             .RequireAuthorization();
 
+        // This connector's identity as stamped into every export manifest (Producer): application, version and
+        // instance ID. Authenticated, unlike GET /api/version — the instance ID stays out of the login screen.
+        app.MapGet(
+                "/api/settings/instance",
+                async (ExportLogDbContext db) =>
+                {
+                    var producer = await db.GetProducerAsync();
+                    return Results.Ok(producer);
+                }
+            )
+            .RequireAuthorization();
+
         // Returns the most recent N audit entries (default 100) ordered newest-first.
         app.MapGet(
                 "/api/audit",

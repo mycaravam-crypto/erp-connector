@@ -2,31 +2,37 @@
 import { ref, onMounted } from 'vue'
 import { getSchedulerConfig, getGdprDeniedFields, type SchedulerConfig } from '@/api/scheduler'
 import { getBranding, type BrandingConfig } from '@/api/branding'
+import { getConnectorInstance, type ConnectorInstance } from '@/api/instance'
 import Alert from '@/components/ui/Alert.vue'
 import SchedulerSettingsForm from '@/components/SchedulerSettingsForm.vue'
 import GdprDenylistEditor from '@/components/GdprDenylistEditor.vue'
 import BrandingSettingsForm from '@/components/BrandingSettingsForm.vue'
+import ConnectorInstanceInfo from '@/components/ConnectorInstanceInfo.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 
-// /settings: loads and shows the three settings forms: managed-export scheduler, GDPR denylist and branding.
+// /settings: loads and shows the three settings forms (managed-export scheduler, GDPR denylist, branding) and
+// this connector's read-only instance identity.
 const loading = ref(true)
 const loadError = ref<string | null>(null)
 
 const schedulerConfig = ref<SchedulerConfig | null>(null)
 const gdprFields = ref<string[]>([])
 const brandingConfig = ref<BrandingConfig | null>(null)
+const instance = ref<ConnectorInstance | null>(null)
 
 onMounted(async () => {
   try {
-    const [cfg, gdpr, branding] = await Promise.all([
+    const [cfg, gdpr, branding, connector] = await Promise.all([
       getSchedulerConfig(),
       getGdprDeniedFields(),
       getBranding(),
+      getConnectorInstance(),
     ])
     schedulerConfig.value = cfg
     gdprFields.value = gdpr.fields
     brandingConfig.value = branding
+    instance.value = connector
   } catch {
     loadError.value = 'Could not load settings. Is the backend service running?'
   } finally {
@@ -49,6 +55,10 @@ onMounted(async () => {
           <strong>Branding</strong> lets you replace the default name, logo, favicon, and background
           with your own, applied everywhere in the UI.
         </p>
+        <p>
+          <strong>Connector Instance</strong> shows this installation's ID, which identifies its exports
+          to other connector instances.
+        </p>
       </HelpTooltip>
     </template>
   </PageHeader>
@@ -57,11 +67,13 @@ onMounted(async () => {
 
   <Alert v-else-if="loadError" variant="danger" class="mt-4">{{ loadError }}</Alert>
 
-  <template v-else-if="schedulerConfig && brandingConfig">
+  <template v-else-if="schedulerConfig && brandingConfig && instance">
     <SchedulerSettingsForm :config="schedulerConfig" />
     <hr class="my-10 border-border" />
     <GdprDenylistEditor :initial-fields="gdprFields" />
     <hr class="my-10 border-border" />
     <BrandingSettingsForm :config="brandingConfig" />
+    <hr class="my-10 border-border" />
+    <ConnectorInstanceInfo :instance="instance" />
   </template>
 </template>
