@@ -169,7 +169,14 @@ public sealed class ExportWorker(
             var checksum = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
 
             var package = new ExportPackage(
-                new ExportManifest(sequenceNo, ExportSchema.Version, extractedAt, built.RecordCount, checksum),
+                new ExportManifest(
+                    sequenceNo,
+                    ExportSchema.Version,
+                    extractedAt,
+                    built.RecordCount,
+                    checksum,
+                    await db.GetProducerAsync()
+                ),
                 bytes,
                 fileName
             );

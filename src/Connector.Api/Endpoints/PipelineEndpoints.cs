@@ -105,7 +105,14 @@ static class PipelineEndpoints
 
                         var checksum = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
                         var package = new ExportPackage(
-                            new ExportManifest(sequenceNo, ExportSchema.Version, extractedAt, recordCount, checksum),
+                            new ExportManifest(
+                                sequenceNo,
+                                ExportSchema.Version,
+                                extractedAt,
+                                recordCount,
+                                checksum,
+                                await db.GetProducerAsync()
+                            ),
                             bytes,
                             fileName
                         );

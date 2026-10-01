@@ -21,7 +21,8 @@ public sealed class FileSystemExportSinkTests
                 SchemaVersion: ExportSchema.Version,
                 ExtractedAt: DateTimeOffset.UtcNow,
                 RecordCount: 2,
-                Sha256Checksum: "abc123"
+                Sha256Checksum: "abc123",
+                Producer: new ExportProducer(ExportProducer.ApplicationName, "1.0.0", "instance-a")
             ),
             DataFileBytes: Encoding.UTF8.GetBytes("""{"records":[]}"""),
             DataFileName: dataFileName
@@ -57,6 +58,9 @@ public sealed class FileSystemExportSinkTests
             using var manifestDoc = JsonDocument.Parse(await File.ReadAllTextAsync(manifestPath));
             Assert.Equal(1, manifestDoc.RootElement.GetProperty("SequenceNumber").GetInt32());
             Assert.Equal("abc123", manifestDoc.RootElement.GetProperty("Sha256Checksum").GetString());
+            var producer = manifestDoc.RootElement.GetProperty("Producer");
+            Assert.Equal(ExportProducer.ApplicationName, producer.GetProperty("Application").GetString());
+            Assert.Equal("instance-a", producer.GetProperty("InstanceId").GetString());
 
             // No leftover .tmp artifact once the write has completed.
             Assert.False(File.Exists(dataPath + ".tmp"));

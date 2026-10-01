@@ -1,4 +1,6 @@
+using System.Reflection;
 using System.Text.Json;
+using Connector.Core.Domain;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -15,6 +17,7 @@ public static class SettingsKeys
     public const string SchedulerConfig = "scheduler_config";
     public const string GdprDeniedFields = "gdpr_denied_fields";
     public const string Branding = "branding";
+    public const string InstanceId = "instance_id";
 }
 
 /// <summary>
@@ -44,6 +47,29 @@ public static class AppSettingsStore
         else
             setting.Value = serialized;
         await db.SaveChangesAsync();
+    }
+
+    /// <summary>This connector's <see cref="ExportProducer"/> for export manifests. The instance id is generated on
+    /// first call and stored under <see cref="SettingsKeys.InstanceId"/>; startup calls this once so the
+    /// export workers never race to create it.</summary>
+    public static async Task<ExportProducer> GetProducerAsync(this ExportLogDbContext db)
+    {
+        var instanceId = await db.GetSettingAsync<string>(SettingsKeys.InstanceId);
+        if (instanceId is null)
+        {
+            instanceId = Guid.NewGuid().ToString();
+            await db.SetSettingAsync(SettingsKeys.InstanceId, instanceId);
+        }
+        return new ExportProducer(ExportProducer.ApplicationName, AppVersion, instanceId);
+    }
+
+    // Same source and "+<git sha>" trimming as HealthEndpoints' GET /api/version.
+    private static readonly string AppVersion = ReadVersion();
+
+    private static string ReadVersion()
+    {
+        var attr = typeof(AppSettingsStore).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+        return attr?.InformationalVersion.Split('+')[0] ?? "unknown";
     }
 }
 

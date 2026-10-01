@@ -19,6 +19,12 @@ integrity and detect lost exports (sequence gaps) without a back-channel.
 | `ExtractedAt`     | DateTimeOffset | UTC timestamp of the ERP read.                                      |
 | `RecordCount`     | int            | Number of records in the data file. Must match actual row count.    |
 | `Sha256Checksum`  | string         | SHA-256 of the data file (hex, lowercase). Verified before USB release. |
+| `Producer`        | object         | Which connector wrote the file: `Application` (always `x5-connector`), `Version`, `InstanceId`. |
+
+`Producer.InstanceId` is a random GUID created on first start and kept in the `AppSetting` table
+(`instance_id`), so it stays the same across restarts and upgrades. It lets a receiving connector
+tell another connector's export apart from a vendor file, and two instances apart from each other.
+A restored database backup keeps its id, so a cloned installation shares it.
 
 # Distribution
 

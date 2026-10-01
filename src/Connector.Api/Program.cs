@@ -313,6 +313,9 @@ using (var scope = app.Services.CreateScope())
     // One-time conversion of the legacy single mapping + presets into ExportDefinition rows.
     // No-ops once any ExportDefinition row exists.
     await ExportDefinitionMigrator.MigrateLegacyMappingsAsync(exportLogDb);
+
+    // Creates this installation's instance id (stamped into every export manifest) before any worker runs.
+    await exportLogDb.GetProducerAsync();
 }
 
 // ── User store ────────────────────────────────────────────────────────────────
