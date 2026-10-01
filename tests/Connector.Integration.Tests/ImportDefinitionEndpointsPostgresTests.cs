@@ -257,4 +257,64 @@ public sealed class ImportDefinitionEndpointsPostgresTests
         Assert.Null(resultRoot);
         Assert.Contains("OnMissingChild = \"insert\" is not permitted in v1", error);
     }
+
+    // An insert-enabled request (connector-to-connector, so IntegrationKey is set) against rootTable.
+    private static ImportDefinitionRequest InsertRequestFor(string rootTable, ImportNode root, List<string> allowed) =>
+        new(
+            Name: "Test Insert Definition",
+            Description: null,
+            RootTable: rootTable,
+            RootMatchColumn: "id",
+            RootNode: root,
+            AllowedWritableColumns: allowed,
+            UnmatchedRootPolicy: UnmatchedRootPolicy.Insert,
+            IsEnabled: false,
+            IntegrationKey: "alignment",
+            ContractVersion: 1
+        );
+
+    [Fact]
+    public async Task ValidateRequestAsync_InsertPolicyWithUnmappedRequiredColumns_RejectsNamingThem()
+    {
+        if (!await ErpTestFixture.IsAvailableAsync())
+            return;
+
+        // maintenance_plan.system_configuration_id and .status are NOT NULL without a default.
+        await using var local = await LocalDb.NewAsync();
+        var root = Root(Scalar("planId", "id"), Scalar("chartRef", "allocation_chart_ref"));
+        var request = InsertRequestFor("maintenance_plan", root, ["allocation_chart_ref"]);
+
+        var (resultRoot, error) = await ImportDefinitionEndpoints.ValidateRequestAsync(
+            request,
+            local.Db,
+            Resolver,
+            CancellationToken.None
+        );
+
+        Assert.Null(resultRoot);
+        Assert.Contains("required columns (NOT NULL, no default) are not mapped", error);
+        Assert.Contains("system_configuration_id, status", error);
+    }
+
+    [Fact]
+    public async Task ValidateRequestAsync_InsertPolicyWithRequiredColumnsCovered_Succeeds()
+    {
+        if (!await ErpTestFixture.IsAvailableAsync())
+            return;
+
+        // systemconfiguration's only NOT NULL column is id, which has a default and is the match column anyway.
+        await using var local = await LocalDb.NewAsync();
+        var root = Root(Scalar("ciId", "id"), Scalar("confirmationStatus", "status"));
+        var request = InsertRequestFor("systemconfiguration", root, ["status"]);
+
+        var (resultRoot, error) = await ImportDefinitionEndpoints.ValidateRequestAsync(
+            request,
+            local.Db,
+            Resolver,
+            CancellationToken.None
+        );
+
+        Assert.Null(error);
+        Assert.NotNull(resultRoot);
+    }
 }

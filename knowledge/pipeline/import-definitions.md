@@ -302,8 +302,9 @@ the run, four-eyes review before anything is written.
   `IsInsert` and counts them in `InsertCount`. At release, an insert whose key already exists
   counts as a conflict and is skipped. Values are converted to the column types by the dialect
   (`ISqlDialect.BuildInsertRow`; on PostgreSQL via `json_populate_record`; updates use the same
-  conversion via `BuildSetClause`). A required column that
-  the mapping doesn't supply fails the release, which rolls back the whole run.
+  conversion via `BuildSetClause`). Saving an insert-enabled definition is rejected while any root-table
+  column that is `NOT NULL`, has no default and isn't identity/generated is neither the root match column
+  nor mapped by an enabled root scalar field — otherwise every insert would fail at release, after review.
 * **Deletes** are soft deletes, carried as updates (§8).
 * **Two-way (A ↔ B)** is two independent one-way flows. Conflicts surface as ordinary release
   conflicts; there is no last-writer-wins.
