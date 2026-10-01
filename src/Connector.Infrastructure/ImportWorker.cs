@@ -190,6 +190,14 @@ public sealed class ImportWorker(
             return;
         }
 
+        var ownInstanceId = (await db.GetProducerAsync()).InstanceId;
+        if (manifest.Producer?.InstanceId == ownInstanceId)
+        {
+            await RejectAsync($"file was exported by this connector instance ({ownInstanceId})");
+            return;
+        }
+        var producer = DescribeProducer(manifest.Producer);
+
         var inboundJson = Encoding.UTF8.GetString(bytes).TrimStart('\uFEFF');
 
         JsonNode? envelopeNode;
@@ -300,6 +308,7 @@ public sealed class ImportWorker(
             InvalidCount = plan.InvalidCount,
             PlanJson = ImportPlanJson.Serialize(plan),
             StagedConnectionFingerprint = DynamicExportService.ConnectionFingerprint(connCfg),
+            Producer = producer,
         };
 
         try
@@ -327,6 +336,7 @@ public sealed class ImportWorker(
             "import_run_staged",
             $"id={run.Id} definition={definition.Name} matched={run.MatchedCount} changed={run.ChangedCount} "
                 + $"unchanged={run.UnchangedCount} rejected={run.RejectedCount} invalid={run.InvalidCount}"
+                + (producer is null ? "" : $" producer={producer}")
         );
         logger.LogInformation(
             "ImportWorker: staged run #{RunId} from {File} ({Matched} matched, {Changed} changed, {Rejected} rejected)",
@@ -374,6 +384,11 @@ public sealed class ImportWorker(
             return null;
         }
     }
+
+    /// <summary>Human-readable label for the connector that produced a file, e.g.
+    /// <c>"x5-connector 1.0.20, instance 3f2c…"</c>; null for a file without a producer (a vendor file).</summary>
+    public static string? DescribeProducer(ExportProducer? producer) =>
+        producer is null ? null : $"{producer.Application} {producer.Version}, instance {producer.InstanceId}";
 
     /// <summary>Maps an existing <see cref="ImportRunEntity"/>'s <see cref="ImportRunStatus"/> to the
     /// human-readable duplicate classification. Pure so it's unit-testable

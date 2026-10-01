@@ -264,7 +264,8 @@ record ImportRunDetailDto(
     string? OperatedBy,
     string? ApprovedBy,
     string? ReleasedAt,
-    IReadOnlyList<ImportRunOperationDto> Operations
+    IReadOnlyList<ImportRunOperationDto> Operations,
+    string? Producer
 );
 
 /// <summary>Body for POST/PUT /api/import-definitions — everything an operator

@@ -151,6 +151,8 @@ export interface ImportRunDetail {
   approvedBy: string | null
   releasedAt: string | null
   operations: ImportPlanOperation[]
+  /** Connector instance that produced the file (e.g. "x5-connector 1.0.20, instance …"); null for a vendor file. */
+  producer: string | null
 }
 
 /** Response of the four-eyes release/reject endpoints — the post-action state of one run. */
