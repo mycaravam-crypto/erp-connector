@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Connector.Core.DataSources;
+using Connector.Core.Domain;
 using Connector.Core.DynamicImport;
 using Connector.Core.Schema;
 using Connector.Infrastructure;
@@ -189,6 +190,75 @@ public sealed class ImportWorkerPostgresTests
 
             var auditEntry = Assert.Single(db.AuditLog.Where(a => a.Action == "import_run_staged"));
             Assert.Equal("watcher", auditEntry.Username);
+        }
+        finally
+        {
+            inboundDir.Delete(recursive: true);
+        }
+    }
+
+    // Writes a data file + manifest carrying a Producer block, as another connector instance's
+    // FileSystemExportSink would.
+    private static void DropConnectorFile(string inboundDir, string fileName, string content, ExportProducer producer)
+    {
+        var bytes = Encoding.UTF8.GetBytes(content);
+        var checksum = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+
+        File.WriteAllBytes(Path.Combine(inboundDir, fileName), bytes);
+        File.WriteAllText(
+            Path.Combine(inboundDir, ExportSchema.BuildManifestFileName(fileName)),
+            JsonSerializer.Serialize(new { Sha256Checksum = checksum, Producer = producer })
+        );
+    }
+
+    [Fact]
+    public async Task PollOnceAsync_FileFromOwnInstance_IsQuarantined()
+    {
+        // Rejected before the ERP connection is ever opened, so no testdb is needed.
+        await using var local = await LocalDb.NewAsync();
+        var db = local.Db;
+        var own = await db.GetProducerAsync();
+
+        var inboundDir = Directory.CreateTempSubdirectory("import-worker-test-");
+        try
+        {
+            DropConnectorFile(inboundDir.FullName, "own-export.json", Envelope(FixtureCiId, "Loop"), own);
+
+            await NewWorker(db, inboundDir.FullName).PollOnceAsync(CancellationToken.None);
+
+            Assert.Empty(db.ImportRuns);
+            Assert.True(File.Exists(Path.Combine(inboundDir.FullName, "rejected", "own-export.json")));
+            var auditEntry = Assert.Single(db.AuditLog.Where(a => a.Action == "import_file_rejected"));
+            Assert.Contains("exported by this connector instance", auditEntry.Detail);
+        }
+        finally
+        {
+            inboundDir.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task PollOnceAsync_FileFromOtherInstance_RecordsProducerOnRun()
+    {
+        if (!await ErpTestFixture.IsAvailableAsync())
+            return;
+
+        await using var local = await LocalDb.NewAsync();
+        var db = local.Db;
+        await SeedDefinitionAsync(db);
+        var other = new ExportProducer(ExportProducer.ApplicationName, "1.0.20", "other-instance");
+
+        var inboundDir = Directory.CreateTempSubdirectory("import-worker-test-");
+        try
+        {
+            DropConnectorFile(inboundDir.FullName, "instance-a.json", Envelope(FixtureCiId, "From A"), other);
+
+            await NewWorker(db, inboundDir.FullName).PollOnceAsync(CancellationToken.None);
+
+            var run = Assert.Single(db.ImportRuns);
+            Assert.Equal("x5-connector 1.0.20, instance other-instance", run.Producer);
+            var auditEntry = Assert.Single(db.AuditLog.Where(a => a.Action == "import_run_staged"));
+            Assert.Contains("producer=x5-connector 1.0.20, instance other-instance", auditEntry.Detail);
         }
         finally
         {

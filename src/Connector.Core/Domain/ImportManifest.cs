@@ -11,5 +11,8 @@ namespace Connector.Core.Domain;
 public sealed record ImportManifest(
     /// <summary>SHA-256 over the data file (hex, lowercase), verified by
     /// <c>Connector.Infrastructure.ImportWorker</c> before the file is parsed.</summary>
-    string Sha256Checksum
+    string Sha256Checksum,
+    /// <summary>Set when another connector instance wrote the file (its <see cref="ExportManifest.Producer"/>);
+    /// null for a vendor file.</summary>
+    ExportProducer? Producer = null
 );

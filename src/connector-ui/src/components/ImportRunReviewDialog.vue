@@ -128,6 +128,7 @@ async function reject() {
         <StatusBadge :status="detail.status" />
         <span class="text-xs text-text-secondary">{{ detail.importDefinitionName }} · {{ detail.sourceFileName || '(pasted preview)' }}</span>
       </div>
+      <p v-if="detail.producer" class="text-xs text-text-secondary mt-0 mb-3">From connector: {{ detail.producer }}</p>
 
       <ImportRunCountSummary
         :matched-count="detail.matchedCount"

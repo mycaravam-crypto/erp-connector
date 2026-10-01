@@ -34,7 +34,9 @@ data file itself):
 2. **Manifest check.** Missing manifest, unparseable manifest JSON, missing
    `Sha256Checksum`, or a checksum mismatch against the actual file bytes → quarantined to
    `inbound/rejected/`, audit-logged (`import_file_rejected`). No sequence/gap check — see [Import
-   Definitions §6](/pipeline/import-definitions.md#6-design-decisions).
+   Definitions §6](/pipeline/import-definitions.md#6-design-decisions). A manifest whose
+   `Producer.InstanceId` equals this instance's own id (the file is this connector's own export)
+   is quarantined the same way, so a system never re-imports its own export.
 3. **Parse + route.** The file itself is parsed as JSON; its top-level `definition` property (the
    `ImportEnvelope` field) names which saved, *enabled* `ImportDefinition` to use. Missing/invalid
    JSON, a missing `definition` property, or no matching enabled definition → all quarantined the
@@ -52,7 +54,10 @@ data file itself):
    an individual bad record) quarantines the file the same way a manifest failure does.
 6. **Stage.** A new `ImportRunEntity` is inserted at `Status = PendingReview`, `TriggeredBy =
    "watcher"`, with `DefinitionSnapshotJson` set to the full `ImportDefinitionEntity` serialized
-   at this exact moment and `PlanJson` set to the built plan.
+   at this exact moment and `PlanJson` set to the built plan. When the manifest names another
+   connector instance (`Producer`), `Producer` on the run holds
+   `"<Application> <Version>, instance <InstanceId>"`; it is appended to the `import_run_staged`
+   audit entry and shown in the review dialog. Null for a vendor file.
 7. **Move.** On success, the source file + manifest move to `inbound/processed/` — never deleted,
    matching `FileSystemExportSink`'s atomic-move convention on the export side.
 

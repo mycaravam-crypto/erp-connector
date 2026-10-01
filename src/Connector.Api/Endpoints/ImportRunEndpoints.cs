@@ -167,7 +167,8 @@ static class ImportRunEndpoints
             r.OperatedBy,
             r.ApprovedBy,
             r.ReleasedAt,
-            operations
+            operations,
+            r.Producer
         );
     }
 

@@ -151,4 +151,8 @@ public sealed class ImportRunEntity
     /// setting was changed to in the meantime. Null for runs staged without a fingerprint — release skips the
     /// check for those.</summary>
     public string? StagedConnectionFingerprint { get; set; }
+
+    /// <summary>The connector instance that produced the inbound file, from its manifest's <c>Producer</c>
+    /// (see <see cref="ImportWorker.DescribeProducer"/>). Null for a vendor file.</summary>
+    public string? Producer { get; set; }
 }
