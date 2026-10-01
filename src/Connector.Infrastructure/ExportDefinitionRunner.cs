@@ -97,7 +97,8 @@ public static class ExportDefinitionRunner
                 ct,
                 limit,
                 gdprDenylist,
-                provenance
+                provenance,
+                def.TargetImportDefinition
             );
 
             if (built.RecordCount == 0)

@@ -44,6 +44,8 @@ export interface ExportDefinition extends ExportDefinitionSummary {
   integrationKey: string | null
   contractVersion: number | null
   correlationKeySourceField: string | null
+  /** Import definition name on a receiving connector instance; when set, JSON output is an ImportEnvelope. */
+  targetImportDefinition: string | null
 }
 
 export interface ExportDefinitionRequest {
@@ -57,6 +59,7 @@ export interface ExportDefinitionRequest {
   integrationKey?: string | null
   contractVersion?: number | null
   correlationKeySourceField?: string | null
+  targetImportDefinition?: string | null
 }
 
 export interface ExportDefinitionTestResult {

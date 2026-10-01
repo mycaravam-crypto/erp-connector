@@ -327,6 +327,8 @@ public static partial class DynamicExportService
     /// <param name="limit">Maximum root rows (previews and test runs), or null for all rows.</param>
     /// <param name="gdprDenylist">Source fields to exclude; defaults to GdprDeniedFields.</param>
     /// <param name="provenance">IntegrationKey/ContractVersion tag for JSON output, or null when the definition doesn't opt in.</param>
+    /// <param name="importDefinition">When set, the output is an ImportEnvelope routed to this import definition on a
+    /// receiving connector (see <see cref="BuildImportEnvelopeBytes"/>) instead of the format writer's output.</param>
     public static async Task<ExportBuildResult> BuildExportNodeAsync(
         IDataSourceProvider provider,
         DataSourceConfig dsConfig,
@@ -338,11 +340,17 @@ public static partial class DynamicExportService
         CancellationToken ct,
         int? limit = null,
         IReadOnlySet<string>? gdprDenylist = null,
-        ExportProvenance? provenance = null
+        ExportProvenance? provenance = null,
+        string? importDefinition = null
     )
     {
         var metered = new MeteredDataSourceProvider(provider);
         var records = await ExecuteExportNodeQueryAsync(metered, dsConfig, rootTable, root, ct, limit, gdprDenylist);
+        if (importDefinition is not null)
+        {
+            var envelope = BuildImportEnvelopeBytes(records, importDefinition, extractedAt, provenance);
+            return new ExportBuildResult(envelope, records.Count, "json", metered.Metrics);
+        }
         var writer = ExportFormatWriterFactory.Get(format);
         var bytes = writer.Write(root, records, schemaVersion, extractedAt, provenance);
         return new ExportBuildResult(bytes, records.Count, writer.FileExtension, metered.Metrics);

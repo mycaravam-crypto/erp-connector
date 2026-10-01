@@ -46,6 +46,7 @@ async function save() {
       integrationKey: d.integrationKey,
       contractVersion: d.contractVersion,
       correlationKeySourceField: d.correlationKeySourceField,
+      targetImportDefinition: d.targetImportDefinition,
     })
     if (result.ok) {
       // Mutate in place (not props.definition = result.data) so the parent's ref keeps pointing
