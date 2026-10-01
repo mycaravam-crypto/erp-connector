@@ -364,7 +364,8 @@ static partial class ImportDefinitionEndpoints
                             r.TriggeredBy,
                             r.OperatedBy,
                             r.ApprovedBy,
-                            r.ReleasedAt
+                            r.ReleasedAt,
+                            r.InsertCount
                         ))
                         .ToListAsync(ct);
                     return Results.Ok(runs);
@@ -496,7 +497,8 @@ static partial class ImportDefinitionEndpoints
                             run.TriggeredBy,
                             run.OperatedBy,
                             run.ApprovedBy,
-                            run.ReleasedAt
+                            run.ReleasedAt,
+                            run.InsertCount
                         )
                     );
                 }

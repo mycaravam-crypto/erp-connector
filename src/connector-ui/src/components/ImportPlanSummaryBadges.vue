@@ -20,5 +20,6 @@ defineProps<{ plan: ImportPlan; isStale: boolean }>()
     <Badge variant="neutral" title="Matched rows where every mapped field already equals the database">{{ plan.unchangedCount }} unchanged</Badge>
     <Badge variant="warning" title="Correlation key matched no row in the database">{{ plan.rejectedCount }} rejected</Badge>
     <Badge variant="danger" title="Record itself was malformed (not a JSON object, or no correlation value)">{{ plan.invalidCount }} invalid</Badge>
+    <Badge v-if="plan.insertCount" variant="success" title="Unmatched records this definition creates as new rows">{{ plan.insertCount }} inserted</Badge>
   </div>
 </template>
