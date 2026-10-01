@@ -38,13 +38,22 @@ public sealed class FileSystemExportSink(IOptions<ExportSinkOptions> options, IL
             var manifestJson = JsonSerializer.Serialize(package.Manifest, ManifestJsonOptions);
             await File.WriteAllTextAsync(manifestPath, manifestJson, ct);
 
-            logger.LogInformation(
-                "Export #{Seq} written: {File} ({Bytes} bytes, {Count} records)",
-                package.Manifest.SequenceNumber,
-                package.DataFileName,
-                package.DataFileBytes.Length,
-                package.Manifest.RecordCount
-            );
+            // Export-definition runs have no sequence number (#218), so it's only logged when present.
+            if (package.Manifest.SequenceNumber is { } seq)
+                logger.LogInformation(
+                    "Export #{Seq} written: {File} ({Bytes} bytes, {Count} records)",
+                    seq,
+                    package.DataFileName,
+                    package.DataFileBytes.Length,
+                    package.Manifest.RecordCount
+                );
+            else
+                logger.LogInformation(
+                    "Export written: {File} ({Bytes} bytes, {Count} records)",
+                    package.DataFileName,
+                    package.DataFileBytes.Length,
+                    package.Manifest.RecordCount
+                );
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

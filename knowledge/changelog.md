@@ -6,7 +6,29 @@ tags: [changelog, roadmap, history]
 timestamp: 2026-09-03T00:00:00Z
 ---
 
-Last updated: 2026-09-23
+Last updated: 2026-10-01
+
+---
+
+## Phase 33 — Connector-to-connector alignment ✅
+
+Two connector instances can align two air-gapped systems: instance A exports, the file is carried into
+instance B's inbound folder, B stages and (after four-eyes review) releases it. Updates, opt-in root-row
+inserts and soft deletes (as field updates) are supported; hard deletes and a direct link between instances
+are deliberately not. See [Import Definitions §9](/pipeline/import-definitions.md#9-connector-to-connector-alignment)
+and the [trial checklist](/operations/connector-alignment-trial.md).
+
+| Item | Notes |
+|---|---|
+| `ExportManifest.Producer` (#218) | Application, version and a per-installation `InstanceId` (generated once, kept in `AppSetting`) in every manifest |
+| Scheduled export-definition runs staged (#218) | `ExportDefinitionWorker` writes file + manifest to the staging folder; `ExportDefinitionRun.DataFileName`/`Sha256` |
+| `ExportDefinition.TargetImportDefinition` (#219) | JSON output becomes an `ImportEnvelope` routed to that import definition on the receiving instance |
+| Producer on import (#220) | `ImportRun.Producer` and audit detail; a file from the instance's own ID is quarantined |
+| `UnmatchedRootPolicy = insert` (#222) | Only with an `IntegrationKey`; `ImportPlan.InsertCount`/`IsInsert`, `ImportRun.InsertCount`; an existing key at release counts as a conflict |
+| Typed values on release (#228) | `ISqlDialect.BuildSetClause`/`BuildInsertRow`: PostgreSQL converts text values via `json_populate_record`, fixing updates to non-text columns |
+| Required columns at save time (#235) | Insert-enabled definitions must map every `NOT NULL` column without a default; `SourceColumn.HasDefault` |
+| UI (#236, #237) | Instance ID in Settings (`GET /api/settings/instance`); staged file and inserted counts in run history; shared `RunHistoryFrame.vue` |
+| Tests (#234) | `ConnectorAlignmentPostgresTests`: A → B end to end against `testdb` (inserts, update after drift, own-file rejection) |
 
 ---
 
