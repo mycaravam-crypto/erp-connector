@@ -80,6 +80,25 @@ public sealed partial class MariaDbDialect : ISqlDialect
     public string BuildStringAggregate(string expression, string delimiter) =>
         $"GROUP_CONCAT({CastToText(expression)} SEPARATOR {QuoteStringLiteral(delimiter)})";
 
+    // MariaDB converts a text value to the column's type on assignment, so plain parameters suffice.
+    public string BuildInsertRow(
+        string table,
+        IReadOnlyList<string> columns,
+        IReadOnlyList<string?> values,
+        IDictionary<string, object?> parameters
+    )
+    {
+        var names = new List<string>(values.Count);
+        foreach (var value in values)
+        {
+            var name = BuildParameterName(parameters.Count);
+            parameters[name] = value;
+            names.Add(name);
+        }
+        return $"INSERT INTO {QuoteIdentifier(table)} ({string.Join(", ", columns.Select(QuoteIdentifier))}) "
+            + $"VALUES ({string.Join(", ", names)})";
+    }
+
     [GeneratedRegex(@"^-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?$")]
     private static partial Regex JsonNumberRegex();
 }

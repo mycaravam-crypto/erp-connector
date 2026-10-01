@@ -141,6 +141,78 @@ public sealed class ImportRunReleaserPostgresTests
         }
     }
 
+    private static ImportPlan InsertPlan(string ciId, params (string Column, string Value)[] columns)
+    {
+        var operations = new List<ImportPlanOperation>();
+        foreach (var (column, value) in columns)
+            operations.Add(new ImportPlanOperation(ciId, "systemconfiguration", "id", ciId, column, null, value, true));
+        return new ImportPlan(1, 0, 0, 0, 0, 0, operations, InsertCount: 1);
+    }
+
+    [Fact]
+    public async Task ReleaseAsync_InsertOperation_CreatesRowWithTypedColumns()
+    {
+        await using var erp = await ErpTestFixture.TryOpenAsync();
+        if (erp is null)
+            return;
+
+        await using var local = await LocalDb.NewAsync();
+        var db = local.Db;
+        var audit = new AuditService(db, NullLogger<AuditService>.Instance);
+        var newId = Guid.NewGuid().ToString();
+
+        try
+        {
+            // id is uuid and commission_date is date: the insert must convert the text values to both types.
+            var plan = InsertPlan(newId, ("id", newId), ("status", "imported"), ("commission_date", "2026-10-01"));
+            var run = await SeedRunAsync(db, plan, new string('i', 64));
+            run.InsertCount = plan.InsertCount;
+
+            await ImportRunReleaser.ReleaseAsync(db, run, "alice", "bob", audit, Resolver, CancellationToken.None);
+
+            Assert.Equal(ImportRunStatus.Released, run.Status);
+            Assert.Equal(0, run.ConflictCount);
+            Assert.Equal("imported", await ReadStatusAsync(erp, newId));
+            var auditEntry = Assert.Single(db.AuditLog.Where(a => a.Action == "import_run_released"));
+            Assert.Contains("inserted=1", auditEntry.Detail);
+        }
+        finally
+        {
+            await using var cleanup = new NpgsqlCommand("DELETE FROM systemconfiguration WHERE id::text = @id", erp);
+            cleanup.Parameters.AddWithValue("id", newId);
+            await cleanup.ExecuteNonQueryAsync();
+        }
+    }
+
+    [Fact]
+    public async Task ReleaseAsync_InsertOperationForExistingKey_CountsConflictWithoutWriting()
+    {
+        await using var erp = await ErpTestFixture.TryOpenAsync();
+        if (erp is null)
+            return;
+
+        await using var local = await LocalDb.NewAsync();
+        var db = local.Db;
+        var audit = new AuditService(db, NullLogger<AuditService>.Instance);
+
+        try
+        {
+            // FixtureC exists already: it was created after staging, from the plan's point of view.
+            var plan = InsertPlan(FixtureC, ("id", FixtureC), ("status", "imported"));
+            var run = await SeedRunAsync(db, plan, new string('j', 64));
+
+            await ImportRunReleaser.ReleaseAsync(db, run, "alice", "bob", audit, Resolver, CancellationToken.None);
+
+            Assert.Equal(ImportRunStatus.Released, run.Status);
+            Assert.Equal(1, run.ConflictCount);
+            Assert.Equal("active", await ReadStatusAsync(erp, FixtureC));
+        }
+        finally
+        {
+            await ResetStatusAsync(erp, FixtureC);
+        }
+    }
+
     [Fact]
     public async Task ReleaseAsync_RowChangedSinceStaging_ExcludesRowAsConflictedWithoutOverwriting()
     {

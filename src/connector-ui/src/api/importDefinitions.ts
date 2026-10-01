@@ -92,6 +92,8 @@ export interface ImportPlanOperation {
   column: string
   expectedOldValue: string | null
   newValue: string | null
+  /** True when the row is created (UnmatchedRootPolicy "insert") rather than updated. */
+  isInsert: boolean
 }
 
 /** Response of POST /api/import-definitions/{id}/preview — the computed ImportPlan:
@@ -104,6 +106,7 @@ export interface ImportPlan {
   rejectedCount: number
   invalidCount: number
   operations: ImportPlanOperation[]
+  insertCount: number
 }
 
 /** One row of GET /api/import-definitions/{id}/runs — execution history for a definition. */
@@ -153,6 +156,7 @@ export interface ImportRunDetail {
   operations: ImportPlanOperation[]
   /** Connector instance that produced the file (e.g. "x5-connector 1.0.20, instance …"); null for a vendor file. */
   producer: string | null
+  insertCount: number
 }
 
 /** Response of the four-eyes release/reject endpoints — the post-action state of one run. */

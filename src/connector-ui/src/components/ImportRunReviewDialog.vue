@@ -137,6 +137,7 @@ async function reject() {
         :rejected-count="detail.rejectedCount"
         :conflict-count="detail.conflictCount"
         :invalid-count="detail.invalidCount"
+        :insert-count="detail.insertCount"
       />
 
       <span class="inline-flex items-center gap-1.5 mb-2">

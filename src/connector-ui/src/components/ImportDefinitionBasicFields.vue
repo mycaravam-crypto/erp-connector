@@ -106,7 +106,9 @@ function onRootTableChanged() {
             <li><strong>Reject</strong> — the record is dropped; nothing is written or held for review.</li>
             <li><strong>Quarantine</strong> — the record is held for manual review instead of being discarded, in case it's a timing issue (e.g. the row hasn't been created in the ERP yet).</li>
           </ul>
-          <p>Either way, an unmatched record is never used to auto-create a new row.</p>
+          <ul>
+            <li><strong>Insert</strong> — the record creates a new row (root match column plus the mapped fields). Only for connector-to-connector imports: it needs an integration key, and every insert still goes through four-eyes review.</li>
+          </ul>
         </HelpTooltip>
       </label>
       <select
@@ -116,8 +118,8 @@ function onRootTableChanged() {
       >
         <option value="reject">Reject</option>
         <option value="quarantine">Quarantine</option>
+        <option value="insert" :disabled="!definition.integrationKey">Insert (connector-to-connector)</option>
       </select>
-      <span class="text-xs text-text-muted">a record whose correlation key matches no row is never auto-created</span>
     </div>
     <div class="flex items-center gap-2">
       <label class="text-sm text-text-secondary w-36 shrink-0">Enabled</label>

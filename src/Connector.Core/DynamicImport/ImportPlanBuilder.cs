@@ -27,7 +27,8 @@ public static class ImportPlanBuilder
         int changed = 0,
             unchanged = 0,
             rejected = 0,
-            invalid = 0;
+            invalid = 0,
+            inserted = 0;
 
         foreach (var row in walkResult.Rows)
         {
@@ -41,6 +42,24 @@ public static class ImportPlanBuilder
                     // Folded together on ImportRunEntity — see ImportRowStatus's doc comment for why there's
                     // no separate QuarantinedCount.
                     rejected++;
+                    continue;
+                case ImportRowStatus.Inserted:
+                    inserted++;
+                    foreach (var field in row.Fields)
+                    {
+                        operations.Add(
+                            new ImportPlanOperation(
+                                row.CorrelationValue!,
+                                rootTable,
+                                rootMatchColumn,
+                                row.CorrelationValue!,
+                                field.Column,
+                                null,
+                                field.NewValue,
+                                IsInsert: true
+                            )
+                        );
+                    }
                     continue;
             }
 
@@ -76,7 +95,8 @@ public static class ImportPlanBuilder
             unchanged,
             rejected,
             invalid,
-            operations
+            operations,
+            inserted
         );
     }
 }

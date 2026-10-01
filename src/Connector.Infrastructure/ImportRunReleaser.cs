@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Text.Json;
 using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
@@ -93,9 +94,17 @@ public static class ImportRunReleaser
             await using var tx = await import.Connection.BeginTransactionAsync(ct);
 
             conflictCount = 0;
-            foreach (var rowOps in plan.Operations.GroupBy(o => (o.Table, o.KeyColumn, o.KeyValue)))
+            foreach (var rowOps in plan.Operations.GroupBy(o => (o.Table, o.KeyColumn, o.KeyValue, o.IsInsert)))
             {
                 var ops = rowOps.ToList();
+                if (rowOps.Key.IsInsert)
+                {
+                    var row = (rowOps.Key.Table, rowOps.Key.KeyColumn, rowOps.Key.KeyValue);
+                    if (!await InsertRowAsync(import, tx, row, ops, ct))
+                        conflictCount++;
+                    continue;
+                }
+
                 await using var cmd = import.Connection.CreateCommand();
                 cmd.Transaction = tx;
                 cmd.CommandTimeout = 10;
@@ -164,8 +173,71 @@ public static class ImportRunReleaser
             "import_run_released",
             $"id={run.Id} approver={approver} matched={run.MatchedCount} changed={run.ChangedCount} "
                 + $"unchanged={run.UnchangedCount} rejected={run.RejectedCount} invalid={run.InvalidCount}"
+                + (run.InsertCount > 0 ? $" inserted={run.InsertCount}" : "")
                 + (conflictCount > 0 ? $" conflicts={conflictCount}" : "")
         );
+    }
+
+    /// <summary>
+    /// Inserts one planned root row (<see cref="ImportPlanOperation.IsInsert"/>) inside <paramref name="tx"/>.
+    /// Returns false, inserting nothing, when a row with this key already exists — it was created after staging,
+    /// so it's a conflict, the insert counterpart of an update whose expected old value no longer matches.
+    /// </summary>
+    private static async Task<bool> InsertRowAsync(
+        ImportConnection import,
+        DbTransaction tx,
+        (string Table, string KeyColumn, string KeyValue) row,
+        IReadOnlyList<ImportPlanOperation> ops,
+        CancellationToken ct
+    )
+    {
+        var dialect = import.Dialect;
+
+        var keyParameter = dialect.BuildParameterName(0);
+        var existsSql =
+            $"SELECT 1 FROM {dialect.QuoteIdentifier(row.Table)} "
+            + $"WHERE {dialect.CastToText(dialect.QuoteIdentifier(row.KeyColumn))} = {keyParameter} "
+            + dialect.BuildLimit(1);
+        var existsParameters = new Dictionary<string, object?> { [keyParameter] = row.KeyValue };
+        await using var exists = Command(import, tx, existsSql, existsParameters);
+        if (await exists.ExecuteScalarAsync(ct) is not null)
+            return false;
+
+        var insertParameters = new Dictionary<string, object?>();
+        var insertSql = dialect.BuildInsertRow(
+            row.Table,
+            [.. ops.Select(o => o.Column)],
+            [.. ops.Select(o => o.NewValue)],
+            insertParameters
+        );
+        await using var insert = Command(import, tx, insertSql, insertParameters);
+        await insert.ExecuteNonQueryAsync(ct);
+        return true;
+    }
+
+    private static DbCommand Command(
+        ImportConnection import,
+        DbTransaction tx,
+        string sql,
+        IDictionary<string, object?> parameters
+    )
+    {
+        var cmd = import.Connection.CreateCommand();
+        cmd.Transaction = tx;
+        cmd.CommandTimeout = 10;
+        // Sonar S2077 false-positives on the interpolation — only dialect-quoted identifiers are spliced into the
+        // SQL text; every value is a bound parameter.
+#pragma warning disable S2077
+        cmd.CommandText = sql;
+#pragma warning restore S2077
+        foreach (var (name, value) in parameters)
+        {
+            var parameter = cmd.CreateParameter();
+            parameter.ParameterName = name;
+            parameter.Value = value ?? DBNull.Value;
+            cmd.Parameters.Add(parameter);
+        }
+        return cmd;
     }
 
     /// <summary>

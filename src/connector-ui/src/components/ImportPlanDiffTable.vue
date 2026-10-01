@@ -20,7 +20,11 @@ const groupedByRow = computed(() => {
     }
     byRow.get(op.correlationValue)!.push(op)
   }
-  return order.map((correlationValue) => ({ correlationValue, operations: byRow.get(correlationValue)! }))
+  return order.map((correlationValue) => {
+    const operations = byRow.get(correlationValue)!
+    const label = operations.some((op) => op.isInsert) ? `${correlationValue} (new row)` : correlationValue
+    return { correlationValue, label, operations }
+  })
 })
 </script>
 
@@ -45,7 +49,7 @@ const groupedByRow = computed(() => {
             class="border-b border-border last:border-0"
             :class="gIdx % 2 === 1 ? 'bg-surface-elevated/40' : ''"
           >
-            <td class="px-2 py-1.5 font-mono text-text-secondary whitespace-nowrap align-top">{{ idx === 0 ? group.correlationValue : '' }}</td>
+            <td class="px-2 py-1.5 font-mono text-text-secondary whitespace-nowrap align-top">{{ idx === 0 ? group.label : '' }}</td>
             <td class="px-2 py-1.5 font-mono text-text-primary whitespace-nowrap align-top">{{ op.column }}</td>
             <td class="px-2 py-1.5 font-mono align-top"><ImportDiffValue :value="op.expectedOldValue" variant="old" /></td>
             <td class="px-1 py-1.5 text-text-muted align-top" aria-hidden="true">→</td>

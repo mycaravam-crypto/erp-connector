@@ -43,10 +43,14 @@ static partial class ImportDefinitionEndpoints
             return (null, "RootTable is required and must be a valid identifier.");
         if (string.IsNullOrWhiteSpace(request.RootMatchColumn) || !SqlIdentifierRegex.IsMatch(request.RootMatchColumn))
             return (null, "RootMatchColumn is required and must be a valid identifier.");
-        if (request.UnmatchedRootPolicy is not (UnmatchedRootPolicy.Reject or UnmatchedRootPolicy.Quarantine))
+        string[] policies = [UnmatchedRootPolicy.Reject, UnmatchedRootPolicy.Quarantine, UnmatchedRootPolicy.Insert];
+        if (!policies.Contains(request.UnmatchedRootPolicy))
+            return (null, $"UnmatchedRootPolicy must be one of: {string.Join(", ", policies)}.");
+        if (request.UnmatchedRootPolicy == UnmatchedRootPolicy.Insert && request.IntegrationKey is null)
             return (
                 null,
-                $"UnmatchedRootPolicy must be one of: {UnmatchedRootPolicy.Reject}, {UnmatchedRootPolicy.Quarantine}."
+                $"UnmatchedRootPolicy '{UnmatchedRootPolicy.Insert}' requires an IntegrationKey: root rows are only "
+                    + "created for connector-to-connector imports."
             );
         if (request.RootNode is null)
             return (null, "RootNode is required.");

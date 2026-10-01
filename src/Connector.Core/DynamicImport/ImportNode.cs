@@ -25,21 +25,22 @@ public static class ImportNodeKind
 /// <summary>Discriminator values for <see cref="ImportNode.OnMissingChild"/>: what happens to an
 /// object/array child node whose <see cref="ImportNode.JoinKey"/> doesn't resolve to an existing row.
 /// Only meaningful for <see cref="ImportNodeKind.Object"/>/<see cref="ImportNodeKind.Array"/> nodes —
-/// root rows are always match-only (see <see cref="UnmatchedRootPolicy"/>, which has no "insert"
-/// option at all).</summary>
+/// root rows are match-only unless the definition opts into <see cref="UnmatchedRootPolicy.Insert"/>.</summary>
 public static class OnMissingChildPolicy
 {
     public const string Insert = "insert";
     public const string Reject = "reject";
 }
 
-/// <summary>Discriminator values for <c>ImportDefinitionEntity.UnmatchedRootPolicy</c>. Deliberately
-/// excludes an "auto-create" option: every inbound record's correlation key must resolve to an
-/// existing root row, or it's excluded from the accepted set per this policy.</summary>
+/// <summary>Discriminator values for <c>ImportDefinitionEntity.UnmatchedRootPolicy</c>: what happens to an
+/// inbound record whose correlation key matches no root row. <see cref="Insert"/> creates the row, and is only
+/// accepted on a definition with an <c>IntegrationKey</c> (a connector-to-connector contract, never a vendor
+/// file).</summary>
 public static class UnmatchedRootPolicy
 {
     public const string Reject = "reject";
     public const string Quarantine = "quarantine";
+    public const string Insert = "insert";
 }
 
 /// <summary>

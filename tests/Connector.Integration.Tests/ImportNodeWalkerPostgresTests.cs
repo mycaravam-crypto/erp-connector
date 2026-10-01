@@ -337,6 +337,27 @@ public sealed class ImportNodeWalkerPostgresTests
         Assert.Equal(ImportRowStatus.Quarantined, row.Status);
     }
 
+    [Fact]
+    public async Task WalkAsync_UnmatchedCorrelationKey_InsertPolicy_RowIsInsertedWithAllColumns()
+    {
+        await using var conn = await ErpTestFixture.TryOpenAsync();
+        if (conn is null)
+            return;
+
+        var root = SystemConfigurationRoot();
+        var definition = MakeDefinition("systemconfiguration", "id", ["status"], UnmatchedRootPolicy.Insert);
+        var json = Envelope($$"""[{ "ciId": "{{UnknownCiId}}", "confirmationStatus": "confirmed" }]""");
+
+        var result = await ImportNodeWalker.WalkAsync(Pg(conn), definition, root, json, CancellationToken.None);
+
+        Assert.Equal(1, result.AcceptedCount);
+        var row = Assert.Single(result.Rows);
+        Assert.Equal(ImportRowStatus.Inserted, row.Status);
+        Assert.Equal(2, row.Fields.Count);
+        Assert.Equal(new ImportFieldDiff("id", null, UnknownCiId), row.Fields[0]);
+        Assert.Equal(new ImportFieldDiff("status", null, "confirmed"), row.Fields[1]);
+    }
+
     // ── Column-scope enforcement ──────────────────────────────────────────────────
 
     [Fact]

@@ -451,6 +451,7 @@ static partial class ImportDefinitionEndpoints
                         UnchangedCount = plan.UnchangedCount,
                         RejectedCount = plan.RejectedCount,
                         InvalidCount = plan.InvalidCount,
+                        InsertCount = plan.InsertCount,
                         PlanJson = ImportPlanJson.Serialize(plan),
                         StagedConnectionFingerprint = DynamicExportService.ConnectionFingerprint(connCfg),
                     };

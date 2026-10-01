@@ -34,7 +34,8 @@ directly and shape everything else in this document:
 
 * **Root rows are matched, never blindly created.** Every inbound record's correlation key (the
   same `Guid` used on the export side) must resolve to an existing CI row. No match → the record
-  is quarantined, not inserted.
+  is quarantined, not inserted. The one exception is a connector-to-connector import definition
+  (one with an `IntegrationKey`) that opts into `UnmatchedRootPolicy = insert` — see §9.
 * **Writable columns are an explicit allowlist** per import definition — the inverse of the export
   side's GDPR denylist (default-deny instead of default-allow-except). A saved mapping can never
   touch a column outside its agreed scope: no primary keys, no untracked foreign keys, nothing
@@ -64,7 +65,7 @@ can't reach production before a real vendor ICD requires it.
 | Human approval | Four-eyes release (Operator/Approver, distinct JWT users) | same contract, generalized into a shared helper |
 | Run record | `ExportRunEntity` / `ExportDefinitionRunEntity` | `ImportRunEntity` |
 | Audit | `AuditService.LogAsync` | same service, new action names |
-| Root-row semantics | N/A (read-only) | match-only — never auto-creates a root row |
+| Root-row semantics | N/A (read-only) | match-only, unless a connector-to-connector definition opts into `insert` (§9) |
 
 ## 4. Inbound flow
 
@@ -85,8 +86,8 @@ inbound/ folder on the connector host
                          walked against the saved ImportNode tree; malformed input is quarantined
                          (moved to inbound/rejected/), never partially processed
 3. Row mapping        — per record: resolve the correlation key against RootTable/RootMatchColumn;
-                         no match → quarantined per UnmatchedRootPolicy (reject | quarantine —
-                         never auto-create, see §2)
+                         no match → handled per UnmatchedRootPolicy (reject | quarantine |
+                         insert — insert only with an IntegrationKey, see §9)
 4. Row validation     — target columns checked against AllowedWritableColumns; FieldMapping data-type
                          coercion; every JoinKey on an object/array child must resolve to a real
                          parent row or the child is rejected
@@ -138,7 +139,7 @@ ImportDefinition                          (EF Core entity)
 │                                           re-checked at run time by the walker too — a stale saved
 │                                           definition is never trusted silently. Confirmation/status
 │                                           fields on the root only — see §2)
-├── UnmatchedRootPolicy     : reject | quarantine   (never "auto-create" — see §2)
+├── UnmatchedRootPolicy     : reject | quarantine | insert   (insert only with an IntegrationKey — §9)
 ├── IsEnabled               : bool
 ├── ConfigVersion           : int
 ├── IntegrationKey / ContractVersion      (see [Import Mapping Presets](/pipeline/import-mapping-presets.md))
@@ -270,16 +271,41 @@ preview and commit against the same transaction scope without opening two connec
 ## 8. Non-Goals
 
 * **No auto-creation of new root-level CIs from vendor data.** Matching against an existing row is
-  mandatory at the root — see §2. Only object/array *children* (e.g. a new SerialNumber row under
-  an existing CI) may be created, and only when a node's `OnMissingChild = insert`.
+  mandatory at the root for vendor files — see §2. Root rows are only created by a
+  connector-to-connector definition that opts into `insert` (§9).
+* **No hard deletes.** All deletes are soft deletes (a flag column), carried as ordinary field
+  updates when that column is in `AllowedWritableColumns`. Nothing in the import path issues a
+  `DELETE`.
 * **No live network write-back.** This stays file + air gap + human carry, just the reverse leg —
-  not an API the vendor calls directly.
+  not an API the vendor calls directly. The same holds between two connector instances (§9): the
+  file carry, or a one-way diode into `inbound/`, is the only transport.
 * **No scripting/expression engine for transforms.** Reuses the same closed `Transform` enum as
   export — no formula language.
 * **No generic bidirectional sync engine.** This is the vendor-confirmation return channel, not a
   symmetric System A ↔ System B replication tool.
 * **No multi-tenant / multi-vendor support.** One vendor return channel, as today's one vendor
   export target.
+
+## 9. Connector-to-connector alignment
+
+Two connector instances can align two air-gapped systems (decided in #217). Instance A exports with
+an export definition whose `TargetImportDefinition` names the import definition on instance B; the
+file is an `ImportEnvelope` and its manifest carries A's `Producer`. Instance B stages it like any
+inbound file: manifest and checksum check, rejection of B's own exports, the producer recorded on
+the run, four-eyes review before anything is written.
+
+* **Updates** work as for vendor files.
+* **Inserts:** `UnmatchedRootPolicy = insert` is accepted only on a definition with an
+  `IntegrationKey`. An unmatched record becomes a new root row: the root match column with the
+  correlation value plus every mapped root scalar field that has a value (a null is left to the
+  column default); object/array children are not inserted. The plan marks these operations
+  `IsInsert` and counts them in `InsertCount`. At release, an insert whose key already exists
+  counts as a conflict and is skipped. Values are converted to the column types by the dialect
+  (`ISqlDialect.BuildInsertRow`; on PostgreSQL via `json_populate_record`). A required column that
+  the mapping doesn't supply fails the release, which rolls back the whole run.
+* **Deletes** are soft deletes, carried as updates (§8).
+* **Two-way (A ↔ B)** is two independent one-way flows. Conflicts surface as ordinary release
+  conflicts; there is no last-writer-wins.
 
 ## Related
 

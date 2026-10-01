@@ -306,6 +306,7 @@ public sealed class ImportWorker(
             UnchangedCount = plan.UnchangedCount,
             RejectedCount = plan.RejectedCount,
             InvalidCount = plan.InvalidCount,
+            InsertCount = plan.InsertCount,
             PlanJson = ImportPlanJson.Serialize(plan),
             StagedConnectionFingerprint = DynamicExportService.ConnectionFingerprint(connCfg),
             Producer = producer,
@@ -336,6 +337,7 @@ public sealed class ImportWorker(
             "import_run_staged",
             $"id={run.Id} definition={definition.Name} matched={run.MatchedCount} changed={run.ChangedCount} "
                 + $"unchanged={run.UnchangedCount} rejected={run.RejectedCount} invalid={run.InvalidCount}"
+                + (run.InsertCount > 0 ? $" inserted={run.InsertCount}" : "")
                 + (producer is null ? "" : $" producer={producer}")
         );
         logger.LogInformation(

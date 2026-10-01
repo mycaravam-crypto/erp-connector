@@ -235,7 +235,8 @@ record ImportRunOperationDto(
     string KeyValue,
     string Column,
     string? ExpectedOldValue,
-    string? NewValue
+    string? NewValue,
+    bool IsInsert
 );
 
 /// <summary>Response for GET /api/import-runs/{id}: everything the review/diff view needs
@@ -265,7 +266,8 @@ record ImportRunDetailDto(
     string? ApprovedBy,
     string? ReleasedAt,
     IReadOnlyList<ImportRunOperationDto> Operations,
-    string? Producer
+    string? Producer,
+    int InsertCount
 );
 
 /// <summary>Body for POST/PUT /api/import-definitions — everything an operator
