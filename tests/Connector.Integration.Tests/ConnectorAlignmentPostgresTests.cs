@@ -1,3 +1,4 @@
+using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
 using Connector.Core.DynamicImport;
 using Connector.Infrastructure;
