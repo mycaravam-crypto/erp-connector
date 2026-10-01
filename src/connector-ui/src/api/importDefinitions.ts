@@ -128,6 +128,7 @@ export interface ImportDefinitionRun {
   operatedBy: string | null
   approvedBy: string | null
   releasedAt: string | null
+  insertCount: number
 }
 
 /** Response of GET /api/import-runs/{id} — everything the review/diff view needs before an Approver

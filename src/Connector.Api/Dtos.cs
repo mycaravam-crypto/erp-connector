@@ -394,5 +394,6 @@ record ImportDefinitionRunDto(
     string TriggeredBy,
     string? OperatedBy,
     string? ApprovedBy,
-    string? ReleasedAt
+    string? ReleasedAt,
+    int InsertCount
 );
