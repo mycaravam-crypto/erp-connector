@@ -27,6 +27,10 @@ public enum ImportRowStatus
     Rejected,
     Quarantined,
     Invalid,
+
+    /// <summary>Unmatched under <see cref="UnmatchedRootPolicy.Insert"/>: a new root row, whose
+    /// <see cref="ImportRowResult.Fields"/> hold every column to insert (old value null).</summary>
+    Inserted,
 }
 
 /// <summary>One <see cref="ImportNodeKind.Object"/>/<see cref="ImportNodeKind.Array"/> child's resolution

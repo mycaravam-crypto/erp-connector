@@ -266,7 +266,8 @@ public sealed class IntegrationKeyValidationTests
     private static ImportDefinitionRequest ImportRequest(
         string? integrationKey = null,
         int? contractVersion = null,
-        bool isEnabled = true
+        bool isEnabled = true,
+        string unmatchedRootPolicy = UnmatchedRootPolicy.Reject
     ) =>
         new(
             Name: "Test Import Definition",
@@ -275,11 +276,44 @@ public sealed class IntegrationKeyValidationTests
             RootMatchColumn: "id",
             RootNode: ImportRoot(ImportScalar("id", "id")),
             AllowedWritableColumns: [],
-            UnmatchedRootPolicy: UnmatchedRootPolicy.Reject,
+            UnmatchedRootPolicy: unmatchedRootPolicy,
             IsEnabled: isEnabled,
             IntegrationKey: integrationKey,
             ContractVersion: contractVersion
         );
+
+    [Fact]
+    public async Task Import_InsertPolicyWithoutIntegrationKey_Rejected()
+    {
+        await using var local = await LocalDb.NewAsync();
+        var request = ImportRequest(unmatchedRootPolicy: UnmatchedRootPolicy.Insert);
+
+        var (root, error) = await ImportDefinitionEndpoints.ValidateRequestAsync(
+            request,
+            local.Db,
+            Resolver,
+            CancellationToken.None
+        );
+
+        Assert.Null(root);
+        Assert.Contains("requires an IntegrationKey", error);
+    }
+
+    [Fact]
+    public async Task Import_UnknownUnmatchedRootPolicy_Rejected()
+    {
+        await using var local = await LocalDb.NewAsync();
+        var request = ImportRequest(unmatchedRootPolicy: "create");
+
+        var (_, error) = await ImportDefinitionEndpoints.ValidateRequestAsync(
+            request,
+            local.Db,
+            Resolver,
+            CancellationToken.None
+        );
+
+        Assert.Equal("UnmatchedRootPolicy must be one of: reject, quarantine, insert.", error);
+    }
 
     [Fact]
     public async Task Import_IntegrationKeyWithoutContractVersion_Rejected()

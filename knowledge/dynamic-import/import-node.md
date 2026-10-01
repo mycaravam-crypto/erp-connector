@@ -33,7 +33,7 @@ ImportNode
 to SQL where `ExportNode.TargetKey` writes to JSON. `OnMissingChild` has no export-side analogue —
 a write-only policy for what happens when an object/array child's `JoinKey` doesn't resolve to an
 existing row. **`OnMissingChild = "insert"` is only reachable for `array` children in principle**
-— root rows are always match-only (`UnmatchedRootPolicy` has no "insert" option at all, see below)
+— root rows are match-only unless a connector-to-connector definition sets `UnmatchedRootPolicy = "insert"`
 — and even there, the save-time validator (`ImportDefinitionEndpoints.ValidateNode`) rejects any
 node that sets it, enforcing the root-only confirmation-field scope at save time, not just by
 convention.
@@ -46,7 +46,7 @@ ImportDefinition
 │                                     same Guid exported today) must resolve against
 ├── RootNode           : ImportNode — the tree above
 ├── AllowedWritableColumns : string[]  — explicit allowlist (see below)
-├── UnmatchedRootPolicy    : "reject" | "quarantine"  — deliberately no "auto-create"
+├── UnmatchedRootPolicy    : "reject" | "quarantine" | "insert"  — insert only with an IntegrationKey
 ├── IntegrationKey     : string?  — set together with ContractVersion, or not at all (see below)
 └── ContractVersion    : int?
 ```

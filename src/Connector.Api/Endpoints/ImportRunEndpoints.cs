@@ -141,7 +141,8 @@ static class ImportRunEndpoints
                     o.KeyValue,
                     o.Column,
                     o.ExpectedOldValue,
-                    o.NewValue
+                    o.NewValue,
+                    o.IsInsert
                 ))
                 .ToList()
             ?? [];
@@ -168,7 +169,8 @@ static class ImportRunEndpoints
             r.ApprovedBy,
             r.ReleasedAt,
             operations,
-            r.Producer
+            r.Producer,
+            r.InsertCount
         );
     }
 

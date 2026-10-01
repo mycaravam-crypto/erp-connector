@@ -46,6 +46,49 @@ public sealed class ImportPlanBuilderTests
     }
 
     [Fact]
+    public void Build_InsertedRow_CountsAsInsertAndEmitsInsertOperations()
+    {
+        var inserted = new ImportRowResult(
+            "guid-new",
+            ImportRowStatus.Inserted,
+            null,
+            [new ImportFieldDiff("id", null, "guid-new"), new ImportFieldDiff("status", null, "active")],
+            []
+        );
+        var walkResult = new ImportWalkResult(2, 2, 0, [inserted, AcceptedRow("guid-1")]);
+
+        var plan = ImportPlanBuilder.Build(walkResult, RootTable, RootMatchColumn);
+
+        Assert.Equal(1, plan.InsertCount);
+        Assert.Equal(1, plan.MatchedCount);
+        Assert.Equal(1, plan.UnchangedCount);
+        Assert.Equal(2, plan.Operations.Count);
+        Assert.All(plan.Operations, op => Assert.True(op.IsInsert));
+        Assert.All(plan.Operations, op => Assert.Null(op.ExpectedOldValue));
+        Assert.All(plan.Operations, op => Assert.Equal("guid-new", op.KeyValue));
+    }
+
+    [Fact]
+    public void PlanJson_StoredBeforeInserts_ReadsAsUpdatesWithZeroInserts()
+    {
+        const string json = """
+            {
+              "RecordCount": 1, "MatchedCount": 1, "ChangedCount": 1, "UnchangedCount": 0,
+              "RejectedCount": 0, "InvalidCount": 0,
+              "Operations": [
+                { "CorrelationValue": "g", "Table": "t", "KeyColumn": "id", "KeyValue": "g",
+                  "Column": "status", "ExpectedOldValue": "a", "NewValue": "b" }
+              ]
+            }
+            """;
+
+        var plan = ImportPlanJson.Deserialize(json)!;
+
+        Assert.Equal(0, plan.InsertCount);
+        Assert.False(Assert.Single(plan.Operations).IsInsert);
+    }
+
+    [Fact]
     public void Build_AcceptedRowWithNoFieldDiff_CountsAsUnchangedAndEmitsNoOperation()
     {
         var walkResult = new ImportWalkResult(1, 1, 0, [AcceptedRow("guid-1")]);

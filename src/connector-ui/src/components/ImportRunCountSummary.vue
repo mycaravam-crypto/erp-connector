@@ -12,6 +12,7 @@ defineProps<{
   rejectedCount: number
   conflictCount: number
   invalidCount: number
+  insertCount?: number
 }>()
 </script>
 
@@ -24,6 +25,7 @@ defineProps<{
         <li><strong>Unchanged</strong> — matched, but the inbound value already equals what's in the ERP — nothing to write.</li>
         <li><strong>Rejected</strong> — no matching row was found (see this definition's "If unmatched" setting).</li>
         <li><strong>Conflicted</strong> — the ERP value changed after this run was staged, so it was left alone rather than overwritten with stale data.</li>
+        <li><strong>Inserted</strong> — no matching row existed and this definition creates one ("If unmatched: Insert").</li>
         <li><strong>Invalid</strong> — the record itself was malformed (missing/bad correlation value) and couldn't be evaluated at all.</li>
       </ul>
     </HelpTooltip>
@@ -33,6 +35,7 @@ defineProps<{
     <Badge variant="warning">{{ rejectedCount }} rejected</Badge>
     <Badge variant="warning">{{ conflictCount }} conflicted</Badge>
     <Badge variant="danger">{{ invalidCount }} invalid</Badge>
+    <Badge v-if="insertCount" variant="success">{{ insertCount }} inserted</Badge>
   </div>
   <p v-if="conflictCount > 0" class="text-xs text-warning mt-0 mb-3">
     Conflicted rows were excluded because the ERP value moved since this run was staged — they were

@@ -30,7 +30,7 @@ public sealed class ImportDefinitionEntity
     /// never be trusted silently.</summary>
     public string AllowedWritableColumns { get; set; } = "[]";
 
-    /// <summary>reject | quarantine — see <see cref="Connector.Core.DynamicImport.UnmatchedRootPolicy"/>.
+    /// <summary>reject | quarantine | insert — see <see cref="Connector.Core.DynamicImport.UnmatchedRootPolicy"/>.
     /// Deliberately has no "auto-create" option.</summary>
     public string UnmatchedRootPolicy { get; set; } = Connector.Core.DynamicImport.UnmatchedRootPolicy.Reject;
 
@@ -121,6 +121,11 @@ public sealed class ImportRunEntity
     public int ConflictCount { get; set; }
 
     public int InvalidCount { get; set; }
+
+    /// <summary>Root rows the plan inserts (<see cref="Connector.Core.DynamicImport.UnmatchedRootPolicy.Insert"/>);
+    /// not part of <see cref="MatchedCount"/>. An insert whose key exists by release time counts in
+    /// <see cref="ConflictCount"/> instead.</summary>
+    public int InsertCount { get; set; }
 
     /// <summary>A structured, versioned list of write operations (table, row-key, column, old value,
     /// new value, expected old value) — the write-side source of truth for this run. A UI diff is a

@@ -21,7 +21,10 @@ public sealed record ImportPlanOperation(
     string KeyValue,
     string Column,
     string? ExpectedOldValue,
-    string? NewValue
+    string? NewValue,
+    /// <summary>True when the row is inserted rather than updated (<see cref="UnmatchedRootPolicy.Insert"/>).
+    /// Defaults to false so a <c>PlanJson</c> stored before inserts existed reads unchanged.</summary>
+    bool IsInsert = false
 );
 
 /// <summary>
@@ -39,7 +42,10 @@ public sealed record ImportPlan(
     int UnchangedCount,
     int RejectedCount,
     int InvalidCount,
-    IReadOnlyList<ImportPlanOperation> Operations
+    IReadOnlyList<ImportPlanOperation> Operations,
+    /// <summary>Rows inserted under <see cref="UnmatchedRootPolicy.Insert"/>; not part of
+    /// <see cref="MatchedCount"/>.</summary>
+    int InsertCount = 0
 );
 
 /// <summary>

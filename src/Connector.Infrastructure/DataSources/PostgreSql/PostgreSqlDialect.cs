@@ -58,4 +58,26 @@ public sealed class PostgreSqlDialect : ISqlDialect
 
     public string BuildStringAggregate(string expression, string delimiter) =>
         $"string_agg({CastToText(expression)}, {QuoteStringLiteral(delimiter)})";
+
+    // One json parameter for the whole row: json_populate_record converts each text value with the target
+    // column's own input function, so a text value lands in a uuid/date/numeric column without per-column casts
+    // (a plain text parameter in VALUES would be rejected as "column is of type uuid but expression is of type
+    // text").
+    public string BuildInsertRow(
+        string table,
+        IReadOnlyList<string> columns,
+        IReadOnlyList<string?> values,
+        IDictionary<string, object?> parameters
+    )
+    {
+        var row = new JsonObject();
+        for (var i = 0; i < columns.Count; i++)
+            row[columns[i]] = values[i];
+        var name = BuildParameterName(parameters.Count);
+        parameters[name] = row.ToJsonString();
+        var columnList = string.Join(", ", columns.Select(QuoteIdentifier));
+        var quotedTable = QuoteIdentifier(table);
+        return $"INSERT INTO {quotedTable} ({columnList}) "
+            + $"SELECT {columnList} FROM json_populate_record(NULL::{quotedTable}, CAST({name} AS json))";
+    }
 }

@@ -106,6 +106,23 @@ public static class ImportNodeWalker
                 root,
                 ct
             );
+            if (
+                dbRow is null
+                && definition.UnmatchedRootPolicy == Connector.Core.DynamicImport.UnmatchedRootPolicy.Insert
+            )
+            {
+                rows.Add(
+                    new ImportRowResult(
+                        correlationValue,
+                        ImportRowStatus.Inserted,
+                        null,
+                        InsertFields(root, matchField, correlationValue, record),
+                        []
+                    )
+                );
+                accepted++;
+                continue;
+            }
             if (dbRow is null)
             {
                 rows.Add(
@@ -355,6 +372,30 @@ public static class ImportNodeWalker
             var oldValue = dbRow.GetValueOrDefault(child.TargetColumn!);
             if (!string.Equals(oldValue, newValue, StringComparison.Ordinal))
                 fields.Add(new ImportFieldDiff(child.TargetColumn!, oldValue, newValue));
+        }
+        return fields;
+    }
+
+    /// <summary>The columns of a new root row: the match column with the record's correlation value, plus every
+    /// other enabled root scalar field that has a value (a null is left to the column's default). Object/array
+    /// children are not inserted.</summary>
+    private static List<ImportFieldDiff> InsertFields(
+        ImportNode root,
+        ImportNode matchField,
+        string correlationValue,
+        JsonObject record
+    )
+    {
+        var fields = new List<ImportFieldDiff> { new(matchField.TargetColumn!, null, correlationValue) };
+        foreach (
+            var child in root.Children.Where(c =>
+                c.Enabled && c.Kind == ImportNodeKind.ScalarField && !ReferenceEquals(c, matchField)
+            )
+        )
+        {
+            var value = ReadScalarValue(record, child);
+            if (value is not null)
+                fields.Add(new ImportFieldDiff(child.TargetColumn!, null, value));
         }
         return fields;
     }
