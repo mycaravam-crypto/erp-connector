@@ -17,7 +17,10 @@ public sealed class ConnectorImportEnvelopeTests
     [Fact]
     public void BuildImportEnvelopeBytes_ProducesARoutableImportEnvelope()
     {
-        var records = new List<JsonObject> { new() { ["ciId"] = "abc", ["status"] = "active" } };
+        var records = new List<JsonObject>
+        {
+            new() { ["ciId"] = "abc", ["status"] = "active" },
+        };
 
         var bytes = DynamicExportService.BuildImportEnvelopeBytes(
             records,
