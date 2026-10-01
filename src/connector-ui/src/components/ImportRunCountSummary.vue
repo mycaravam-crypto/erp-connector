@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // The count breakdown for one import run — pulled out of ImportRunReviewDialog.vue
 // purely to keep that file's already-branchy template (loading/error/pending/terminal states) from
-// growing further; this piece itself has almost no branching of its own.
+// growing further; this piece itself has almost no branching of its own. `insertCount` is optional and only
+// shown when non-zero: rows created under UnmatchedRootPolicy "insert" (connector-to-connector imports).
 import Badge from '@/components/ui/Badge.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
