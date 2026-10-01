@@ -126,7 +126,8 @@ record ExportDefinitionRequest(
     string? Schedule,
     string? IntegrationKey = null,
     int? ContractVersion = null,
-    string? CorrelationKeySourceField = null
+    string? CorrelationKeySourceField = null,
+    string? TargetImportDefinition = null
 );
 
 /// <summary>Full view of a saved export definition, returned by GET/POST/PUT .../{id}.</summary>
@@ -146,7 +147,8 @@ record ExportDefinitionDto(
     string? UpdatedAt,
     string? IntegrationKey,
     int? ContractVersion,
-    string? CorrelationKeySourceField
+    string? CorrelationKeySourceField,
+    string? TargetImportDefinition
 );
 
 /// <summary>Lightweight list-view row for GET /api/export-definitions — omits RootNode, which can be

@@ -76,6 +76,7 @@ static class ExportDefinitionEndpoints
                         IntegrationKey = request.IntegrationKey,
                         ContractVersion = request.ContractVersion,
                         CorrelationKeySourceField = request.CorrelationKeySourceField,
+                        TargetImportDefinition = request.TargetImportDefinition,
                     };
                     db.ExportDefinitions.Add(entity);
                     await db.SaveChangesAsync(ct);
@@ -134,6 +135,7 @@ static class ExportDefinitionEndpoints
                     entity.IntegrationKey = request.IntegrationKey;
                     entity.ContractVersion = request.ContractVersion;
                     entity.CorrelationKeySourceField = request.CorrelationKeySourceField;
+                    entity.TargetImportDefinition = request.TargetImportDefinition;
                     await db.SaveChangesAsync(ct);
 
                     await audit.LogAsync(
@@ -199,6 +201,7 @@ static class ExportDefinitionEndpoints
                         RootTable = source.RootTable,
                         RootNode = source.RootNode,
                         OutputFormat = source.OutputFormat,
+                        TargetImportDefinition = source.TargetImportDefinition,
                         // A duplicate starts manual-only and disabled, same as a freshly migrated definition —
                         // an operator opts each copy into scheduling explicitly rather than silently doubling
                         // up whatever schedule the original ran on.
@@ -478,7 +481,8 @@ static class ExportDefinitionEndpoints
             e.UpdatedAt,
             e.IntegrationKey,
             e.ContractVersion,
-            e.CorrelationKeySourceField
+            e.CorrelationKeySourceField,
+            e.TargetImportDefinition
         );
 
     private static ExportDefinitionSummaryDto ToSummaryDto(ExportDefinitionEntity e) =>
@@ -613,6 +617,16 @@ static class ExportDefinitionEndpoints
             && !SqlIdentifierRegex.IsMatch(request.CorrelationKeySourceField)
         )
             return (null, "CorrelationKeySourceField must be a valid identifier.");
+        if (request.TargetImportDefinition is not null)
+        {
+            if (
+                string.IsNullOrWhiteSpace(request.TargetImportDefinition)
+                || ContainsControlCharacters(request.TargetImportDefinition)
+            )
+                return (null, "TargetImportDefinition must be non-empty and free of control characters.");
+            if (request.OutputFormat != "json")
+                return (null, "TargetImportDefinition requires OutputFormat json.");
+        }
         if (request.IsEnabled)
         {
             var pairError = await ValidateIntegrationKeyPairEnabledAsync(

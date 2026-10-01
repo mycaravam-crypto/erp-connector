@@ -7,7 +7,8 @@ import ExportScheduleField from '@/components/ExportScheduleField.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 
 // The export definition editor's basic settings: name, description, root table, output format, cron schedule,
-// enabled flag and the provenance fields (IntegrationKey, ContractVersion, CorrelationKeySourceField). Edits
+// enabled flag, the provenance fields (IntegrationKey, ContractVersion, CorrelationKeySourceField) and the
+// connector-to-connector target (TargetImportDefinition). Edits
 // `definition` in place; cleared optional inputs are stored as null, not ''.
 const props = defineProps<{
   /** The definition being edited; mutated in place. */
@@ -36,7 +37,7 @@ const contractVersionInput = computed<number | null>({
 // Plain v-model on a `string | null` field leaves a cleared input as '' rather than null — harmless for
 // free-text fields like Description, but IntegrationKey/ContractVersion must be null *together* (see the
 // save-time validator), so clearing one text field back to '' must mean "unset," not "set to empty string."
-function nullableTextInput(key: 'integrationKey' | 'correlationKeySourceField') {
+function nullableTextInput(key: 'integrationKey' | 'correlationKeySourceField' | 'targetImportDefinition') {
   return computed<string | null>({
     get: () => props.definition[key],
     set: (v) => {
@@ -46,6 +47,7 @@ function nullableTextInput(key: 'integrationKey' | 'correlationKeySourceField') 
 }
 const integrationKeyInput = nullableTextInput('integrationKey')
 const correlationKeySourceFieldInput = nullableTextInput('correlationKeySourceField')
+const targetImportDefinitionInput = nullableTextInput('targetImportDefinition')
 </script>
 
 <template>
@@ -195,6 +197,27 @@ const correlationKeySourceFieldInput = nullableTextInput('correlationKeySourceFi
         class="flex-1 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary font-mono bg-surface outline-none focus:border-brand"
       />
       <span class="text-xs text-text-muted">the root field name an inbound reply matches back against</span>
+    </div>
+  </div>
+
+  <!-- Connector-to-connector mode: the JSON output becomes an ImportEnvelope routed to this import
+       definition on the receiving connector instance. -->
+  <div class="flex flex-col gap-3 mt-5 pt-5 border-t border-border-strong">
+    <h3 class="m-0 text-sm font-semibold text-text-primary">Connector-to-connector (optional)</h3>
+    <p class="text-xs text-text-secondary m-0">
+      For a second connector instance on the other side of an air gap: the JSON file is written as an import
+      file for the named import job on that instance, so its inbound folder can stage it for review. JSON
+      output only.
+    </p>
+    <div class="flex items-center gap-2">
+      <label class="text-sm text-text-secondary w-36 shrink-0">Target import job</label>
+      <input
+        type="text"
+        v-model="targetImportDefinitionInput"
+        placeholder="name of the import job on the receiving instance"
+        aria-label="Target import job"
+        class="flex-1 px-2.5 py-1.5 border border-border-strong rounded-md text-sm text-text-primary font-mono bg-surface outline-none focus:border-brand"
+      />
     </div>
   </div>
 </template>

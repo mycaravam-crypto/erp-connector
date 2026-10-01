@@ -54,6 +54,11 @@ public sealed class ExportDefinitionEntity
     /// (e.g. "guid") — purely advisory metadata for <c>ImportMappingSuggestion</c>; does not
     /// change <see cref="Connector.Infrastructure.DynamicExportService"/>'s query building in any way.</summary>
     public string? CorrelationKeySourceField { get; set; }
+
+    /// <summary>Name of the import definition on a receiving connector instance. When set (JSON output only), the
+    /// file is written as an <c>ImportEnvelope</c> whose <c>definition</c> is this name, so that instance's
+    /// <see cref="ImportWorker"/> can stage it. Null means the normal export envelope.</summary>
+    public string? TargetImportDefinition { get; set; }
 }
 
 /// <summary>Status values for <see cref="ExportDefinitionRunEntity.Status"/>. Deliberately separate from

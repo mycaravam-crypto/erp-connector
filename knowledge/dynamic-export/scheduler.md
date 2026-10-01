@@ -42,6 +42,27 @@ have no sequence). The file name and SHA-256 are stored on the run row (`DataFil
 four-eyes release for definition files, and the daily retention cleanup deletes them like any
 other staging file.
 
+# Connector-to-connector output
+
+When a definition sets `TargetImportDefinition` (JSON output only, enforced at save time), its file
+is written as an `ImportEnvelope` instead of the export envelope:
+
+```json
+{
+  "schemaVersion": "1",
+  "definition": "<TargetImportDefinition>",
+  "generatedAt": "2026-10-01T06:00:00.0000000+00:00",
+  "provenance": { "integrationKey": "...", "contractVersion": 1, "configVersion": 3 },
+  "records": [ ... ]
+}
+```
+
+A second connector instance can drop this file, with its manifest, into its inbound folder:
+`ImportWorker` routes it by `definition` to that instance's import definition and stages it for
+four-eyes review as usual. `provenance` stays advisory and only appears when `IntegrationKey` is
+set. Record keys are the export tree's `TargetKey`s, so the receiving import definition's
+`SourceKey`s must match them.
+
 # CronSchedule — the cron matcher
 
 `CronSchedule.IsDue(schedule, utcNow)` is a small, purpose-built 5-field cron matcher (minute

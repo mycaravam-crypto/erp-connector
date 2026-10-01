@@ -18,6 +18,8 @@ public sealed class FileSystemExportSink(IOptions<ExportSinkOptions> options, IL
 {
     private readonly string _stagingPath = options.Value.StagingPath;
 
+    /// <summary>Writes the data file (via .tmp, then rename) and then its manifest to the staging path; on failure,
+    /// deletes any partial artifacts and throws <see cref="ExportSinkException"/>.</summary>
     public async Task WriteAsync(ExportPackage package, CancellationToken ct)
     {
         if (!Directory.Exists(_stagingPath))

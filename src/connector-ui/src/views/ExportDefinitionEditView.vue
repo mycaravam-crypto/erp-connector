@@ -49,6 +49,7 @@ function blankDefinition(): ExportDefinition {
     integrationKey: null,
     contractVersion: null,
     correlationKeySourceField: null,
+    targetImportDefinition: null,
   }
 }
 
@@ -124,6 +125,7 @@ async function create() {
       integrationKey: d.integrationKey,
       contractVersion: d.contractVersion,
       correlationKeySourceField: d.correlationKeySourceField,
+      targetImportDefinition: d.targetImportDefinition,
     })
     if (result.ok) {
       definition.value = result.data

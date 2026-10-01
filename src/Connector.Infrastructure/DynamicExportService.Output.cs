@@ -120,6 +120,36 @@ public static partial class DynamicExportService
     }
 
     /// <summary>
+    /// Writes records as an <c>ImportEnvelope</c> for another connector instance: <c>schemaVersion</c>
+    /// (<see cref="ImportNodeWalker.SupportedSchemaVersion"/>), <c>definition</c> (the receiving instance's import
+    /// definition, which routes the file), <c>generatedAt</c>, the optional advisory <c>provenance</c>, and
+    /// <c>records</c>.
+    /// </summary>
+    public static byte[] BuildImportEnvelopeBytes(
+        IReadOnlyList<JsonObject> records,
+        string importDefinition,
+        DateTimeOffset extractedAt,
+        ExportProvenance? provenance
+    )
+    {
+        var envelope = new JsonObject
+        {
+            ["schemaVersion"] = ImportNodeWalker.SupportedSchemaVersion,
+            ["definition"] = importDefinition,
+            ["generatedAt"] = extractedAt.ToString("O"),
+        };
+        if (provenance is not null)
+            envelope["provenance"] = new JsonObject
+            {
+                ["integrationKey"] = provenance.IntegrationKey,
+                ["contractVersion"] = provenance.ContractVersion,
+                ["configVersion"] = provenance.ConfigVersion,
+            };
+        envelope["records"] = new JsonArray(records.Select(r => (JsonNode?)r.DeepClone()).ToArray());
+        return JsonSerializer.SerializeToUtf8Bytes(envelope, new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    /// <summary>
     /// Writes flat records to a one-sheet .xlsx workbook: a metadata row (schema version, extraction time), a
     /// header row, then one row per record. Columns whose values are yyyy-MM-dd dates become real date cells;
     /// every other cell is stored as text so Excel doesn't reinterpret it.
