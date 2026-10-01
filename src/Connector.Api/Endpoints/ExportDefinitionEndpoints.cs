@@ -342,6 +342,7 @@ static class ExportDefinitionEndpoints
                         triggeredBy: user,
                         isTestRun: false,
                         limit: null,
+                        sink: null,
                         ct
                     );
 
@@ -400,6 +401,7 @@ static class ExportDefinitionEndpoints
                         triggeredBy: user,
                         isTestRun: true,
                         limit: TestRunLimit,
+                        sink: null,
                         ct
                     );
 
@@ -448,7 +450,9 @@ static class ExportDefinitionEndpoints
                             r.RecordCount,
                             r.ErrorMessage,
                             r.TriggeredBy,
-                            r.IsTestRun
+                            r.IsTestRun,
+                            r.DataFileName,
+                            r.Sha256
                         ))
                         .ToListAsync(ct);
                     return Results.Ok(runs);

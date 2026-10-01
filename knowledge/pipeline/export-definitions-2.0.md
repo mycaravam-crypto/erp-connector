@@ -147,7 +147,10 @@ extends the existing recursive component and schema-introspection panel.
 
 `run`/`test`/`preview` on an `ExportDefinition` deliberately skip `ExportRunEntity`/
 `FileSystemExportSink`/four-eyes — those model the legacy staging contract specifically, out of
-scope for generic definitions (§6). `run` executes synchronously and returns the built artifact
+scope for generic definitions (§6). Scheduled runs are the exception for `FileSystemExportSink`
+only: they write their file and manifest to the staging folder (see
+[Scheduler](/dynamic-export/scheduler.md#staging-output)), still without `ExportRunEntity` or
+four-eyes. `run` executes synchronously and returns the built artifact
 directly in the HTTP response — usable as a one-shot trigger from an external program. `test`
 shares that exact path (capped at 50 rows, flagged `IsTestRun`) but returns the tracked run row as
 JSON instead of bytes, since its purpose is config validation. `preview` stays the lighter,

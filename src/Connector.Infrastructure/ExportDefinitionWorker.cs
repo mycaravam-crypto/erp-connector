@@ -13,10 +13,14 @@ namespace Connector.Infrastructure;
 /// <see cref="ExportDefinitionEntity.Schedule"/> cron is due this minute, via the same
 /// <see cref="ExportDefinitionRunner"/> path manual run/test already use — so a scheduled run and a manual
 /// "Run Now" are indistinguishable in <see cref="ExportDefinitionRunEntity"/> history except for
-/// <see cref="ExportDefinitionRunEntity.TriggeredBy"/>.
+/// <see cref="ExportDefinitionRunEntity.TriggeredBy"/> and the staged file: only a scheduled run writes its file
+/// and manifest to the staging folder (<see cref="FileSystemExportSink"/>).
 /// </summary>
-public sealed class ExportDefinitionWorker(IServiceScopeFactory scopeFactory, ILogger<ExportDefinitionWorker> logger)
-    : BackgroundService
+public sealed class ExportDefinitionWorker(
+    IServiceScopeFactory scopeFactory,
+    FileSystemExportSink sink,
+    ILogger<ExportDefinitionWorker> logger
+) : BackgroundService
 {
     /// <summary>Marks a scheduler-triggered run in <see cref="ExportDefinitionRunEntity.TriggeredBy"/>,
     /// distinguishing it from a username on a manual run/test.</summary>
@@ -78,6 +82,7 @@ public sealed class ExportDefinitionWorker(IServiceScopeFactory scopeFactory, IL
                         triggeredBy: SchedulerTriggeredBy,
                         isTestRun: false,
                         limit: null,
+                        sink,
                         ct
                     );
 
