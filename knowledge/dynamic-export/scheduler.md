@@ -31,6 +31,17 @@ each tick:
 A definition whose own run throws (or takes a long time) doesn't stop the rest of the tick — each
 run is wrapped independently.
 
+# Staging output
+
+A scheduled run writes its file to the staging folder through `FileSystemExportSink`, named
+`<definition name>_<yyyyMMddTHHmmssZ>.<ext>`, with a `.manifest.json` beside it (see
+[ExportManifest](/domain/export-manifest.md); `SequenceNumber` is null, since definition runs
+have no sequence). The file name and SHA-256 are stored on the run row (`DataFileName`,
+`Sha256`) and returned by `GET .../{id}/runs`. A failed staging write fails the run. Manual
+`run` and `test` never write to staging: `run` returns the file as a download. There is no
+four-eyes release for definition files, and the daily retention cleanup deletes them like any
+other staging file.
+
 # CronSchedule — the cron matcher
 
 `CronSchedule.IsDue(schedule, utcNow)` is a small, purpose-built 5-field cron matcher (minute

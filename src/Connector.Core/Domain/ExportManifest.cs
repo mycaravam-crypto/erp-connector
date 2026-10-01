@@ -5,8 +5,9 @@ namespace Connector.Core.Domain;
 /// return channel — the sequence number exposes gaps (e.g. a jump from #41 to #43).
 /// </summary>
 public sealed record ExportManifest(
-    /// <summary>Monotonically increasing, starting at 1. Gaps indicate lost exports.</summary>
-    int SequenceNumber,
+    /// <summary>Monotonically increasing, starting at 1. Gaps indicate lost exports. Null for an export-definition
+    /// run, which has no sequence.</summary>
+    int? SequenceNumber,
     /// <summary>Schema version in MAJOR.MINOR format. Breaking changes increment MAJOR.</summary>
     string SchemaVersion,
     /// <summary>Time of the ERP extraction run (UTC).</summary>

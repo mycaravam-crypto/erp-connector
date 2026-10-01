@@ -81,6 +81,9 @@ export interface ExportDefinitionRun {
   errorMessage: string | null
   triggeredBy: string
   isTestRun: boolean
+  /** Staged data file (with its manifest) — set only for a scheduled run. */
+  dataFileName: string | null
+  sha256: string | null
 }
 
 /** Response of POST /api/export-definitions/{id}/preview — capped, untracked, no history row written. */

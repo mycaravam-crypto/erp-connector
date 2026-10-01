@@ -88,4 +88,11 @@ public sealed class ExportDefinitionRunEntity
     /// <summary>True for a capped preview/test run (50-row test cap) — kept out of
     /// normal execution-history summaries the same way a dry run shouldn't count as a real export.</summary>
     public bool IsTestRun { get; set; }
+
+    /// <summary>Data file written to the staging folder, with its manifest. Set only for a scheduled run; a manual
+    /// run returns the file as a download instead.</summary>
+    public string? DataFileName { get; set; }
+
+    /// <summary>SHA-256 of <see cref="DataFileName"/> (hex, lowercase), as written to its manifest.</summary>
+    public string? Sha256 { get; set; }
 }

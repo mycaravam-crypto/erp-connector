@@ -194,7 +194,9 @@ record ExportDefinitionRunDto(
     int RecordCount,
     string? ErrorMessage,
     string TriggeredBy,
-    bool IsTestRun
+    bool IsTestRun,
+    string? DataFileName,
+    string? Sha256
 );
 
 /// <summary>Response for POST .../preview: capped, tree-shaped rows for on-screen inspection — never

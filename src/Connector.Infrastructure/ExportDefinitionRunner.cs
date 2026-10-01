@@ -1,5 +1,7 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using Connector.Core.DataSources;
+using Connector.Core.Domain;
 using Connector.Core.DynamicExport;
 using Connector.Core.Schema;
 
@@ -17,8 +19,9 @@ public static class ExportDefinitionRunner
     /// <summary>
     /// Runs <paramref name="def"/> once: inserts a Running history row, builds the export from its node tree
     /// against the configured connection (GDPR denylist and provenance tag applied), then finalizes the row as
-    /// Success or Failed (a build returning 0 records counts as Failed). A failure is returned as <c>Error</c>
-    /// with <c>Built</c> null rather than thrown; only cancellation propagates.
+    /// Success or Failed (a build returning 0 records counts as Failed). With a <paramref name="sink"/>, the file and
+    /// its manifest are also written to the staging folder, and a failed write fails the run. A failure is returned
+    /// as <c>Error</c> with <c>Built</c> null rather than thrown; only cancellation propagates.
     /// </summary>
     public static async Task<(
         ExportDefinitionRunEntity Run,
@@ -31,6 +34,7 @@ public static class ExportDefinitionRunner
         string triggeredBy,
         bool isTestRun,
         int? limit,
+        FileSystemExportSink? sink,
         CancellationToken ct
     )
     {
@@ -98,6 +102,23 @@ public static class ExportDefinitionRunner
 
             if (built.RecordCount == 0)
                 return await Fail("Export returned 0 records.");
+
+            if (sink is not null)
+            {
+                var fileName = DynamicExportService.BuildNamedFileName(def.Name, extractedAt, built.Extension);
+                var checksum = Convert.ToHexString(SHA256.HashData(built.Bytes)).ToLowerInvariant();
+                var manifest = new ExportManifest(
+                    SequenceNumber: null,
+                    ExportSchema.Version,
+                    extractedAt,
+                    built.RecordCount,
+                    checksum,
+                    await db.GetProducerAsync()
+                );
+                await sink.WriteAsync(new ExportPackage(manifest, built.Bytes, fileName), ct);
+                run.DataFileName = fileName;
+                run.Sha256 = checksum;
+            }
 
             run.Status = ExportDefinitionRunStatus.Success;
             run.RecordCount = built.RecordCount;

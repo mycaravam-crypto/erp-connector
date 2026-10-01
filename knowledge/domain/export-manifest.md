@@ -14,7 +14,7 @@ integrity and detect lost exports (sequence gaps) without a back-channel.
 
 | Field             | Type           | Description                                                         |
 |-------------------|----------------|---------------------------------------------------------------------|
-| `SequenceNumber`  | int            | Monotonically increasing from 1. Gaps signal lost exports.          |
+| `SequenceNumber`  | int?           | Monotonically increasing from 1. Gaps signal lost exports. Null for an export-definition run. |
 | `SchemaVersion`   | string         | Schema version in `MAJOR.MINOR` format. Breaking changes bump MAJOR.|
 | `ExtractedAt`     | DateTimeOffset | UTC timestamp of the ERP read.                                      |
 | `RecordCount`     | int            | Number of records in the data file. Must match actual row count.    |
