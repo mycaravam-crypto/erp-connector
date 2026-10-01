@@ -30,6 +30,34 @@ public sealed class PostgreSqlDialectTests
     }
 
     [Fact]
+    public void BuildSetClause_AssignsColumnsFromOneJsonParameter()
+    {
+        var parameters = new Dictionary<string, object?> { ["@p0"] = "taken" };
+
+        var sql = Dialect.BuildSetClause("t", ["d", "s"], ["2026-10-01", null], parameters);
+
+        Assert.Equal(
+            "(\"d\", \"s\") = (SELECT \"d\", \"s\" FROM json_populate_record(NULL::\"t\", CAST(@p1 AS json)))",
+            sql
+        );
+        Assert.Equal("""{"d":"2026-10-01","s":null}""", parameters["@p1"]);
+    }
+
+    [Fact]
+    public void BuildInsertRow_SelectsColumnsFromOneJsonParameter()
+    {
+        var parameters = new Dictionary<string, object?>();
+
+        var sql = Dialect.BuildInsertRow("t", ["id"], ["abc"], parameters);
+
+        Assert.Equal(
+            "INSERT INTO \"t\" (\"id\") SELECT \"id\" FROM json_populate_record(NULL::\"t\", CAST(@p0 AS json))",
+            sql
+        );
+        Assert.Equal("""{"id":"abc"}""", parameters["@p0"]);
+    }
+
+    [Fact]
     public void BuildLimit_RendersLimitClause() => Assert.Equal("LIMIT 500001", Dialect.BuildLimit(500_001));
 
     [Fact]

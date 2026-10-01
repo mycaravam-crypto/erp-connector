@@ -61,9 +61,9 @@ public sealed class PostgreSqlDialect : ISqlDialect
 
     // One json parameter for the whole row: json_populate_record converts each text value with the target
     // column's own input function, so a text value lands in a uuid/date/numeric column without per-column casts
-    // (a plain text parameter in VALUES would be rejected as "column is of type uuid but expression is of type
-    // text").
-    public string BuildInsertRow(
+    // (a plain text parameter would be rejected as "column is of type uuid but expression is of type text").
+    // Shared by the SET and INSERT forms below.
+    private string PopulateRecord(
         string table,
         IReadOnlyList<string> columns,
         IReadOnlyList<string?> values,
@@ -75,9 +75,27 @@ public sealed class PostgreSqlDialect : ISqlDialect
             row[columns[i]] = values[i];
         var name = BuildParameterName(parameters.Count);
         parameters[name] = row.ToJsonString();
-        var columnList = string.Join(", ", columns.Select(QuoteIdentifier));
-        var quotedTable = QuoteIdentifier(table);
-        return $"INSERT INTO {quotedTable} ({columnList}) "
-            + $"SELECT {columnList} FROM json_populate_record(NULL::{quotedTable}, CAST({name} AS json))";
+        var record = $"json_populate_record(NULL::{QuoteIdentifier(table)}, CAST({name} AS json))";
+        return $"SELECT {ColumnList(columns)} FROM {record}";
+    }
+
+    private string ColumnList(IReadOnlyList<string> columns) => string.Join(", ", columns.Select(QuoteIdentifier));
+
+    public string BuildSetClause(
+        string table,
+        IReadOnlyList<string> columns,
+        IReadOnlyList<string?> values,
+        IDictionary<string, object?> parameters
+    ) => $"({ColumnList(columns)}) = ({PopulateRecord(table, columns, values, parameters)})";
+
+    public string BuildInsertRow(
+        string table,
+        IReadOnlyList<string> columns,
+        IReadOnlyList<string?> values,
+        IDictionary<string, object?> parameters
+    )
+    {
+        var select = PopulateRecord(table, columns, values, parameters);
+        return $"INSERT INTO {QuoteIdentifier(table)} ({ColumnList(columns)}) {select}";
     }
 }

@@ -35,6 +35,16 @@ public sealed class ImportRunReleaserPostgresTests
         return result as string;
     }
 
+    private static async Task<string?> ReadCommissionDateAsync(NpgsqlConnection conn, string ciId)
+    {
+        await using var cmd = new NpgsqlCommand(
+            "SELECT commission_date::text FROM systemconfiguration WHERE id::text = @id",
+            conn
+        );
+        cmd.Parameters.AddWithValue("id", ciId);
+        return await cmd.ExecuteScalarAsync() as string;
+    }
+
     private static async Task ResetStatusAsync(NpgsqlConnection conn, string ciId, string status = "active")
     {
         await using var cmd = new NpgsqlCommand(
@@ -210,6 +220,50 @@ public sealed class ImportRunReleaserPostgresTests
         finally
         {
             await ResetStatusAsync(erp, FixtureC);
+        }
+    }
+
+    [Fact]
+    public async Task ReleaseAsync_UpdateOfDateAndTextColumns_ConvertsToColumnTypes()
+    {
+        await using var erp = await ErpTestFixture.TryOpenAsync();
+        if (erp is null)
+            return;
+
+        await using var local = await LocalDb.NewAsync();
+        var db = local.Db;
+        var audit = new AuditService(db, NullLogger<AuditService>.Instance);
+
+        try
+        {
+            // commission_date is a date column: a text-typed SET value used to be rejected by PostgreSQL
+            // ("column is of type date but expression is of type text") and roll back the whole run.
+            static ImportPlanOperation Op(string column, string old, string value) =>
+                new(FixtureA, "systemconfiguration", "id", FixtureA, column, old, value);
+
+            ImportPlanOperation[] operations =
+            [
+                Op("status", "active", "confirmed"),
+                Op("commission_date", "2024-01-01", "2026-10-01"),
+            ];
+            var plan = new ImportPlan(1, 1, 1, 0, 0, 0, operations);
+            var run = await SeedRunAsync(db, plan, new string('d', 64));
+
+            await ImportRunReleaser.ReleaseAsync(db, run, "alice", "bob", audit, Resolver, CancellationToken.None);
+
+            Assert.Equal(ImportRunStatus.Released, run.Status);
+            Assert.Equal(0, run.ConflictCount);
+            Assert.Equal("confirmed", await ReadStatusAsync(erp, FixtureA));
+            Assert.Equal("2026-10-01", await ReadCommissionDateAsync(erp, FixtureA));
+        }
+        finally
+        {
+            await using var restore = new NpgsqlCommand(
+                "UPDATE systemconfiguration SET status = 'active', commission_date = '2024-01-01' WHERE id::text = @id",
+                erp
+            );
+            restore.Parameters.AddWithValue("id", FixtureA);
+            await restore.ExecuteNonQueryAsync();
         }
     }
 
