@@ -15,7 +15,8 @@ public record SourceColumn(
     string? ForeignKeyTable = null,
     string? ForeignKeyColumn = null,
     bool IsIdentity = false,
-    bool IsGenerated = false
+    bool IsGenerated = false,
+    bool HasDefault = false
 );
 
 /// <summary>One table of a <see cref="SourceSchema"/>.</summary>

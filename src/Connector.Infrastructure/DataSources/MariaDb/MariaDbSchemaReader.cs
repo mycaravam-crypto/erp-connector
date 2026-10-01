@@ -1,3 +1,4 @@
+using System.Globalization;
 using Connector.Core.DataSources;
 using MySqlConnector;
 
@@ -43,7 +44,8 @@ public static class MariaDbSchemaReader
                   AND fk.COLUMN_NAME = c.COLUMN_NAME
                 ORDER BY fk.CONSTRAINT_NAME
                 LIMIT 1
-            ) AS FK_COLUMN
+            ) AS FK_COLUMN,
+            c.COLUMN_DEFAULT IS NOT NULL AND c.COLUMN_DEFAULT <> 'NULL' AS HAS_DEFAULT
         FROM information_schema.COLUMNS c
         JOIN information_schema.TABLES t
             ON t.TABLE_SCHEMA = c.TABLE_SCHEMA AND t.TABLE_NAME = c.TABLE_NAME
@@ -74,7 +76,8 @@ public static class MariaDbSchemaReader
                     ForeignKeyTable: await reader.IsDBNullAsync(6, ct) ? null : reader.GetString(6),
                     ForeignKeyColumn: await reader.IsDBNullAsync(7, ct) ? null : reader.GetString(7),
                     IsIdentity: extra.Contains("auto_increment", StringComparison.OrdinalIgnoreCase),
-                    IsGenerated: extra.Contains("GENERATED", StringComparison.OrdinalIgnoreCase)
+                    IsGenerated: extra.Contains("GENERATED", StringComparison.OrdinalIgnoreCase),
+                    HasDefault: Convert.ToInt64(reader.GetValue(8), CultureInfo.InvariantCulture) != 0
                 )
             );
         }

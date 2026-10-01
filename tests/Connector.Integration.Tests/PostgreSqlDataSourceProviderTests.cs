@@ -167,6 +167,10 @@ public sealed class PostgreSqlDataSourceProviderTests
         // status_upper is `GENERATED ALWAYS AS (upper(status)) STORED` — exercises the IsGenerated mapping.
         var statusUpper = Assert.Single(systemconfiguration.Columns, c => c.Name == "status_upper");
         Assert.True(statusUpper.IsGenerated);
+
+        // id is `uuid DEFAULT gen_random_uuid()`; status has no default — exercises the HasDefault mapping.
+        Assert.True(Assert.Single(systemconfiguration.Columns, c => c.Name == "id").HasDefault);
+        Assert.False(Assert.Single(systemconfiguration.Columns, c => c.Name == "status").HasDefault);
     }
 
     // ── ExecuteNativeAsync ──────────────────────────────────────────────────────────────

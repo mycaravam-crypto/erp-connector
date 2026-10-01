@@ -129,7 +129,8 @@ public sealed class PostgreSqlDataSourceProvider : ISqlDataSourceProvider
                       AND tc.table_name      = c.table_name
                 ) AS is_pk,
                 fk.foreign_table_name,
-                fk.foreign_column_name
+                fk.foreign_column_name,
+                c.column_default IS NOT NULL AS has_default
             FROM information_schema.columns c
             LEFT JOIN LATERAL (
                 SELECT ccu.table_name AS foreign_table_name, ccu.column_name AS foreign_column_name
@@ -170,7 +171,8 @@ public sealed class PostgreSqlDataSourceProvider : ISqlDataSourceProvider
                         ForeignKeyColumn: await reader.IsDBNullAsync(8, ct) ? null : reader.GetString(8),
                         IsIdentity: reader.GetString(4) == "YES",
                         // "ALWAYS" (GENERATED ALWAYS AS ... STORED) or "NEVER" — never NULL for a real column.
-                        IsGenerated: reader.GetString(5) != "NEVER"
+                        IsGenerated: reader.GetString(5) != "NEVER",
+                        HasDefault: reader.GetBoolean(9)
                     )
                 );
         }

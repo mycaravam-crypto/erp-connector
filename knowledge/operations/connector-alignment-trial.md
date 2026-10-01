@@ -18,7 +18,7 @@ schema).
 2. **Instance B — import definition.** Root table and match column on B's system; map every column A sends.
    Writable columns include the soft-delete flag if deletes should carry over. Set an integration key and
    contract version; choose *If unmatched: Insert* if B should receive new records. Every `NOT NULL` column
-   without a default must be mapped, or the release fails.
+   without a default must be mapped; saving the definition names any that are missing.
 3. **Instance A — export definition.** JSON output; the same integration key and contract version;
    *Target import job* = the name of B's import definition; a schedule.
 

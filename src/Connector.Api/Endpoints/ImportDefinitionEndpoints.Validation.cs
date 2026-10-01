@@ -145,14 +145,60 @@ static partial class ImportDefinitionEndpoints
         }
 
         var schemaByTable = schema.ToDictionary(t => t.Name, StringComparer.OrdinalIgnoreCase);
+        var schemaError = ValidateAgainstSchema(request, root, targets, allowedColumns, schemaByTable);
+        return schemaError is null ? (root, null) : (null, schemaError);
+    }
+
+    // The schema-aware pass: every writable target, then (for an insert-enabled definition) the root table's
+    // required columns. Split out of ValidateRequestAsync to keep its cognitive complexity down.
+    private static string? ValidateAgainstSchema(
+        ImportDefinitionRequest request,
+        ImportNode root,
+        List<(string Table, string Column, string Path)> targets,
+        IReadOnlySet<string> allowedColumns,
+        IReadOnlyDictionary<string, SourceTable> schemaByTable
+    )
+    {
         foreach (var (table, column, path) in targets)
         {
             var targetError = ValidateTargetAgainstSchema(table, column, path, allowedColumns, schemaByTable);
             if (targetError is not null)
-                return (null, targetError);
+                return targetError;
         }
 
-        return (root, null);
+        return request.UnmatchedRootPolicy == UnmatchedRootPolicy.Insert
+            ? ValidateInsertCoversRequiredColumns(request.RootTable, request.RootMatchColumn, root, schemaByTable)
+            : null;
+    }
+
+    // An inserted root row sets only the root match column and the enabled root scalar fields (see
+    // ImportNodeWalker). A NOT NULL column without a default that none of them covers would fail every insert at
+    // release time, after four-eyes review, and roll back the whole run — so it is rejected here instead.
+    private static string? ValidateInsertCoversRequiredColumns(
+        string rootTable,
+        string rootMatchColumn,
+        ImportNode root,
+        IReadOnlyDictionary<string, SourceTable> schemaByTable
+    )
+    {
+        if (!schemaByTable.TryGetValue(rootTable, out var table))
+            return $"Table '{rootTable}' was not found in the introspected ERP schema.";
+
+        var covered = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { rootMatchColumn };
+        foreach (var child in root.Children.Where(c => c.Enabled && c.Kind == ImportNodeKind.ScalarField))
+            covered.Add(child.TargetColumn!);
+
+        var missing = new List<string>();
+        foreach (var column in table.Columns)
+        {
+            var required = !column.Nullable && !column.HasDefault && !column.IsIdentity && !column.IsGenerated;
+            if (required && !covered.Contains(column.Name))
+                missing.Add(column.Name);
+        }
+        if (missing.Count == 0)
+            return null;
+        return $"UnmatchedRootPolicy '{UnmatchedRootPolicy.Insert}' creates new '{rootTable}' rows, but these "
+            + $"required columns (NOT NULL, no default) are not mapped: {string.Join(", ", missing)}.";
     }
 
     // One (table, column) writable-target check — split out of ValidateRequestAsync purely to keep that
