@@ -94,6 +94,14 @@ jobs:
       - name: Build (Release — warnings treated as errors)
         run: dotnet build Connector.sln -c Release --no-restore
 
+      - name: Check EF migrations match the model
+        # Exits non-zero when the model has changes no migration covers (e.g. a hand-written migration or
+        # snapshot that drifted from the entity classes).
+        run: >-
+          dotnet ef migrations has-pending-model-changes
+          --project src/Connector.Infrastructure --startup-project src/Connector.Api
+          --configuration Release --no-build
+
       - name: Test
         run: dotnet test Connector.sln -c Release --no-build --verbosity normal
 

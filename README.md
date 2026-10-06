@@ -365,7 +365,8 @@ dotnet csharpier .            # apply formatting
 cd src/connector-ui && npm run check:fallow   # dead code, duplication and complexity checks for the UI
 ```
 
-GitHub Actions runs the format check, the Release build and the full test suite, with PostgreSQL
+GitHub Actions runs the format check, the Release build, a check that the EF migrations cover the
+model, and the full test suite, with PostgreSQL
 and MariaDB service containers, on every push and pull request to `main`.
 
 Security scans (`.github/workflows/security.yml`) run on the same triggers and weekly: gitleaks for
@@ -375,11 +376,21 @@ vulnerabilities, and Dependabot keeps actions, packages and base images up to da
 
 ### Adding a migration
 
+`dotnet-ef` is pinned in the local tool manifest (`dotnet tool restore`).
+
 ```bash
 dotnet ef migrations add <MigrationName> \
   --project src/Connector.Infrastructure \
   --startup-project src/Connector.Api \
   --context ExportLogDbContext
+```
+
+CI fails when the model has changes no migration covers. Run the same check locally:
+
+```bash
+dotnet ef migrations has-pending-model-changes \
+  --project src/Connector.Infrastructure \
+  --startup-project src/Connector.Api
 ```
 
 ### Versioning
