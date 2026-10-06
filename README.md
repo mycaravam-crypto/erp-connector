@@ -286,7 +286,8 @@ A typical first-time setup follows the workflow in the navigation:
 For several independent or nested exports, use **Export Definitions**. Each definition has its
 own output tree, format and schedule. **Import Definitions** configure the way back from the
 vendor. The **Audit** page shows every action, and **Settings** covers the scheduler, the GDPR
-denylist and branding.
+denylist, branding and this connector's instance ID (which can be regenerated on an installation
+set up from a copy of another's database).
 
 ---
 
@@ -312,7 +313,7 @@ curl -X POST http://localhost:8090/api/auth/login \
 | Export definitions | CRUD on `export-definitions`, plus `/{id}/duplicate`, `/enable`, `/preview`, `/test`, `/run`, `/runs` |
 | Import definitions | CRUD on `import-definitions`, plus `/{id}/duplicate`, `/enable`, `/preview`, `/runs`, and `suggest-from-export` |
 | Import runs | `GET import-runs/{id}`, `POST import-runs/{id}/release\|reject` |
-| Settings | `GET/PUT settings/scheduler`, `GET/PATCH gdpr-denied-fields`, `GET/PUT branding` |
+| Settings | `GET/PUT settings/scheduler`, `GET/PATCH gdpr-denied-fields`, `GET/PUT branding`, `GET settings/instance`, `POST settings/instance/regenerate` |
 | Reference | `GET schema` (ICD column contract, read-only) |
 
 The request and response formats are described in [`knowledge/api/`](knowledge/api/index.md).
