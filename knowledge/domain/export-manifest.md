@@ -24,7 +24,11 @@ integrity and detect lost exports (sequence gaps) without a back-channel.
 `Producer.InstanceId` is a random GUID created on first start and kept in the `AppSetting` table
 (`instance_id`), so it stays the same across restarts and upgrades. It lets a receiving connector
 tell another connector's export apart from a vendor file, and two instances apart from each other.
-A restored database backup keeps its id, so a cloned installation shares it.
+A restored database backup keeps its id, so a cloned installation shares it. On the copy, an
+authenticated user regenerates the id in Settings → Connector Instance
+(`POST /api/settings/instance/regenerate`, audit action `instance_id_regenerated`). The old id is
+kept in `retired_instance_ids`, so this installation's earlier exports are still rejected as its own;
+a paired instance sees the new id as the producer of every later export.
 
 # Distribution
 

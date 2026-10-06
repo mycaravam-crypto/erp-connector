@@ -12,7 +12,7 @@ import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 
 // /settings: loads and shows the three settings forms (managed-export scheduler, GDPR denylist, branding) and
-// this connector's read-only instance identity.
+// this connector's instance identity.
 const loading = ref(true)
 const loadError = ref<string | null>(null)
 
@@ -57,7 +57,7 @@ onMounted(async () => {
         </p>
         <p>
           <strong>Connector Instance</strong> shows this installation's ID, which identifies its exports
-          to other connector instances.
+          to other connector instances, and can regenerate it for a copy of another installation.
         </p>
       </HelpTooltip>
     </template>
@@ -74,6 +74,6 @@ onMounted(async () => {
     <hr class="my-10 border-border" />
     <BrandingSettingsForm :config="brandingConfig" />
     <hr class="my-10 border-border" />
-    <ConnectorInstanceInfo :instance="instance" />
+    <ConnectorInstanceInfo v-model:instance="instance" />
   </template>
 </template>
