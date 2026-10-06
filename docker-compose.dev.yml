@@ -12,7 +12,7 @@
 # prefixed per-service (api/ui/testdb) — that's the "single log" to watch.
 services:
   api:
-    image: mcr.microsoft.com/dotnet/sdk:9.0-alpine
+    image: mcr.microsoft.com/dotnet/sdk:10.0-alpine
     working_dir: /app
     command: sh -c "cd src/Connector.Api && dotnet watch run --urls http://+:5189"
     environment:

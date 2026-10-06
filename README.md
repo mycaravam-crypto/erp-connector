@@ -3,7 +3,7 @@
 [![CI](https://github.com/mycaravam-crypto/erp-connector/actions/workflows/ci.yml/badge.svg)](https://github.com/mycaravam-crypto/erp-connector/actions/workflows/ci.yml)
 [![Security](https://github.com/mycaravam-crypto/erp-connector/actions/workflows/security.yml/badge.svg)](https://github.com/mycaravam-crypto/erp-connector/actions/workflows/security.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-![.NET 9](https://img.shields.io/badge/.NET-9.0-512BD4)
+![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![Vue 3](https://img.shields.io/badge/Vue-3-42b883)
 
 **X5 Connector** is a self-hosted data bridge between an ERP system and an external vendor. It reads
@@ -104,7 +104,7 @@ four-eyes review → commit to the source.
 
 | Layer | Technology |
 |---|---|
-| Backend | .NET 9, ASP.NET Core Minimal API, EF Core 9 (SQLite), Serilog, ClosedXML |
+| Backend | .NET 10, ASP.NET Core Minimal API, EF Core 10 (SQLite), Serilog, ClosedXML |
 | Source connectors | Npgsql (PostgreSQL), MySqlConnector (MariaDB/MySQL), ServiceNow Table API |
 | Frontend | Vue 3, TypeScript, Vite, Tailwind CSS, Vue Router |
 | Auth | JWT bearer tokens (BCrypt-hashed users) and hashed API keys for machine-to-machine access |
