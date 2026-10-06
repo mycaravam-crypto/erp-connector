@@ -3,7 +3,7 @@
 [![CI](https://github.com/mycaravam-crypto/erp-connector/actions/workflows/ci.yml/badge.svg)](https://github.com/mycaravam-crypto/erp-connector/actions/workflows/ci.yml)
 [![Security](https://github.com/mycaravam-crypto/erp-connector/actions/workflows/security.yml/badge.svg)](https://github.com/mycaravam-crypto/erp-connector/actions/workflows/security.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-![.NET 9](https://img.shields.io/badge/.NET-9.0-512BD4)
+![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![Vue 3](https://img.shields.io/badge/Vue-3-42b883)
 
 **X5 Connector** is a self-hosted data bridge between an ERP system and an external vendor. It reads
@@ -104,7 +104,7 @@ four-eyes review → commit to the source.
 
 | Layer | Technology |
 |---|---|
-| Backend | .NET 9, ASP.NET Core Minimal API, EF Core 9 (SQLite), Serilog, ClosedXML |
+| Backend | .NET 10, ASP.NET Core Minimal API, EF Core 10 (SQLite), Serilog, ClosedXML |
 | Source connectors | Npgsql (PostgreSQL), MySqlConnector (MariaDB/MySQL), ServiceNow Table API |
 | Frontend | Vue 3, TypeScript, Vite, Tailwind CSS, Vue Router |
 | Auth | JWT bearer tokens (BCrypt-hashed users) and hashed API keys for machine-to-machine access |
@@ -286,7 +286,8 @@ A typical first-time setup follows the workflow in the navigation:
 For several independent or nested exports, use **Export Definitions**. Each definition has its
 own output tree, format and schedule. **Import Definitions** configure the way back from the
 vendor. The **Audit** page shows every action, and **Settings** covers the scheduler, the GDPR
-denylist and branding.
+denylist, branding and this connector's instance ID (which can be regenerated on an installation
+set up from a copy of another's database).
 
 ---
 
@@ -312,7 +313,7 @@ curl -X POST http://localhost:8090/api/auth/login \
 | Export definitions | CRUD on `export-definitions`, plus `/{id}/duplicate`, `/enable`, `/preview`, `/test`, `/run`, `/runs` |
 | Import definitions | CRUD on `import-definitions`, plus `/{id}/duplicate`, `/enable`, `/preview`, `/runs`, and `suggest-from-export` |
 | Import runs | `GET import-runs/{id}`, `POST import-runs/{id}/release\|reject` |
-| Settings | `GET/PUT settings/scheduler`, `GET/PATCH gdpr-denied-fields`, `GET/PUT branding` |
+| Settings | `GET/PUT settings/scheduler`, `GET/PATCH gdpr-denied-fields`, `GET/PUT branding`, `GET settings/instance`, `POST settings/instance/regenerate` |
 | Reference | `GET schema` (ICD column contract, read-only) |
 
 The request and response formats are described in [`knowledge/api/`](knowledge/api/index.md).
@@ -365,7 +366,8 @@ dotnet csharpier .            # apply formatting
 cd src/connector-ui && npm run check:fallow   # dead code, duplication and complexity checks for the UI
 ```
 
-GitHub Actions runs the format check, the Release build and the full test suite, with PostgreSQL
+GitHub Actions runs the format check, the Release build, a check that the EF migrations cover the
+model, and the full test suite, with PostgreSQL
 and MariaDB service containers, on every push and pull request to `main`.
 
 Security scans (`.github/workflows/security.yml`) run on the same triggers and weekly: gitleaks for
@@ -375,11 +377,21 @@ vulnerabilities, and Dependabot keeps actions, packages and base images up to da
 
 ### Adding a migration
 
+`dotnet-ef` is pinned in the local tool manifest (`dotnet tool restore`).
+
 ```bash
 dotnet ef migrations add <MigrationName> \
   --project src/Connector.Infrastructure \
   --startup-project src/Connector.Api \
   --context ExportLogDbContext
+```
+
+CI fails when the model has changes no migration covers. Run the same check locally:
+
+```bash
+dotnet ef migrations has-pending-model-changes \
+  --project src/Connector.Infrastructure \
+  --startup-project src/Connector.Api
 ```
 
 ### Versioning

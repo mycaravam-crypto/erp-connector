@@ -6,7 +6,17 @@ tags: [changelog, roadmap, history]
 timestamp: 2026-09-03T00:00:00Z
 ---
 
-Last updated: 2026-10-01
+Last updated: 2026-10-06
+
+---
+
+## Phase 34 — .NET 10 and maintenance 🚧
+
+| Item | Notes |
+|---|---|
+| .NET 10 (LTS) | All projects `net10.0`; EF Core, JwtBearer and Mvc.Testing 10.0.12; CI and `docker-compose.dev.yml` on the .NET 10 SDK. The Docker image was already on the 10.0 runtime (#208) |
+| Migration drift check (#230) | `dotnet-ef` in the local tool manifest; CI runs `dotnet ef migrations has-pending-model-changes` after the build |
+| Regenerate instance ID (#233) | `POST /api/settings/instance/regenerate` and a button in Settings → Connector Instance; audited; old ids kept in `retired_instance_ids` and still rejected as own exports |
 
 ---
 

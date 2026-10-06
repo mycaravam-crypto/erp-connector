@@ -190,10 +190,10 @@ public sealed class ImportWorker(
             return;
         }
 
-        var ownInstanceId = (await db.GetProducerAsync()).InstanceId;
-        if (manifest.Producer?.InstanceId == ownInstanceId)
+        // Includes the ids this installation had before a regeneration, so its own earlier exports stay rejected.
+        if (await db.IsOwnInstanceIdAsync(manifest.Producer?.InstanceId))
         {
-            await RejectAsync($"file was exported by this connector instance ({ownInstanceId})");
+            await RejectAsync($"file was exported by this connector instance ({manifest.Producer!.InstanceId})");
             return;
         }
         var producer = DescribeProducer(manifest.Producer);

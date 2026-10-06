@@ -35,8 +35,9 @@ data file itself):
    `Sha256Checksum`, or a checksum mismatch against the actual file bytes → quarantined to
    `inbound/rejected/`, audit-logged (`import_file_rejected`). No sequence/gap check — see [Import
    Definitions §6](/pipeline/import-definitions.md#6-design-decisions). A manifest whose
-   `Producer.InstanceId` equals this instance's own id (the file is this connector's own export)
-   is quarantined the same way, so a system never re-imports its own export.
+   `Producer.InstanceId` equals this instance's own id, or one it used before the id was
+   regenerated (`retired_instance_ids`), is quarantined the same way, so a system never re-imports
+   its own export.
 3. **Parse + route.** The file itself is parsed as JSON; its top-level `definition` property (the
    `ImportEnvelope` field) names which saved, *enabled* `ImportDefinition` to use. Missing/invalid
    JSON, a missing `definition` property, or no matching enabled definition → all quarantined the
