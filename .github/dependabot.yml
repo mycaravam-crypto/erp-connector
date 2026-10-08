@@ -32,6 +32,11 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+    # TypeScript 7 (the native port) drops lib/tsc, which vue-tsc 3.x loads, so `npm run type-check`
+    # crashes. Lift this once a vue-tsc release supports TypeScript 7.
+    ignore:
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
     groups:
       npm:
         patterns: ["*"]
