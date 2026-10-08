@@ -178,4 +178,39 @@ public sealed class SettingsEndpointsHttpTests
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    [Fact]
+    public async Task RegenerateInstance_Authenticated_ReturnsNewIdAndAudits()
+    {
+        using var client = await _factory.CreateAuthenticatedClientAsync();
+        var before = await client.GetFromJsonAsync<JsonElement>("/api/settings/instance", ApiAuth.Json);
+        var oldId = before.GetProperty("instanceId").GetString();
+
+        var response = await client.PostAsync("/api/settings/instance/regenerate", null);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(ApiAuth.Json);
+        var newId = body.GetProperty("instanceId").GetString();
+        Assert.True(Guid.TryParse(newId, out _));
+        Assert.NotEqual(oldId, newId);
+        var after = await client.GetFromJsonAsync<JsonElement>("/api/settings/instance", ApiAuth.Json);
+        Assert.Equal(newId, after.GetProperty("instanceId").GetString());
+        var audit = await client.GetFromJsonAsync<JsonElement[]>("/api/audit?limit=20", ApiAuth.Json);
+        Assert.Contains(
+            audit!,
+            e =>
+                e.GetProperty("action").GetString() == "instance_id_regenerated"
+                && e.GetProperty("detail").GetString() == $"{oldId} -> {newId}"
+        );
+    }
+
+    [Fact]
+    public async Task RegenerateInstance_Unauthenticated_ReturnsUnauthorized()
+    {
+        using var client = _factory.CreateClient();
+
+        var response = await client.PostAsync("/api/settings/instance/regenerate", null);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
 }

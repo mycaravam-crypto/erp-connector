@@ -238,6 +238,33 @@ public sealed class ImportWorkerPostgresTests
     }
 
     [Fact]
+    public async Task PollOnceAsync_FileFromOwnRetiredInstanceId_IsQuarantined()
+    {
+        // An export written before the instance ID was regenerated (#233) is still this installation's own.
+        await using var local = await LocalDb.NewAsync();
+        var db = local.Db;
+        var before = await db.GetProducerAsync();
+        await db.RegenerateInstanceIdAsync();
+
+        var inboundDir = Directory.CreateTempSubdirectory("import-worker-test-");
+        try
+        {
+            DropConnectorFile(inboundDir.FullName, "old-export.json", Envelope(FixtureCiId, "Loop"), before);
+
+            await NewWorker(db, inboundDir.FullName).PollOnceAsync(CancellationToken.None);
+
+            Assert.Empty(db.ImportRuns);
+            Assert.True(File.Exists(Path.Combine(inboundDir.FullName, "rejected", "old-export.json")));
+            var auditEntry = Assert.Single(db.AuditLog.Where(a => a.Action == "import_file_rejected"));
+            Assert.Contains($"exported by this connector instance ({before.InstanceId})", auditEntry.Detail);
+        }
+        finally
+        {
+            inboundDir.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task PollOnceAsync_FileFromOtherInstance_RecordsProducerOnRun()
     {
         if (!await ErpTestFixture.IsAvailableAsync())

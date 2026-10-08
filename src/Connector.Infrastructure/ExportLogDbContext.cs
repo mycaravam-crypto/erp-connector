@@ -18,6 +18,9 @@ public static class SettingsKeys
     public const string GdprDeniedFields = "gdpr_denied_fields";
     public const string Branding = "branding";
     public const string InstanceId = "instance_id";
+
+    /// <summary>Instance ids this installation used before a regeneration (oldest first).</summary>
+    public const string RetiredInstanceIds = "retired_instance_ids";
 }
 
 /// <summary>
@@ -61,6 +64,34 @@ public static class AppSettingsStore
             await db.SetSettingAsync(SettingsKeys.InstanceId, instanceId);
         }
         return new ExportProducer(ExportProducer.ApplicationName, AppVersion, instanceId);
+    }
+
+    /// <summary>Replaces this installation's instance id with a new random one and keeps the old one under
+    /// <see cref="SettingsKeys.RetiredInstanceIds"/>, so this installation's earlier exports are still recognised
+    /// as its own. For an installation set up from a copy of another's database, which would otherwise share
+    /// that installation's id. Returns the old and the new id.</summary>
+    public static async Task<(string OldId, string NewId)> RegenerateInstanceIdAsync(this ExportLogDbContext db)
+    {
+        await using var tx = await db.Database.BeginTransactionAsync();
+        var oldId = (await db.GetProducerAsync()).InstanceId;
+        var retired = await db.GetSettingAsync<List<string>>(SettingsKeys.RetiredInstanceIds) ?? [];
+        retired.Add(oldId);
+        await db.SetSettingAsync(SettingsKeys.RetiredInstanceIds, retired);
+        var newId = Guid.NewGuid().ToString();
+        await db.SetSettingAsync(SettingsKeys.InstanceId, newId);
+        await tx.CommitAsync();
+        return (oldId, newId);
+    }
+
+    /// <summary>True when <paramref name="instanceId"/> is this installation's current or a retired instance id.</summary>
+    public static async Task<bool> IsOwnInstanceIdAsync(this ExportLogDbContext db, string? instanceId)
+    {
+        if (instanceId is null)
+            return false;
+        if (instanceId == (await db.GetProducerAsync()).InstanceId)
+            return true;
+        var retired = await db.GetSettingAsync<List<string>>(SettingsKeys.RetiredInstanceIds);
+        return retired?.Contains(instanceId) == true;
     }
 
     // Same source and "+<git sha>" trimming as HealthEndpoints' GET /api/version.

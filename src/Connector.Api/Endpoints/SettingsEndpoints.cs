@@ -111,6 +111,24 @@ static class SettingsEndpoints
             )
             .RequireAuthorization();
 
+        // Gives this installation a new instance ID, for one set up from a copy of another's database (#233).
+        // The paired instance then sees a new producer ID; the old ID is kept so this installation's earlier
+        // exports are still rejected as its own.
+        app.MapPost(
+                "/api/settings/instance/regenerate",
+                async (ExportLogDbContext db, HttpContext httpContext, AuditService audit) =>
+                {
+                    var (oldId, newId) = await db.RegenerateInstanceIdAsync();
+                    await audit.LogAsync(
+                        httpContext.User.Identity!.Name!,
+                        "instance_id_regenerated",
+                        $"{oldId} -> {newId}"
+                    );
+                    return Results.Ok(await db.GetProducerAsync());
+                }
+            )
+            .RequireAuthorization();
+
         // Returns the most recent N audit entries (default 100) ordered newest-first.
         app.MapGet(
                 "/api/audit",
