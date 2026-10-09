@@ -20,7 +20,7 @@ human-controlled process.
    - Sequence number is contiguous with the previous released run (no gaps). The UI surfaces a `SequenceGapWarning` banner if a gap is detected.
    - SHA-256 in the UI matches the `.manifest.json` on disk.
 4. The Operator submits the Approver's username via `POST /api/exports/{seqNo}/release`. The Operator identity is inferred from the JWT — it cannot be supplied in the body.
-5. The server validates `Operator != Approver` (case-insensitive) and that the Approver is a registered user. Rejects if either check fails.
+5. The server validates `Operator != Approver` (case-insensitive) that the Approver is a registered user, and that the Approver's role may release (`managedExport.release`, see [Roles and Permissions](/security/roles-and-permissions.md)). Rejects if any check fails. The Operator's own release permission is checked before that.
 6. Status advances to `Released`. `ReleasedAt`, `OperatedBy`, `ApprovedBy` are persisted.
 7. The file at `staging/export_NNNN_...xlsx` may now be physically transferred.
 8. After handover, the Operator records the delivery via `POST /api/exports/{seqNo}/deliver` (optional import count and notes). This closes the custody chain.

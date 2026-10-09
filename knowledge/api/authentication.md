@@ -36,10 +36,20 @@ All export, ERP, schema, and pipeline endpoints require this header. Missing or 
 
 # User Store
 
-| Environment | Source |
+Users live in the `User` table and are managed by Admins in Settings → Users (see
+[Roles and Permissions](/security/roles-and-permissions.md)). While the table is empty, startup seeds it once:
+
+| Environment | Seed |
 |-------------|--------|
-| Development | Hard-coded seed: `alice/alice123`, `bob/bob123` (BCrypt-hashed at startup by `DevAuthSeed`). |
-| Production  | `Auth:Users` list in `appsettings.json` — `Username` + `PasswordHash` (BCrypt). |
+| Development | `alice/alice123`, `bob/bob123` (Admins), `carol/carol123` (User), BCrypt-hashed at startup by `DevAuthSeed`. |
+| Production  | `Auth:Users` list in `appsettings.json`: `Username`, `PasswordHash` (BCrypt) and optional `Role` (`Admin` or `User`; empty means Admin). |
+
+# Current User and Password
+
+```
+GET  /api/auth/me               → { "username": "carol", "role": "User", "permissions": ["exportJobs.view", ...] }
+POST /api/auth/change-password  { "currentPassword": "...", "newPassword": "..." }  → 200, then every session is signed out
+```
 
 ## Generating a BCrypt Hash (Development Only)
 
@@ -60,8 +70,8 @@ Development-only. Use the returned hash as `PasswordHash` when configuring produ
     "JwtSecret": "<32+ char secret>",
     "JwtExpiryHours": 8,
     "Users": [
-      { "Username": "alice", "PasswordHash": "$2a$11$..." },
-      { "Username": "bob",   "PasswordHash": "$2a$11$..." }
+      { "Username": "alice", "PasswordHash": "$2a$11$...", "Role": "Admin" },
+      { "Username": "bob",   "PasswordHash": "$2a$11$...", "Role": "Admin" }
     ],
     "ApiKeys": [
       { "Name": "erp-bot", "KeyHash": "<sha256 hex>" }
@@ -119,12 +129,11 @@ explicitly:
 
 # Authorisation Model
 
-Any authenticated user can list/view export runs, trigger an on-demand run or preview, and act as
-Operator or Approver in the four-eyes release (provided Operator ≠ Approver). No role-based
-access control yet — role separation is a future iteration. The four-eyes constraint is
-enforced by identity (JWT username), not organisational role; any two registered users satisfy it.
+Every endpoint requires either the Admin role or a permission the user's role holds. Admins hold all
+of them, and what a User holds is set by an Admin. The four-eyes release needs two different users who both
+hold the release permission. See [Roles and Permissions](/security/roles-and-permissions.md).
 
 # Related
 
 - [Four-Eyes Release](/operations/four-eyes-release.md) — uses the authenticated username as Operator
-- [Open Points](/planning/open-points.md) — role-based auth is deferred to Iteration 2
+- [Roles and Permissions](/security/roles-and-permissions.md) — roles, permissions and user management

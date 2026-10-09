@@ -6,7 +6,18 @@ tags: [changelog, roadmap, history]
 timestamp: 2026-09-03T00:00:00Z
 ---
 
-Last updated: 2026-10-06
+Last updated: 2026-10-09
+
+---
+
+## Phase 35 — Roles and permissions ✅
+
+| Item | Notes |
+|---|---|
+| Admin and User roles | Users move from `Auth:Users` into a `User` table (seeded once; a configured user without a role becomes Admin); role read on every request |
+| Permissions | Per-menu-item permissions for the User role, edited by Admins in Settings → Permissions; every endpoint declares one; see [Roles and Permissions](/security/roles-and-permissions.md) |
+| User management | Settings → Users (add, change role, reset password, delete) and self-service password change |
+| UI gating | Nav, routes, buttons and settings sections follow the user's permissions; edit pages read-only without edit |
 
 ---
 
