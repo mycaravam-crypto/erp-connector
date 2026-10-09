@@ -6,11 +6,14 @@
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![Vue 3](https://img.shields.io/badge/Vue-3-42b883)
 
-**X5 Connector** is a self-hosted data bridge between an ERP system and an external vendor. It reads
-configuration items from a source system (read-only), removes personal data, and produces
-checksummed export packages (Excel, CSV or JSON) that must be approved by two different people
-before they leave the organisation. Vendor-supplied files can be imported back the same way:
-staged, diffed, reviewed under the four-eyes principle, and only then written to the source.
+**X5 Connector** is a self-hosted data bridge between an ERP system and an external vendor. It
+connects to PostgreSQL, MariaDB/MySQL or ServiceNow and exports any data you configure, whether
+that is configuration items, assets, contracts or any other table and its related records, as
+flat tables or deeply nested JSON. Personal data is removed at query time, and every run produces
+a checksummed package (Excel, CSV or JSON) that runs on demand, on a cron schedule or through an
+API key, and must be approved by two different people before it leaves the organisation.
+Vendor-supplied files can be imported back the same way: staged, diffed, reviewed under the
+four-eyes principle, and only then written to the source. Everything is recorded in an audit log.
 
 The source schema is never hard-coded. Tables, columns, joins and the output shape are all
 configured at runtime in the web UI.
