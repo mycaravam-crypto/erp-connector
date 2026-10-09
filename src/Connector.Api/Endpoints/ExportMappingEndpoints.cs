@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Connector.Api.Authorization;
 using Connector.Core.DynamicExport;
 using Connector.Infrastructure;
 
@@ -28,7 +29,7 @@ static class ExportMappingEndpoints
                     return config is null ? Results.NotFound() : Results.Ok(config);
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ExportMappingView, Permissions.ManagedExportView);
 
         // Validates and persists a full export mapping config.
         app.MapPut(
@@ -53,7 +54,7 @@ static class ExportMappingEndpoints
                     return Results.Ok(config);
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ExportMappingEdit);
 
         // Returns all saved presets as a name→config dictionary.
         app.MapGet(
@@ -67,7 +68,7 @@ static class ExportMappingEndpoints
                     return Results.Ok(presets);
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ExportMappingView);
 
         // Creates or updates a single named preset.
         app.MapPut(
@@ -98,7 +99,7 @@ static class ExportMappingEndpoints
                     return Results.Ok(config);
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ExportMappingEdit);
 
         // Deletes a single named preset. Returns 404 when the name does not exist.
         app.MapDelete(
@@ -119,7 +120,7 @@ static class ExportMappingEndpoints
                     return Results.NoContent();
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ExportMappingEdit);
     }
 
     // Valid SQL identifier: letters/digits/underscore, not starting with a digit. Scoped only to new

@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Connector.Api.Authorization;
 using Connector.Infrastructure;
 using Microsoft.IdentityModel.Tokens;
 
@@ -17,19 +18,20 @@ static class AuthEndpoints
     // dictionary miss made response timing a reliable oracle for which usernames are registered.
     private const string DummyHashForTimingSafety = "$2b$11$EntBBq5Dhs85Yp/1C37FAOsBwtrLgKduXw4QIec8g189kye8C6eWm";
 
-    internal static void MapAuthEndpoints(this WebApplication app, IReadOnlyDictionary<string, string> userStore)
+    internal static void MapAuthEndpoints(this WebApplication app)
     {
         // Exchanges username/password for a signed JWT (HS256, Auth:JwtExpiryHours, default 8h) and audits the
         // login. Unknown usernames still pay a BCrypt verify so timing doesn't reveal which accounts exist.
         app.MapPost(
                 "/api/auth/login",
-                async (LoginRequest req, AuditService audit) =>
+                async (LoginRequest req, ExportLogDbContext db, AuditService audit) =>
                 {
-                    string? hash = null;
-                    var known =
-                        !string.IsNullOrWhiteSpace(req.Username) && userStore.TryGetValue(req.Username, out hash);
-                    var passwordOk = BCrypt.Net.BCrypt.Verify(req.Password ?? "", hash ?? DummyHashForTimingSafety);
-                    if (!known || !passwordOk)
+                    var user = await db.FindUserAsync(req.Username);
+                    var passwordOk = BCrypt.Net.BCrypt.Verify(
+                        req.Password ?? "",
+                        user?.PasswordHash ?? DummyHashForTimingSafety
+                    );
+                    if (user is null || !passwordOk)
                         return Results.Unauthorized();
 
                     var expiry = app.Configuration.GetValue<int>("Auth:JwtExpiryHours", defaultValue: 8);
@@ -40,7 +42,8 @@ static class AuthEndpoints
                     var token = new JwtSecurityToken(
                         claims:
                         [
-                            new Claim(ClaimTypes.Name, req.Username),
+                            // The stored spelling, so "ALICE" and "alice" log in as the same audit identity.
+                            new Claim(ClaimTypes.Name, user.Username),
                             // Lets Program.cs's OnTokenValidated handler
                             // reject this specific token once RevokeAllSessionsAsync moves this user's
                             // cutover past it — the only way to invalidate an outstanding token before its
@@ -54,8 +57,10 @@ static class AuthEndpoints
                         expires: DateTime.UtcNow.AddHours(expiry),
                         signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
                     );
-                    await audit.LogAsync(req.Username, "login");
-                    return Results.Ok(new LoginResponse(new JwtSecurityTokenHandler().WriteToken(token), req.Username));
+                    await audit.LogAsync(user.Username, "login");
+                    return Results.Ok(
+                        new LoginResponse(new JwtSecurityTokenHandler().WriteToken(token), user.Username)
+                    );
                 }
             )
             .RequireRateLimiting(LoginRateLimiterPolicyName);
@@ -76,6 +81,50 @@ static class AuthEndpoints
                 }
             )
             .RequireAuthorization();
+
+        // The caller's identity, role and effective permissions — what the UI uses to decide which menu items,
+        // routes and buttons to show. The server checks every permission again on each request regardless.
+        app.MapGet(
+                "/api/auth/me",
+                async (HttpContext httpContext, RolePermissionStore permissions) =>
+                {
+                    var role = httpContext.User.FindFirst(ClaimTypes.Role)?.Value ?? UserRoles.User;
+                    var granted = await permissions.GetAsync(role);
+                    return Results.Ok(
+                        new CurrentUserDto(
+                            httpContext.User.Identity!.Name!,
+                            role,
+                            [.. granted.Order(StringComparer.Ordinal)]
+                        )
+                    );
+                }
+            )
+            .RequireAuthorization();
+
+        // Self-service password change. Requires the current password, and signs the user out everywhere
+        // afterwards (this session included), so a session opened with the old password doesn't outlive it.
+        app.MapPost(
+                "/api/auth/change-password",
+                async (ChangePasswordRequest req, HttpContext httpContext, ExportLogDbContext db, AuditService audit) =>
+                {
+                    var user = await db.FindUserAsync(httpContext.User.Identity!.Name);
+                    if (user is null)
+                        return Results.Unauthorized();
+                    if (!BCrypt.Net.BCrypt.Verify(req.CurrentPassword ?? "", user.PasswordHash))
+                        return Results.BadRequest("The current password is incorrect.");
+                    var error = UserEndpoints.ValidatePassword(req.NewPassword);
+                    if (error is not null)
+                        return Results.BadRequest(error);
+
+                    user.PasswordHash = UserEndpoints.HashPassword(req.NewPassword!);
+                    await db.SaveChangesAsync();
+                    await db.RevokeAllSessionsAsync(user.Username);
+                    await audit.LogAsync(user.Username, "password_changed");
+                    return Results.Ok();
+                }
+            )
+            .RequireAuthorization()
+            .RequireRateLimiting(LoginRateLimiterPolicyName);
 
         if (app.Environment.IsDevelopment())
         {

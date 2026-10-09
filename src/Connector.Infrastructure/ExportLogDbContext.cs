@@ -21,6 +21,9 @@ public static class SettingsKeys
 
     /// <summary>Instance ids this installation used before a regeneration (oldest first).</summary>
     public const string RetiredInstanceIds = "retired_instance_ids";
+
+    /// <summary>What each non-Admin role may see and do — see <c>RolePermissionStore</c> in Connector.Api.</summary>
+    public const string RolePermissions = "role_permissions";
 }
 
 /// <summary>
@@ -141,6 +144,9 @@ public sealed class ExportLogDbContext(
     /// <summary>Execution history for <see cref="ImportDefinitions"/> — one row per run.</summary>
     public DbSet<ImportRunEntity> ImportRuns => Set<ImportRunEntity>();
 
+    /// <summary>Interactive logins and their role.</summary>
+    public DbSet<UserEntity> Users => Set<UserEntity>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ExportRunEntity>(e =>
@@ -210,6 +216,16 @@ public sealed class ExportLogDbContext(
             e.HasIndex(r => new { r.ImportDefinitionId, r.Sha256Checksum }).IsUnique();
             // Same optimistic-concurrency treatment as ExportRunEntity.Status — see that property's comment.
             e.Property(r => r.Status).IsConcurrencyToken();
+        });
+
+        modelBuilder.Entity<UserEntity>(e =>
+        {
+            e.ToTable("User");
+            e.HasKey(u => u.Id);
+            // NOCASE keeps the login case-insensitive, like the configuration-based user list was, and makes
+            // "Alice" and "alice" the same account for the unique index.
+            e.Property(u => u.Username).UseCollation("NOCASE");
+            e.HasIndex(u => u.Username).IsUnique();
         });
     }
 }

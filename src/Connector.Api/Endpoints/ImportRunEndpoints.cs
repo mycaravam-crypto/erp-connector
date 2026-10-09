@@ -1,3 +1,4 @@
+using Connector.Api.Authorization;
 using Connector.Core.DataSources;
 using Connector.Core.DynamicImport;
 using Connector.Infrastructure;
@@ -15,7 +16,7 @@ namespace Connector.Api.Endpoints;
 /// </summary>
 static class ImportRunEndpoints
 {
-    internal static void MapImportRunEndpoints(this WebApplication app, IReadOnlyDictionary<string, string> userStore)
+    internal static void MapImportRunEndpoints(this WebApplication app)
     {
         // The frontend's review/diff view needs a run's full plan before an Approver can meaningfully
         // decide anything — GET .../{id}/runs on ImportDefinitionEndpoints only returns the summary counts.
@@ -37,7 +38,7 @@ static class ImportRunEndpoints
                     return Results.Ok(ToDetailDto(run, definitionName ?? "(deleted)"));
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ImportJobsView);
 
         // Four-eyes commit of a PendingReview run: a second user's credentials must approve, then
         // ImportRunReleaser writes the staged plan to the target. 500 with the error if the commit fails.
@@ -48,6 +49,7 @@ static class ImportRunEndpoints
                     ReleaseRequest request,
                     HttpContext httpContext,
                     ExportLogDbContext db,
+                    RolePermissionStore permissions,
                     AuditService audit,
                     IDataSourceProviderResolver resolver,
                     CancellationToken ct
@@ -55,11 +57,13 @@ static class ImportRunEndpoints
                 {
                     var operatorName = httpContext.User.Identity!.Name!;
 
-                    var approvalError = FourEyesReview.ValidateApprover(
+                    var approvalError = await FourEyesReview.ValidateApproverAsync(
                         operatorName,
                         request.Approver,
                         request.ApproverPassword,
-                        userStore
+                        Permissions.ImportJobsRelease,
+                        db,
+                        permissions
                     );
                     if (approvalError is not null)
                         return Results.BadRequest(approvalError);
@@ -94,7 +98,7 @@ static class ImportRunEndpoints
                         : Results.Ok(ToDto(run));
                 }
             )
-            .RequireAuthorization()
+            .RequirePermission(Permissions.ImportJobsRelease)
             .RequireRateLimiting(FourEyesReview.ApprovalRateLimiterPolicyName);
 
         // Discards a PendingReview run without writing anything to the target (no second approver needed).
@@ -127,7 +131,7 @@ static class ImportRunEndpoints
                     return Results.Ok(ToDto(run));
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ImportJobsRelease);
     }
 
     private static ImportRunDetailDto ToDetailDto(ImportRunEntity r, string definitionName)

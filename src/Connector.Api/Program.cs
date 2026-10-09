@@ -1,7 +1,9 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 using Connector.Api;
+using Connector.Api.Authorization;
 using Connector.Api.Endpoints;
 using Connector.Core.DataSources;
 using Connector.Infrastructure;
@@ -90,27 +92,38 @@ builder
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
         };
-        // A signature- and expiry-valid JWT could still be one this user has explicitly revoked
-        // (POST /api/auth/revoke-my-sessions) — check its issued-at claim against that user's stored
-        // revocation cutover on every request. A token without an "iat" claim is treated as "nothing to
-        // check," not a failure.
+        // Every request re-reads the user from the user table: a deleted user's tokens stop working at once, and
+        // the role claim the permission checks use (PermissionAuthorizationHandler) is always the current one
+        // rather than whatever the role was at login. A signature- and expiry-valid JWT could also be one this
+        // user has explicitly revoked (POST /api/auth/revoke-my-sessions) — its issued-at claim is checked
+        // against that user's stored revocation cutover. A token without an "iat" claim skips that check.
         opts.Events = new JwtBearerEvents
         {
             OnTokenValidated = async context =>
             {
                 var username = context.Principal?.Identity?.Name;
-                var iatValue = context.Principal?.FindFirst(JwtRegisteredClaimNames.Iat)?.Value;
-                if (username is null || iatValue is null || !long.TryParse(iatValue, out var iatUnixSeconds))
-                    return;
-
                 var db = context.HttpContext.RequestServices.GetRequiredService<ExportLogDbContext>();
-                var revokedBefore = await db.GetRevokedBeforeAsync(username);
-                if (revokedBefore is null)
+                var user = await db.FindUserAsync(username);
+                if (user is null || context.Principal?.Identity is not ClaimsIdentity identity)
+                {
+                    context.Fail("User no longer exists.");
                     return;
+                }
 
-                var issuedAt = DateTimeOffset.FromUnixTimeSeconds(iatUnixSeconds);
-                if (issuedAt < revokedBefore.Value)
-                    context.Fail("Token has been revoked.");
+                var iatValue = context.Principal.FindFirst(JwtRegisteredClaimNames.Iat)?.Value;
+                if (iatValue is not null && long.TryParse(iatValue, out var iatUnixSeconds))
+                {
+                    var revokedBefore = await db.GetRevokedBeforeAsync(user.Username);
+                    if (revokedBefore is not null && DateTimeOffset.FromUnixTimeSeconds(iatUnixSeconds) < revokedBefore)
+                    {
+                        context.Fail("Token has been revoked.");
+                        return;
+                    }
+                }
+
+                foreach (var stale in identity.FindAll(ClaimTypes.Role).ToList())
+                    identity.RemoveClaim(stale);
+                identity.AddClaim(new Claim(ClaimTypes.Role, user.Role));
             },
         };
     })
@@ -119,7 +132,7 @@ builder
     // accept it; every other endpoint is unaffected and still requires a JWT.
     .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.SchemeName, null);
 
-builder.Services.AddAuthorization();
+builder.Services.AddPermissionAuthorization();
 
 // Per-client-IP fixed-window throttle on /api/auth/login (AuthEndpoints.LoginRateLimiterPolicyName) —
 // without it there was no defense at all against brute-force/password-spray login attempts.
@@ -162,9 +175,7 @@ builder.Services.AddRateLimiter(opts =>
 });
 
 // Dev vs Production API key source, resolved now (before Build()) so it can go into the container as a
-// singleton for ApiKeyAuthenticationHandler — mirrors the Users list's Dev/Production split below, which
-// is resolved after Build() instead only because it's passed as a plain constructor/closure argument to
-// endpoint-mapping methods rather than needing DI.
+// singleton for ApiKeyAuthenticationHandler — mirrors the user seed's Dev/Production split below.
 var apiKeyEntries = builder.Environment.IsDevelopment()
     ? DevAuthSeed.CreateApiKeys()
     : builder.Configuration.GetSection("Auth:ApiKeys").Get<List<ApiKeyOptions>>() ?? [];
@@ -318,31 +329,50 @@ using (var scope = app.Services.CreateScope())
     await exportLogDb.GetProducerAsync();
 }
 
-// ── User store ────────────────────────────────────────────────────────────────
-// Development: hard-coded seed (alice/alice123, bob/bob123).
-// Production: BCrypt hashes from Auth:Users in appsettings.json / env vars.
+// ── Users ─────────────────────────────────────────────────────────────────────
+// The user table is managed in the UI (Settings → Users) and seeded once, while it is still empty:
+// Development: alice/alice123 and bob/bob123 (Admins), carol/carol123 (User).
+// Production: the BCrypt hashes and roles from Auth:Users in appsettings.json / env vars.
 
-IReadOnlyDictionary<string, string> userStore;
-if (app.Environment.IsDevelopment())
+using (var scope = app.Services.CreateScope())
 {
-    userStore = DevAuthSeed.CreateUsers();
-    app.Logger.LogInformation("Dev auth: users alice/alice123 and bob/bob123 are active.");
-    app.Logger.LogInformation(
-        "Dev auth: API key '{Key}' is active (send as the X-Api-Key header).",
-        DevAuthSeed.DevApiKey
-    );
-}
-else
-{
-    var authUsers = app.Configuration.GetSection("Auth:Users").Get<List<AuthUser>>() ?? [];
-    userStore = authUsers.ToDictionary(u => u.Username, u => u.PasswordHash, StringComparer.OrdinalIgnoreCase);
+    var db = scope.ServiceProvider.GetRequiredService<ExportLogDbContext>();
+    var seed = app.Environment.IsDevelopment()
+        ? DevAuthSeed.CreateUsers()
+        : AuthUser.ToSeed(app.Configuration.GetSection("Auth:Users").Get<List<AuthUser>>() ?? [], app.Logger);
+    var seeded = await db.SeedUsersIfEmptyAsync(seed);
+    if (seeded > 0)
+        app.Logger.LogInformation("Created {Count} user(s) from the configured user list.", seeded);
+    else if (seed.Count > 0)
+        app.Logger.LogInformation(
+            "Users are managed in Settings → Users; the configured user list only seeds an empty user table."
+        );
+
+    if (app.Environment.IsDevelopment())
+    {
+        app.Logger.LogInformation("Dev auth: admins alice/alice123 and bob/bob123, user carol/carol123.");
+        app.Logger.LogInformation(
+            "Dev auth: API key '{Key}' is active (send as the X-Api-Key header).",
+            DevAuthSeed.DevApiKey
+        );
+    }
+    else if (!await db.Users.AnyAsync(u => u.Role == UserRoles.Admin))
+    {
+        // Nobody could manage users or permissions, configure the connection, or ever change that from the UI.
+        throw new InvalidOperationException(
+            "No Admin user exists. Add one to Auth:Users with \"Role\": \"Admin\" (it is only used while the user "
+                + "table is empty), or set an existing user's Role to Admin in the User table."
+        );
+    }
 }
 
 // ── Endpoints ─────────────────────────────────────────────────────────────────
 
 app.MapHealthEndpoints();
-app.MapAuthEndpoints(userStore);
-app.MapExportEndpoints(userStore);
+app.MapAuthEndpoints();
+app.MapUserEndpoints();
+app.MapPermissionEndpoints();
+app.MapExportEndpoints();
 app.MapPipelineEndpoints();
 app.MapSchemaEndpoints();
 app.MapConnectionEndpoints();
@@ -351,7 +381,7 @@ app.MapBrandingEndpoints();
 app.MapExportMappingEndpoints();
 app.MapExportDefinitionEndpoints();
 app.MapImportDefinitionEndpoints();
-app.MapImportRunEndpoints(userStore);
+app.MapImportRunEndpoints();
 
 // SPA fallback: any path not matched by an API route serves index.html
 // so Vue Router can handle client-side navigation.

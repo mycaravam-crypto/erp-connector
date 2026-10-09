@@ -52,12 +52,37 @@ record LoginResponse(string Token, string Username);
 
 record HashRequest(string Password);
 
+/// <summary>GET /api/auth/me: who is signed in, their role and their effective permissions.</summary>
+record CurrentUserDto(string Username, string Role, List<string> Permissions);
+
+record ChangePasswordRequest(string? CurrentPassword, string? NewPassword);
+
+record UserDto(string Username, string Role, string CreatedAt);
+
+record CreateUserRequest(string? Username, string? Password, string? Role);
+
+/// <summary>PUT /api/users/{username}: each field is optional; a null one is left unchanged.</summary>
+record UpdateUserRequest(string? Role, string? Password);
+
+/// <summary>GET /api/settings/permissions: the grantable permissions, grouped by menu item, and what the User
+/// role currently holds.</summary>
+record RolePermissionsDto(
+    IReadOnlyList<Connector.Api.Authorization.PermissionGroup> Catalogue,
+    List<string> UserPermissions
+);
+
+record RolePermissionsRequest(List<string>? UserPermissions);
+
 record SchemaColumnDto(string Name, string ErpSource, string Type, string Notes, bool Active, string? ExportName);
 
 record SchemaDto(string Version, SchemaColumnDto[] Columns);
 
 // SourceColumn/SourceTable/SourceSchema live in Connector.Core.DataSources: they're
 // IDataSourceProvider.ReadSchemaAsync's return shape, not an API-only Dto.
+
+/// <summary>GET /api/connection/status: whether a connection is configured, its type and a display name (database
+/// or instance URL).</summary>
+record ConnectionStatusDto(bool Configured, DataSourceType? Type, string? Name);
 
 record RunNowResult(int SequenceNo, int RecordCount, string Sha256Short);
 

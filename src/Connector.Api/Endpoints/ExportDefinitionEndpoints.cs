@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using Connector.Api.Authorization;
 using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
 using Connector.Core.Schema;
@@ -42,7 +43,7 @@ static class ExportDefinitionEndpoints
                     return Results.Ok(entities.Select(ToSummaryDto).ToList());
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ExportJobsView);
 
         // Creates a definition after validating its node tree (identifiers, filters, GDPR denylist) and the
         // IntegrationKey/ContractVersion pair; starts at ConfigVersion 1. Audited.
@@ -89,7 +90,7 @@ static class ExportDefinitionEndpoints
                     return Results.Created($"/api/export-definitions/{entity.Id}", ToDto(entity));
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ExportJobsCreate);
 
         // Returns one definition including its full node tree.
         app.MapGet(
@@ -100,7 +101,7 @@ static class ExportDefinitionEndpoints
                     return entity is null ? Results.NotFound() : Results.Ok(ToDto(entity));
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ExportJobsView);
 
         // Replaces a definition after the same validation as create and bumps its ConfigVersion. Audited.
         app.MapPut(
@@ -146,7 +147,7 @@ static class ExportDefinitionEndpoints
                     return Results.Ok(ToDto(entity));
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ExportJobsEdit);
 
         // Deletes a definition. Audited.
         app.MapDelete(
@@ -174,7 +175,7 @@ static class ExportDefinitionEndpoints
                     return Results.NoContent();
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ExportJobsDelete);
 
         // Copies a definition under a new name (default "<name> (Copy)"). The copy starts disabled, unscheduled,
         // at ConfigVersion 1 and without the IntegrationKey/ContractVersion pair. Audited.
@@ -222,7 +223,7 @@ static class ExportDefinitionEndpoints
                     return Results.Created($"/api/export-definitions/{copy.Id}", ToDto(copy));
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ExportJobsCreate);
 
         // Enables or disables a definition. Enabling is refused when another enabled definition already claims
         // the same IntegrationKey/ContractVersion pair. Audited.
@@ -267,7 +268,7 @@ static class ExportDefinitionEndpoints
                     return Results.Ok(ToDto(entity));
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ExportJobsEdit);
 
         // Runs the definition's tree against the configured source and returns up to 50 records, GDPR-denied
         // fields removed. Records no run history; returns an empty preview when no connection is configured.
@@ -318,7 +319,7 @@ static class ExportDefinitionEndpoints
                     }
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ExportJobsView);
 
         // Runs the definition in full and returns the built file directly, with X-Export-Run-Id, X-Record-Count
         // and X-Config-Version headers. Records a run-history row and an audit entry, success or failure.
@@ -377,7 +378,7 @@ static class ExportDefinitionEndpoints
                     );
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ExportJobsDownload);
 
         // Test run capped at 50 records (TestRunLimit): records a run-history row flagged IsTestRun and returns the
         // run result, not the file. Audited.
@@ -430,7 +431,7 @@ static class ExportDefinitionEndpoints
                     );
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ExportJobsTest);
 
         // Returns the definition's latest 200 runs (test and real), newest first.
         app.MapGet(
@@ -461,7 +462,7 @@ static class ExportDefinitionEndpoints
                     return Results.Ok(runs);
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ExportJobsView);
     }
 
     private static ExportDefinitionDto ToDto(ExportDefinitionEntity e) =>

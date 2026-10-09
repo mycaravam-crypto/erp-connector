@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Connector.Api.Authorization;
 using Connector.Infrastructure;
 
 namespace Connector.Api.Endpoints;
@@ -57,7 +58,7 @@ static partial class BrandingEndpoints
                     return Results.Ok(normalized);
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.SettingsBranding);
     }
 
     /// <summary>

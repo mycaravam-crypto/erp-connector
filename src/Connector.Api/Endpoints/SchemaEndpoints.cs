@@ -1,3 +1,4 @@
+using Connector.Api.Authorization;
 using Connector.Core.Schema;
 
 namespace Connector.Api.Endpoints;
@@ -77,6 +78,6 @@ static class SchemaEndpoints
                     return Results.Ok(new SchemaDto(ExportSchema.Version, columns));
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.IcdSchemaView);
     }
 }

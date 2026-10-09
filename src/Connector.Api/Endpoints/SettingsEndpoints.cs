@@ -1,3 +1,4 @@
+using Connector.Api.Authorization;
 using Connector.Core.DynamicExport;
 using Connector.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -24,7 +25,7 @@ static class SettingsEndpoints
                     );
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.SettingsScheduler);
 
         // Validates and persists the scheduler config. Takes effect on the worker's next sleep cycle.
         app.MapPut(
@@ -57,7 +58,7 @@ static class SettingsEndpoints
                     return Results.Ok(dto);
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.SettingsScheduler);
 
         // Returns the currently active GDPR denylist (DB value if set, else defaults).
         app.MapGet(
@@ -68,7 +69,7 @@ static class SettingsEndpoints
                     return Results.Ok(new { fields = fields.ToArray() });
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.SettingsGdpr);
 
         // Replaces the GDPR denylist. Validates and stores as JSON in AppSetting.
         app.MapMethods(
@@ -97,7 +98,7 @@ static class SettingsEndpoints
                     return Results.Ok(new { fields = request.Fields });
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.SettingsGdpr);
 
         // This connector's identity as stamped into every export manifest (Producer): application, version and
         // instance ID. Authenticated, unlike GET /api/version — the instance ID stays out of the login screen.
@@ -109,7 +110,7 @@ static class SettingsEndpoints
                     return Results.Ok(producer);
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.SettingsInstance);
 
         // Gives this installation a new instance ID, for one set up from a copy of another's database (#233).
         // The paired instance then sees a new producer ID; the old ID is kept so this installation's earlier
@@ -127,7 +128,7 @@ static class SettingsEndpoints
                     return Results.Ok(await db.GetProducerAsync());
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.SettingsInstance);
 
         // Returns the most recent N audit entries (default 100) ordered newest-first.
         app.MapGet(
@@ -143,6 +144,6 @@ static class SettingsEndpoints
                     return Results.Ok(entries);
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.AuditView);
     }
 }
