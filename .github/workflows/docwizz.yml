@@ -3,7 +3,8 @@ name: docwizz
 # Documentation gaps and architecture violations, via mycaravam-crypto/docwizz.
 # - check: what a pull request introduces, posted as one PR comment (updated on each push).
 # - report: the whole codebase (docwizz analyze + architecture), in the job summary and as an artifact.
-# Both are report-only for now; flip `fail` to 'true' once the existing gaps are paid down.
+# check fails the PR on problems it introduces (check --since compares against the base, so
+# existing gaps never fail it); report stays report-only.
 
 on:
   pull_request:
@@ -31,7 +32,7 @@ jobs:
       - uses: mycaravam-crypto/docwizz@c5df23e1add9b9eccf5791f26e6330b4d4f10b93
         with:
           path: .
-          fail: 'false'
+          fail: 'true'
 
   report:
     runs-on: ubuntu-latest
