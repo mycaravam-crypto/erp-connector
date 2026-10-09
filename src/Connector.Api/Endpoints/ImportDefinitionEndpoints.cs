@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Connector.Api.Authorization;
 using Connector.Core.DataSources;
 using Connector.Core.DynamicExport;
 using Connector.Core.DynamicImport;
@@ -40,7 +41,7 @@ static partial class ImportDefinitionEndpoints
                     return Results.Ok(entities.Select(ToSummaryDto).ToList());
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ImportJobsView);
 
         // Creates a definition after the save-time guardrails in ValidateRequestAsync (writable-column allowlist
         // checked against the live ERP schema, no key/identity/computed/FK targets, no child inserts) and the
@@ -88,7 +89,7 @@ static partial class ImportDefinitionEndpoints
                     return Results.Created($"/api/import-definitions/{entity.Id}", ToDto(entity));
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ImportJobsCreate);
 
         // Returns one definition including its full node tree and writable-column allowlist.
         app.MapGet(
@@ -99,7 +100,7 @@ static partial class ImportDefinitionEndpoints
                     return entity is null ? Results.NotFound() : Results.Ok(ToDto(entity));
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ImportJobsView);
 
         // Replaces a definition after the same validation as create and bumps its ConfigVersion. Audited.
         app.MapPut(
@@ -151,7 +152,7 @@ static partial class ImportDefinitionEndpoints
                     return Results.Ok(ToDto(entity));
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ImportJobsEdit);
 
         // Deletes a definition. Audited.
         app.MapDelete(
@@ -179,7 +180,7 @@ static partial class ImportDefinitionEndpoints
                     return Results.NoContent();
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ImportJobsDelete);
 
         // Copies a definition under a new name (default "<name> (Copy)"). The copy starts disabled at
         // ConfigVersion 1 and without the IntegrationKey/ContractVersion pair. Audited.
@@ -226,7 +227,7 @@ static partial class ImportDefinitionEndpoints
                     return Results.Created($"/api/import-definitions/{copy.Id}", ToDto(copy));
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ImportJobsCreate);
 
         // Enables or disables a definition. Enabling is refused when another enabled definition already claims
         // the same IntegrationKey/ContractVersion pair. Audited.
@@ -271,7 +272,7 @@ static partial class ImportDefinitionEndpoints
                     return Results.Ok(ToDto(entity));
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ImportJobsEdit);
 
         // Parses + walks + plans an inbound file against a saved definition with zero persistence: no
         // ImportRunEntity row is created and nothing is written to the ERP (mirrors ExportDefinitionEndpoints'
@@ -317,7 +318,7 @@ static partial class ImportDefinitionEndpoints
                     }
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ImportJobsView);
 
         // The "Create from export"
         // suggestion the New Import Definition flow offers. Takes the same sample ImportEnvelope JSON the
@@ -333,7 +334,7 @@ static partial class ImportDefinitionEndpoints
                 async (ImportMappingSuggestionRequest request, ExportLogDbContext db, CancellationToken ct) =>
                     Results.Ok(await BuildSuggestionAsync(request.InboundJson, db, ct))
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ImportJobsCreate, Permissions.ImportJobsEdit);
 
         // Returns the definition's latest 200 import runs, newest first, with their match/change/reject counts.
         app.MapGet(
@@ -371,7 +372,7 @@ static partial class ImportDefinitionEndpoints
                     return Results.Ok(runs);
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ImportJobsView);
 
         // The UI's manual "Run" action (import-definitions/{id} page): stages an operator-selected file as
         // a real ImportRunEntity at PendingReview, the same way ImportWorker's inbound/ folder watcher
@@ -503,6 +504,6 @@ static partial class ImportDefinitionEndpoints
                     );
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ImportJobsRun);
     }
 }

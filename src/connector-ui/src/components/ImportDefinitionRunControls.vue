@@ -9,6 +9,8 @@ import {
 import Button from '@/components/ui/Button.vue'
 import ConfirmAction from '@/components/ui/ConfirmAction.vue'
 import { useToasts } from '@/composables/useToasts'
+import { useCurrentUser } from '@/composables/useCurrentUser'
+import { Permission } from '@/lib/permissions'
 import { useSaveStatus } from '@/composables/useSaveStatus'
 
 // The import-side analogue of ExportDefinitionRunControls.vue — deliberately narrower: there's no
@@ -16,6 +18,7 @@ import { useSaveStatus } from '@/composables/useSaveStatus'
 // real run (manual file select or the inbound/ folder watcher) and previewing a sample file both live on
 // ImportDefinitionPreviewPanel.vue instead, since both act on the same pasted/selected JSON it already owns.
 const toasts = useToasts()
+const { can } = useCurrentUser()
 
 const props = defineProps<{
   /** The definition being edited; saved as-is, and updated in place with the server's response. */
@@ -103,10 +106,10 @@ async function confirmDelete() {
 <template>
   <div>
     <div class="flex items-center gap-3 mb-3 flex-wrap">
-      <Button :loading="saving" @click="save">{{ saving ? 'Saving…' : 'Save' }}</Button>
-      <Button variant="secondary" :loading="duplicating" @click="duplicate">{{ duplicating ? 'Duplicating…' : 'Duplicate' }}</Button>
+      <Button v-if="can(Permission.ImportJobsEdit)" :loading="saving" @click="save">{{ saving ? 'Saving…' : 'Save' }}</Button>
+      <Button v-if="can(Permission.ImportJobsCreate)" variant="secondary" :loading="duplicating" @click="duplicate">{{ duplicating ? 'Duplicating…' : 'Duplicate' }}</Button>
 
-      <div class="ml-auto flex items-center gap-2">
+      <div v-if="can(Permission.ImportJobsDelete)" class="ml-auto flex items-center gap-2">
         <ConfirmAction
           v-model:confirming="confirmingDelete"
           :busy="deleting"

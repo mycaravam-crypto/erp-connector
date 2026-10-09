@@ -1,3 +1,4 @@
+using Connector.Api.Authorization;
 using Connector.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
@@ -5,7 +6,7 @@ namespace Connector.Api.Endpoints;
 
 static class ExportEndpoints
 {
-    internal static void MapExportEndpoints(this WebApplication app, IReadOnlyDictionary<string, string> userStore)
+    internal static void MapExportEndpoints(this WebApplication app)
     {
         // Returns the run list with an IsStale flag so the UI can warn about long-pending runs.
         app.MapGet(
@@ -41,7 +42,7 @@ static class ExportEndpoints
                         .ToList();
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ManagedExportView);
 
         // Returns full detail including a gap warning when the preceding run has not been released.
         app.MapGet(
@@ -94,7 +95,7 @@ static class ExportEndpoints
                     );
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ManagedExportView);
 
         // Four-eyes release: a second user's credentials must approve moving a Pending run to Released.
         // 409 if the run is not Pending or was changed concurrently; rate-limited and audited.
@@ -105,16 +106,19 @@ static class ExportEndpoints
                     ReleaseRequest request,
                     HttpContext httpContext,
                     ExportLogDbContext db,
+                    RolePermissionStore permissions,
                     AuditService audit
                 ) =>
                 {
                     var operatorName = httpContext.User.Identity!.Name!;
 
-                    var approvalError = FourEyesReview.ValidateApprover(
+                    var approvalError = await FourEyesReview.ValidateApproverAsync(
                         operatorName,
                         request.Approver,
                         request.ApproverPassword,
-                        userStore
+                        Permissions.ManagedExportRelease,
+                        db,
+                        permissions
                     );
                     if (approvalError is not null)
                         return Results.BadRequest(approvalError);
@@ -145,7 +149,7 @@ static class ExportEndpoints
                     return Results.Ok();
                 }
             )
-            .RequireAuthorization()
+            .RequirePermission(Permissions.ManagedExportRelease)
             .RequireRateLimiting(FourEyesReview.ApprovalRateLimiterPolicyName);
 
         // Records that a Released run reached the vendor: who delivered it, the imported record count and
@@ -188,7 +192,7 @@ static class ExportEndpoints
                     return Results.Ok();
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ManagedExportDeliver);
 
         // Marks a Pending or Failed run as Skipped so it no longer blocks the sequence; the optional reason is
         // written to the audit log.
@@ -226,6 +230,6 @@ static class ExportEndpoints
                     return Results.Ok();
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ManagedExportSkip);
     }
 }

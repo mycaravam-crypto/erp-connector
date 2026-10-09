@@ -7,6 +7,7 @@ import * as erpApi from '@/api/mapping'
 import * as pipelineApi from '@/api/pipeline'
 import type { SourceSchema } from '@/api/connection'
 import { useToasts } from '@/composables/useToasts'
+import { signInAs } from './signInAs'
 
 function buildRouter() {
   const r = createRouter({
@@ -55,7 +56,7 @@ const SCHEMA: SourceSchema = {
   ],
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
   vi.spyOn(erpApi, 'getExportMapping').mockResolvedValue(null)
@@ -71,6 +72,7 @@ beforeEach(() => {
     source: 'dynamic',
   })
   useToasts().clear()
+  await signInAs('Admin')
 })
 
 describe('SchemaView', () => {

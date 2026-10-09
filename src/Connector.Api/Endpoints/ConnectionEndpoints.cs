@@ -1,4 +1,5 @@
 using System.Net;
+using Connector.Api.Authorization;
 using Connector.Core.DataSources;
 using Connector.Infrastructure;
 using Connector.Infrastructure.DataSources;
@@ -74,6 +75,20 @@ static class ConnectionEndpoints
     {
         var allowUnencrypted = AllowUnencryptedConnections(app.Configuration, app.Environment);
 
+        // Whether a connection is configured, and to which system — without host, account or TLS details, which
+        // only Admins (who own the Connect page) see. The dashboard and the route guard use this for every user.
+        app.MapGet(
+                "/api/connection/status",
+                async (ExportLogDbContext db) =>
+                {
+                    var cfg = await db.GetSettingAsync<DataSourceConfig>(SettingsKeys.ErpConnection);
+                    return Results.Ok(
+                        new ConnectionStatusDto(cfg is not null, cfg?.Type, cfg?.Database ?? cfg?.InstanceUrl)
+                    );
+                }
+            )
+            .RequireAuthorization();
+
         // Returns the stored connection — never the password itself, only whether one is set
         // (HasPassword). See knowledge/architecture/data-source-configuration.md.
         app.MapGet(
@@ -98,7 +113,7 @@ static class ConnectionEndpoints
                     );
                 }
             )
-            .RequireAuthorization();
+            .RequireAdmin();
 
         // Tests the connection, persists it on success, and returns the live source schema.
         app.MapPost(
@@ -156,7 +171,7 @@ static class ConnectionEndpoints
                     }
                 }
             )
-            .RequireAuthorization();
+            .RequireAdmin();
 
         // Returns schema from the persisted Postgres connection when one is configured, falling back to
         // the hardcoded demo schema only when no connection has been stored yet. A stored connection that
@@ -185,7 +200,12 @@ static class ConnectionEndpoints
                     }
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(
+                Permissions.SourceSchemaView,
+                Permissions.ExportMappingView,
+                Permissions.ExportJobsView,
+                Permissions.ImportJobsView
+            );
     }
 
     // Hardcoded demo schema that mirrors what a real production PostgreSQL ERP database would expose.

@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Connector.Api;
+using Connector.Api.Authorization;
 using Connector.Core.DataSources;
 using Connector.Core.Domain;
 using Connector.Core.DynamicExport;
@@ -150,7 +151,7 @@ static class PipelineEndpoints
                     }
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ManagedExportRun);
 
         // Runs a named Step-3 preset (Save As…) and returns the built file directly in the response —
         // the synchronous, external-system-friendly counterpart to /api/pipeline/run above. Unlike that
@@ -347,6 +348,6 @@ static class PipelineEndpoints
                     }
                 }
             )
-            .RequireAuthorization();
+            .RequirePermission(Permissions.ExportMappingView, Permissions.ManagedExportView);
     }
 }

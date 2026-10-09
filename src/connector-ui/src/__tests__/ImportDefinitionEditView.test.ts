@@ -7,6 +7,7 @@ import * as authApi from '@/api/auth'
 import * as connectionApi from '@/api/connection'
 import type { ImportDefinition } from '@/api/importDefinitions'
 import type { SourceSchema } from '@/api/connection'
+import { signInAs } from './signInAs'
 
 // Awaits the initial navigation before returning, same reasoning as ExportDefinitionEditView.test.ts:
 // reading route.params synchronously at setup time would otherwise race the pending push.
@@ -91,11 +92,12 @@ const DEFINITION: ImportDefinition = {
   },
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.restoreAllMocks()
   vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValue(SCHEMA)
   vi.spyOn(importDefinitionsApi, 'listImportDefinitionRuns').mockResolvedValue([])
   sessionStorage.clear()
+  await signInAs('Admin')
 })
 
 describe('ImportDefinitionEditView', () => {

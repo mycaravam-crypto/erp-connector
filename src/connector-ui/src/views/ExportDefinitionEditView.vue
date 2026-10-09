@@ -21,11 +21,16 @@ import BackLink from '@/components/ui/BackLink.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useToasts } from '@/composables/useToasts'
+import { useCurrentUser } from '@/composables/useCurrentUser'
+import { Permission } from '@/lib/permissions'
+import Alert from '@/components/ui/Alert.vue'
 
 // /export-definitions/:id ("new" to create): editor for one export job. Basic fields, the node tree built
 // from the root table's columns, a preview panel and run history; a new job is created first, after which
-// ExportDefinitionRunControls handles save/test/run/duplicate/delete.
+// ExportDefinitionRunControls handles save/test/run/duplicate/delete. Without the edit permission a saved job
+// opens read-only.
 const toasts = useToasts()
+const { can } = useCurrentUser()
 
 const route = useRoute()
 const router = useRouter()
@@ -62,6 +67,7 @@ const availableTables = ref<SourceTable[]>([])
 // isSaved gates every feature that needs a real database row: Save vs Create button, Test/Run
 // Now/Duplicate/Delete, preview, and execution history all require an id the backend recognizes.
 const isSaved = computed(() => (definition.value?.id ?? 0) > 0)
+const readOnly = computed(() => isSaved.value && !can(Permission.ExportJobsEdit))
 const rootTableLocked = computed(() => (definition.value?.rootNode.children.length ?? 0) > 0)
 
 async function load() {
@@ -206,44 +212,49 @@ async function refreshRuns() {
       Config version {{ definition.configVersion }} · created by {{ definition.createdBy }}
     </p>
 
-    <ExportDefinitionBasicFields
-      :definition="definition"
-      :available-tables="availableTables"
-      :root-table-locked="rootTableLocked"
-      @root-table-changed="onRootTableChanged"
-    />
+    <Alert v-if="readOnly" class="mb-5">You can view this export job, but not change it.</Alert>
 
-    <span class="inline-flex items-center gap-1.5 mb-2.5">
-      <h2 class="text-base font-semibold text-text-primary m-0">Data Structure &amp; Field Mapping</h2>
-      <HelpTooltip label="How does the field tree work?" title="Building the output shape, field by field">
-        <p>
-          Each row is one output field or nested entity. <strong>Export key</strong> is the name it
-          gets in the output file — it doesn't have to match the source column name.
-        </p>
-        <p>
-          <strong>Example:</strong> a field row with source column <code>serial_number</code> and
-          export key <code>serialNumber</code> renames it on the way out. Add a
-          <strong>Related Entity</strong> to pull in a linked table as a single object (1:1, e.g. one
-          manufacturer) or a list (1:N, e.g. many addresses) — its own fields work the same way, and
-          you can nest further inside it.
-        </p>
-        <p>The checkbox on the left toggles whether that row is actually included in the export.</p>
-      </HelpTooltip>
-    </span>
-    <p class="text-text-secondary text-sm mb-3 leading-relaxed">
-      Add fields and related entities to build the export tree, and rename each one to its target
-      key. Picking a related table fills in every one of its columns (unchecked) so you only have
-      to check the ones you want.
-    </p>
-    <ExportNodeTreeEditor
-      v-if="definition.rootTable"
-      :nodes="definition.rootNode.children"
-      :context-table="definition.rootTable"
-      :available-tables="availableTables"
-      :depth="0"
-      class="mb-6"
-    />
-    <p v-else class="text-text-muted text-sm mb-6">Select a root table above to start adding fields.</p>
+    <!-- A disabled fieldset disables every control inside it; "contents" keeps it out of the layout. -->
+    <fieldset :disabled="readOnly" class="contents">
+      <ExportDefinitionBasicFields
+        :definition="definition"
+        :available-tables="availableTables"
+        :root-table-locked="rootTableLocked"
+        @root-table-changed="onRootTableChanged"
+      />
+
+      <span class="inline-flex items-center gap-1.5 mb-2.5">
+        <h2 class="text-base font-semibold text-text-primary m-0">Data Structure &amp; Field Mapping</h2>
+        <HelpTooltip label="How does the field tree work?" title="Building the output shape, field by field">
+          <p>
+            Each row is one output field or nested entity. <strong>Export key</strong> is the name it
+            gets in the output file — it doesn't have to match the source column name.
+          </p>
+          <p>
+            <strong>Example:</strong> a field row with source column <code>serial_number</code> and
+            export key <code>serialNumber</code> renames it on the way out. Add a
+            <strong>Related Entity</strong> to pull in a linked table as a single object (1:1, e.g. one
+            manufacturer) or a list (1:N, e.g. many addresses) — its own fields work the same way, and
+            you can nest further inside it.
+          </p>
+          <p>The checkbox on the left toggles whether that row is actually included in the export.</p>
+        </HelpTooltip>
+      </span>
+      <p class="text-text-secondary text-sm mb-3 leading-relaxed">
+        Add fields and related entities to build the export tree, and rename each one to its target
+        key. Picking a related table fills in every one of its columns (unchecked) so you only have
+        to check the ones you want.
+      </p>
+      <ExportNodeTreeEditor
+        v-if="definition.rootTable"
+        :nodes="definition.rootNode.children"
+        :context-table="definition.rootTable"
+        :available-tables="availableTables"
+        :depth="0"
+        class="mb-6"
+      />
+      <p v-else class="text-text-muted text-sm mb-6">Select a root table above to start adding fields.</p>
+    </fieldset>
 
     <template v-if="isSaved">
       <ExportDefinitionRunControls

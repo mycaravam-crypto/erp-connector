@@ -6,11 +6,14 @@
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![Vue 3](https://img.shields.io/badge/Vue-3-42b883)
 
-**X5 Connector** is a self-hosted data bridge between an ERP system and an external vendor. It reads
-configuration items from a source system (read-only), removes personal data, and produces
-checksummed export packages (Excel, CSV or JSON) that must be approved by two different people
-before they leave the organisation. Vendor-supplied files can be imported back the same way:
-staged, diffed, reviewed under the four-eyes principle, and only then written to the source.
+**X5 Connector** is a self-hosted data bridge between an ERP system and an external vendor. It
+connects to PostgreSQL, MariaDB/MySQL or ServiceNow and exports any data you configure, whether
+that is configuration items, assets, contracts or any other table and its related records, as
+flat tables or deeply nested JSON. Personal data is removed at query time, and every run produces
+a checksummed package (Excel, CSV or JSON) that runs on demand, on a cron schedule or through an
+API key, and must be approved by two different people before it leaves the organisation.
+Vendor-supplied files can be imported back the same way: staged, diffed, reviewed under the
+four-eyes principle, and only then written to the source. Everything is recorded in an audit log.
 
 The source schema is never hard-coded. Tables, columns, joins and the output shape are all
 configured at runtime in the web UI.
@@ -56,7 +59,8 @@ configured at runtime in the web UI.
 
 **Governance and compliance**
 - **GDPR data minimisation:** fields on a configurable denylist are removed at query time and cannot be added to a mapping
-- **Four-eyes release:** the operator and the approver must be two different authenticated users, and this is enforced on the server
+- **Roles and permissions:** Admins can do everything and manage users in the UI. For the User role, an Admin ticks exactly which menu items and actions (view, create, edit, delete, run, release, download, ...) are allowed. The server enforces this on every request
+- **Four-eyes release:** the operator and the approver must be two different authenticated users who are both allowed to release, and this is enforced on the server
 - **Audit log:** every change of state (logins, releases, deliveries, skips, mapping and settings changes) is recorded and can be browsed in the UI
 - **Sequence integrity:** gaps in the run sequence are detected and unresolved runs are flagged before a release
 - **Delivery tracking:** records the physical handover and the number of records the vendor imported, which closes the chain of custody
@@ -141,8 +145,9 @@ docker compose -f docker-compose.dev.yml up
 | API | http://localhost:5189 |
 | Test database (PostgreSQL) | `localhost:5432` |
 
-Sign in with one of the development accounts: **`alice` / `alice123`** or **`bob` / `bob123`**.
-You need both accounts to try the four-eyes release.
+Sign in with one of the development accounts: **`alice` / `alice123`** or **`bob` / `bob123`** (both
+Admins), or **`carol` / `carol123`** (a User, to try out permissions). You need two Admins to try the
+four-eyes release.
 
 On the **Connect** screen, use these values for the bundled test database:
 
@@ -171,8 +176,8 @@ npm run dev
 ```
 
 The Vite dev server forwards all `/api/*` requests to `http://localhost:5189`, so no CORS setup is
-needed. In development mode the API seeds the `alice` and `bob` accounts and the API key
-`dev-local-api-key`.
+needed. In development mode the API seeds the `alice`, `bob` and `carol` accounts (into an empty user table)
+and the API key `dev-local-api-key`.
 
 ---
 
@@ -203,7 +208,9 @@ AUTH_USER1_NAME=bob
 AUTH_USER1_HASH=<bcrypt hash>
 ```
 
-At least two users are needed so that runs can be released under the four-eyes principle.
+These users are created as Admins the first time the container starts (set `AUTH_USER0_ROLE=User` for a
+normal user). After that, users are managed in the UI under **Settings → Users**, and the variables are ignored.
+At least two people allowed to release are needed so that runs can be released under the four-eyes principle.
 
 ### 3. Start the container
 
@@ -248,7 +255,7 @@ the separator (for example `ExportWorker__RetentionDays=90`). The complete annot
 |---|---|---|
 | `Auth:JwtSecret` | – | **Required.** Secret of at least 32 characters used to sign JWTs |
 | `Auth:JwtExpiryHours` | `8` | How long a session token stays valid |
-| `Auth:Users` | – | List of `{ Username, PasswordHash }` (BCrypt) |
+| `Auth:Users` | – | List of `{ Username, PasswordHash, Role }` (BCrypt; `Role` is `Admin` or `User`, empty means Admin). Only seeds an empty user table |
 | `Auth:ApiKeys` | – | List of `{ Name, KeyHash }`, where `KeyHash` is the SHA-256 hex of the raw key |
 | `AllowedOrigins` | `[]` | Origins allowed to call the API from a browser |
 | `AllowedHosts` | `*` | Allowed host names; restrict this in production |
@@ -287,14 +294,18 @@ For several independent or nested exports, use **Export Definitions**. Each defi
 own output tree, format and schedule. **Import Definitions** configure the way back from the
 vendor. The **Audit** page shows every action, and **Settings** covers the scheduler, the GDPR
 denylist, branding and this connector's instance ID (which can be regenerated on an installation
-set up from a copy of another's database).
+set up from a copy of another's database). For Admins, Settings also has **Users** (add users, change
+roles, reset passwords) and **Permissions** (what the User role may see and do). Users see only the menu
+items, buttons and settings they are allowed to use; see
+[Roles and Permissions](knowledge/security/roles-and-permissions.md).
 
 ---
 
 ## API overview
 
 All endpoints are under `/api`. Except for `health`, `version`, `branding` (GET) and
-`auth/login`, they require `Authorization: Bearer <token>`. Obtain a token with:
+`auth/login`, they require `Authorization: Bearer <token>`, and the caller's role must hold the endpoint's
+permission (Admins hold all of them). Obtain a token with:
 
 ```bash
 curl -X POST http://localhost:8090/api/auth/login \
@@ -304,9 +315,11 @@ curl -X POST http://localhost:8090/api/auth/login \
 
 | Area | Endpoints |
 |---|---|
-| Auth | `POST auth/login`, `POST auth/revoke-my-sessions` |
+| Auth | `POST auth/login`, `GET auth/me`, `POST auth/change-password`, `POST auth/revoke-my-sessions` |
+| Users (Admin) | `GET/POST users`, `PUT/DELETE users/{username}` |
+| Permissions (Admin) | `GET/PUT settings/permissions` |
 | System | `GET health`, `GET version`, `GET audit` |
-| Connection | `GET/POST connection`, `GET source-schema` |
+| Connection | `GET/POST connection` (Admin), `GET connection/status`, `GET source-schema` |
 | Export mapping | `GET/PUT export-mapping`, `GET export-mapping/presets`, `PUT/DELETE export-mapping/presets/{name}` |
 | Pipeline | `POST pipeline/run?format=xlsx\|csv\|json`, `GET pipeline/preview`, `POST pipeline/run/{preset}` (also accepts `X-Api-Key`) |
 | Export runs | `GET exports`, `GET exports/{seqNo}`, `POST exports/{seqNo}/release\|deliver\|skip` |

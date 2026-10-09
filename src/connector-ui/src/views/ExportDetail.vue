@@ -14,11 +14,27 @@ import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import BackLink from '@/components/ui/BackLink.vue'
 import { formatDate } from '@/lib/dates'
+import { useCurrentUser } from '@/composables/useCurrentUser'
+import { Permission } from '@/lib/permissions'
 
 // /exports/:seqNo: one managed export run: status, a sequence-gap warning when an earlier run wasn't
 // released, and the run details. Offers the next step for its state: four-eyes release, skip (pending or
-// failed runs), or record delivery (released, not yet delivered).
+// failed runs), or record delivery (released, not yet delivered) — each only with its permission.
 const route = useRoute()
+const { can } = useCurrentUser()
+// The next step a run's state offers, each only with its permission.
+const canRelease = computed(() => run.value?.status === 'Pending' && can(Permission.ManagedExportRelease))
+const canSkip = computed(
+  () => (run.value?.status === 'Pending' || run.value?.status === 'Failed') && can(Permission.ManagedExportSkip),
+)
+const importedNote = computed(() =>
+  run.value?.importedRecordCount == null
+    ? ''
+    : `Vendor confirmed ${run.value.importedRecordCount} records imported.`,
+)
+const canDeliver = computed(
+  () => run.value?.status === 'Released' && !run.value.deliveredAt && can(Permission.ManagedExportDeliver),
+)
 
 const seqNo = computed(() => Number(route.params.seqNo))
 const run = ref<ExportDetail | null>(null)
@@ -73,21 +89,21 @@ onMounted(load)
 
     <!-- Four-eyes release form -->
     <ReleaseDialog
-      v-if="run.status === 'Pending'"
+      v-if="canRelease"
       :seqNo="run.sequenceNo"
       @released="load"
     />
 
     <!-- Skip run form (Pending or Failed) -->
     <SkipRunForm
-      v-if="run.status === 'Pending' || run.status === 'Failed'"
+      v-if="canSkip"
       :seqNo="run.sequenceNo"
       @skipped="load"
     />
 
     <!-- Delivery acknowledgement form -->
     <DeliverRunForm
-      v-if="run.status === 'Released' && !run.deliveredAt"
+      v-if="canDeliver"
       :seqNo="run.sequenceNo"
       @delivered="load"
     />
@@ -96,9 +112,7 @@ onMounted(load)
     <Alert v-if="run.deliveredAt" variant="success" class="delivery-done mt-6 max-w-lg">
       <template #icon><Icon :icon="Check" :size="20" /></template>
       Delivered on {{ formatDate(run.deliveredAt) }} by {{ run.deliveredBy }}.
-      <span v-if="run.importedRecordCount !== null">
-        Vendor confirmed {{ run.importedRecordCount }} records imported.
-      </span>
+      {{ importedNote }}
     </Alert>
   </template>
 </template>

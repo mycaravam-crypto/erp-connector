@@ -9,6 +9,7 @@ import type { ExportMappingConfig } from '@/api/mapping'
 import type { PreviewResult } from '@/api/pipeline'
 import type { ExportSummary } from '@/api/exports'
 import { useToasts } from '@/composables/useToasts'
+import { signInAs } from './signInAs'
 
 function buildRouter() {
   const r = createRouter({
@@ -54,12 +55,13 @@ const RUN: ExportSummary = {
   isStale: false,
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.restoreAllMocks()
   vi.spyOn(pipelineApi, 'getPreview').mockResolvedValue(PREVIEW)
   vi.spyOn(exportsApi, 'listExports').mockResolvedValue([])
   vi.spyOn(erpApi, 'getExportMapping').mockResolvedValue(null)
   useToasts().clear()
+  await signInAs('Admin')
 })
 
 describe('ExportView', () => {

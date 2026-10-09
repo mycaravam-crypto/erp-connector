@@ -6,6 +6,7 @@ import * as exportDefinitionsApi from '@/api/exportDefinitions'
 import * as connectionApi from '@/api/connection'
 import type { ExportDefinition } from '@/api/exportDefinitions'
 import type { SourceSchema } from '@/api/connection'
+import { signInAs } from './signInAs'
 
 // Awaits the initial navigation before returning: reading route.params synchronously at setup
 // time (as ExportDefinitionEditView's isNew/id do) would otherwise race the pending push from an
@@ -93,10 +94,11 @@ const DEFINITION: ExportDefinition = {
   },
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.restoreAllMocks()
   vi.spyOn(connectionApi, 'getSourceSchema').mockResolvedValue(SCHEMA)
   vi.spyOn(exportDefinitionsApi, 'listExportDefinitionRuns').mockResolvedValue([])
+  await signInAs('Admin')
 })
 
 describe('ExportDefinitionEditView', () => {
@@ -280,5 +282,18 @@ describe('ExportDefinitionEditView', () => {
       expect(createSpy).toHaveBeenCalledWith(expect.objectContaining({ name: 'New One', rootTable: 'masterdata' }))
       expect(router.currentRoute.value.params.id).toBe('42')
     })
+  })
+
+  it('opens read-only for a User without the edit permission', async () => {
+    await signInAs('User', ['exportJobs.view', 'exportJobs.test'])
+    vi.spyOn(exportDefinitionsApi, 'getExportDefinition').mockResolvedValueOnce(DEFINITION)
+    const w = mount(ExportDefinitionEditView, { global: { plugins: [await buildRouter()] } })
+    await flushPromises()
+    expect(w.text()).toContain('You can view this export job, but not change it.')
+    expect(w.find('fieldset').attributes('disabled')).toBeDefined()
+    const labels = w.findAll('button').map((b) => b.text())
+    expect(labels).not.toContain('Save')
+    expect(labels).not.toContain('Delete')
+    expect(labels).toContain('Test against live connection')
   })
 })

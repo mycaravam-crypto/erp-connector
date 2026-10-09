@@ -29,16 +29,21 @@ import ImportDefinitionPreviewPanel from '@/components/ImportDefinitionPreviewPa
 import ImportDefinitionRunsTable from '@/components/ImportDefinitionRunsTable.vue'
 import ImportRunReviewDialog from '@/components/ImportRunReviewDialog.vue'
 import Button from '@/components/ui/Button.vue'
+import Alert from '@/components/ui/Alert.vue'
 import BackLink from '@/components/ui/BackLink.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useToasts } from '@/composables/useToasts'
+import { useCurrentUser } from '@/composables/useCurrentUser'
+import { Permission } from '@/lib/permissions'
 
 // /import-definitions/:id ("new" to create): editor for one import job. Basic fields, the writable-column
 // allowlist, the node tree, a preview of the plan for a pasted sample, and run history. A new job can start
 // from a matching export's suggestion (including a sample handed over via sessionStorage). "Run"
-// stages the sample as a PendingReview run and opens the four-eyes review dialog.
+// stages the sample as a PendingReview run and opens the four-eyes review dialog. Without the edit permission a
+// saved job opens read-only.
 const toasts = useToasts()
+const { can } = useCurrentUser()
 
 const route = useRoute()
 const router = useRouter()
@@ -74,6 +79,7 @@ const availableTables = ref<SourceTable[]>([])
 // isSaved gates every feature that needs a real database row: Save vs Create button,
 // Duplicate/Delete, preview, and run history all require an id the backend recognizes.
 const isSaved = computed(() => (definition.value?.id ?? 0) > 0)
+const readOnly = computed(() => isSaved.value && !can(Permission.ImportJobsEdit))
 const rootTableLocked = computed(() => (definition.value?.rootNode.children.length ?? 0) > 0)
 const usedColumns = computed(() =>
   definition.value ? collectWritableTargets(definition.value.rootNode, definition.value.rootMatchColumn) : [],
@@ -288,44 +294,49 @@ function onReviewResolved() {
     />
 
     <template v-else>
-      <ImportDefinitionBasicFields
-        :definition="definition"
-        :available-tables="availableTables"
-        :root-table-locked="rootTableLocked"
-        @root-table-changed="onRootTableChanged"
-      />
+      <Alert v-if="readOnly" class="mb-5">You can view this import job, but not change it.</Alert>
 
-      <ImportAllowedColumnsEditor :columns="definition.allowedWritableColumns" :used-columns="usedColumns" />
+      <!-- A disabled fieldset disables every control inside it; "contents" keeps it out of the layout. -->
+      <fieldset :disabled="readOnly" class="contents">
+        <ImportDefinitionBasicFields
+          :definition="definition"
+          :available-tables="availableTables"
+          :root-table-locked="rootTableLocked"
+          @root-table-changed="onRootTableChanged"
+        />
 
-      <span class="inline-flex items-center gap-1.5 mb-2.5">
-        <h2 class="text-base font-semibold text-text-primary m-0">Fields</h2>
-        <HelpTooltip label="How does the field tree work?" title="Which fields can be written back">
-          <p>
-            Each row is one column an inbound record is allowed to write. A field here must also
-            appear in the <strong>Allowed Writable Columns</strong> list above, or saving is rejected —
-            two separate places have to agree before anything can be written.
-          </p>
-          <p>
-            <strong>Example:</strong> add a field for <code>status</code> so a vendor's confirmation
-            JSON can update that column; leave out columns like <code>price</code> that inbound
-            records should never be able to touch.
-          </p>
-        </HelpTooltip>
-      </span>
-      <p class="text-text-secondary text-sm mb-3 leading-relaxed">
-        Add the root's correlation-key field (mapped to the root match column above) plus every
-        confirmation/status field the vendor may write back. Picking a related table fills in every one of
-        its columns (unchecked) so you only have to check the ones you want.
-      </p>
-      <ImportNodeTreeEditor
-        v-if="definition.rootTable"
-        :nodes="definition.rootNode.children"
-        :context-table="definition.rootTable"
-        :available-tables="availableTables"
-        :depth="0"
-        class="mb-6"
-      />
-      <p v-else class="text-text-muted text-sm mb-6">Select a root table above to start adding fields.</p>
+        <ImportAllowedColumnsEditor :columns="definition.allowedWritableColumns" :used-columns="usedColumns" />
+
+        <span class="inline-flex items-center gap-1.5 mb-2.5">
+          <h2 class="text-base font-semibold text-text-primary m-0">Fields</h2>
+          <HelpTooltip label="How does the field tree work?" title="Which fields can be written back">
+            <p>
+              Each row is one column an inbound record is allowed to write. A field here must also
+              appear in the <strong>Allowed Writable Columns</strong> list above, or saving is rejected —
+              two separate places have to agree before anything can be written.
+            </p>
+            <p>
+              <strong>Example:</strong> add a field for <code>status</code> so a vendor's confirmation
+              JSON can update that column; leave out columns like <code>price</code> that inbound
+              records should never be able to touch.
+            </p>
+          </HelpTooltip>
+        </span>
+        <p class="text-text-secondary text-sm mb-3 leading-relaxed">
+          Add the root's correlation-key field (mapped to the root match column above) plus every
+          confirmation/status field the vendor may write back. Picking a related table fills in every one of
+          its columns (unchecked) so you only have to check the ones you want.
+        </p>
+        <ImportNodeTreeEditor
+          v-if="definition.rootTable"
+          :nodes="definition.rootNode.children"
+          :context-table="definition.rootTable"
+          :available-tables="availableTables"
+          :depth="0"
+          class="mb-6"
+        />
+        <p v-else class="text-text-muted text-sm mb-6">Select a root table above to start adding fields.</p>
+      </fieldset>
 
       <template v-if="isSaved">
         <ImportDefinitionRunControls

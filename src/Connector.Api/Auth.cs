@@ -1,3 +1,5 @@
+using Connector.Infrastructure;
+
 namespace Connector.Api;
 
 public sealed class AuthOptions
@@ -5,7 +7,8 @@ public sealed class AuthOptions
     public string JwtSecret { get; set; } = string.Empty;
     public int JwtExpiryHours { get; set; } = 8;
 
-    /// <summary>Production user list. In Development, <see cref="DevAuthSeed"/> overrides this.</summary>
+    /// <summary>Production users that seed the user table while it is still empty; after that, users are managed
+    /// in the UI (Settings → Users). In Development, <see cref="DevAuthSeed"/> is used instead.</summary>
     public List<AuthUser> Users { get; set; } = [];
 
     /// <summary>Production API key list, for machine-to-machine callers (e.g. an external system
@@ -20,6 +23,30 @@ public sealed class AuthUser
 
     /// <summary>BCrypt hash. Generate via POST /api/auth/hash (Development only).</summary>
     public string PasswordHash { get; set; } = string.Empty;
+
+    /// <summary><c>Admin</c> or <c>User</c>. Empty means Admin, so a user list written before roles existed keeps
+    /// every user's full access.</summary>
+    public string? Role { get; set; }
+
+    /// <summary>Converts the configured users into <see cref="SeedUser"/>s. An unknown role is a startup error
+    /// rather than a silent downgrade or upgrade.</summary>
+    internal static List<SeedUser> ToSeed(IEnumerable<AuthUser> users, ILogger logger) =>
+        users
+            .Select(u =>
+            {
+                if (string.IsNullOrWhiteSpace(u.Role))
+                {
+                    logger.LogWarning("Auth:Users entry '{Username}' has no Role; it is treated as Admin.", u.Username);
+                    return new SeedUser(u.Username, u.PasswordHash, UserRoles.Admin);
+                }
+                var role =
+                    UserRoles.Normalize(u.Role)
+                    ?? throw new InvalidOperationException(
+                        $"Auth:Users entry '{u.Username}' has an unknown Role '{u.Role}' (expected Admin or User)."
+                    );
+                return new SeedUser(u.Username, u.PasswordHash, role);
+            })
+            .ToList();
 }
 
 public sealed class ApiKeyOptions

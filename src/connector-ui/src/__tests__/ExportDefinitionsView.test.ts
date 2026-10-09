@@ -5,6 +5,7 @@ import ExportDefinitionsView from '@/views/ExportDefinitionsView.vue'
 import * as exportDefinitionsApi from '@/api/exportDefinitions'
 import type { ExportDefinitionSummary } from '@/api/exportDefinitions'
 import { useToasts } from '@/composables/useToasts'
+import { signInAs } from './signInAs'
 
 async function buildRouter() {
   const r = createRouter({
@@ -36,10 +37,11 @@ const DEFINITIONS: ExportDefinitionSummary[] = [
   },
 ]
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.restoreAllMocks()
   vi.spyOn(exportDefinitionsApi, 'listExportDefinitionRuns').mockResolvedValue([])
   useToasts().clear()
+  await signInAs('Admin')
 })
 
 describe('ExportDefinitionsView', () => {
@@ -147,5 +149,29 @@ describe('ExportDefinitionsView', () => {
     expect(deleteSpy).toHaveBeenCalledWith(1)
     expect(listSpy).toHaveBeenCalledTimes(2)
     expect(useToasts().toasts.value.some((t) => t.variant === 'success')).toBe(true)
+  })
+
+  it('shows a User with only the view permission no New, Test, Duplicate or Delete, and a View link', async () => {
+    await signInAs('User', ['exportJobs.view'])
+    vi.spyOn(exportDefinitionsApi, 'listExportDefinitions').mockResolvedValueOnce(DEFINITIONS)
+    const w = mount(ExportDefinitionsView, { global: { plugins: [await buildRouter()] } })
+    await flushPromises()
+    expect(w.text()).not.toContain('+ New')
+    expect(w.text()).not.toContain('Test')
+    expect(w.text()).not.toContain('Duplicate')
+    expect(w.text()).not.toContain('Delete')
+    expect(w.find('a[href="/export-definitions/1"]').text()).toBe('View')
+    expect(w.find('input[type="checkbox"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('shows a User exactly the actions they were granted', async () => {
+    await signInAs('User', ['exportJobs.view', 'exportJobs.test', 'exportJobs.delete'])
+    vi.spyOn(exportDefinitionsApi, 'listExportDefinitions').mockResolvedValueOnce(DEFINITIONS)
+    const w = mount(ExportDefinitionsView, { global: { plugins: [await buildRouter()] } })
+    await flushPromises()
+    expect(w.text()).toContain('Test')
+    expect(w.text()).toContain('Delete')
+    expect(w.text()).not.toContain('Duplicate')
+    expect(w.text()).not.toContain('+ New')
   })
 })

@@ -17,13 +17,14 @@ internal static class DevAuthSeed
     internal const string DevApiKey = "dev-local-api-key";
 #pragma warning restore S6418
 
-    /// <summary>alice / alice123 and bob / bob123 with BCrypt work-factor 4 (fast for dev).</summary>
-    internal static Dictionary<string, string> CreateUsers() =>
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            ["alice"] = BCrypt.Net.BCrypt.HashPassword("alice123", workFactor: 4),
-            ["bob"] = BCrypt.Net.BCrypt.HashPassword("bob123", workFactor: 4),
-        };
+    /// <summary>alice / alice123 and bob / bob123 (Admins, so the four-eyes flows work out of the box) and
+    /// carol / carol123 (User, for trying out permissions), with BCrypt work-factor 4 (fast for dev).</summary>
+    internal static List<SeedUser> CreateUsers() =>
+        [
+            new("alice", BCrypt.Net.BCrypt.HashPassword("alice123", workFactor: 4), UserRoles.Admin),
+            new("bob", BCrypt.Net.BCrypt.HashPassword("bob123", workFactor: 4), UserRoles.Admin),
+            new("carol", BCrypt.Net.BCrypt.HashPassword("carol123", workFactor: 4), UserRoles.User),
+        ];
 
     internal static List<ApiKeyOptions> CreateApiKeys() =>
         [new ApiKeyOptions { Name = "dev-api-key", KeyHash = ApiKeyStore.Hash(DevApiKey) }];
