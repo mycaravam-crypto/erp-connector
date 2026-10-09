@@ -14,8 +14,13 @@ import Alert from '@/components/ui/Alert.vue'
 import Button from '@/components/ui/Button.vue'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
+import { useCurrentUser } from '@/composables/useCurrentUser'
+import { Permission } from '@/lib/permissions'
 
 const inboundJson = defineModel<string>('inboundJson', { default: '' })
+
+// Run and "create from this export" show only for a user allowed to stage runs / create import jobs.
+const { can } = useCurrentUser()
 
 const props = defineProps<{
   /** Result of the last preview: per-record matches and planned changes, or null before the first preview. */
@@ -140,7 +145,11 @@ function createFromExport() {
       are reusable, but the wrapper needs to change first.
       <div class="flex items-center gap-2 flex-wrap mt-2">
         <Button variant="secondary" @click="convertToEnvelope">Convert to ImportEnvelope</Button>
-        <Button v-if="hasIntegrationKeyProvenance(detectedExport)" variant="ghost" @click="createFromExport">
+        <Button
+          v-if="hasIntegrationKeyProvenance(detectedExport) && can(Permission.ImportJobsCreate)"
+          variant="ghost"
+          @click="createFromExport"
+        >
           Create Import Definition from this export
         </Button>
       </div>
@@ -154,7 +163,12 @@ function createFromExport() {
         :disabled="loading || inboundJson.trim() === ''"
         @click="runPreview"
       >{{ loading ? 'Previewing…' : 'Preview' }}</button>
-      <Button :disabled="running || inboundJson.trim() === ''" :loading="running" @click="runImport">
+      <Button
+        v-if="can(Permission.ImportJobsRun)"
+        :disabled="running || inboundJson.trim() === ''"
+        :loading="running"
+        @click="runImport"
+      >
         {{ running ? 'Running…' : 'Run' }}
       </Button>
     </div>

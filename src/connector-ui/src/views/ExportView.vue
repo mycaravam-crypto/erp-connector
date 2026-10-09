@@ -14,11 +14,14 @@ import Alert from '@/components/ui/Alert.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useToasts } from '@/composables/useToasts'
+import { useCurrentUser } from '@/composables/useCurrentUser'
+import { Permission } from '@/lib/permissions'
 
 // /exports ("Managed Export"): the CMDB pipeline's run page. Summarises the active mapping, previews its
 // output, runs an export now in the chosen format (remembered per browser), and lists past runs with links to
-// each run's detail page.
+// each run's detail page. Running needs the run permission.
 const toasts = useToasts()
+const canRun = useCurrentUser().can(Permission.ManagedExportRun)
 
 const FORMAT_KEY = 'connector_export_format'
 const selectedFormat = ref<'xlsx' | 'csv' | 'json'>(
@@ -164,9 +167,10 @@ onMounted(() => {
           </button>
         </div>
       </div>
-      <Button variant="primary" class="shrink-0 whitespace-nowrap" :loading="running" @click="triggerRun">
+      <Button v-if="canRun" variant="primary" class="shrink-0 whitespace-nowrap" :loading="running" @click="triggerRun">
         {{ running ? 'Running…' : `Export as ${selectedFormat.toUpperCase()}` }}
       </Button>
+      <span v-else class="text-sm text-text-secondary">You aren't allowed to start export runs.</span>
     </div>
 
     <Alert v-if="runResult" variant="success" class="rounded-none border-x-0 border-b-0">

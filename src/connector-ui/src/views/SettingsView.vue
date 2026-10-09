@@ -10,9 +10,21 @@ import BrandingSettingsForm from '@/components/BrandingSettingsForm.vue'
 import ConnectorInstanceInfo from '@/components/ConnectorInstanceInfo.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import UsersSettings from '@/components/UsersSettings.vue'
+import PermissionsSettings from '@/components/PermissionsSettings.vue'
+import { useCurrentUser } from '@/composables/useCurrentUser'
+import { Permission } from '@/lib/permissions'
 
-// /settings: loads and shows the three settings forms (managed-export scheduler, GDPR denylist, branding) and
-// this connector's instance identity.
+// /settings: the settings forms (managed-export scheduler, GDPR denylist, branding) and this connector's
+// instance identity — each only for a user holding its permission — plus Users and Permissions for Admins.
+const { can, isAdmin } = useCurrentUser()
+const show = {
+  scheduler: can(Permission.SettingsScheduler),
+  gdpr: can(Permission.SettingsGdpr),
+  branding: can(Permission.SettingsBranding),
+  instance: can(Permission.SettingsInstance),
+}
+
 const loading = ref(true)
 const loadError = ref<string | null>(null)
 
@@ -24,13 +36,13 @@ const instance = ref<ConnectorInstance | null>(null)
 onMounted(async () => {
   try {
     const [cfg, gdpr, branding, connector] = await Promise.all([
-      getSchedulerConfig(),
-      getGdprDeniedFields(),
-      getBranding(),
-      getConnectorInstance(),
+      show.scheduler ? getSchedulerConfig() : null,
+      show.gdpr ? getGdprDeniedFields() : null,
+      show.branding ? getBranding() : null,
+      show.instance ? getConnectorInstance() : null,
     ])
     schedulerConfig.value = cfg
-    gdprFields.value = gdpr.fields
+    gdprFields.value = gdpr?.fields ?? []
     brandingConfig.value = branding
     instance.value = connector
   } catch {
@@ -59,6 +71,10 @@ onMounted(async () => {
           <strong>Connector Instance</strong> shows this installation's ID, which identifies its exports
           to other connector instances, and can regenerate it for a copy of another installation.
         </p>
+        <p>
+          <strong>Users</strong> and <strong>Permissions</strong> (Admins only) decide who can sign in and
+          what users with the User role may see and do. Users only see the sections they're allowed to change.
+        </p>
       </HelpTooltip>
     </template>
   </PageHeader>
@@ -67,13 +83,13 @@ onMounted(async () => {
 
   <Alert v-else-if="loadError" variant="danger" class="mt-4">{{ loadError }}</Alert>
 
-  <template v-else-if="schedulerConfig && brandingConfig && instance">
-    <SchedulerSettingsForm :config="schedulerConfig" />
-    <hr class="my-10 border-border" />
-    <GdprDenylistEditor :initial-fields="gdprFields" />
-    <hr class="my-10 border-border" />
-    <BrandingSettingsForm :config="brandingConfig" />
-    <hr class="my-10 border-border" />
-    <ConnectorInstanceInfo v-model:instance="instance" />
-  </template>
+  <!-- Every section but the first starts with its own divider, so none dangles whichever are hidden. -->
+  <div v-else class="[&>*+*]:border-t [&>*+*]:border-border [&>*+*]:mt-10 [&>*+*]:pt-4">
+    <SchedulerSettingsForm v-if="schedulerConfig" :config="schedulerConfig" />
+    <GdprDenylistEditor v-if="show.gdpr" :initial-fields="gdprFields" />
+    <BrandingSettingsForm v-if="brandingConfig" :config="brandingConfig" />
+    <ConnectorInstanceInfo v-if="instance" v-model:instance="instance" />
+    <UsersSettings v-if="isAdmin" />
+    <PermissionsSettings v-if="isAdmin" />
+  </div>
 </template>

@@ -3,6 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import ExportDetail from '@/views/ExportDetail.vue'
 import * as exportsApi from '@/api/exports'
+import { signInAs } from './signInAs'
 
 // Base fixture — all new nullable fields set to null
 const PENDING = {
@@ -40,7 +41,10 @@ function buildRouter(seqNo = 4) {
   return r
 }
 
-beforeEach(() => vi.restoreAllMocks())
+beforeEach(async () => {
+  vi.restoreAllMocks()
+  await signInAs('Admin')
+})
 
 describe('ExportDetail', () => {
   it('shows loading initially', () => {

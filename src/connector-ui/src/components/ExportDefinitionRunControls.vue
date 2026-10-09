@@ -13,11 +13,15 @@ import Button from '@/components/ui/Button.vue'
 import ConfirmAction from '@/components/ui/ConfirmAction.vue'
 import { useToasts } from '@/composables/useToasts'
 import { useSaveStatus } from '@/composables/useSaveStatus'
+import { useCurrentUser } from '@/composables/useCurrentUser'
+import { Permission } from '@/lib/permissions'
 
 // Action bar for the export definition editor: Save (PUT, merged back into `definition`), Test against the
 // live connection (capped test run), Run Now (downloads the built file), Duplicate and Delete (with confirm).
-// Parents react to `duplicated` / `deleted` to navigate away.
+// Parents react to `duplicated` / `deleted` to navigate away. Each action shows only for a user holding its
+// permission.
 const toasts = useToasts()
+const { can } = useCurrentUser()
 
 const props = defineProps<{
   /** The definition being edited; saved as-is, and updated in place with the server's response. */
@@ -172,12 +176,12 @@ async function confirmDelete() {
 <template>
   <div>
     <div class="flex items-center gap-3 mb-3 flex-wrap">
-      <Button :loading="saving" @click="save">{{ saving ? 'Saving…' : 'Save' }}</Button>
-      <Button variant="secondary" :loading="testing" @click="runTest">{{ testing ? 'Testing…' : 'Test against live connection' }}</Button>
-      <Button variant="secondary" :loading="running" @click="runNow">{{ running ? 'Running…' : 'Run Now' }}</Button>
-      <Button variant="secondary" :loading="duplicating" @click="duplicate">{{ duplicating ? 'Duplicating…' : 'Duplicate' }}</Button>
+      <Button v-if="can(Permission.ExportJobsEdit)" :loading="saving" @click="save">{{ saving ? 'Saving…' : 'Save' }}</Button>
+      <Button v-if="can(Permission.ExportJobsTest)" variant="secondary" :loading="testing" @click="runTest">{{ testing ? 'Testing…' : 'Test against live connection' }}</Button>
+      <Button v-if="can(Permission.ExportJobsDownload)" variant="secondary" :loading="running" @click="runNow">{{ running ? 'Running…' : 'Run Now' }}</Button>
+      <Button v-if="can(Permission.ExportJobsCreate)" variant="secondary" :loading="duplicating" @click="duplicate">{{ duplicating ? 'Duplicating…' : 'Duplicate' }}</Button>
 
-      <div class="ml-auto flex items-center gap-2">
+      <div v-if="can(Permission.ExportJobsDelete)" class="ml-auto flex items-center gap-2">
         <ConfirmAction
           v-model:confirming="confirmingDelete"
           :busy="deleting"

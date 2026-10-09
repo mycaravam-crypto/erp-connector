@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterView, RouterLink, useRouter, useRoute } from 'vue-router'
 import { getUsername, clearSession, isLoggedIn, revokeAllSessions } from '@/api/auth'
 import ThemeToggle from '@/components/ThemeToggle.vue'
@@ -7,10 +7,12 @@ import UserMenu from '@/components/UserMenu.vue'
 import ConnectorNav from '@/components/ConnectorNav.vue'
 import ToastHost from '@/components/ui/ToastHost.vue'
 import AppVersion from '@/components/AppVersion.vue'
+import ChangePasswordDialog from '@/components/ChangePasswordDialog.vue'
 import { useBranding } from '@/composables/useBranding'
 
 // App shell: a header with the branded logo and app name and the theme toggle, plus (when signed in) the
-// navigation and a user menu for signing out or signing out of all sessions; then the current route's view,
+// navigation and a user menu for changing the password, signing out or signing out of all sessions; then the
+// current route's view,
 // toasts and, when signed in, the app version.
 const { appName, logoUrl } = useBranding()
 
@@ -22,6 +24,14 @@ const username = computed(() => { void route.path; return getUsername() })
 function logout() {
   clearSession()
   router.push({ name: 'login' })
+}
+
+const changingPassword = ref(false)
+
+// A password change has already signed this account out everywhere on the server.
+function passwordChanged() {
+  clearSession()
+  router.push({ name: 'login', query: { notice: 'password-changed' } })
 }
 
 // The revoke call also invalidates the token this request itself would use, so the local session
@@ -46,7 +56,12 @@ async function revokeSessions() {
       <ThemeToggle />
       <template v-if="loggedIn">
         <span class="w-px self-stretch bg-nav-border" aria-hidden="true" />
-        <UserMenu :username="username" @sign-out="logout" @revoke-sessions="revokeSessions" />
+        <UserMenu
+          :username="username"
+          @sign-out="logout"
+          @revoke-sessions="revokeSessions"
+          @change-password="changingPassword = true"
+        />
       </template>
     </div>
   </header>
@@ -58,5 +73,6 @@ async function revokeSessions() {
     <footer v-if="loggedIn" class="text-center mt-3"><AppVersion /></footer>
   </main>
 
+  <ChangePasswordDialog v-model:open="changingPassword" @changed="passwordChanged" />
   <ToastHost />
 </template>

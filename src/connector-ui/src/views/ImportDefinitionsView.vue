@@ -14,13 +14,16 @@ import Button from '@/components/ui/Button.vue'
 import Alert from '@/components/ui/Alert.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
-import ConfirmAction from '@/components/ui/ConfirmAction.vue'
+import JobRowActions from '@/components/JobRowActions.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import { useToasts } from '@/composables/useToasts'
+import { useCurrentUser } from '@/composables/useCurrentUser'
+import { Permission } from '@/lib/permissions'
 
 // /import-definitions: the list of import jobs with each job's last run status, plus per-row enable/disable,
-// duplicate and delete (with confirm).
+// duplicate and delete (with confirm) — each only for a user holding its permission.
 const toasts = useToasts()
+const { can } = useCurrentUser()
 
 const definitions = ref<ImportDefinitionSummary[]>([])
 const loading = ref(true)
@@ -119,6 +122,7 @@ async function confirmDelete(def: ImportDefinitionSummary) {
     </template>
     <template #actions>
       <RouterLink
+        v-if="can(Permission.ImportJobsCreate)"
         :to="{ name: 'import-definition-edit', params: { id: 'new' } }"
         class="px-4 py-1.5 border-0 rounded-md bg-brand text-white text-sm font-semibold no-underline hover:bg-brand-hover"
       >+ New</RouterLink>
@@ -176,8 +180,8 @@ async function confirmDelete(def: ImportDefinitionSummary) {
           <input
             type="checkbox"
             :checked="def.isEnabled"
-            :disabled="togglingId === def.id"
-            class="cursor-pointer"
+            :disabled="togglingId === def.id || !can(Permission.ImportJobsEdit)"
+            class="cursor-pointer disabled:cursor-default"
             :aria-label="`Enable ${def.name}`"
             @change="toggleEnabled(def)"
           />
@@ -187,34 +191,18 @@ async function confirmDelete(def: ImportDefinitionSummary) {
           <span v-else class="text-text-muted text-xs">—</span>
         </td>
         <td class="px-3 py-2 text-right whitespace-nowrap">
-          <div class="flex items-center gap-2.5 justify-end">
-            <RouterLink
-              :to="{ name: 'import-definition-edit', params: { id: def.id } }"
-              class="text-brand text-sm hover:underline"
-            >Edit</RouterLink>
-            <button
-              type="button"
-              class="text-text-secondary text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline disabled:opacity-50"
-              :disabled="duplicatingId === def.id"
-              @click="duplicate(def)"
-            >{{ duplicatingId === def.id ? 'Duplicating…' : 'Duplicate' }}</button>
-            <ConfirmAction
-              variant="link"
-              :confirming="confirmingDeleteId === def.id"
-              :busy="deletingId === def.id"
-              :confirm-label="deletingId === def.id ? 'Deleting…' : 'Confirm'"
-              @update:confirming="(v) => (confirmingDeleteId = v ? def.id : null)"
-              @confirm="confirmDelete(def)"
-            >
-              <template #trigger="{ open }">
-                <button
-                  type="button"
-                  class="text-danger text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline"
-                  @click="open"
-                >Delete</button>
-              </template>
-            </ConfirmAction>
-          </div>
+          <JobRowActions
+            :to="{ name: 'import-definition-edit', params: { id: def.id } }"
+            :can-edit="can(Permission.ImportJobsEdit)"
+            :show-duplicate="can(Permission.ImportJobsCreate)"
+            :show-delete="can(Permission.ImportJobsDelete)"
+            :duplicating="duplicatingId === def.id"
+            :deleting="deletingId === def.id"
+            :confirming="confirmingDeleteId === def.id"
+            @update:confirming="(v) => (confirmingDeleteId = v ? def.id : null)"
+            @duplicate="duplicate(def)"
+            @delete="confirmDelete(def)"
+          />
         </td>
       </tr>
     </tbody>

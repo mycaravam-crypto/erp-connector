@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { login } from '@/api/auth'
 import { useBranding } from '@/composables/useBranding'
 import Card from '@/components/ui/Card.vue'
@@ -13,6 +13,9 @@ import AppVersion from '@/components/AppVersion.vue'
 const { appName, logoUrl } = useBranding()
 
 const router = useRouter()
+const route = useRoute()
+// Shown after a password change, which signs the account out everywhere.
+const passwordChanged = route.query.notice === 'password-changed'
 
 const username = ref('')
 const password = ref('')
@@ -44,6 +47,7 @@ async function submit() {
         <h1 class="text-lg font-semibold m-0 text-text-primary">{{ appName }}</h1>
       </div>
       <p class="text-text-secondary text-sm m-0 mb-6">Release UI requires authentication.</p>
+      <p v-if="passwordChanged" class="text-success text-sm m-0 mb-4">Password changed. Sign in with your new password.</p>
 
       <Input id="username" v-model="username" label="Username" autocomplete="username" class="mb-3" @keyup.enter="submit" />
       <Input id="password" v-model="password" type="password" label="Password" autocomplete="current-password" class="mb-3" @keyup.enter="submit" />

@@ -66,6 +66,21 @@ export async function getConnection(): Promise<ErpConnectionInfo | null> {
   return res.json() as Promise<ErpConnectionInfo>
 }
 
+/** GET /api/connection/status: what every signed-in user may know about the connection. The details
+ *  (host, account, TLS) are Admin-only, via getConnection. */
+export interface ConnectionStatus {
+  configured: boolean
+  type: DataSourceType | null
+  /** Database name, or the ServiceNow instance URL. */
+  name: string | null
+}
+
+export async function getConnectionStatus(): Promise<ConnectionStatus | null> {
+  const res = await fetch('/api/connection/status', { headers: authHeaders() })
+  if (!res.ok) return null
+  return res.json() as Promise<ConnectionStatus>
+}
+
 // ── Connection status cache (for route guards) ────────────────────────────────
 
 let _connectionConfigured: boolean | null = null
@@ -78,8 +93,7 @@ export function invalidateConnectionCache(): void {
 /** True if a connection has been configured server-side. Result is cached for the session. */
 export async function isConnectionConfigured(): Promise<boolean> {
   if (_connectionConfigured !== null) return _connectionConfigured
-  const conn = await getConnection()
-  _connectionConfigured = conn !== null
+  _connectionConfigured = (await getConnectionStatus())?.configured ?? false
   return _connectionConfigured
 }
 

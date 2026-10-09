@@ -123,15 +123,24 @@ describe('saveConnection', () => {
 })
 
 describe('isConnectionConfigured', () => {
-  it('returns true when GET /api/connection succeeds', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+  it('returns true when GET /api/connection/status reports a configured connection', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
       ok: true, status: 200,
-      json: async () => CONN_INFO,
+      json: async () => ({ configured: true, type: DataSourceType.PostgreSql, name: 'erp' }),
     } as Response)
     expect(await isConnectionConfigured()).toBe(true)
+    expect(spy.mock.calls[0]![0]).toBe('/api/connection/status')
   })
 
-  it('returns false when GET /api/connection returns 404', async () => {
+  it('returns false when no connection is configured', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true, status: 200,
+      json: async () => ({ configured: false, type: null, name: null }),
+    } as Response)
+    expect(await isConnectionConfigured()).toBe(false)
+  })
+
+  it('returns false when the status request fails', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
       ok: false, status: 404,
       json: async () => null,
@@ -142,7 +151,7 @@ describe('isConnectionConfigured', () => {
   it('caches the result — only one fetch call for two checks', async () => {
     const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
       ok: true, status: 200,
-      json: async () => CONN_INFO,
+      json: async () => ({ configured: true, type: DataSourceType.PostgreSql, name: 'erp' }),
     } as Response)
     await isConnectionConfigured()
     await isConnectionConfigured()

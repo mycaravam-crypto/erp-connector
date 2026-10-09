@@ -11,12 +11,16 @@ import ImportRunCountSummary from '@/components/ImportRunCountSummary.vue'
 import ImportRunOutcome from '@/components/ImportRunOutcome.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import { useToasts } from '@/composables/useToasts'
+import { useCurrentUser } from '@/composables/useCurrentUser'
+import { Permission } from '@/lib/permissions'
 
 // The import run review/diff view: reuses ReleaseDialog.vue's Operator/Approver form pattern, extended
 // with the full count breakdown and a field-level diff of the matched/changed rows PlanJson actually
 // carries — a run's plan is the write-side source of truth, so this dialog only ever displays it, never
 // recomputes its own.
 const toasts = useToasts()
+// Without the release permission a pending run can be inspected, but not released or rejected.
+const canRelease = useCurrentUser().can(Permission.ImportJobsRelease)
 
 const props = defineProps<{
   /** Import run to load when the dialog opens; null renders nothing to review. */
@@ -155,7 +159,10 @@ async function reject() {
         <ImportPlanDiffTable :operations="detail.operations" />
       </div>
 
-      <template v-if="isPending">
+      <p v-if="isPending && !canRelease" class="text-text-secondary text-sm m-0">
+        This run is waiting for review. You aren't allowed to release or reject it.
+      </p>
+      <template v-else-if="isPending">
         <p class="text-text-secondary text-sm m-0 mb-3 inline-flex items-start gap-1.5">
           <span>
             Releasing as <strong class="text-text-primary">{{ currentUser }}</strong>. Approver must be a
@@ -195,7 +202,7 @@ async function reject() {
       />
     </template>
 
-    <template #footer v-if="detail && isPending">
+    <template #footer v-if="detail && isPending && canRelease">
       <Button variant="ghost" @click="open = false">Cancel</Button>
       <Button variant="danger" :disabled="rejecting || submitting" :loading="rejecting" @click="reject">
         {{ rejecting ? 'Rejecting…' : 'Reject' }}

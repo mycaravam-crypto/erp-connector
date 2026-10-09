@@ -5,6 +5,7 @@ import ImportDefinitionsView from '@/views/ImportDefinitionsView.vue'
 import * as importDefinitionsApi from '@/api/importDefinitions'
 import type { ImportDefinitionSummary } from '@/api/importDefinitions'
 import { useToasts } from '@/composables/useToasts'
+import { signInAs } from './signInAs'
 
 async function buildRouter() {
   const r = createRouter({
@@ -34,10 +35,11 @@ const DEFINITIONS: ImportDefinitionSummary[] = [
   },
 ]
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.restoreAllMocks()
   vi.spyOn(importDefinitionsApi, 'listImportDefinitionRuns').mockResolvedValue([])
   useToasts().clear()
+  await signInAs('Admin')
 })
 
 describe('ImportDefinitionsView', () => {

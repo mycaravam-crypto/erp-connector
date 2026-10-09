@@ -15,13 +15,16 @@ import Button from '@/components/ui/Button.vue'
 import Alert from '@/components/ui/Alert.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
-import ConfirmAction from '@/components/ui/ConfirmAction.vue'
+import JobRowActions from '@/components/JobRowActions.vue'
 import HelpTooltip from '@/components/ui/HelpTooltip.vue'
 import { useToasts } from '@/composables/useToasts'
+import { useCurrentUser } from '@/composables/useCurrentUser'
+import { Permission } from '@/lib/permissions'
 
 // /export-definitions: the list of export jobs with each job's last run status, plus per-row enable/disable,
-// test run, duplicate and delete (with confirm).
+// test run, duplicate and delete (with confirm) — each only for a user holding its permission.
 const toasts = useToasts()
+const { can } = useCurrentUser()
 
 const definitions = ref<ExportDefinitionSummary[]>([])
 const loading = ref(true)
@@ -144,6 +147,7 @@ async function confirmDelete(def: ExportDefinitionSummary) {
     </template>
     <template #actions>
       <RouterLink
+        v-if="can(Permission.ExportJobsCreate)"
         :to="{ name: 'export-definition-edit', params: { id: 'new' } }"
         class="px-4 py-1.5 border-0 rounded-md bg-brand text-white text-sm font-semibold no-underline hover:bg-brand-hover"
       >+ New</RouterLink>
@@ -203,8 +207,8 @@ async function confirmDelete(def: ExportDefinitionSummary) {
             <input
               type="checkbox"
               :checked="def.isEnabled"
-              :disabled="togglingId === def.id"
-              class="cursor-pointer"
+              :disabled="togglingId === def.id || !can(Permission.ExportJobsEdit)"
+              class="cursor-pointer disabled:cursor-default"
               :aria-label="`Enable ${def.name}`"
               @change="toggleEnabled(def)"
             />
@@ -215,40 +219,21 @@ async function confirmDelete(def: ExportDefinitionSummary) {
             <span v-else class="text-text-muted text-xs">—</span>
           </td>
           <td class="px-3 py-2 text-right whitespace-nowrap">
-            <div class="flex items-center gap-2.5 justify-end">
-              <RouterLink
-                :to="{ name: 'export-definition-edit', params: { id: def.id } }"
-                class="text-brand text-sm hover:underline"
-              >Edit</RouterLink>
-              <button
-                type="button"
-                class="text-text-secondary text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline disabled:opacity-50"
-                :disabled="testingId === def.id"
-                @click="runTest(def)"
-              >{{ testingId === def.id ? 'Testing…' : 'Test' }}</button>
-              <button
-                type="button"
-                class="text-text-secondary text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline disabled:opacity-50"
-                :disabled="duplicatingId === def.id"
-                @click="duplicate(def)"
-              >{{ duplicatingId === def.id ? 'Duplicating…' : 'Duplicate' }}</button>
-              <ConfirmAction
-                variant="link"
-                :confirming="confirmingDeleteId === def.id"
-                :busy="deletingId === def.id"
-                :confirm-label="deletingId === def.id ? 'Deleting…' : 'Confirm'"
-                @update:confirming="(v) => (confirmingDeleteId = v ? def.id : null)"
-                @confirm="confirmDelete(def)"
-              >
-                <template #trigger="{ open }">
-                  <button
-                    type="button"
-                    class="text-danger text-sm bg-transparent border-0 p-0 cursor-pointer hover:underline"
-                    @click="open"
-                  >Delete</button>
-                </template>
-              </ConfirmAction>
-            </div>
+            <JobRowActions
+              :to="{ name: 'export-definition-edit', params: { id: def.id } }"
+              :can-edit="can(Permission.ExportJobsEdit)"
+              :show-test="can(Permission.ExportJobsTest)"
+              :testing="testingId === def.id"
+              :show-duplicate="can(Permission.ExportJobsCreate)"
+              :show-delete="can(Permission.ExportJobsDelete)"
+              :duplicating="duplicatingId === def.id"
+              :deleting="deletingId === def.id"
+              :confirming="confirmingDeleteId === def.id"
+              @update:confirming="(v) => (confirmingDeleteId = v ? def.id : null)"
+              @test="runTest(def)"
+              @duplicate="duplicate(def)"
+              @delete="confirmDelete(def)"
+            />
           </td>
         </tr>
         <tr v-if="testMessage[def.id]">

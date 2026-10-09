@@ -1,23 +1,28 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
-import { ChevronDown, LogOut, ShieldOff } from 'lucide-vue-next'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { ChevronDown, KeyRound, LogOut, ShieldOff } from 'lucide-vue-next'
 import Icon from '@/components/ui/Icon.vue'
+import { canOpen, useCurrentUser } from '@/composables/useCurrentUser'
 
 defineProps<{ username: string | null }>()
-const emit = defineEmits<{ signOut: []; revokeSessions: [] }>()
+const emit = defineEmits<{ signOut: []; revokeSessions: []; changePassword: [] }>()
 
 const route = useRoute()
+const router = useRouter()
+const { currentUser } = useCurrentUser()
 const open = ref(false)
 const rootEl = ref<HTMLElement | null>(null)
 
 // Export Jobs and Import Jobs moved to top-level nav pills in App.vue — this menu now holds only
 // the connector-configuration screens that don't need to be always-visible.
-const links = [
+// Only the screens the signed-in user may open (their route's access rule, see router/index.ts).
+const allLinks = [
   { name: 'icd-schema', label: 'ICD Schema' },
   { name: 'settings', label: 'Settings' },
   { name: 'audit', label: 'Audit Log' },
 ]
+const links = computed(() => allLinks.filter((link) => canOpen(router.resolve({ name: link.name }))))
 
 const menuLinkClass =
   'flex items-center px-3 py-2 text-[0.82rem] text-nav-text no-underline hover:bg-nav-hover hover:text-nav-text-strong transition-colors ' +
@@ -42,6 +47,11 @@ function onKeydown(e: KeyboardEvent) {
 function signOut() {
   close()
   emit('signOut')
+}
+
+function changePassword() {
+  close()
+  emit('changePassword')
 }
 
 function revokeSessions() {
@@ -79,7 +89,10 @@ onBeforeUnmount(() => {
       v-if="open"
       class="absolute right-0 top-full mt-1.5 min-w-[11rem] py-1.5 rounded-md border border-nav-border bg-nav shadow-lg z-10"
     >
-      <nav aria-label="Secondary" class="flex flex-col">
+      <p v-if="currentUser" class="m-0 px-3 pb-1.5 text-xs text-nav-text">
+        Signed in as {{ currentUser.role === 'Admin' ? 'Admin' : 'User' }}
+      </p>
+      <nav v-if="links.length > 0" aria-label="Secondary" class="flex flex-col">
         <RouterLink
           v-for="link in links"
           :key="link.name"
@@ -91,6 +104,15 @@ onBeforeUnmount(() => {
         </RouterLink>
       </nav>
       <span class="block h-px my-1.5 bg-nav-border" aria-hidden="true" />
+      <button
+        type="button"
+        :class="menuLinkClass"
+        class="w-full text-left bg-transparent border-none cursor-pointer"
+        @click="changePassword"
+      >
+        <Icon :icon="KeyRound" :size="16" class="mr-1.5" />
+        Change password
+      </button>
       <button
         type="button"
         :class="menuLinkClass"
