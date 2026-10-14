@@ -51,6 +51,45 @@ public sealed class ManifestSigningPolicyTests : SqliteDbContextTestBase
     }
 
     [Fact]
+    public void UnconfiguredReceiver_AllowsSignedFileFromUnknownProducer()
+    {
+        // Connector A sends a signed file to both paired B and unconfigured C.
+        // C has no verification key: the signature is neither proof of trust nor a reason to reject.
+        var signed = new ImportManifest(Checksum, Remote, ManifestSignature.Sign(Checksum, Remote, Key));
+        Assert.Null(ManifestSigningPolicy.Verify(signed, null, pairedDefinition: false));
+        Assert.Null(ManifestSigningPolicy.Verify(signed, new ManifestSigningSettings(), pairedDefinition: true));
+    }
+
+    [Fact]
+    public void NonEnforcingReceiver_AllowsUnknownProducerEvenWithSignature()
+    {
+        // Another configured peer must not accidentally block delivery from a non-paired sender.
+        var settings = TrustRemote();
+        settings.RequireSignedConnectorFiles = false;
+        var unknown = Remote with { InstanceId = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb" };
+        var signed = new ImportManifest(Checksum, unknown, ManifestSignature.Sign(Checksum, unknown, Key));
+        Assert.Null(ManifestSigningPolicy.Verify(signed, settings, pairedDefinition: false));
+
+        settings.RequireSignedConnectorFiles = true;
+        Assert.Equal("producer instance is not trusted",
+            ManifestSigningPolicy.Verify(signed, settings, pairedDefinition: false));
+    }
+
+    [Fact]
+    public void TrustedReceiver_AlwaysRejectsInvalidSignatureEvenWithoutStrictMode()
+    {
+        var settings = TrustRemote();
+        settings.RequireSignedConnectorFiles = false;
+        Assert.Equal("missing manifest signature from trusted producer",
+            ManifestSigningPolicy.Verify(new ImportManifest(Checksum, Remote), settings, pairedDefinition: false));
+        Assert.Equal("invalid manifest signature",
+            ManifestSigningPolicy.Verify(new ImportManifest(Checksum, Remote, new string('0', 64)),
+                settings, pairedDefinition: false));
+        Assert.Null(ManifestSigningPolicy.Verify(new ImportManifest(Checksum, Remote,
+            ManifestSignature.Sign(Checksum, Remote, Key)), settings, pairedDefinition: false));
+    }
+
+    [Fact]
     public async Task OutboundSign_UsesEncryptedSettingAndCanBeVerifiedByReceivingPeer()
     {
         var peerId = Guid.NewGuid().ToString();
