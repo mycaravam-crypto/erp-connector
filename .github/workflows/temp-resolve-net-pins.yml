@@ -22,7 +22,7 @@ jobs:
           dockerfile = path.read_text()
           entries = [
               ("mcr.microsoft.com/dotnet/sdk", "10.0-alpine", "api-build"),
-              ("mcr.microsoft.com/dotnet/aspnet", "10.0.13-alpine", "runtime"),
+              ("mcr.microsoft.com/dotnet/aspnet", "10.0-alpine", "runtime"),
           ]
           for image, tag, stage in entries:
               source = f"{image}:{tag}"
@@ -30,6 +30,13 @@ jobs:
               match = re.search(r"^Digest:\s*(sha256:[0-9a-f]{64})\s*$", output, re.MULTILINE)
               if not match:
                   raise RuntimeError(f"Could not verify manifest-list digest for {source}")
+              if stage == "runtime":
+                  runtime_info = subprocess.check_output(
+                      ["docker", "run", "--rm", source, "dotnet", "--list-runtimes"], text=True
+                  )
+                  print(runtime_info)
+                  if "Microsoft.AspNetCore.App 10.0.13 " not in runtime_info:
+                      raise RuntimeError(f"{source} does not yet include patched ASP.NET Core 10.0.13")
               replacement = f"FROM {source}@{match.group(1)} AS {stage}"
               dockerfile, count = re.subn(
                   rf"^FROM {re.escape(image)}:[^\n]+ AS {stage}$",
