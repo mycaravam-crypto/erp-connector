@@ -1,7 +1,7 @@
 name: Version
 
 # Bumps the VERSION file (the app's single version source — see Directory.Build.props) on every PR
-# merged into main, commits it back, and tags the commit vX.Y.Z. The running version is shown on the
+# merged into main, commits it back, tags vX.Y.Z, publishes a GHCR image, and creates a GitHub Release. The running version is shown on the
 # login screen and in the app footer (GET /api/version), so a Docker redeploy can be checked at a
 # glance.
 #
@@ -18,6 +18,7 @@ concurrency:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   bump:
@@ -57,3 +58,23 @@ jobs:
           git commit -m "Release v$VERSION (#$PR_NUMBER) [skip ci]"
           git tag "v$VERSION"
           git push origin HEAD:main "v$VERSION"
+
+      # The tag is pushed by GITHUB_TOKEN. That does not trigger another workflow,
+      # so publish the OCI image and GitHub Release in this same version job.
+      - name: Publish versioned container to GHCR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.bump.outputs.version }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          image="ghcr.io/${REPOSITORY,,}"
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker build --pull -t "$image:v$VERSION" -t "$image:latest" .
+          docker push "$image:v$VERSION"
+          docker push "$image:latest"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: gh release create "v$VERSION" --title "v$VERSION" --generate-notes --verify-tag --latest

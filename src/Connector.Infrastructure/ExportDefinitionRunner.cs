@@ -110,13 +110,16 @@ public static class ExportDefinitionRunner
             {
                 var fileName = DynamicExportService.BuildNamedFileName(def.Name, extractedAt, built.Extension);
                 var checksum = Convert.ToHexString(SHA256.HashData(built.Bytes)).ToLowerInvariant();
-                var manifest = new ExportManifest(
-                    SequenceNumber: null,
-                    ExportSchema.Version,
-                    extractedAt,
-                    built.RecordCount,
-                    checksum,
-                    await db.GetProducerAsync()
+                var manifest = await ManifestSigningPolicy.SignAsync(
+                    db,
+                    new ExportManifest(
+                        SequenceNumber: null,
+                        ExportSchema.Version,
+                        extractedAt,
+                        built.RecordCount,
+                        checksum,
+                        await db.GetProducerAsync()
+                    )
                 );
                 await sink.WriteAsync(new ExportPackage(manifest, built.Bytes, fileName), ct);
                 run.DataFileName = fileName;
