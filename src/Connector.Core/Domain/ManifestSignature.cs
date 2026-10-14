@@ -35,11 +35,15 @@ public static class ManifestSignature
     {
         if (signature is null || signature.Length != 64)
             return false;
-        Span<byte> supplied = stackalloc byte[32];
-        if (!Convert.TryFromHexString(signature, supplied, out var written) || written != 32)
+        try
+        {
+            var supplied = Convert.FromHexString(signature);
+            var expected = HMACSHA256.HashData(key, Payload(sha256Checksum, producer));
+            return CryptographicOperations.FixedTimeEquals(expected, supplied);
+        }
+        catch (FormatException)
+        {
             return false;
-
-        var expected = HMACSHA256.HashData(key, Payload(sha256Checksum, producer));
-        return CryptographicOperations.FixedTimeEquals(expected, supplied);
+        }
     }
 }
