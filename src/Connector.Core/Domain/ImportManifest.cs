@@ -14,5 +14,7 @@ public sealed record ImportManifest(
     string Sha256Checksum,
     /// <summary>Set when another connector instance wrote the file (its <see cref="ExportManifest.Producer"/>);
     /// null for a vendor file.</summary>
-    ExportProducer? Producer = null
+    ExportProducer? Producer = null,
+    /// <summary>Optional HMAC-SHA256 hex written by a trusted paired connector.</summary>
+    string? Signature = null
 );
