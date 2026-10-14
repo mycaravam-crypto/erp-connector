@@ -35,10 +35,12 @@ public static class ManifestSigningPolicy
     public static string? Verify(ImportManifest manifest, ManifestSigningSettings? settings, bool pairedDefinition)
     {
         if (manifest.Producer is null)
-            return settings?.RequireSignedConnectorFiles == true && pairedDefinition
-                    ? "unsigned file targets a paired import definition"
-                : manifest.Signature is null ? null
-                : "signature has no producer identity";
+        {
+            if (settings?.RequireSignedConnectorFiles == true && pairedDefinition)
+                return "unsigned file targets a paired import definition";
+
+            return manifest.Signature is null ? null : "signature has no producer identity";
+        }
 
         if (settings is null || !settings.TrustedPeerSecrets.TryGetValue(manifest.Producer.InstanceId, out var secret))
             return settings?.RequireSignedConnectorFiles == true || manifest.Signature is not null
