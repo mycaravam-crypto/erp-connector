@@ -423,6 +423,9 @@ static class ExportDefinitionEndpoints
                     )
                         return Results.BadRequest("Correlation key must be an enabled root scalar field.");
 
+                    // Clients can compare the requested and returned root-row counts.
+                    httpContext.Response.Headers["X-Requested-Count"] = ids.Length.ToString();
+
                     var user = httpContext.User.Identity!.Name!;
                     var (run, built, error) = await ExportDefinitionRunner.ExecuteAsync(
                         def,
