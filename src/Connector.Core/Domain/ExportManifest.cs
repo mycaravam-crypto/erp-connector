@@ -18,7 +18,9 @@ public sealed record ExportManifest(
     string Sha256Checksum,
     /// <summary>Which connector instance wrote the export, so a receiving connector can tell another connector's
     /// export apart from a vendor file, and two connector instances apart from each other.</summary>
-    ExportProducer Producer
+    ExportProducer Producer,
+    /// <summary>Optional HMAC-SHA256 hex over the checksum and producer identity (configured pairing).</summary>
+    string? Signature = null
 );
 
 /// <summary>Identity of the connector that wrote an export.</summary>
