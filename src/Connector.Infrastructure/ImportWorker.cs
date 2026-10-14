@@ -231,6 +231,18 @@ public sealed class ImportWorker(
             return;
         }
 
+        // Authentication is checked before staging or diffing. A trusted producer cannot send
+        // an unsigned or tampered manifest, even if global enforcement is disabled.
+        var signing = await db.GetSettingAsync<ManifestSigningSettings>(SettingsKeys.ManifestSigning);
+        var signatureFailure = ManifestSigningPolicy.Verify(
+            manifest, signing, pairedDefinition: definition.IntegrationKey is not null
+        );
+        if (signatureFailure is not null)
+        {
+            await RejectAsync(signatureFailure);
+            return;
+        }
+
         var existing = await db.ImportRuns.FirstOrDefaultAsync(
             r => r.ImportDefinitionId == definition.Id && r.Sha256Checksum == actualChecksum,
             ct
