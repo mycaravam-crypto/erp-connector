@@ -1,0 +1,56 @@
+# Written by `docwizz setup` (docwizz 0.7.67) from what the repository shows. Lines marked `inferred:`
+# come from file evidence; everything else is a default. Edit freely: setup never overwrites this file
+# without --force.
+# Documentation profile: default, software, aspnet, vue, api, architecture, technical-publication, iso-42010, iso-15289.
+# `--profile` overrides it. Add `patterns:` (same shape as in Profiles.cs) to replace the profile's patterns.
+profile: default
+check:
+  min_coverage: 80
+  # min_quality: 90     # fail when fewer % of items with written docs are free of quality flags
+  max_critical: 0
+  max_violations: 0
+  max_cycles: 0
+  fail_on: low          # minimum violation severity that fails check: low, medium, high
+  # max_complexity: 20  # fail when a symbol's cyclomatic complexity exceeds this
+  # require_tests: high # check --since: fail when the change adds a symbol at this level or above with no linked test
+architecture:
+  layers:               # path globs, first match wins; unmatched files have no layer
+    ui: ["*.vue", "*.tsx", "*.jsx", "*.component.ts"]   # inferred: 102 files, e.g. src/connector-ui/src/App.vue
+    state: ["*/stores/*.ts", "*/composables/*.ts"]   # inferred: 5 files, e.g. src/connector-ui/src/composables/useBranding.ts
+    client: ["*/api/*.ts", "*/services/*.ts", "*.service.ts"]   # inferred: 15 files, e.g. src/connector-ui/src/api/audit.ts
+    api: ["*/Api/*.cs", "*.Api/*.cs", "*/Controllers/*.cs", "*/Endpoints/*.cs", "*/controller/*.java", "*/web/*.java"]   # inferred: 27 files, e.g. src/Connector.Api/ApiKeyAuthenticationHandler.cs
+    domain: ["*/Domain/*.cs", "*.Domain/*.cs", "*.Core/*.cs", "*/domain/*.java", "*/model/*.java", "*/entity/*.java"]   # inferred: 28 files, e.g. src/Connector.Core/DataSources/DataSourceCapabilities.cs
+    infrastructure: ["*/Infrastructure/*.cs", "*.Infrastructure/*.cs", "*/Persistence/*.cs"]   # inferred: 70 files, e.g. src/Connector.Infrastructure/ApiKeyStore.cs
+  allow:                # `http` = calling HTTP directly
+    ui: [state, client]
+    state: [client]
+    client: [http]
+    api: [domain, infrastructure]
+    domain: []
+    infrastructure: [domain]
+  severity: {}          # rule → high/medium/low; defaults ARCH-001 high, ARCH-002 medium, ARCH-004 low
+  # rules:              # your own dependency rules (README: Custom rules)
+  #   - { id: ARCH-DOMAIN-001, severity: high, from: { layer: domain }, forbid: { package: [Microsoft.EntityFrameworkCore] } }
+# Security rules SEC-001…005: findings for a security review, from code facts (README: Security rules). Off by default.
+security:
+  enabled: false
+# Package remediation (`docwizz remediate`, README: Remediation). Suggestions are advisory; --validate builds a temporary copy.
+remediation:
+  targets: {}           # package → version to propose, e.g. { Newtonsoft.Json: 13.0.3 }
+  # validate:           # --validate steps, in order; {target}: the solution or each affected project, {tests}: test projects
+  #   - { name: restore, run: "dotnet restore {target}" }
+  #   - { name: build, run: "dotnet build {target} --no-restore" }
+  #   - { name: test, run: "dotnet test {tests} --no-build" }
+  timeout_minutes: 20
+# Test code (path globs): scanned only to link tests to the code they exercise; never analyzed or documented.
+tests: ["tests/*", "*.Tests/*", "*/__tests__/*", "*.test.ts", "*.spec.ts", "*/e2e/*"]   # inferred: tests/* 83, *.Tests/* 83, */__tests__/* 61, *.test.ts 60, *.spec.ts 5, */e2e/* 5
+# Path globs (relative, `/`-separated) left out of the model entirely.
+exclude: []
+# Count a plain // comment block directly above a C# member as its summary (for code that doesn't use /// XML docs).
+comment_docs: false
+# Self-hosted model for --ai (README: AI drafts). Default: Ollama at OLLAMA_HOST, model DOCWIZZ_MODEL.
+# ai:
+#   provider: openai-compatible   # ollama (default) or openai-compatible (vLLM, NVIDIA NIM, LiteLLM, ...)
+#   endpoint: http://10.0.0.5:8000/v1   # must resolve to a loopback or private address
+#   model: qwen3-coder-next
+#   api_key_env: DOCWIZZ_AI_KEY   # the environment variable that holds the key; never the key itself

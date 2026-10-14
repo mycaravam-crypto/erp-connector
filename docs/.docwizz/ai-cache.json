@@ -1,0 +1,927 @@
+{
+  "cs:Connector.Api.Endpoints.ImportDefinitionEndpoints.StageImportAsync(int, string, string?, HttpContext, Connector.Infrastructure.ExportLogDbContext, Connector.Infrastructure.AuditService, Connector.Core.DataSources.IDataSourceProviderResolver, System.Threading.CancellationToken, Connector.Infrastructure.ImportDefinitionEntity?)@01a2d27d9c2a@ollama/qwen2.5-coder:7b": {
+    "text": "Stages an import definition by creating a new import run in the database.",
+    "sources": [
+      "cs:Connector.Api.Endpoints.ImportDefinitionEndpoints.StageImportAsync(int, string, string?, HttpContext, Connector.Infrastructure.ExportLogDbContext, Connector.Infrastructure.AuditService, Connector.Core.DataSources.IDataSourceProviderResolver, System.Threading.CancellationToken, Connector.Infrastructure.ImportDefinitionEntity?)"
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Stages an import definition by creating a new import run in the database.",
+          "from": [
+            "cs:Connector.Api.Endpoints.ImportDefinitionEndpoints.StageImportAsync(int, string, string?, HttpContext, Connector.Infrastructure.ExportLogDbContext, Connector.Infrastructure.AuditService, Connector.Core.DataSources.IDataSourceProviderResolver, System.Threading.CancellationToken, Connector.Infrastructure.ImportDefinitionEntity?)"
+          ]
+        }
+      ],
+      "responsibilities": [
+        {
+          "text": "Manages the staging of import definitions, including validating the import plan and logging the action.",
+          "from": [
+            "cs:Connector.Api.Endpoints.ImportDefinitionEndpoints.StageImportAsync(int, string, string?, HttpContext, Connector.Infrastructure.ExportLogDbContext, Connector.Infrastructure.AuditService, Connector.Core.DataSources.IDataSourceProviderResolver, System.Threading.CancellationToken, Connector.Infrastructure.ImportDefinitionEntity?)"
+          ]
+        }
+      ],
+      "behaviour": [
+        {
+          "text": "Deserializes the import definition and inbound JSON, checks for existing runs, opens a database connection, walks the import tree, builds an import plan, and saves the import run to the database.",
+          "from": [
+            "cs:Connector.Api.Endpoints.ImportDefinitionEndpoints.StageImportAsync(int, string, string?, HttpContext, Connector.Infrastructure.ExportLogDbContext, Connector.Infrastructure.AuditService, Connector.Core.DataSources.IDataSourceProviderResolver, System.Threading.CancellationToken, Connector.Infrastructure.ImportDefinitionEntity?)"
+          ]
+        }
+      ],
+      "side_effects": [
+        {
+          "text": "Writes to the database.",
+          "from": [
+            "cs:Connector.Api.Endpoints.ImportDefinitionEndpoints.StageImportAsync(int, string, string?, HttpContext, Connector.Infrastructure.ExportLogDbContext, Connector.Infrastructure.AuditService, Connector.Core.DataSources.IDataSourceProviderResolver, System.Threading.CancellationToken, Connector.Infrastructure.ImportDefinitionEntity?)"
+          ]
+        }
+      ],
+      "errors": [
+        {
+          "text": "Returns 404 if no order has that id; returns 400 if no database connection is configured or if the import plan cannot be built; returns 409 if the file was already staged.",
+          "from": [
+            "cs:Connector.Api.Endpoints.ImportDefinitionEndpoints.StageImportAsync(int, string, string?, HttpContext, Connector.Infrastructure.ExportLogDbContext, Connector.Infrastructure.AuditService, Connector.Core.DataSources.IDataSourceProviderResolver, System.Threading.CancellationToken, Connector.Infrastructure.ImportDefinitionEntity?)"
+          ]
+        }
+      ],
+      "usage": [
+        {
+          "text": "Called by endpoints for importing definitions.",
+          "from": [
+            "cs:Connector.Api.Endpoints.ImportDefinitionEndpoints.StageImportAsync(int, string, string?, HttpContext, Connector.Infrastructure.ExportLogDbContext, Connector.Infrastructure.AuditService, Connector.Core.DataSources.IDataSourceProviderResolver, System.Threading.CancellationToken, Connector.Infrastructure.ImportDefinitionEntity?)"
+          ]
+        }
+      ]
+    }
+  },
+  "module:src/connector-ui/src/api@5b899ae81a8f@ollama/qwen2.5-coder:7b": {
+    "text": "Contains API endpoints for various functionalities such as authentication, branding, connections, and export definitions.",
+    "sources": [
+      "module:src/Connector.Api/Endpoints",
+      "module:src/connector-ui/src",
+      "module:src/connector-ui/src/components",
+      "module:src/connector-ui/src/composables",
+      "module:src/connector-ui/src/lib",
+      "module:src/connector-ui/src/router",
+      "module:src/connector-ui/src/views"
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Contains API endpoints for various functionalities such as authentication, branding, connections, and export definitions.",
+          "from": [
+            "module:src/Connector.Api/Endpoints"
+          ]
+        }
+      ],
+      "responsibilities": [
+        {
+          "text": "Manages user authentication, branding configuration, connection management, and export definitions.",
+          "from": [
+            "module:src/Connector.Api/Endpoints"
+          ]
+        }
+      ],
+      "usage": [
+        {
+          "text": "Used by various components and views within the connector-ui project to interact with backend services.",
+          "from": [
+            "module:src/connector-ui/src",
+            "module:src/connector-ui/src/components",
+            "module:src/connector-ui/src/composables",
+            "module:src/connector-ui/src/lib",
+            "module:src/connector-ui/src/router",
+            "module:src/connector-ui/src/views"
+          ]
+        }
+      ]
+    }
+  },
+  "module:src/connector-ui/src/components@69bbf9929c4b@ollama/qwen2.5-coder:7b": {
+    "text": "Contains Vue.js components for the Connector UI, including forms, tables, and cards for managing exports and imports.",
+    "sources": [
+      "vue:src/connector-ui/src/components/ActiveMappingSummary.vue",
+      "vue:src/connector-ui/src/components/AddUserForm.vue",
+      "vue:src/connector-ui/src/components/ExportDefinitionPreviewPanel.vue",
+      "module:src/connector-ui/src",
+      "module:src/connector-ui/src/views"
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Contains Vue.js components for the Connector UI, including forms, tables, and cards for managing exports and imports.",
+          "from": [
+            "vue:src/connector-ui/src/components/ActiveMappingSummary.vue",
+            "vue:src/connector-ui/src/components/AddUserForm.vue"
+          ]
+        }
+      ],
+      "responsibilities": [
+        {
+          "text": "Manages the user interface for export and import operations, including previewing, editing, and running export and import definitions.",
+          "from": [
+            "vue:src/connector-ui/src/components/ActiveMappingSummary.vue",
+            "vue:src/connector-ui/src/components/ExportDefinitionPreviewPanel.vue"
+          ]
+        }
+      ],
+      "usage": [
+        {
+          "text": "Used by the Connector UI views to render components for managing exports and imports.",
+          "from": [
+            "module:src/connector-ui/src",
+            "module:src/connector-ui/src/views"
+          ]
+        }
+      ]
+    }
+  },
+  "module:src/connector-ui/src/components/ui@e2ffd3ee8759@ollama/qwen2.5-coder:7b": {
+    "text": "Contains reusable UI components for the connector UI.",
+    "sources": [
+      "vue:src/connector-ui/src/components/ui/Alert.vue",
+      "vue:src/connector-ui/src/components/ui/Button.vue",
+      "module:src/connector-ui/src",
+      "module:src/connector-ui/src/components",
+      "module:src/connector-ui/src/views"
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Contains reusable UI components for the connector UI.",
+          "from": [
+            "vue:src/connector-ui/src/components/ui/Alert.vue",
+            "vue:src/connector-ui/src/components/ui/Button.vue"
+          ]
+        }
+      ],
+      "responsibilities": [
+        {
+          "text": "Provides a set of standardized UI components for building consistent and accessible user interfaces.",
+          "from": [
+            "vue:src/connector-ui/src/components/ui/Alert.vue",
+            "vue:src/connector-ui/src/components/ui/Button.vue"
+          ]
+        }
+      ],
+      "usage": [
+        {
+          "text": "Used by various parts of the connector UI to create consistent and accessible user interfaces.",
+          "from": [
+            "module:src/connector-ui/src",
+            "module:src/connector-ui/src/components",
+            "module:src/connector-ui/src/views"
+          ]
+        }
+      ]
+    }
+  },
+  "module:src/connector-ui/src/composables@60b1f8276c03@ollama/qwen2.5-coder:7b": {
+    "text": "Contains Vue composables for managing various application states and utilities.",
+    "sources": [
+      "ts:src/connector-ui/src/composables/useBranding.ts",
+      "ts:src/connector-ui/src/composables/useCurrentUser.ts",
+      "ts:src/connector-ui/src/composables/useSaveStatus.ts",
+      "ts:src/connector-ui/src/composables/useTheme.ts",
+      "ts:src/connector-ui/src/composables/useToasts.ts",
+      "ts:src/connector-ui/src/composables/useBranding.ts#useBranding",
+      "ts:src/connector-ui/src/composables/useCurrentUser.ts#loadCurrentUser",
+      "ts:src/connector-ui/src/composables/useCurrentUser.ts#resetCurrentUser",
+      "ts:src/connector-ui/src/composables/useCurrentUser.ts#canAccess",
+      "ts:src/connector-ui/src/composables/useCurrentUser.ts#canOpen",
+      "ts:src/connector-ui/src/composables/useSaveStatus.ts#useSaveStatus",
+      "ts:src/connector-ui/src/composables/useTheme.ts#useTheme",
+      "ts:src/connector-ui/src/composables/useToasts.ts#useToasts",
+      "module:src/connector-ui/src",
+      "module:src/connector-ui/src/components",
+      "module:src/connector-ui/src/components/ui",
+      "module:src/connector-ui/src/router",
+      "module:src/connector-ui/src/views"
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Contains Vue composables for managing various application states and utilities.",
+          "from": [
+            "ts:src/connector-ui/src/composables/useBranding.ts",
+            "ts:src/connector-ui/src/composables/useCurrentUser.ts",
+            "ts:src/connector-ui/src/composables/useSaveStatus.ts",
+            "ts:src/connector-ui/src/composables/useTheme.ts",
+            "ts:src/connector-ui/src/composables/useToasts.ts"
+          ]
+        }
+      ],
+      "responsibilities": [
+        {
+          "text": "Manages branding, current user, save status, theme, and toasts across the application.",
+          "from": [
+            "ts:src/connector-ui/src/composables/useBranding.ts#useBranding",
+            "ts:src/connector-ui/src/composables/useCurrentUser.ts#loadCurrentUser",
+            "ts:src/connector-ui/src/composables/useCurrentUser.ts#resetCurrentUser",
+            "ts:src/connector-ui/src/composables/useCurrentUser.ts#canAccess",
+            "ts:src/connector-ui/src/composables/useCurrentUser.ts#canOpen",
+            "ts:src/connector-ui/src/composables/useSaveStatus.ts#useSaveStatus",
+            "ts:src/connector-ui/src/composables/useTheme.ts#useTheme",
+            "ts:src/connector-ui/src/composables/useToasts.ts#useToasts"
+          ]
+        }
+      ],
+      "usage": [
+        {
+          "text": "Used by various components and views in the connector-ui module.",
+          "from": [
+            "module:src/connector-ui/src",
+            "module:src/connector-ui/src/components",
+            "module:src/connector-ui/src/components/ui",
+            "module:src/connector-ui/src/router",
+            "module:src/connector-ui/src/views"
+          ]
+        }
+      ]
+    }
+  },
+  "module:src/connector-ui/src/lib@d3a4598a8055@ollama/qwen2.5-coder:7b": {
+    "text": "Contains utility functions and types for handling connections, dates, exports, imports, permissions, and suggested relations in the connector UI.",
+    "sources": [
+      "module:src/connector-ui/src/api",
+      "module:src/connector-ui/src/components",
+      "module:src/connector-ui/src/router",
+      "module:src/connector-ui/src/views"
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Contains utility functions and types for handling connections, dates, exports, imports, permissions, and suggested relations in the connector UI.",
+          "from": [
+            "module:src/connector-ui/src/api"
+          ]
+        }
+      ],
+      "responsibilities": [
+        {
+          "text": "Provides functions and types for managing connection forms, date formatting, export and import configurations, permission checks, and relation suggestions.",
+          "from": [
+            "module:src/connector-ui/src/api"
+          ]
+        }
+      ],
+      "usage": [
+        {
+          "text": "Used by various components, the router, and views in the connector UI to handle user interactions, data formatting, and system permissions.",
+          "from": [
+            "module:src/connector-ui/src/components",
+            "module:src/connector-ui/src/router",
+            "module:src/connector-ui/src/views"
+          ]
+        }
+      ]
+    }
+  },
+  "module:src/connector-ui/src/views@5bc5a495d7b5@ollama/qwen2.5-coder:7b": {
+    "text": "Contains Vue.js components for various views in the connector UI.",
+    "sources": [
+      "vue:src/connector-ui/src/views/AuditView.vue",
+      "vue:src/connector-ui/src/views/ConnectionView.vue",
+      "vue:src/connector-ui/src/views/DashboardView.vue",
+      "vue:src/connector-ui/src/views/ExportDefinitionEditView.vue",
+      "vue:src/connector-ui/src/views/ExportDefinitionsView.vue",
+      "vue:src/connector-ui/src/views/ExportDetail.vue",
+      "vue:src/connector-ui/src/views/ExportView.vue",
+      "vue:src/connector-ui/src/views/IcdSchemaView.vue",
+      "vue:src/connector-ui/src/views/ImportDefinitionEditView.vue",
+      "vue:src/connector-ui/src/views/ImportDefinitionsView.vue",
+      "vue:src/connector-ui/src/views/LoginView.vue",
+      "vue:src/connector-ui/src/views/NotFoundView.vue",
+      "vue:src/connector-ui/src/views/SchemaView.vue",
+      "vue:src/connector-ui/src/views/SettingsView.vue",
+      "vue:src/connector-ui/src/views/SourceSchemaView.vue",
+      "module:src/connector-ui/src/router"
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Contains Vue.js components for various views in the connector UI.",
+          "from": [
+            "vue:src/connector-ui/src/views/AuditView.vue",
+            "vue:src/connector-ui/src/views/ConnectionView.vue",
+            "vue:src/connector-ui/src/views/DashboardView.vue",
+            "vue:src/connector-ui/src/views/ExportDefinitionEditView.vue",
+            "vue:src/connector-ui/src/views/ExportDefinitionsView.vue",
+            "vue:src/connector-ui/src/views/ExportDetail.vue",
+            "vue:src/connector-ui/src/views/ExportView.vue",
+            "vue:src/connector-ui/src/views/IcdSchemaView.vue",
+            "vue:src/connector-ui/src/views/ImportDefinitionEditView.vue",
+            "vue:src/connector-ui/src/views/ImportDefinitionsView.vue",
+            "vue:src/connector-ui/src/views/LoginView.vue",
+            "vue:src/connector-ui/src/views/NotFoundView.vue",
+            "vue:src/connector-ui/src/views/SchemaView.vue",
+            "vue:src/connector-ui/src/views/SettingsView.vue",
+            "vue:src/connector-ui/src/views/SourceSchemaView.vue"
+          ]
+        }
+      ],
+      "responsibilities": [
+        {
+          "text": "Manages the UI components for different views in the connector application.",
+          "from": [
+            "vue:src/connector-ui/src/views/AuditView.vue",
+            "vue:src/connector-ui/src/views/ConnectionView.vue",
+            "vue:src/connector-ui/src/views/DashboardView.vue",
+            "vue:src/connector-ui/src/views/ExportDefinitionEditView.vue",
+            "vue:src/connector-ui/src/views/ExportDefinitionsView.vue",
+            "vue:src/connector-ui/src/views/ExportDetail.vue",
+            "vue:src/connector-ui/src/views/ExportView.vue",
+            "vue:src/connector-ui/src/views/IcdSchemaView.vue",
+            "vue:src/connector-ui/src/views/ImportDefinitionEditView.vue",
+            "vue:src/connector-ui/src/views/ImportDefinitionsView.vue",
+            "vue:src/connector-ui/src/views/LoginView.vue",
+            "vue:src/connector-ui/src/views/NotFoundView.vue",
+            "vue:src/connector-ui/src/views/SchemaView.vue",
+            "vue:src/connector-ui/src/views/SettingsView.vue",
+            "vue:src/connector-ui/src/views/SourceSchemaView.vue"
+          ]
+        }
+      ],
+      "usage": [
+        {
+          "text": "The router uses these views to render different parts of the connector UI.",
+          "from": [
+            "module:src/connector-ui/src/router"
+          ]
+        }
+      ]
+    }
+  },
+  "module:src/Connector.Api@052d3fe49818@ollama/qwen2.5-coder:7b": {
+    "text": "Contains authentication handlers, user management records, and DTOs for various API endpoints.",
+    "sources": [
+      "cs:Connector.Api.ApiKeyAuthenticationHandler",
+      "cs:Connector.Api.AuthUser",
+      "module:src/Connector.Api/Endpoints"
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Contains authentication handlers, user management records, and DTOs for various API endpoints.",
+          "from": [
+            "cs:Connector.Api.ApiKeyAuthenticationHandler",
+            "cs:Connector.Api.AuthUser"
+          ]
+        }
+      ],
+      "responsibilities": [
+        {
+          "text": "Manages API key authentication and user-related data for the Connector API.",
+          "from": [
+            "cs:Connector.Api.ApiKeyAuthenticationHandler",
+            "cs:Connector.Api.AuthUser"
+          ]
+        }
+      ],
+      "usage": [
+        {
+          "text": "Used by the Connector API endpoints for authentication and user management.",
+          "from": [
+            "module:src/Connector.Api/Endpoints"
+          ]
+        }
+      ]
+    }
+  },
+  "module:src/Connector.Api/Authorization@adc871f255c2@ollama/qwen2.5-coder:7b": {
+    "text": "Manages authorization and permissions for the Connector API.",
+    "sources": [
+      "cs:Connector.Api.Authorization.PermissionRequirement",
+      "cs:Connector.Api.Authorization.PermissionAuthorizationHandler",
+      "cs:Connector.Api.Authorization.PermissionPolicyProvider",
+      "cs:Connector.Api.Authorization.PermissionEndpointExtensions",
+      "cs:Connector.Api.Authorization.Permissions",
+      "cs:Connector.Api.Authorization.RolePermissionStore",
+      "module:src/Connector.Api/Endpoints"
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Manages authorization and permissions for the Connector API.",
+          "from": [
+            "cs:Connector.Api.Authorization.PermissionRequirement",
+            "cs:Connector.Api.Authorization.PermissionAuthorizationHandler",
+            "cs:Connector.Api.Authorization.PermissionPolicyProvider",
+            "cs:Connector.Api.Authorization.PermissionEndpointExtensions",
+            "cs:Connector.Api.Authorization.Permissions",
+            "cs:Connector.Api.Authorization.RolePermissionStore"
+          ]
+        }
+      ],
+      "responsibilities": [
+        {
+          "text": "Defines permission requirements, checks user permissions, and manages role-based permissions.",
+          "from": [
+            "cs:Connector.Api.Authorization.PermissionRequirement",
+            "cs:Connector.Api.Authorization.PermissionAuthorizationHandler",
+            "cs:Connector.Api.Authorization.PermissionPolicyProvider",
+            "cs:Connector.Api.Authorization.PermissionEndpointExtensions",
+            "cs:Connector.Api.Authorization.Permissions",
+            "cs:Connector.Api.Authorization.RolePermissionStore"
+          ]
+        }
+      ],
+      "usage": [
+        {
+          "text": "Used by the API endpoints to enforce permissions.",
+          "from": [
+            "module:src/Connector.Api/Endpoints"
+          ]
+        }
+      ]
+    }
+  },
+  "module:src/Connector.Api/Endpoints@2746a96f28f0@ollama/qwen2.5-coder:7b": {
+    "text": "Contains HTTP endpoints for various system functionalities, including authentication, branding, connection management, and export definitions.",
+    "sources": [
+      "cs:Connector.Api.Endpoints.AuthEndpoints",
+      "cs:Connector.Api.Endpoints.BrandingEndpoints",
+      "cs:Connector.Api.Endpoints.ConnectionEndpoints",
+      "cs:Connector.Api.Endpoints.ExportDefinitionEndpoints",
+      "module:src/connector-ui/src/api"
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Contains HTTP endpoints for various system functionalities, including authentication, branding, connection management, and export definitions.",
+          "from": [
+            "cs:Connector.Api.Endpoints.AuthEndpoints",
+            "cs:Connector.Api.Endpoints.BrandingEndpoints",
+            "cs:Connector.Api.Endpoints.ConnectionEndpoints",
+            "cs:Connector.Api.Endpoints.ExportDefinitionEndpoints"
+          ]
+        }
+      ],
+      "responsibilities": [
+        {
+          "text": "Manages HTTP requests for authentication, branding, connection settings, and export definitions.",
+          "from": [
+            "cs:Connector.Api.Endpoints.AuthEndpoints",
+            "cs:Connector.Api.Endpoints.BrandingEndpoints",
+            "cs:Connector.Api.Endpoints.ConnectionEndpoints",
+            "cs:Connector.Api.Endpoints.ExportDefinitionEndpoints"
+          ]
+        }
+      ],
+      "usage": [
+        {
+          "text": "The frontend\u0027s API client calls these endpoints to interact with the system\u0027s various functionalities.",
+          "from": [
+            "module:src/connector-ui/src/api"
+          ]
+        }
+      ]
+    }
+  },
+  "module:src/Connector.Core/DataSources@5f515c630668@ollama/qwen2.5-coder:7b": {
+    "text": "Manages data source configurations, capabilities, and operations for various ERP data sources.",
+    "sources": [
+      "cs:Connector.Core.DataSources.DataSourceCapabilities",
+      "cs:Connector.Core.DataSources.DataSourceConfig",
+      "cs:Connector.Core.DataSources.IDataSourceProvider",
+      "module:src/Connector.Api",
+      "module:src/Connector.Infrastructure/DataSources"
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Manages data source configurations, capabilities, and operations for various ERP data sources.",
+          "from": [
+            "cs:Connector.Core.DataSources.DataSourceCapabilities",
+            "cs:Connector.Core.DataSources.DataSourceConfig"
+          ]
+        }
+      ],
+      "responsibilities": [
+        {
+          "text": "Provides a unified interface for interacting with different ERP data sources, including validation, connection testing, and query execution.",
+          "from": [
+            "cs:Connector.Core.DataSources.IDataSourceProvider",
+            "cs:Connector.Core.DataSources.DataSourceConfig"
+          ]
+        }
+      ],
+      "usage": [
+        {
+          "text": "Used by various parts of the application to interact with different ERP data sources, ensuring consistent data access and management.",
+          "from": [
+            "module:src/Connector.Api",
+            "module:src/Connector.Infrastructure/DataSources"
+          ]
+        }
+      ]
+    }
+  },
+  "module:src/Connector.Core/Domain@40e65206adb8@ollama/qwen2.5-coder:7b": {
+    "text": "Contains domain models and utilities for export and import operations.",
+    "sources": [
+      "cs:Connector.Core.Domain.ExportSinkException",
+      "cs:Connector.Core.Domain.ExportManifest",
+      "cs:Connector.Core.Domain.ExportProducer",
+      "cs:Connector.Core.Domain.ExportPackage",
+      "cs:Connector.Core.Domain.ImportManifest",
+      "cs:Connector.Core.Domain.ManifestSignature",
+      "module:src/Connector.Api/Endpoints",
+      "module:src/Connector.Infrastructure"
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Contains domain models and utilities for export and import operations.",
+          "from": [
+            "cs:Connector.Core.Domain.ExportSinkException",
+            "cs:Connector.Core.Domain.ExportManifest",
+            "cs:Connector.Core.Domain.ExportProducer",
+            "cs:Connector.Core.Domain.ExportPackage",
+            "cs:Connector.Core.Domain.ImportManifest",
+            "cs:Connector.Core.Domain.ManifestSignature"
+          ]
+        }
+      ],
+      "responsibilities": [
+        {
+          "text": "Defines data structures and logic for managing export and import processes, including signatures for data integrity.",
+          "from": [
+            "cs:Connector.Core.Domain.ExportSinkException",
+            "cs:Connector.Core.Domain.ExportManifest",
+            "cs:Connector.Core.Domain.ExportProducer",
+            "cs:Connector.Core.Domain.ExportPackage",
+            "cs:Connector.Core.Domain.ImportManifest",
+            "cs:Connector.Core.Domain.ManifestSignature"
+          ]
+        }
+      ],
+      "usage": [
+        {
+          "text": "Used by API endpoints and infrastructure modules to handle export and import operations.",
+          "from": [
+            "module:src/Connector.Api/Endpoints",
+            "module:src/Connector.Infrastructure"
+          ]
+        }
+      ]
+    }
+  },
+  "module:src/Connector.Core/DynamicExport@ac22169e578d@ollama/qwen2.5-coder:7b": {
+    "text": "Contains records and classes for configuring and normalizing export mappings for data connectors.",
+    "sources": [
+      "cs:Connector.Core.DynamicExport.ExportMappingField",
+      "cs:Connector.Core.DynamicExport.ExportMappingJson",
+      "cs:Connector.Core.DynamicExport.ExportMappingConfig",
+      "module:src/Connector.Api",
+      "module:src/Connector.Api/Endpoints",
+      "module:src/Connector.Core/DynamicImport",
+      "module:src/Connector.Infrastructure"
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Contains records and classes for configuring and normalizing export mappings for data connectors.",
+          "from": [
+            "cs:Connector.Core.DynamicExport.ExportMappingField",
+            "cs:Connector.Core.DynamicExport.ExportMappingJson"
+          ]
+        }
+      ],
+      "responsibilities": [
+        {
+          "text": "Defines the structure and normalization logic for export mappings, including fields, relations, and nested groups.",
+          "from": [
+            "cs:Connector.Core.DynamicExport.ExportMappingConfig"
+          ]
+        }
+      ],
+      "usage": [
+        {
+          "text": "Used by various parts of the Connector application to configure and process data exports.",
+          "from": [
+            "module:src/Connector.Api",
+            "module:src/Connector.Api/Endpoints",
+            "module:src/Connector.Core/DynamicImport",
+            "module:src/Connector.Infrastructure"
+          ]
+        }
+      ]
+    }
+  },
+  "module:src/Connector.Core/DynamicImport@a3d3c503a1db@ollama/qwen2.5-coder:7b": {
+    "text": "Contains classes and records for handling dynamic import operations, including suggestions, evaluations, and plans.",
+    "sources": [
+      "cs:Connector.Core.DynamicImport.ExportDefinitionShape",
+      "cs:Connector.Core.DynamicImport.ImportSampleShape",
+      "cs:Connector.Core.DynamicImport.ImportMappingSuggestion",
+      "cs:Connector.Core.DynamicImport.ImportPlanBuilder",
+      "module:src/Connector.Api",
+      "module:src/Connector.Api/Endpoints",
+      "module:src/Connector.Infrastructure"
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Contains classes and records for handling dynamic import operations, including suggestions, evaluations, and plans.",
+          "from": [
+            "cs:Connector.Core.DynamicImport.ExportDefinitionShape",
+            "cs:Connector.Core.DynamicImport.ImportSampleShape"
+          ]
+        }
+      ],
+      "responsibilities": [
+        {
+          "text": "Manages the logic for suggesting, evaluating, and building plans for dynamic import operations.",
+          "from": [
+            "cs:Connector.Core.DynamicImport.ExportDefinitionShape",
+            "cs:Connector.Core.DynamicImport.ImportSampleShape",
+            "cs:Connector.Core.DynamicImport.ImportMappingSuggestion",
+            "cs:Connector.Core.DynamicImport.ImportPlanBuilder"
+          ]
+        }
+      ],
+      "usage": [
+        {
+          "text": "Used by the API and infrastructure modules to handle dynamic import operations.",
+          "from": [
+            "module:src/Connector.Api",
+            "module:src/Connector.Api/Endpoints",
+            "module:src/Connector.Infrastructure"
+          ]
+        }
+      ]
+    }
+  },
+  "module:src/Connector.Core/Schema@750ce58e671b@ollama/qwen2.5-coder:7b": {
+    "text": "Manages the schema for export operations, including file naming and column constants.",
+    "sources": [
+      "cs:Connector.Core.Schema.ExportSchema",
+      "cs:Connector.Core.Schema.ExportSchema.BuildFileName(int, System.DateTimeOffset, string)",
+      "cs:Connector.Core.Schema.ExportSchema.BuildManifestFileName(string)",
+      "cs:Connector.Core.Schema.ExportSchema.ColumnNames",
+      "module:src/Connector.Api/Endpoints",
+      "module:src/Connector.Infrastructure"
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Manages the schema for export operations, including file naming and column constants.",
+          "from": [
+            "cs:Connector.Core.Schema.ExportSchema",
+            "cs:Connector.Core.Schema.ExportSchema.BuildFileName(int, System.DateTimeOffset, string)",
+            "cs:Connector.Core.Schema.ExportSchema.BuildManifestFileName(string)",
+            "cs:Connector.Core.Schema.ExportSchema.ColumnNames"
+          ]
+        }
+      ],
+      "responsibilities": [
+        {
+          "text": "Defines the schema for export operations, including file naming conventions and column names.",
+          "from": [
+            "cs:Connector.Core.Schema.ExportSchema",
+            "cs:Connector.Core.Schema.ExportSchema.BuildFileName(int, System.DateTimeOffset, string)",
+            "cs:Connector.Core.Schema.ExportSchema.BuildManifestFileName(string)",
+            "cs:Connector.Core.Schema.ExportSchema.ColumnNames"
+          ]
+        }
+      ],
+      "usage": [
+        {
+          "text": "Used by the API endpoints and infrastructure to ensure consistent export schema handling.",
+          "from": [
+            "module:src/Connector.Api/Endpoints",
+            "module:src/Connector.Infrastructure"
+          ]
+        }
+      ]
+    }
+  },
+  "module:src/Connector.Infrastructure@56ebf7d08747@ollama/qwen2.5-coder:7b": {
+    "text": "Manages infrastructure components for the connector, including API key authentication, app setting encryption, audit logging, and dynamic export services.",
+    "sources": [
+      "cs:Connector.Infrastructure.ApiKeyStore",
+      "cs:Connector.Infrastructure.AuditService",
+      "cs:Connector.Infrastructure.DynamicExportService"
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Manages infrastructure components for the connector, including API key authentication, app setting encryption, audit logging, and dynamic export services.",
+          "from": [
+            "cs:Connector.Infrastructure.ApiKeyStore",
+            "cs:Connector.Infrastructure.AuditService",
+            "cs:Connector.Infrastructure.DynamicExportService"
+          ]
+        }
+      ],
+      "responsibilities": [
+        {
+          "text": "Manages API key authentication, encrypts app settings, logs audit events, and handles dynamic export operations.",
+          "from": [
+            "cs:Connector.Infrastructure.ApiKeyStore",
+            "cs:Connector.Infrastructure.AuditService",
+            "cs:Connector.Infrastructure.DynamicExportService"
+          ]
+        }
+      ]
+    }
+  },
+  "module:src/Connector.Infrastructure/DataSources@4914d09ad166@ollama/qwen2.5-coder:7b": {
+    "text": "Manages SQL data sources and provides SQL dialect implementations.",
+    "sources": [
+      "cs:Connector.Infrastructure.DataSources.DataSourceProviderResolver",
+      "cs:Connector.Infrastructure.DataSources.ISqlDialect",
+      "module:src/Connector.Api/Endpoints",
+      "module:src/Connector.Infrastructure",
+      "module:src/Connector.Infrastructure/DataSources/MariaDb",
+      "module:src/Connector.Infrastructure/DataSources/PostgreSql"
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Manages SQL data sources and provides SQL dialect implementations.",
+          "from": [
+            "cs:Connector.Infrastructure.DataSources.DataSourceProviderResolver",
+            "cs:Connector.Infrastructure.DataSources.ISqlDialect"
+          ]
+        }
+      ],
+      "responsibilities": [
+        {
+          "text": "Resolves data source providers and implements SQL dialects for different relational databases.",
+          "from": [
+            "cs:Connector.Infrastructure.DataSources.DataSourceProviderResolver",
+            "cs:Connector.Infrastructure.DataSources.ISqlDialect"
+          ]
+        }
+      ],
+      "usage": [
+        {
+          "text": "Used by API endpoints and other infrastructure modules to interact with SQL data sources.",
+          "from": [
+            "module:src/Connector.Api/Endpoints",
+            "module:src/Connector.Infrastructure",
+            "module:src/Connector.Infrastructure/DataSources/MariaDb",
+            "module:src/Connector.Infrastructure/DataSources/PostgreSql"
+          ]
+        }
+      ]
+    }
+  },
+  "module:src/Connector.Infrastructure/DataSources/MariaDb@26031f11ab4e@ollama/qwen2.5-coder:7b": {
+    "text": "Manages MariaDB data source connections and queries.",
+    "sources": [
+      "cs:Connector.Infrastructure.DataSources.MariaDb.MariaDbConnectionFactory",
+      "cs:Connector.Infrastructure.DataSources.MariaDb.MariaDbDataSourceProvider"
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Manages MariaDB data source connections and queries.",
+          "from": [
+            "cs:Connector.Infrastructure.DataSources.MariaDb.MariaDbConnectionFactory",
+            "cs:Connector.Infrastructure.DataSources.MariaDb.MariaDbDataSourceProvider"
+          ]
+        }
+      ],
+      "responsibilities": [
+        {
+          "text": "Provides connection factory and data source provider for MariaDB, handling connection management, query compilation, and schema reading.",
+          "from": [
+            "cs:Connector.Infrastructure.DataSources.MariaDb.MariaDbConnectionFactory",
+            "cs:Connector.Infrastructure.DataSources.MariaDb.MariaDbDataSourceProvider"
+          ]
+        }
+      ]
+    }
+  },
+  "module:src/Connector.Infrastructure/DataSources/PostgreSql@35d2c3876fc5@ollama/qwen2.5-coder:7b": {
+    "text": "",
+    "sources": [],
+    "sections": {}
+  },
+  "module:src/Connector.Infrastructure/DataSources/ServiceNow@186cfec2233f@ollama/qwen2.5-coder:7b": {
+    "text": "Manages interactions with ServiceNow\u0027s Table API, providing a layer for reading data and compiling queries.",
+    "sources": [
+      "cs:Connector.Infrastructure.DataSources.ServiceNow.ServiceNowClient",
+      "cs:Connector.Infrastructure.DataSources.ServiceNow.ServiceNowQueryCompiler",
+      "cs:Connector.Infrastructure.DataSources.ServiceNow.ServiceNowTableApiProvider"
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Manages interactions with ServiceNow\u0027s Table API, providing a layer for reading data and compiling queries.",
+          "from": [
+            "cs:Connector.Infrastructure.DataSources.ServiceNow.ServiceNowClient",
+            "cs:Connector.Infrastructure.DataSources.ServiceNow.ServiceNowQueryCompiler"
+          ]
+        }
+      ],
+      "responsibilities": [
+        {
+          "text": "Handles HTTP requests to ServiceNow, parses responses, and compiles queries into ServiceNow\u0027s encoded-query syntax.",
+          "from": [
+            "cs:Connector.Infrastructure.DataSources.ServiceNow.ServiceNowClient",
+            "cs:Connector.Infrastructure.DataSources.ServiceNow.ServiceNowQueryCompiler"
+          ]
+        }
+      ],
+      "usage": [
+        {
+          "text": "Used by the data source provider to fetch data from ServiceNow and compile queries for execution.",
+          "from": [
+            "cs:Connector.Infrastructure.DataSources.ServiceNow.ServiceNowTableApiProvider"
+          ]
+        }
+      ]
+    }
+  },
+  "module:src/Connector.Infrastructure/Migrations@0e4104a6cb44@ollama/qwen2.5-coder:7b": {
+    "text": "Contains classes for database migrations related to connector infrastructure.",
+    "sources": [
+      "cs:Connector.Infrastructure.Migrations.InitialSchema",
+      "cs:Connector.Infrastructure.Migrations.AddExportDefinitions"
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Contains classes for database migrations related to connector infrastructure.",
+          "from": [
+            "cs:Connector.Infrastructure.Migrations.InitialSchema",
+            "cs:Connector.Infrastructure.Migrations.AddExportDefinitions"
+          ]
+        }
+      ],
+      "responsibilities": [
+        {
+          "text": "Manages database schema changes for various connector-related entities.",
+          "from": [
+            "cs:Connector.Infrastructure.Migrations.InitialSchema"
+          ]
+        }
+      ],
+      "usage": [
+        {
+          "text": "Not directly used by other modules; intended for internal use within the connector infrastructure for managing database migrations.",
+          "from": [
+            "cs:Connector.Infrastructure.Migrations.InitialSchema",
+            "cs:Connector.Infrastructure.Migrations.AddExportDefinitions"
+          ]
+        }
+      ]
+    }
+  },
+  "module:testdb@9778e715251e@ollama/qwen2.5-coder:7b": {
+    "text": "Contains database tables for various master data and configuration settings.",
+    "sources": [
+      "sql:manufacturer",
+      "sql:manufacturer_address",
+      "sql:masterdata",
+      "sql:systemconfiguration",
+      "sql:maintenance_plan",
+      "sql:articlestructure",
+      "sql:export_customer",
+      "sql:export_order",
+      "sql:export_order_line",
+      "sql:export_line_tag"
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Contains database tables for various master data and configuration settings.",
+          "from": [
+            "sql:manufacturer",
+            "sql:manufacturer_address",
+            "sql:masterdata",
+            "sql:systemconfiguration",
+            "sql:maintenance_plan",
+            "sql:articlestructure",
+            "sql:export_customer",
+            "sql:export_order",
+            "sql:export_order_line",
+            "sql:export_line_tag"
+          ]
+        }
+      ],
+      "responsibilities": [
+        {
+          "text": "Stores and manages master data and system configurations used across the application.",
+          "from": [
+            "sql:manufacturer",
+            "sql:manufacturer_address",
+            "sql:masterdata",
+            "sql:systemconfiguration",
+            "sql:maintenance_plan",
+            "sql:articlestructure",
+            "sql:export_customer",
+            "sql:export_order",
+            "sql:export_order_line",
+            "sql:export_line_tag"
+          ]
+        }
+      ]
+    }
+  }
+}

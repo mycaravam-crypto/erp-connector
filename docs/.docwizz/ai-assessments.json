@@ -1,0 +1,1496 @@
+{
+  "cs:Connector.Api.Authorization.RolePermissionStore.GetAsync(string?)@473ff65f90f3@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, potential side effects, and error handling."
+  },
+  "cs:Connector.Api.Endpoints.ExportDefinitionEndpoints.ValidateNode(Connector.Core.DynamicExport.ExportNode, System.Collections.Generic.IReadOnlySet\u003Cstring\u003E, string, int)@5dda372b6632@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the method, and the specific errors it can throw."
+  },
+  "cs:Connector.Api.Endpoints.ExportDefinitionEndpoints.ValidateRequestAsync(Connector.Api.ExportDefinitionRequest, Connector.Infrastructure.ExportLogDbContext, System.Threading.CancellationToken, int?)@633e7af0b0a6@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "usage"
+    ],
+    "note": "The documentation does not provide examples of how to use the method."
+  },
+  "cs:Connector.Api.Endpoints.ExportMappingEndpoints.ValidateNestedGroup(Connector.Core.DynamicExport.ExportMappingNestedGroup, System.Collections.Generic.IReadOnlySet\u003Cstring\u003E, string, int)@7d16600519ff@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [],
+    "note": ""
+  },
+  "cs:Connector.Api.Endpoints.FourEyesReview.ValidateApproverAsync(string, string?, string?, string, Connector.Infrastructure.ExportLogDbContext, Connector.Api.Authorization.RolePermissionStore)@995b4f6a040a@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "usage"
+    ],
+    "note": "The documentation does not provide examples of how to use the method or what the expected input and output values are."
+  },
+  "cs:Connector.Api.Endpoints.ImportDefinitionEndpoints.ValidateNode(Connector.Core.DynamicImport.ImportNode, Connector.Core.DynamicImport.ImportNode, string, string, int, System.Collections.Generic.List\u003C(string Table, string Column, string Path)\u003E)@956b851d1556@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the method, and the specific errors it can throw."
+  },
+  "cs:Connector.Api.Endpoints.ImportDefinitionEndpoints.ValidateRequestAsync(Connector.Api.ImportDefinitionRequest, Connector.Infrastructure.ExportLogDbContext, Connector.Core.DataSources.IDataSourceProviderResolver, System.Threading.CancellationToken, int?)@67f68e1781f5@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the method, and the potential errors that can occur."
+  },
+  "cs:Connector.Core.DataSources.IDataSourceProvider.ExecuteNativeAsync(Connector.Core.DataSources.DataSourceConfig, Connector.Core.DataSources.NativeSqlQuery, System.Threading.CancellationToken)@8b9c6463ec48@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects, and the potential errors that can occur."
+  },
+  "cs:Connector.Core.DataSources.IDataSourceProvider.ReadSchemaAsync(Connector.Core.DataSources.DataSourceConfig, System.Threading.CancellationToken)@adb4dcbe4d1c@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of the method, and the specific errors it can throw."
+  },
+  "cs:Connector.Core.DataSources.SourceQueryValidator.Validate(Connector.Core.DataSources.SourceQuery, Connector.Core.DataSources.SourceSchema)@1e2f34aec223@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of the method, and the specific errors it can throw."
+  },
+  "cs:Connector.Core.Domain.ManifestSignature.Verify(string, Connector.Core.Domain.ExportProducer, string?, byte[])@4085de36c674@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of the method, and the errors it can throw."
+  },
+  "cs:Connector.Core.DynamicImport.ImportMappingSuggestion.Evaluate(System.Collections.Generic.IReadOnlyList\u003CConnector.Core.DynamicImport.ExportDefinitionShape\u003E, Connector.Core.DynamicImport.ImportSampleShape)@59b0520edf11@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints on the input parameters or the behavior of the method when certain conditions are met."
+  },
+  "cs:Connector.Core.DynamicImport.ImportPlanBuilder.Build(Connector.Core.DynamicImport.ImportWalkResult, string, string)@3a7832402126@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, potential side effects, and error handling."
+  },
+  "cs:Connector.Infrastructure.AppSettingEncryptionMigrator.EncryptPlaintextRowsAsync(Connector.Infrastructure.ExportLogDbContext, IDataProtectionProvider, ILogger, System.Threading.CancellationToken)@57ce52e0976e@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, potential side effects, and error handling."
+  },
+  "cs:Connector.Infrastructure.AuditService.LogAsync(string, string, string?)@d9767a19e5c9@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [],
+    "note": ""
+  },
+  "cs:Connector.Infrastructure.CronSchedule.IsDue(string, System.DateTime)@4b2d47c50064@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, potential side effects, and error handling."
+  },
+  "cs:Connector.Infrastructure.DataSources.ImportConnection.OpenAsync(Connector.Core.DataSources.IDataSourceProviderResolver, Connector.Core.DataSources.DataSourceConfig, System.Threading.CancellationToken)@b0e726f3e1dc@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [],
+    "note": ""
+  },
+  "cs:Connector.Infrastructure.DataSources.MariaDb.MariaDbConnectionFactory.OpenAsync(Connector.Core.DataSources.DataSourceConfig, System.Threading.CancellationToken)@f2d37f333430@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of the method, and the potential errors that can occur."
+  },
+  "cs:Connector.Infrastructure.DataSources.MariaDb.MariaDbQueryCompiler.Compile(Connector.Core.DataSources.SourceQuery, Connector.Core.DataSources.SourceSchema)@c4d1507dcbf0@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the method, and the specific errors that can be thrown."
+  },
+  "cs:Connector.Infrastructure.DataSources.PostgreSql.PostgreSqlDataSourceProvider.ExecuteNativeAsync(Connector.Core.DataSources.DataSourceConfig, Connector.Core.DataSources.NativeSqlQuery, System.Threading.CancellationToken)@9c07bee43587@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of the method, and any potential errors that can occur."
+  },
+  "cs:Connector.Infrastructure.DataSources.PostgreSql.PostgreSqlJsonValues.FromNativeText(string, string)@a9e487af48ac@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints that the input parameters must adhere to, potential side effects, and error handling."
+  },
+  "cs:Connector.Infrastructure.DataSources.PostgreSql.PostgreSqlQueryCompiler.Compile(Connector.Core.DataSources.SourceQuery, Connector.Core.DataSources.SourceSchema)@92e1577eee6e@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the method, and the specific errors that can be thrown."
+  },
+  "cs:Connector.Infrastructure.DataSources.ServiceNow.ServiceNowClient.GetRecordsAsync(Connector.Core.DataSources.DataSourceConfig, string, string?, System.Collections.Generic.IReadOnlyCollection\u003Cstring\u003E?, int?, System.Threading.CancellationToken)@cdee2dc39852@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects, and potential errors."
+  },
+  "cs:Connector.Infrastructure.DataSources.ServiceNow.ServiceNowClient.ParseInstanceUrl(string?)@6098dff9910e@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints that the input must adhere to, the side effects of the method, and the specific errors that can be thrown."
+  },
+  "cs:Connector.Infrastructure.DataSources.ServiceNow.ServiceNowQueryCompiler.Compile(Connector.Core.DataSources.SourceQuery, Connector.Core.DataSources.SourceSchema)@2132df54bd52@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the method, and the specific errors that can be thrown."
+  },
+  "cs:Connector.Infrastructure.DataSources.ServiceNow.ServiceNowSchemaReader.ReadTablesAsync(Connector.Core.DataSources.DataSourceConfig, System.Collections.Generic.IReadOnlyCollection\u003Cstring\u003E?, System.Threading.CancellationToken)@e4ea08e105c0@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects, and the errors that can occur."
+  },
+  "cs:Connector.Infrastructure.DataSources.ServiceNow.ServiceNowTableApiProvider.JoinAsync(Connector.Core.DataSources.DataSourceConfig, System.Collections.Generic.List\u003CSystem.Collections.Generic.Dictionary\u003Cstring, System.Collections.Generic.Dictionary\u003Cstring, string?\u003E?\u003E\u003E, Connector.Infrastructure.DataSources.ServiceNow.ServiceNowJoinStep, System.Threading.CancellationToken)@71f1af111868@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects, and potential errors that can occur."
+  },
+  "cs:Connector.Infrastructure.DynamicExportService.BuildExcelBytes(System.Collections.Generic.IReadOnlyList\u003CSystem.Collections.Generic.Dictionary\u003Cstring, string\u003E\u003E, System.Collections.Generic.IReadOnlyList\u003Cstring\u003E, string, System.DateTimeOffset)@bc1eb3bcb891@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, potential side effects, and error handling."
+  },
+  "cs:Connector.Infrastructure.DynamicExportService.BuildExportAsync(Connector.Core.DataSources.IDataSourceProvider, Connector.Core.DataSources.DataSourceConfig, Connector.Core.DynamicExport.ExportMappingConfig, string, string, System.DateTimeOffset, System.Threading.CancellationToken, System.Collections.Generic.IReadOnlySet\u003Cstring\u003E?)@011f093d0cbc@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects, and potential errors."
+  },
+  "cs:Connector.Infrastructure.DynamicExportService.BuildExportNodeAsync(Connector.Core.DataSources.IDataSourceProvider, Connector.Core.DataSources.DataSourceConfig, string, Connector.Core.DynamicExport.ExportNode, string, string, System.DateTimeOffset, System.Threading.CancellationToken, int?, System.Collections.Generic.IReadOnlySet\u003Cstring\u003E?, Connector.Infrastructure.ExportProvenance?, string?, Connector.Core.DynamicExport.ExportRecordSelection?)@92b100b4b409@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects, and potential errors that can occur."
+  },
+  "cs:Connector.Infrastructure.DynamicExportService.BuildNestedJsonBytes(System.Collections.Generic.IReadOnlyList\u003CSystem.Text.Json.Nodes.JsonObject\u003E, Connector.Core.DynamicExport.ExportJsonWrapperConfig?, string, System.DateTimeOffset, Connector.Infrastructure.ExportProvenance?)@513728980d51@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, potential side effects, and error handling."
+  },
+  "cs:Connector.Infrastructure.DynamicExportService.ContentTypeFor(string)@9ba212df7a77@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, potential side effects, and error handling."
+  },
+  "cs:Connector.Infrastructure.DynamicExportService.ExecuteExportNodeQueryAsync(Connector.Core.DataSources.IDataSourceProvider, Connector.Core.DataSources.DataSourceConfig, string, Connector.Core.DynamicExport.ExportNode, System.Threading.CancellationToken, int?, System.Collections.Generic.IReadOnlySet\u003Cstring\u003E?, Connector.Core.DynamicExport.ExportRecordSelection?)@dfda2e3b198c@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of the method, and the specific errors it can throw."
+  },
+  "cs:Connector.Infrastructure.DynamicExportService.ExecuteNestedJsonQueryAsync(Connector.Core.DataSources.IDataSourceProvider, Connector.Core.DataSources.DataSourceConfig, Connector.Core.DynamicExport.ExportMappingConfig, System.Threading.CancellationToken, int?, System.Collections.Generic.IReadOnlySet\u003Cstring\u003E?)@43cc446e257f@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect and the potential side effects of the method. Additionally, it does not mention any errors that can be thrown."
+  },
+  "cs:Connector.Infrastructure.DynamicExportService.ExecuteQueryAsync(Connector.Core.DataSources.IDataSourceProvider, Connector.Core.DataSources.DataSourceConfig, Connector.Core.DynamicExport.ExportMappingConfig, System.Threading.CancellationToken, int?, System.Collections.Generic.IReadOnlySet\u003Cstring\u003E?)@228baeefdab0@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [],
+    "note": ""
+  },
+  "cs:Connector.Infrastructure.DynamicExportService.FetchTreeLevelAsync(Connector.Core.DataSources.IDataSourceProvider, Connector.Core.DataSources.DataSourceConfig, Connector.Infrastructure.DataSources.ISqlDialect, Connector.Infrastructure.DynamicExportService.TreePlan, string?, System.Collections.Generic.IReadOnlyList\u003Cstring\u003E?, int?, System.Threading.CancellationToken, Connector.Core.DynamicExport.ExportRecordSelection?)@5b5adbb2eb63@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "usage"
+    ],
+    "note": "The documentation does not provide examples of how to use the method."
+  },
+  "cs:Connector.Infrastructure.DynamicExportService.GetDeniedFieldsAsync(Connector.Infrastructure.ExportLogDbContext)@cb06ac97f837@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects"
+    ],
+    "note": "The documentation does not specify any constraints on the input parameters or side effects of the method."
+  },
+  "cs:Connector.Infrastructure.DynamicExportService.RunTreeQueryAsync(Connector.Core.DataSources.IDataSourceProvider, Connector.Core.DataSources.DataSourceConfig, Connector.Infrastructure.DataSources.ISqlDialect, Connector.Infrastructure.DynamicExportService.TreePlan, string?, string[]?, int?, System.Threading.CancellationToken, Connector.Core.DynamicExport.ExportRecordSelection?)@9d7945403805@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "purpose",
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the purpose, constraints a caller must respect, side effects, and errors the method might throw."
+  },
+  "cs:Connector.Infrastructure.ExportDefinitionRunner.ExecuteAsync(Connector.Infrastructure.ExportDefinitionEntity, Connector.Infrastructure.ExportLogDbContext, Connector.Core.DataSources.IDataSourceProviderResolver, string, bool, int?, Connector.Infrastructure.FileSystemExportSink?, System.Threading.CancellationToken, Connector.Core.DynamicExport.ExportRecordSelection?)@6f19d37ffc07@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the method, and the specific errors it can throw."
+  },
+  "cs:Connector.Infrastructure.ExportDefinitionWorker.ExecuteAsync(System.Threading.CancellationToken)@2c51a7e1a665@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of the method, and the potential errors it might throw."
+  },
+  "cs:Connector.Infrastructure.FileSystemExportSink.WriteAsync(Connector.Core.Domain.ExportPackage, System.Threading.CancellationToken)@9703cefac921@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [],
+    "note": ""
+  },
+  "cs:Connector.Infrastructure.ImportNodeWalker.ValidateWritableColumns(Connector.Core.DynamicImport.ImportNode, Connector.Core.DynamicImport.ImportNode, System.Collections.Generic.IReadOnlySet\u003Cstring\u003E)@7602b0b9cea3@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [],
+    "note": ""
+  },
+  "cs:Connector.Infrastructure.ImportNodeWalker.WalkAsync(Connector.Infrastructure.DataSources.ImportConnection, Connector.Infrastructure.ImportDefinitionEntity, Connector.Core.DynamicImport.ImportNode, string, System.Threading.CancellationToken)@da411722d71a@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints that the caller must respect."
+  },
+  "cs:Connector.Infrastructure.ImportRunReleaser.RejectAsync(Connector.Infrastructure.ExportLogDbContext, Connector.Infrastructure.ImportRunEntity, string, Connector.Infrastructure.AuditService, System.Threading.CancellationToken)@a80200a1a0b4@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints that the caller must respect."
+  },
+  "cs:Connector.Infrastructure.ImportRunReleaser.ReleaseAsync(Connector.Infrastructure.ExportLogDbContext, Connector.Infrastructure.ImportRunEntity, string, string, Connector.Infrastructure.AuditService, Connector.Core.DataSources.IDataSourceProviderResolver, System.Threading.CancellationToken)@f4fb01e77aea@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "usage"
+    ],
+    "note": "The documentation does not provide examples of how to use the method."
+  },
+  "cs:Connector.Infrastructure.ImportWorker.PollOnceAsync(System.Threading.CancellationToken)@a75adbcce055@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "usage"
+    ],
+    "note": "The documentation does not provide examples of how to use the method."
+  },
+  "cs:Connector.Infrastructure.ImportWorker.ProcessFileAsync(string, string, string, System.Threading.CancellationToken)@6854f5bef0e4@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of the method, and the errors it can throw."
+  },
+  "cs:Connector.Infrastructure.ManifestSigningPolicy.Verify(Connector.Core.Domain.ImportManifest, Connector.Infrastructure.ManifestSigningSettings?, bool)@c013ed361216@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the method, and the potential errors that can occur."
+  },
+  "cs:endpoint:DELETE /api/export-definitions/{id:int}@eaef7e3dfd14@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of the operation, and the potential errors that can occur."
+  },
+  "cs:endpoint:DELETE /api/export-mapping/presets/{name}@a4637af26886@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect and the side effects of the operation."
+  },
+  "cs:endpoint:DELETE /api/import-definitions/{id:int}@b07ebed9fd63@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of the operation, and the potential errors that can occur."
+  },
+  "cs:endpoint:DELETE /api/settings/manifest-signing/peers/{instanceId}@0652b0fa5316@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints (e.g., the format of \u0060instanceId\u0060), side effects (e.g., changes to the database), and potential errors (e.g., invalid \u0060instanceId\u0060 format)."
+  },
+  "cs:endpoint:DELETE /api/users/{username}@a10b17225359@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints on the username, such as length or format."
+  },
+  "cs:endpoint:GET /api/audit@bac5003eb0e1@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints for the \u0060limit\u0060 parameter, the side effects on the database, and potential errors that might occur."
+  },
+  "cs:endpoint:GET /api/auth/me@48e1d4e4ca30@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling this endpoint, and the potential errors that can occur."
+  },
+  "cs:endpoint:GET /api/branding@e10e995cf496@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects on the database, and potential errors that might occur."
+  },
+  "cs:endpoint:GET /api/connection@9b87ce90765d@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects on the database, and the potential errors that can occur."
+  },
+  "cs:endpoint:GET /api/connection/status@d52ec046fa15@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling this endpoint, and the potential errors that can occur."
+  },
+  "cs:endpoint:GET /api/export-definitions@8c0f905907b4@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects on the database, and any potential errors that might occur."
+  },
+  "cs:endpoint:GET /api/export-definitions/{id:int}@d9b1d5df6acf@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects on the database, and the potential errors that can occur."
+  },
+  "cs:endpoint:GET /api/export-definitions/{id:int}/runs@9fe1ab5a2b25@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects on the database, and the potential errors that can occur."
+  },
+  "cs:endpoint:GET /api/export-mapping@d3d2c47a3ab2@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects on the database, and the potential errors that can occur."
+  },
+  "cs:endpoint:GET /api/export-mapping/presets@1bfd4bcdd4a9@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects on the database, and potential errors that can occur."
+  },
+  "cs:endpoint:GET /api/exports@72aad88df112@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling this endpoint, and any potential errors that might occur."
+  },
+  "cs:endpoint:GET /api/exports/{seqNo:int}@36933f673f8b@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling this endpoint, and the potential errors that can occur."
+  },
+  "cs:endpoint:GET /api/gdpr-denied-fields@5e663cdfca9f@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect and the side effects of calling this endpoint."
+  },
+  "cs:endpoint:GET /api/health@b69001bf7f4b@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect and the potential side effects and errors that can occur."
+  },
+  "cs:endpoint:GET /api/import-definitions@d3086d60b3e4@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects on the database, and any potential errors that might occur."
+  },
+  "cs:endpoint:GET /api/import-definitions/{id:int}@a1bdb53f8926@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects on the database, and the potential errors that can occur."
+  },
+  "cs:endpoint:GET /api/import-definitions/{id:int}/runs@99907870251b@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects on the database, and the potential errors that can occur."
+  },
+  "cs:endpoint:GET /api/import-runs/{id:int}@d8fd924cccbe@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling this endpoint, and the potential errors that can occur."
+  },
+  "cs:endpoint:GET /api/pipeline/preview@c1e721c04631@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling this endpoint, and the specific errors that can be returned."
+  },
+  "cs:endpoint:GET /api/schema@7809dee2ab69@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, potential side effects, and error handling."
+  },
+  "cs:endpoint:GET /api/settings/instance@0596c07f2039@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect and the side effects of calling this endpoint."
+  },
+  "cs:endpoint:GET /api/settings/manifest-signing@fdc2e828cc7a@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling this endpoint, and any potential errors that might occur."
+  },
+  "cs:endpoint:GET /api/settings/permissions@bdd6d8fdf060@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, potential side effects, and error handling."
+  },
+  "cs:endpoint:GET /api/settings/scheduler@69e64ac24510@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling this endpoint, and the potential errors that can occur."
+  },
+  "cs:endpoint:GET /api/source-schema@45df21d2ea91@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "usage"
+    ],
+    "note": "The documentation does not provide examples of how to use this endpoint."
+  },
+  "cs:endpoint:GET /api/users@b9b6201aefa1@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects on the database, and any potential errors that might occur."
+  },
+  "cs:endpoint:GET /api/version@e20d46eaec0b@ollama/qwen2.5-coder:7b": {
+    "score": 2,
+    "missing": [
+      "purpose",
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the purpose, constraints, side effects, and potential errors of the endpoint."
+  },
+  "cs:endpoint:PATCH /api/export-definitions/{id:int}/enable@348272afad72@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify the constraints on the \u0060IntegrationKey/ContractVersion\u0060 pair when enabling a definition."
+  },
+  "cs:endpoint:PATCH /api/gdpr-denied-fields@8a9fc67bcabc@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects"
+    ],
+    "note": "The documentation lacks details on the constraints for the input parameters and the side effects of the function."
+  },
+  "cs:endpoint:PATCH /api/import-definitions/{id:int}/enable@0cc0292da459@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify the constraints on the \u0060IntegrationKey/ContractVersion\u0060 pair when enabling a definition."
+  },
+  "cs:endpoint:POST /api/auth/change-password@595a7c2e715d@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints on the input parameters, such as password complexity requirements."
+  },
+  "cs:endpoint:POST /api/auth/hash@92d5d8268dd5@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints for the input, potential side effects, and error handling."
+  },
+  "cs:endpoint:POST /api/auth/login@a2f3ffe7d07e@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints on the input parameters or the expected format of the \u0060LoginRequest\u0060 object."
+  },
+  "cs:endpoint:POST /api/auth/revoke-my-sessions@54d24d7b2794@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints that the caller must respect, such as authentication requirements or input validation."
+  },
+  "cs:endpoint:POST /api/connection@11e9e11616a4@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints that the caller must respect."
+  },
+  "cs:endpoint:POST /api/export-definitions@e30fa330e62b@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects on the database, and potential errors that can occur."
+  },
+  "cs:endpoint:POST /api/export-definitions/{id:int}/duplicate@bb02a7b0309e@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [],
+    "note": ""
+  },
+  "cs:endpoint:POST /api/export-definitions/{id:int}/preview@35667bce4fa4@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints that the caller must respect, such as the format of the input or the expected values for certain parameters."
+  },
+  "cs:endpoint:POST /api/export-definitions/{id:int}/run-selected@ba4b2aab3aee@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints for the input parameters, the side effects of the function, and the potential errors that can occur."
+  },
+  "cs:endpoint:POST /api/export-definitions/{id:int}/run@6c6fc931b7e7@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [],
+    "note": ""
+  },
+  "cs:endpoint:POST /api/export-definitions/{id:int}/test@ce1b16ed7602@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints on the input parameters or the conditions under which the endpoint can be called."
+  },
+  "cs:endpoint:POST /api/exports/{seqNo:int}/deliver@0ff928c4ad91@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify the constraints on the input parameters, such as the valid range for \u0060seqNo\u0060 or the structure of the \u0060DeliverRequest\u0060 object."
+  },
+  "cs:endpoint:POST /api/exports/{seqNo:int}/release@77e61a1b9dfb@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify the constraints on the input parameters, such as the format of the \u0060ReleaseRequest\u0060 or the conditions under which the operation can be performed."
+  },
+  "cs:endpoint:POST /api/exports/{seqNo:int}/skip@5a03367ba55c@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify the constraints on the input parameters, such as the valid range for \u0060seqNo\u0060 or the format of the \u0060SkipRequest\u0060 body."
+  },
+  "cs:endpoint:POST /api/import-definitions@ad8a64176c6c@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "usage"
+    ],
+    "note": "The documentation does not provide examples of how to use this endpoint."
+  },
+  "cs:endpoint:POST /api/import-definitions/{id:int}/duplicate@b6177ee94f82@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [],
+    "note": ""
+  },
+  "cs:endpoint:POST /api/import-definitions/{id:int}/preview@74860157b150@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints that the caller must respect."
+  },
+  "cs:endpoint:POST /api/import-definitions/{id:int}/records@b532cd1474ff@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints for the number of records, the side effects on the database, and the potential errors that can occur."
+  },
+  "cs:endpoint:POST /api/import-definitions/{id:int}/runs@50c764a10121@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects on the database, and any potential errors that can occur."
+  },
+  "cs:endpoint:POST /api/import-definitions/suggest-from-export@c3deb55d31ac@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [],
+    "note": ""
+  },
+  "cs:endpoint:POST /api/import-runs/{id:int}/reject@316c17da8b3a@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints that the caller must respect, such as the state of the import run or the user\u0027s permissions."
+  },
+  "cs:endpoint:POST /api/import-runs/{id:int}/release@1577736abe82@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints that the caller must respect."
+  },
+  "cs:endpoint:POST /api/pipeline/run@d71cdede2e28@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of the function, and the potential errors it can throw."
+  },
+  "cs:endpoint:POST /api/pipeline/run/{name}@70263acf8e57@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "usage"
+    ],
+    "note": "The documentation does not provide examples of how to use this endpoint."
+  },
+  "cs:endpoint:POST /api/settings/instance/regenerate@12e52b71edfe@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects on the database, and potential errors that can occur."
+  },
+  "cs:endpoint:POST /api/users@e4121d7d7702@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints on the input parameters, such as the format of the username or password."
+  },
+  "cs:endpoint:PUT /api/branding@970c0c13e339@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify the constraints on the input parameters, such as the maximum length of the app name or the allowed file types for images."
+  },
+  "cs:endpoint:PUT /api/export-definitions/{id:int}@cef61d451f2d@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [],
+    "note": ""
+  },
+  "cs:endpoint:PUT /api/export-mapping@1540ed470bc2@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects on the database, and the potential errors that can occur."
+  },
+  "cs:endpoint:PUT /api/export-mapping/presets/{name}@20fee61683d1@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints for the input parameters, the side effects on the database, and the potential errors that can occur."
+  },
+  "cs:endpoint:PUT /api/import-definitions/{id:int}@586ad3ae6a0b@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "usage"
+    ],
+    "note": "The documentation lacks information on how to use this endpoint, including the expected request format and the expected response."
+  },
+  "cs:endpoint:PUT /api/settings/manifest-signing/peers/{instanceId}@5c618f640cd0@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify the constraints on the input parameters, such as the format and length of the shared secret."
+  },
+  "cs:endpoint:PUT /api/settings/manifest-signing/policy@98a85f7836b6@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects on the database, and any potential errors that might occur."
+  },
+  "cs:endpoint:PUT /api/settings/permissions@20efd60ba936@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [],
+    "note": ""
+  },
+  "cs:endpoint:PUT /api/settings/scheduler@3ad43f9d0fe6@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects"
+    ],
+    "note": "The documentation lacks details on the constraints for the input parameters and the side effects of the function."
+  },
+  "cs:endpoint:PUT /api/users/{username}@49544ff00493@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints that the caller must respect, such as the format of the \u0060UpdateUserRequest\u0060 or the conditions under which the operation is allowed."
+  },
+  "ts:src/connector-ui/src/api/auth.ts#changePassword@b9b295ae7946@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints for the input parameters and the specific side effects and error conditions that can occur."
+  },
+  "ts:src/connector-ui/src/api/connection.ts#getSourceSchema@0fe73ce5aaf2@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints that the caller must respect, such as the format of the input or the expected response structure."
+  },
+  "ts:src/connector-ui/src/api/connection.ts#saveConnection@c30f260d95ce@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of the function, and the possible errors it can return."
+  },
+  "ts:src/connector-ui/src/api/exportDefinitions.ts#runExportDefinition@55dba0dded14@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of the function, and the potential errors it can throw."
+  },
+  "ts:src/connector-ui/src/lib/exportedFileDetection.ts#detectExportFile@bbdc0d0cb8f2@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, potential side effects, and error handling."
+  },
+  "ts:src/connector-ui/src/lib/importNodeBuilders.ts#collectWritableTargets@b232815fd8c3@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation does not specify any constraints on the input parameters or any potential side effects or errors that may occur."
+  },
+  "ts:src/connector-ui/src/lib/importPreviewHints.ts#findUnmappedRootFields@41bb37796343@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the function, and the errors it might throw."
+  },
+  "ts:src/connector-ui/src/lib/suggestedRelations.ts#findSuggestedRelations@45b70722be20@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, potential side effects, and error handling."
+  },
+  "vue:src/connector-ui/src/App.vue@7fcd7377da31@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects the component has, and any potential errors it might throw."
+  },
+  "vue:src/connector-ui/src/components/ActiveMappingSummary.vue@ddeca83219cf@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints that the caller must respect when using this component."
+  },
+  "vue:src/connector-ui/src/components/AddUserForm.vue@8b7d303294df@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [],
+    "note": ""
+  },
+  "vue:src/connector-ui/src/components/BrandingImageField.vue@95dca283c136@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "usage"
+    ],
+    "note": "The documentation does not provide examples of how to use the component."
+  },
+  "vue:src/connector-ui/src/components/BrandingSettingsForm.vue@5af15091063d@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints on the input parameters or the expected format of the data."
+  },
+  "vue:src/connector-ui/src/components/ChangePasswordDialog.vue@13bedd5d8b77@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify the constraints on the input passwords, such as the minimum length or allowed characters."
+  },
+  "vue:src/connector-ui/src/components/ConnectionStatusCard.vue@d129c8942279@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the component, and any potential errors that might occur."
+  },
+  "vue:src/connector-ui/src/components/ConnectorNav.vue@3faa044c8fc6@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, potential side effects, and error handling."
+  },
+  "vue:src/connector-ui/src/components/DeliverRunForm.vue@441d19e3e290@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints that the caller must respect, such as the format of the input values or the conditions under which the component can be used."
+  },
+  "vue:src/connector-ui/src/components/ExportDefinitionBasicFields.vue@c90cbee237b5@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the component, and any potential errors that might occur."
+  },
+  "vue:src/connector-ui/src/components/ExportDefinitionPreviewPanel.vue@66881f765fa3@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints that the caller must respect, such as the maximum number of records that can be previewed or the format of the input parameters."
+  },
+  "vue:src/connector-ui/src/components/ExportDefinitionRunControls.vue@a2aca82a8f3b@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the component, and the potential errors that can occur."
+  },
+  "vue:src/connector-ui/src/components/ExportNodeTreeEditor.vue@0ce26a1aee1f@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "purpose",
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the purpose, constraints, side effects, and potential errors of the component."
+  },
+  "vue:src/connector-ui/src/components/FlatPreviewTable.vue@5944179559fb@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [],
+    "note": ""
+  },
+  "vue:src/connector-ui/src/components/GdprDenylistEditor.vue@46ce6f07e5d4@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the component, and the potential errors that can occur."
+  },
+  "vue:src/connector-ui/src/components/ImportDefinitionPreviewPanel.vue@5c57960fed53@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "purpose",
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the purpose, constraints, side effects, and errors associated with the component."
+  },
+  "vue:src/connector-ui/src/components/ImportDefinitionRunControls.vue@48a99ef20356@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the component, and the errors that can occur."
+  },
+  "vue:src/connector-ui/src/components/ImportMappingSuggestionPanel.vue@763a027f72cd@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects the component has, and the errors it might throw."
+  },
+  "vue:src/connector-ui/src/components/ImportNodeTreeEditor.vue@c90b53d3cdf7@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, potential side effects, and error handling."
+  },
+  "vue:src/connector-ui/src/components/ImportRunOutcome.vue@9f8d79e24b98@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks information on the constraints a caller must respect, the side effects, and the errors that can occur."
+  },
+  "vue:src/connector-ui/src/components/ImportRunReviewDialog.vue@b53760825aa0@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects the function has, and the errors it can throw."
+  },
+  "vue:src/connector-ui/src/components/JobRowActions.vue@ef99cb9d1948@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the component, and any potential errors that might occur."
+  },
+  "vue:src/connector-ui/src/components/NestedGroupEditor.vue@b91484a70231@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "purpose",
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the component\u0027s purpose, constraints on usage, potential side effects, and error handling."
+  },
+  "vue:src/connector-ui/src/components/PermissionsSettings.vue@9bc5b19260a0@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the component, and the errors it might throw."
+  },
+  "vue:src/connector-ui/src/components/PresetsToolbar.vue@f608ecf37e3d@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "side effects"
+    ],
+    "note": "The documentation does not mention the side effects of the component, such as database and HTTP calls."
+  },
+  "vue:src/connector-ui/src/components/PreviewTable.vue@97ae911798ff@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [],
+    "note": ""
+  },
+  "vue:src/connector-ui/src/components/RelationCard.vue@c27e05419b47@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "purpose",
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the purpose, constraints, side effects, and potential errors of the component."
+  },
+  "vue:src/connector-ui/src/components/ReleaseDialog.vue@1ba280a8e38b@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints that the caller must adhere to, such as the format of the approver\u0027s password or the conditions under which the release can be canceled."
+  },
+  "vue:src/connector-ui/src/components/ResetPasswordDialog.vue@f3415d9e90c5@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect (e.g., minimum password length), the side effects (e.g., user sign-out), and potential errors (e.g., network issues, invalid input)."
+  },
+  "vue:src/connector-ui/src/components/RunDetailTable.vue@1954abd001c5@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the component, and any potential errors that might occur."
+  },
+  "vue:src/connector-ui/src/components/RunHistoryFrame.vue@55b1ccbd6c48@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects, and the errors that can occur."
+  },
+  "vue:src/connector-ui/src/components/SchedulerSettingsForm.vue@0949bb8bd94c@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [],
+    "note": ""
+  },
+  "vue:src/connector-ui/src/components/SkipRunForm.vue@a97893ad3b06@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "constraints"
+    ],
+    "note": "The documentation does not specify any constraints that the caller must respect, such as the format of the reason or the conditions under which the skip operation is allowed."
+  },
+  "vue:src/connector-ui/src/components/ui/Button.vue@ec3d4e3605dc@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [],
+    "note": ""
+  },
+  "vue:src/connector-ui/src/components/ui/ConfirmAction.vue@aad56233bebf@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [],
+    "note": ""
+  },
+  "vue:src/connector-ui/src/components/ui/EmptyState.vue@57c6b2c39bbe@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, potential side effects, and error handling."
+  },
+  "vue:src/connector-ui/src/components/ui/FieldShell.vue@2331d868bfe3@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "purpose",
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the purpose, constraints a caller must respect, side effects, and errors."
+  },
+  "vue:src/connector-ui/src/components/ui/HelpTooltip.vue@88f48c8a44cc@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation does not mention any side effects or errors that the component might produce."
+  },
+  "vue:src/connector-ui/src/components/ui/Input.vue@1822a9f26389@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "purpose",
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the purpose, constraints a caller must respect, side effects, and errors that can occur."
+  },
+  "vue:src/connector-ui/src/components/ui/Modal.vue@d5fb0580f9fc@ollama/qwen2.5-coder:7b": {
+    "score": 4,
+    "missing": [
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation does not mention any side effects or errors that the component might produce."
+  },
+  "vue:src/connector-ui/src/components/ui/Select.vue@ed167ccef49d@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, potential side effects, and error handling."
+  },
+  "vue:src/connector-ui/src/components/UserMenu.vue@d08b89280207@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "purpose",
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the purpose, constraints a caller must respect, side effects, and potential errors."
+  },
+  "vue:src/connector-ui/src/components/UsersSettings.vue@ddedfa7685a8@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the component, and the errors it might throw."
+  },
+  "vue:src/connector-ui/src/views/ConnectionView.vue@91643a845936@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects the function has, and the errors it can throw."
+  },
+  "vue:src/connector-ui/src/views/DashboardView.vue@ab55cd2f1905@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling this component, and any potential errors that might occur."
+  },
+  "vue:src/connector-ui/src/views/ExportDefinitionEditView.vue@8b3ec166a758@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects the component has, and the errors it can throw."
+  },
+  "vue:src/connector-ui/src/views/ExportDefinitionsView.vue@3c2273fd3c20@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the component, and the errors it might throw."
+  },
+  "vue:src/connector-ui/src/views/ExportDetail.vue@aee86496afc0@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects the component has, and the errors it might throw."
+  },
+  "vue:src/connector-ui/src/views/ExportView.vue@c0c420c4b1a5@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the component, and the potential errors that can occur."
+  },
+  "vue:src/connector-ui/src/views/IcdSchemaView.vue@aeedfc3e8a16@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the component, and the errors it might throw."
+  },
+  "vue:src/connector-ui/src/views/ImportDefinitionEditView.vue@8580e8881e6b@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects the function has, and the errors it can throw."
+  },
+  "vue:src/connector-ui/src/views/ImportDefinitionsView.vue@1e27a358c0c0@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects the component has, and the errors it can throw."
+  },
+  "vue:src/connector-ui/src/views/LoginView.vue@61fa0edb7821@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of the function, and the errors it can throw."
+  },
+  "vue:src/connector-ui/src/views/SchemaView.vue@42898bbed297@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects the function has, and the errors it might throw."
+  },
+  "vue:src/connector-ui/src/views/SettingsView.vue@c9c353f12c65@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects the component has, and the errors it might throw."
+  },
+  "vue:src/connector-ui/src/views/SourceSchemaView.vue@05e82b3b5939@ollama/qwen2.5-coder:7b": {
+    "score": 3,
+    "missing": [
+      "constraints",
+      "side effects",
+      "errors"
+    ],
+    "note": "The documentation lacks details on the constraints a caller must respect, the side effects of calling the component, and the errors it might throw."
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "base_url": "http://localhost:5189",
+  "users": 20,
+  "ramp_up_secs": 10,
+  "duration_secs": 60,
+  "request_limit": null,
+  "timeout_secs": 10,
+  "on_error": "AbortIteration",
+  "auth": "Shared",
+  "shared_username": "alice",
+  "login_steps": [
+    {
+      "name": "login",
+      "method": "Post",
+      "url": "/api/auth/login",
+      "headers": [
+        [
+          "Content-Type",
+          "application/json"
+        ]
+      ],
+      "body": "{\"username\":\"{{username}}\",\"password\":\"{{password}}\"}",
+      "extract": [
+        [
+          "token",
+          "/token"
+        ]
+      ],
+      "pause_min_ms": 200,
+      "pause_max_ms": 500
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "dashboard",
+      "steps": [
+        {
+          "name": "me",
+          "method": "Get",
+          "url": "/api/auth/me",
+          "pause_min_ms": 300,
+          "pause_max_ms": 1000
+        },
+        {
+          "name": "connection",
+          "method": "Get",
+          "url": "/api/connection/status",
+          "pause_min_ms": 300,
+          "pause_max_ms": 1000
+        },
+        {
+          "name": "export-jobs",
+          "method": "Get",
+          "url": "/api/export-definitions",
+          "pause_min_ms": 300,
+          "pause_max_ms": 1000
+        },
+        {
+          "name": "import-jobs",
+          "method": "Get",
+          "url": "/api/import-definitions",
+          "pause_min_ms": 300,
+          "pause_max_ms": 1000
+        }
+      ]
+    },
+    {
+      "name": "history",
+      "steps": [
+        {
+          "name": "exports",
+          "method": "Get",
+          "url": "/api/exports",
+          "pause_min_ms": 300,
+          "pause_max_ms": 1000
+        },
+        {
+          "name": "audit",
+          "method": "Get",
+          "url": "/api/audit",
+          "pause_min_ms": 300,
+          "pause_max_ms": 1000
+        }
+      ]
+    },
+    {
+      "name": "schema",
+      "steps": [
+        {
+          "name": "source-schema",
+          "method": "Get",
+          "url": "/api/source-schema",
+          "pause_min_ms": 1000,
+          "pause_max_ms": 3000
+        }
+      ]
+    }
+  ],
+  "headers": [
+    [
+      "Authorization",
+      "Bearer {{token}}"
+    ]
+  ]
+}
