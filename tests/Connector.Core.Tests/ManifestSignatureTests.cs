@@ -22,7 +22,9 @@ public sealed class ManifestSignatureTests
         var signature = ManifestSignature.Sign(Checksum, Producer, Key);
         Assert.False(ManifestSignature.Verify(new string('a', 64), Producer, signature, Key));
         Assert.False(ManifestSignature.Verify(Checksum, Producer with { Version = "2.0" }, signature, Key));
-        Assert.False(ManifestSignature.Verify(Checksum, Producer with { InstanceId = Guid.NewGuid().ToString() }, signature, Key));
+        Assert.False(
+            ManifestSignature.Verify(Checksum, Producer with { InstanceId = Guid.NewGuid().ToString() }, signature, Key)
+        );
         Assert.False(ManifestSignature.Verify(Checksum, Producer, signature, Enumerable.Repeat((byte)7, 32).ToArray()));
         Assert.False(ManifestSignature.Verify(Checksum, Producer, null, Key));
         Assert.False(ManifestSignature.Verify(Checksum, Producer, "invalid", Key));

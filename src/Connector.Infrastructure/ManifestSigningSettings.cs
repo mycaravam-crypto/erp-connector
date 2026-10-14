@@ -36,8 +36,9 @@ public static class ManifestSigningPolicy
     {
         if (manifest.Producer is null)
             return settings?.RequireSignedConnectorFiles == true && pairedDefinition
-                ? "unsigned file targets a paired import definition"
-                : manifest.Signature is null ? null : "signature has no producer identity";
+                    ? "unsigned file targets a paired import definition"
+                : manifest.Signature is null ? null
+                : "signature has no producer identity";
 
         if (settings is null || !settings.TrustedPeerSecrets.TryGetValue(manifest.Producer.InstanceId, out var secret))
             return settings?.RequireSignedConnectorFiles == true || manifest.Signature is not null

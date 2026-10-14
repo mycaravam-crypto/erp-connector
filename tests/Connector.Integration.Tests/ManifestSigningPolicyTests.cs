@@ -7,7 +7,9 @@ public sealed class ManifestSigningPolicyTests : SqliteDbContextTestBase
 {
     private static readonly byte[] Key = Enumerable.Range(0, 32).Select(i => (byte)i).ToArray();
     private static readonly ExportProducer Remote = new(
-        ExportProducer.ApplicationName, "1.2.3", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        ExportProducer.ApplicationName,
+        "1.2.3",
+        "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
     );
     private const string Checksum = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
@@ -24,10 +26,18 @@ public sealed class ManifestSigningPolicyTests : SqliteDbContextTestBase
         var config = TrustRemote();
         var signature = ManifestSignature.Sign(Checksum, Remote, Key);
         Assert.Null(ManifestSigningPolicy.Verify(new ImportManifest(Checksum, Remote, signature), config, true));
-        Assert.Equal("missing manifest signature from trusted producer",
-            ManifestSigningPolicy.Verify(new ImportManifest(Checksum, Remote), config, true));
-        Assert.Equal("invalid manifest signature",
-            ManifestSigningPolicy.Verify(new ImportManifest(Checksum, Remote with { Version = "5" }, signature), config, true));
+        Assert.Equal(
+            "missing manifest signature from trusted producer",
+            ManifestSigningPolicy.Verify(new ImportManifest(Checksum, Remote), config, true)
+        );
+        Assert.Equal(
+            "invalid manifest signature",
+            ManifestSigningPolicy.Verify(
+                new ImportManifest(Checksum, Remote with { Version = "5" }, signature),
+                config,
+                true
+            )
+        );
     }
 
     [Fact]
@@ -55,13 +65,19 @@ public sealed class ManifestSigningPolicyTests : SqliteDbContextTestBase
         var signed = await ManifestSigningPolicy.SignAsync(Db, manifest);
 
         Assert.NotNull(signed.Signature);
-        Assert.Null(ManifestSigningPolicy.Verify(
-            new ImportManifest(Checksum, producer, signed.Signature),
-            new ManifestSigningSettings {
-                RequireSignedConnectorFiles = true,
-                TrustedPeerSecrets = new Dictionary<string, string> { [producer.InstanceId] = Convert.ToBase64String(Key) }
-            },
-            true
-        ));
+        Assert.Null(
+            ManifestSigningPolicy.Verify(
+                new ImportManifest(Checksum, producer, signed.Signature),
+                new ManifestSigningSettings
+                {
+                    RequireSignedConnectorFiles = true,
+                    TrustedPeerSecrets = new Dictionary<string, string>
+                    {
+                        [producer.InstanceId] = Convert.ToBase64String(Key),
+                    },
+                },
+                true
+            )
+        );
     }
 }

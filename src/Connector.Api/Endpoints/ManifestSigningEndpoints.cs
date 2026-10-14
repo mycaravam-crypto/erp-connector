@@ -12,14 +12,17 @@ static class ManifestSigningEndpoints
                 "/api/settings/manifest-signing",
                 async (ExportLogDbContext db) =>
                 {
-                    var cfg = await db.GetSettingAsync<ManifestSigningSettings>(SettingsKeys.ManifestSigning)
+                    var cfg =
+                        await db.GetSettingAsync<ManifestSigningSettings>(SettingsKeys.ManifestSigning)
                         ?? new ManifestSigningSettings();
-                    return Results.Ok(new
-                    {
-                        requireSignedConnectorFiles = cfg.RequireSignedConnectorFiles,
-                        outboundPeerInstanceId = cfg.OutboundPeerInstanceId,
-                        trustedInstanceIds = cfg.TrustedPeerSecrets.Keys.Order(StringComparer.Ordinal).ToArray(),
-                    });
+                    return Results.Ok(
+                        new
+                        {
+                            requireSignedConnectorFiles = cfg.RequireSignedConnectorFiles,
+                            outboundPeerInstanceId = cfg.OutboundPeerInstanceId,
+                            trustedInstanceIds = cfg.TrustedPeerSecrets.Keys.Order(StringComparer.Ordinal).ToArray(),
+                        }
+                    );
                 }
             )
             .RequirePermission(Permissions.SettingsInstance);
@@ -50,14 +53,18 @@ static class ManifestSigningEndpoints
                     if (await db.IsOwnInstanceIdAsync(instanceId))
                         return Results.BadRequest("Cannot trust this installation's own instance ID.");
 
-                    var cfg = await db.GetSettingAsync<ManifestSigningSettings>(SettingsKeys.ManifestSigning)
+                    var cfg =
+                        await db.GetSettingAsync<ManifestSigningSettings>(SettingsKeys.ManifestSigning)
                         ?? new ManifestSigningSettings();
                     cfg.TrustedPeerSecrets[instanceId] = Convert.ToBase64String(key);
                     if (request.UseForOutbound)
                         cfg.OutboundPeerInstanceId = instanceId;
                     await db.SetSettingAsync(SettingsKeys.ManifestSigning, cfg);
-                    await audit.LogAsync(context.User.Identity!.Name!, "manifest_pairing_updated",
-                        $"peer={instanceId} outbound={request.UseForOutbound}");
+                    await audit.LogAsync(
+                        context.User.Identity!.Name!,
+                        "manifest_pairing_updated",
+                        $"peer={instanceId} outbound={request.UseForOutbound}"
+                    );
                     return Results.NoContent();
                 }
             )
@@ -67,14 +74,19 @@ static class ManifestSigningEndpoints
                 "/api/settings/manifest-signing/peers/{instanceId}",
                 async (string instanceId, ExportLogDbContext db, HttpContext context, AuditService audit) =>
                 {
-                    var cfg = await db.GetSettingAsync<ManifestSigningSettings>(SettingsKeys.ManifestSigning)
+                    var cfg =
+                        await db.GetSettingAsync<ManifestSigningSettings>(SettingsKeys.ManifestSigning)
                         ?? new ManifestSigningSettings();
                     if (!cfg.TrustedPeerSecrets.Remove(instanceId))
                         return Results.NotFound();
                     if (cfg.OutboundPeerInstanceId == instanceId)
                         cfg.OutboundPeerInstanceId = null;
                     await db.SetSettingAsync(SettingsKeys.ManifestSigning, cfg);
-                    await audit.LogAsync(context.User.Identity!.Name!, "manifest_pairing_removed", $"peer={instanceId}");
+                    await audit.LogAsync(
+                        context.User.Identity!.Name!,
+                        "manifest_pairing_removed",
+                        $"peer={instanceId}"
+                    );
                     return Results.NoContent();
                 }
             )
@@ -89,12 +101,16 @@ static class ManifestSigningEndpoints
                     AuditService audit
                 ) =>
                 {
-                    var cfg = await db.GetSettingAsync<ManifestSigningSettings>(SettingsKeys.ManifestSigning)
+                    var cfg =
+                        await db.GetSettingAsync<ManifestSigningSettings>(SettingsKeys.ManifestSigning)
                         ?? new ManifestSigningSettings();
                     cfg.RequireSignedConnectorFiles = request.RequireSignedConnectorFiles;
                     await db.SetSettingAsync(SettingsKeys.ManifestSigning, cfg);
-                    await audit.LogAsync(context.User.Identity!.Name!, "manifest_signing_policy_updated",
-                        $"required={request.RequireSignedConnectorFiles}");
+                    await audit.LogAsync(
+                        context.User.Identity!.Name!,
+                        "manifest_signing_policy_updated",
+                        $"required={request.RequireSignedConnectorFiles}"
+                    );
                     return Results.NoContent();
                 }
             )
@@ -102,5 +118,6 @@ static class ManifestSigningEndpoints
     }
 
     private sealed record SetManifestPeerRequest(string? SharedSecret, bool UseForOutbound);
+
     private sealed record SetManifestSigningPolicyRequest(bool RequireSignedConnectorFiles);
 }

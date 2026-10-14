@@ -235,7 +235,9 @@ public sealed class ImportWorker(
         // an unsigned or tampered manifest, even if global enforcement is disabled.
         var signing = await db.GetSettingAsync<ManifestSigningSettings>(SettingsKeys.ManifestSigning);
         var signatureFailure = ManifestSigningPolicy.Verify(
-            manifest, signing, pairedDefinition: definition.IntegrationKey is not null
+            manifest,
+            signing,
+            pairedDefinition: definition.IntegrationKey is not null
         );
         if (signatureFailure is not null)
         {
