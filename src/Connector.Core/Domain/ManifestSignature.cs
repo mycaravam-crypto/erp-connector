@@ -31,6 +31,7 @@ public static class ManifestSignature
         return Convert.ToHexString(HMACSHA256.HashData(key, Payload(sha256Checksum, producer))).ToLowerInvariant();
     }
 
+    /// <summary>Verify a manifest HMAC with a constant-time comparison; reject malformed signatures.</summary>
     public static bool Verify(string sha256Checksum, ExportProducer producer, string? signature, byte[] key)
     {
         if (signature is null || signature.Length != 64)
