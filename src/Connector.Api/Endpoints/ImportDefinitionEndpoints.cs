@@ -445,7 +445,8 @@ static partial class ImportDefinitionEndpoints
                         db,
                         audit,
                         resolver,
-                        ct
+                        ct,
+                        definition
                     );
                 }
             )
@@ -463,10 +464,13 @@ static partial class ImportDefinitionEndpoints
         ExportLogDbContext db,
         AuditService audit,
         IDataSourceProviderResolver resolver,
-        CancellationToken ct
+        CancellationToken ct,
+        ImportDefinitionEntity? loadedDefinition = null
     )
     {
-        var def = await db.ImportDefinitions.FindAsync([id], ct);
+        // Selected-record staging has already loaded the definition to construct its envelope.
+        // Reuse it to avoid a duplicate query while retaining the existing /runs behavior.
+        var def = loadedDefinition ?? await db.ImportDefinitions.FindAsync([id], ct);
         if (def is null)
             return Results.NotFound();
 
