@@ -25,6 +25,7 @@ static class ManifestSigningEndpoints
                     );
                 }
             )
+            .WithSummary("List manifest pairing policy and trusted instance IDs without secrets.")
             .RequirePermission(Permissions.SettingsInstance);
 
         app.MapPut(
@@ -68,6 +69,7 @@ static class ManifestSigningEndpoints
                     return Results.NoContent();
                 }
             )
+            .WithSummary("Register or rotate a shared secret for a trusted connector instance.")
             .RequirePermission(Permissions.SettingsInstance);
 
         app.MapDelete(
@@ -90,6 +92,7 @@ static class ManifestSigningEndpoints
                     return Results.NoContent();
                 }
             )
+            .WithSummary("Remove a trusted connector instance and its signing key.")
             .RequirePermission(Permissions.SettingsInstance);
 
         app.MapPut(
@@ -114,6 +117,7 @@ static class ManifestSigningEndpoints
                     return Results.NoContent();
                 }
             )
+            .WithSummary("Require authenticated connector manifests for paired imports.")
             .RequirePermission(Permissions.SettingsInstance);
     }
 
