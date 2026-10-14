@@ -21,7 +21,7 @@ jobs:
           path = pathlib.Path("Dockerfile")
           dockerfile = path.read_text()
           entries = [
-              ("mcr.microsoft.com/dotnet/sdk", "10.0.402-alpine", "api-build"),
+              ("mcr.microsoft.com/dotnet/sdk", "10.0-alpine", "api-build"),
               ("mcr.microsoft.com/dotnet/aspnet", "10.0.13-alpine", "runtime"),
           ]
           for image, tag, stage in entries:
