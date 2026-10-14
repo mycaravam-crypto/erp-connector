@@ -49,16 +49,19 @@ public sealed class SelectedRecordsEndpointsHttpTests(ApiFactory factory)
         var id = await CreateExportDefinitionAsync();
         using var client = await factory.CreateAuthenticatedClientAsync();
 
-        foreach (var invalid in new[]
-        {
-            Array.Empty<string>(),
-            new[] { "a", "a" },
-            new[] { "" },
-            new[] { new string('x', 257) },
-        })
+        foreach (
+            var invalid in new[]
+            {
+                Array.Empty<string>(),
+                new[] { "a", "a" },
+                new[] { "" },
+                new[] { new string('x', 257) },
+            }
+        )
         {
             var response = await client.PostAsJsonAsync(
-                $"/api/export-definitions/{id}/run-selected", new { recordIds = invalid }
+                $"/api/export-definitions/{id}/run-selected",
+                new { recordIds = invalid }
             );
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
@@ -82,13 +85,19 @@ public sealed class SelectedRecordsEndpointsHttpTests(ApiFactory factory)
             // One seeded ID and one absent ID: the caller can detect a partial match.
             var response = await client.PostAsJsonAsync(
                 $"/api/export-definitions/{id}/run-selected",
-                new { recordIds = new[] { "44444444-4444-4444-4444-444444444444", "99999999-9999-9999-9999-999999999990" } }
+                new
+                {
+                    recordIds = new[]
+                    {
+                        "44444444-4444-4444-4444-444444444444",
+                        "99999999-9999-9999-9999-999999999990",
+                    },
+                }
             );
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal("2", Assert.Single(response.Headers.GetValues("X-Requested-Count")));
             Assert.Equal("1", Assert.Single(response.Headers.GetValues("X-Record-Count")));
-            Assert.Contains("44444444-4444-4444-4444-444444444444",
-                await response.Content.ReadAsStringAsync());
+            Assert.Contains("44444444-4444-4444-4444-444444444444", await response.Content.ReadAsStringAsync());
         }
         finally
         {
@@ -107,12 +116,14 @@ public sealed class SelectedRecordsEndpointsHttpTests(ApiFactory factory)
         using var client = await factory.CreateAuthenticatedClientAsync();
         var missingId = int.MaxValue;
         var empty = await client.PostAsJsonAsync(
-            $"/api/import-definitions/{missingId}/records", new { records = Array.Empty<object>() }
+            $"/api/import-definitions/{missingId}/records",
+            new { records = Array.Empty<object>() }
         );
         Assert.Equal(HttpStatusCode.BadRequest, empty.StatusCode);
 
         var notObject = await client.PostAsJsonAsync(
-            $"/api/import-definitions/{missingId}/records", new { records = new object[] { "not-an-object" } }
+            $"/api/import-definitions/{missingId}/records",
+            new { records = new object[] { "not-an-object" } }
         );
         Assert.Equal(HttpStatusCode.BadRequest, notObject.StatusCode);
 
