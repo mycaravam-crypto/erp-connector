@@ -43,9 +43,12 @@ public static class ManifestSigningPolicy
         }
 
         if (settings is null || !settings.TrustedPeerSecrets.TryGetValue(manifest.Producer.InstanceId, out var secret))
-            return settings?.RequireSignedConnectorFiles == true || manifest.Signature is not null
-                ? "producer instance is not trusted"
-                : null;
+        {
+            // A signature cannot establish trust when this receiver has no key for the producer.
+            // Preserve the existing unsigned-file behavior unless strict verification is enabled.
+            // Once a producer is explicitly trusted, a missing/invalid signature is always rejected below.
+            return settings?.RequireSignedConnectorFiles == true ? "producer instance is not trusted" : null;
+        }
 
         if (manifest.Signature is null)
             return "missing manifest signature from trusted producer";
