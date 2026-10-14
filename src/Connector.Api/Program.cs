@@ -377,6 +377,7 @@ app.MapPipelineEndpoints();
 app.MapSchemaEndpoints();
 app.MapConnectionEndpoints();
 app.MapSettingsEndpoints();
+app.MapManifestSigningEndpoints();
 app.MapBrandingEndpoints();
 app.MapExportMappingEndpoints();
 app.MapExportDefinitionEndpoints();
