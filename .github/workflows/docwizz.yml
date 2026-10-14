@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 env:
-  DOCWIZZ_REF: c5df23e1add9b9eccf5791f26e6330b4d4f10b93
+  DOCWIZZ_REF: 773f5690dfd9454c58574ee1db978d0d11275c97 # v0.7.68
 
 jobs:
   check:
@@ -29,7 +29,7 @@ jobs:
         with:
           fetch-depth: 0 # check --since needs the base commit
           persist-credentials: false
-      - uses: mycaravam-crypto/docwizz@c5df23e1add9b9eccf5791f26e6330b4d4f10b93
+      - uses: mycaravam-crypto/docwizz@773f5690dfd9454c58574ee1db978d0d11275c97 # v0.7.68
         with:
           path: .
           fail: 'true'

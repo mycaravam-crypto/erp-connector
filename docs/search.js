@@ -1,0 +1,3362 @@
+window.docwizzSearch = [
+  {
+    "name": "/",
+    "kind": "route",
+    "page": "frontend.md",
+    "summary": null
+  },
+  {
+    "name": "/:pathMatch(.*)*",
+    "kind": "route",
+    "page": "frontend.md",
+    "summary": null
+  },
+  {
+    "name": "/audit",
+    "kind": "route",
+    "page": "frontend.md",
+    "summary": null
+  },
+  {
+    "name": "/connect",
+    "kind": "route",
+    "page": "frontend.md",
+    "summary": null
+  },
+  {
+    "name": "/erp",
+    "kind": "route",
+    "page": "frontend.md",
+    "summary": null
+  },
+  {
+    "name": "/erp-database",
+    "kind": "route",
+    "page": "frontend.md",
+    "summary": null
+  },
+  {
+    "name": "/export-definitions",
+    "kind": "route",
+    "page": "frontend.md",
+    "summary": null
+  },
+  {
+    "name": "/export-definitions/:id",
+    "kind": "route",
+    "page": "frontend.md",
+    "summary": null
+  },
+  {
+    "name": "/export-schema",
+    "kind": "route",
+    "page": "frontend.md",
+    "summary": null
+  },
+  {
+    "name": "/exports",
+    "kind": "route",
+    "page": "frontend.md",
+    "summary": null
+  },
+  {
+    "name": "/exports/:seqNo",
+    "kind": "route",
+    "page": "frontend.md",
+    "summary": null
+  },
+  {
+    "name": "/icd-schema",
+    "kind": "route",
+    "page": "frontend.md",
+    "summary": null
+  },
+  {
+    "name": "/import-definitions",
+    "kind": "route",
+    "page": "frontend.md",
+    "summary": null
+  },
+  {
+    "name": "/import-definitions/:id",
+    "kind": "route",
+    "page": "frontend.md",
+    "summary": null
+  },
+  {
+    "name": "/login",
+    "kind": "route",
+    "page": "frontend.md",
+    "summary": null
+  },
+  {
+    "name": "/pipeline",
+    "kind": "route",
+    "page": "frontend.md",
+    "summary": null
+  },
+  {
+    "name": "/schema",
+    "kind": "route",
+    "page": "frontend.md",
+    "summary": null
+  },
+  {
+    "name": "/settings",
+    "kind": "route",
+    "page": "frontend.md",
+    "summary": null
+  },
+  {
+    "name": "/source-schema",
+    "kind": "route",
+    "page": "frontend.md",
+    "summary": null
+  },
+  {
+    "name": "AccessMethod",
+    "kind": "type",
+    "page": "modules/src-connector-ui-src-lib.md#accessmethod",
+    "summary": null
+  },
+  {
+    "name": "ActiveMappingSummary",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#activemappingsummary",
+    "summary": "Card on the Managed Export page summarising the saved CMDB export mapping: source table, enabled fields, relations and nested groups, with a link to edit it (or to configure one when none is saved). Renders nothing while loading."
+  },
+  {
+    "name": "AddExportDefinitions",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-Migrations.md#addexportdefinitions",
+    "summary": null
+  },
+  {
+    "name": "AddImportDefinitions",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-Migrations.md#addimportdefinitions",
+    "summary": null
+  },
+  {
+    "name": "AddInsertCountToImportRun",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-Migrations.md#addinsertcounttoimportrun",
+    "summary": null
+  },
+  {
+    "name": "AddIntegrationKeyToDefinitions",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-Migrations.md#addintegrationkeytodefinitions",
+    "summary": null
+  },
+  {
+    "name": "AddProducerToImportRun",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-Migrations.md#addproducertoimportrun",
+    "summary": null
+  },
+  {
+    "name": "AddStagedConnectionFingerprintToImportRun",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-Migrations.md#addstagedconnectionfingerprinttoimportrun",
+    "summary": null
+  },
+  {
+    "name": "AddStagedFileToExportDefinitionRun",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-Migrations.md#addstagedfiletoexportdefinitionrun",
+    "summary": null
+  },
+  {
+    "name": "AddTargetImportDefinitionToExportDefinition",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-Migrations.md#addtargetimportdefinitiontoexportdefinition",
+    "summary": null
+  },
+  {
+    "name": "AddUser",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-Migrations.md#adduser",
+    "summary": null
+  },
+  {
+    "name": "AddUserForm",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#adduserform",
+    "summary": "Settings → Users' \"add a user\" row: username, initial password and role. Emits `added` so the list reloads."
+  },
+  {
+    "name": "Alert",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components-ui.md#alert",
+    "summary": null
+  },
+  {
+    "name": "AllowedHosts",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "AllowedOrigins",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "AmendImportRunForDesignReview",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-Migrations.md#amendimportrunfordesignreview",
+    "summary": null
+  },
+  {
+    "name": "ApiKeyAuthenticationHandler",
+    "kind": "class",
+    "page": "modules/src-Connector.Api.md#apikeyauthenticationhandler",
+    "summary": "Authenticates a request via the X-Api-Key header against `ApiKeyStore`, as an alternative to the interactive JWT login flow (`AuthEndpoints`) for a \"dedicated API user\" — a machine calling a specific endpoint directly (e.g. an external system triggering a saved export preset). Registered as its own scheme (\"ApiKey\") alongside the default JWT Bearer scheme, so only endpoints that opt in via RequireAuthorization(policy => policy.AddAuthenticationSchemes(...)) accept it — every other endpoint keeps requiring a JWT exactly as before."
+  },
+  {
+    "name": "ApiKeyOptions",
+    "kind": "class",
+    "page": "modules/src-Connector.Api.md#apikeyoptions",
+    "summary": null
+  },
+  {
+    "name": "ApiKeyStore",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#apikeystore",
+    "summary": "Machine-to-machine credential check for endpoints a \"dedicated API user\" calls directly (no interactive login) — e.g. an external system triggering a saved export preset. Deliberately not BCrypt: a BCrypt verify is intentionally slow (work-factor tuned to resist brute-forcing a human-chosen password) and this runs on every single request rather than once at login, while a generated API key is already high-entropy, so a fast, constant-time SHA-256 comparison is the appropriate trade-off here. Never stores or compares the raw key — only its hash, both at rest (config) and in memory."
+  },
+  {
+    "name": "App",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src.md#app",
+    "summary": "App shell: a header with the branded logo and app name and the theme toggle, plus (when signed in) the navigation and a user menu for changing the password, signing out or signing out of all sessions; then the current route's view, toasts and, when signed in, the app version."
+  },
+  {
+    "name": "AppSettingEncryptionMigrator",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#appsettingencryptionmigrator",
+    "summary": "One-time, idempotent startup step that encrypts every AppSetting.Value still stored as plaintext — rows written before `EncryptedStringConverter` existed. The converter only encrypts a row when it is saved again, and several keys (e.g. scheduler_config, read on every worker tick) are rarely re-saved, so without this they would stay plaintext on disk indefinitely and trigger the converter's plaintext warning on every single read."
+  },
+  {
+    "name": "AppSettingEntity",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#appsettingentity",
+    "summary": "Persistent key/value setting. Key is the primary key; Value stores JSON or plain text."
+  },
+  {
+    "name": "AppSettingsStore",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#appsettingsstore",
+    "summary": "Typed find/deserialize/upsert helpers over `AppSettings`: one place for the find-null-check-deserialize (read) and find-null-check-add-or-mutate-save (write) pattern."
+  },
+  {
+    "name": "AppVersion",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#appversion",
+    "summary": "Comes from the running API, not baked into the bundle, so it shows what the container actually runs even if the browser still has an older index.html cached."
+  },
+  {
+    "name": "articlestructure",
+    "kind": "table",
+    "page": "modules/testdb.md#articlestructure",
+    "summary": null
+  },
+  {
+    "name": "AuditEntry",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#auditentry",
+    "summary": null
+  },
+  {
+    "name": "AuditEntryDto",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#auditentrydto",
+    "summary": "Single row returned by GET /api/audit."
+  },
+  {
+    "name": "AuditLogEntry",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#auditlogentry",
+    "summary": "Single entry in the audit trail. Written by the API on every significant user action."
+  },
+  {
+    "name": "AuditLogTable",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#auditlogtable",
+    "summary": null
+  },
+  {
+    "name": "AuditService",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#auditservice",
+    "summary": "Writes non-fatal, append-only audit entries to the AuditLog table. Failures are logged as warnings and never propagate — audit must not interrupt business logic. Every detail is scrubbed of credentials (`Scrub`) before it is stored, whatever the caller put into it."
+  },
+  {
+    "name": "AuditView",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-views.md#auditview",
+    "summary": null
+  },
+  {
+    "name": "Auth",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "Auth:ApiKeys",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "Auth:JwtExpiryHours",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "Auth:JwtSecret",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "Auth:Users",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "AuthEndpoints",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Endpoints.md#authendpoints",
+    "summary": null
+  },
+  {
+    "name": "AuthOptions",
+    "kind": "class",
+    "page": "modules/src-Connector.Api.md#authoptions",
+    "summary": null
+  },
+  {
+    "name": "AuthUser",
+    "kind": "class",
+    "page": "modules/src-Connector.Api.md#authuser",
+    "summary": null
+  },
+  {
+    "name": "BackLink",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components-ui.md#backlink",
+    "summary": null
+  },
+  {
+    "name": "Badge",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components-ui.md#badge",
+    "summary": "Generic status/count pill. Consolidates the ad-hoc \"rounded-full px-2 py-0.5 text-xs\" spans that were hand-rolled per view (count summaries, preview panels, ...) — StatusBadge stays the icon+label variant for run/import statuses specifically; this is the plain no-icon pill for everything else."
+  },
+  {
+    "name": "BrandingConfig",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#brandingconfig",
+    "summary": null
+  },
+  {
+    "name": "BrandingConfig",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#brandingconfig",
+    "summary": "Body for GET/PUT /api/branding — connector-wide white-label assets. Each image field is a full \"data:image/<type>;base64,…\" data URL (validated and size-capped in BrandingEndpoints) or null to fall back to the built-in default. GET is unauthenticated so the login screen and browser tab can render custom branding before the user signs in."
+  },
+  {
+    "name": "BrandingEndpoints",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Endpoints.md#brandingendpoints",
+    "summary": null
+  },
+  {
+    "name": "BrandingImageField",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#brandingimagefield",
+    "summary": "Image picker for one branding asset, bound with v-model as a data URL (null = use the default). Rejects non-images and files over maxBytes inline, shows a preview, and can remove the image."
+  },
+  {
+    "name": "BrandingSettingsForm",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#brandingsettingsform",
+    "summary": "Settings form for the app name, logo, favicon and background image. Saves via PUT /api/branding and reloads the app-wide branding so the change shows immediately."
+  },
+  {
+    "name": "Button",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components-ui.md#button",
+    "summary": "Standard button in four visual variants. While `loading`, it shows a spinner (hiding the `icon` slot) and is disabled; the default slot is the label."
+  },
+  {
+    "name": "Card",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components-ui.md#card",
+    "summary": null
+  },
+  {
+    "name": "ChangePasswordDialog",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#changepassworddialog",
+    "summary": "Self-service password change, opened from the user menu. On success the server has signed this account out everywhere, so the dialog emits `changed` and the app sends the user back to the login page."
+  },
+  {
+    "name": "ChangePasswordRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#changepasswordrequest",
+    "summary": null
+  },
+  {
+    "name": "ColumnMappingTable",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#columnmappingtable",
+    "summary": null
+  },
+  {
+    "name": "ColumnNames",
+    "kind": "class",
+    "page": "modules/src-Connector.Core-Schema.md#columnnames",
+    "summary": "Column names as type-safe constants — prevents typos when mapping."
+  },
+  {
+    "name": "CompiledMariaDbQuery",
+    "kind": "record",
+    "page": "modules/src-Connector.Infrastructure-DataSources-MariaDb.md#compiledmariadbquery",
+    "summary": "A `SourceQuery` compiled to MariaDB: SQL text plus the @p0, @p1, … parameters it references."
+  },
+  {
+    "name": "CompiledPostgreSqlQuery",
+    "kind": "record",
+    "page": "modules/src-Connector.Infrastructure-DataSources-PostgreSql.md#compiledpostgresqlquery",
+    "summary": "A `SourceQuery` compiled to PostgreSQL: SQL text plus the positional-named (@p0, @p1, …) parameters it references."
+  },
+  {
+    "name": "ConfirmAction",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components-ui.md#confirmaction",
+    "summary": "De-duplicates the \"click Delete → inline Confirm/Cancel\" pattern repeated across run-controls panels and definition list rows. Renders as a fragment (no wrapping element) so it drops straight into whatever flex row the trigger button already lived in — `confirming` swaps the trigger slot for a prompt + confirm/cancel pair in place, matching how each call site already laid things out."
+  },
+  {
+    "name": "ConnectionConfig",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#connectionconfig",
+    "summary": "Full config sent to POST /api/connection (password included, stays server-side). An empty password keeps the stored one, as long as type, target and username are unchanged."
+  },
+  {
+    "name": "ConnectionEndpoints",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Endpoints.md#connectionendpoints",
+    "summary": null
+  },
+  {
+    "name": "ConnectionForm",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-lib.md#connectionform",
+    "summary": null
+  },
+  {
+    "name": "ConnectionStatus",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#connectionstatus",
+    "summary": "GET /api/connection/status: what every signed-in user may know about the connection. The details (host, account, TLS) are Admin-only, via getConnection."
+  },
+  {
+    "name": "ConnectionStatusCard",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#connectionstatuscard",
+    "summary": "The dashboard's connection card. Every user sees whether a connection exists and its name; only Admins (who own Connect) see the account and host, and get the Edit/Connect link. Everyone else is told whom to ask."
+  },
+  {
+    "name": "ConnectionStatusDto",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#connectionstatusdto",
+    "summary": "GET /api/connection/status: whether a connection is configured, its type and a display name (database or instance URL)."
+  },
+  {
+    "name": "ConnectionStrings:ExportLog",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "ConnectionTlsSelect",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#connectiontlsselect",
+    "summary": "TLS mode for a relational source. Both providers store the same names (the backend maps them for MariaDB); only the labels and the offered set differ — MariaDB has no \"Allow\"."
+  },
+  {
+    "name": "ConnectionView",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-views.md#connectionview",
+    "summary": "Step 1, /connect: the source-system connection form (PostgreSQL, MariaDB or ServiceNow). \"Test Connection\" validates the form, saves it and reports how many tables the connection exposes; an empty password keeps the one already stored. A 401 ends the session and returns to login. Continues to /source-schema."
+  },
+  {
+    "name": "connector-ui (src/connector-ui/package.json)",
+    "kind": "project",
+    "page": "projects/connector-ui-f36e97198b9e.md",
+    "summary": "Project overview, modules and components"
+  },
+  {
+    "name": "Connector.Api (src/Connector.Api/Connector.Api.csproj)",
+    "kind": "project",
+    "page": "projects/Connector-Api-4b7b11b2fa60.md",
+    "summary": "Project overview, modules and components"
+  },
+  {
+    "name": "Connector.Core (src/Connector.Core/Connector.Core.csproj)",
+    "kind": "project",
+    "page": "projects/Connector-Core-67ea6c7c243a.md",
+    "summary": "Project overview, modules and components"
+  },
+  {
+    "name": "Connector.Core.Tests (tests/Connector.Core.Tests/Connector.Core.Tests.csproj)",
+    "kind": "project",
+    "page": "projects/Connector-Core-Tests-abbb6c46c9af.md",
+    "summary": "Project overview, modules and components"
+  },
+  {
+    "name": "Connector.Infrastructure (src/Connector.Infrastructure/Connector.Infrastructure.csproj)",
+    "kind": "project",
+    "page": "projects/Connector-Infrastructure-1bd055e8121e.md",
+    "summary": "Project overview, modules and components"
+  },
+  {
+    "name": "Connector.Integration.Tests (tests/Connector.Integration.Tests/Connector.Integration.Tests.csproj)",
+    "kind": "project",
+    "page": "projects/Connector-Integration-Tests-e841e60c22ba.md",
+    "summary": "Project overview, modules and components"
+  },
+  {
+    "name": "Connector.sln",
+    "kind": "solution",
+    "page": "solutions/Connector-771674ae59b9.md",
+    "summary": "Solution and its selected projects"
+  },
+  {
+    "name": "ConnectorInstance",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#connectorinstance",
+    "summary": "This connector's identity, as stamped into every export manifest's `Producer` block."
+  },
+  {
+    "name": "ConnectorInstanceInfo",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#connectorinstanceinfo",
+    "summary": "Identity of this connector installation: the instance ID every export manifest carries, so an operator can tell which installation a connector-to-connector import (\"From connector: …\") came from. The ID can be regenerated for an installation set up from a copy of another's database (#233)."
+  },
+  {
+    "name": "ConnectorNav",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#connectornav",
+    "summary": "Main navigation bar: a flat row of links to each area, highlighted for the current route. Below the nav breakpoint it collapses into a toggle and dropdown that closes on outside click, Escape or navigation."
+  },
+  {
+    "name": "CreateUserRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#createuserrequest",
+    "summary": null
+  },
+  {
+    "name": "CronSchedule",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#cronschedule",
+    "summary": "Minimal 5-field cron matcher (minute hour day-of-month month day-of-week, UTC) for `Schedule`. Not a general cron library: no seconds field, no `L`/`W`/`#` extensions — only what the UI's Manual/Hourly/Daily/Weekly presets plus a free-text advanced field can produce. The matching logic is a few dozen lines, so no scheduling library is used."
+  },
+  {
+    "name": "CsvExportFormatWriter",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#csvexportformatwriter",
+    "summary": "CSV has no native nesting: every record is flattened to one column per leaf path first (see `FlattenExportNodeRecord`)."
+  },
+  {
+    "name": "CurrentUser",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#currentuser",
+    "summary": "GET /api/auth/me: the signed-in user, their role and their effective permissions (an Admin holds all)."
+  },
+  {
+    "name": "CurrentUserDto",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#currentuserdto",
+    "summary": "GET /api/auth/me: who is signed in, their role and their effective permissions."
+  },
+  {
+    "name": "DashboardView",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-views.md#dashboardview",
+    "summary": "The landing page once a connection is configured (router guard sends first-run visitors to /connect instead) — an orientation point for the areas that used to be reachable only from the account menu, not a replacement for any of them. Counts and tiles appear only for areas the user may open."
+  },
+  {
+    "name": "DataProtection:KeysDirectory",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "DataSourceCapabilities",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DataSources.md#datasourcecapabilities",
+    "summary": "What a provider can and can't do, stated explicitly — so callers and the shared provider contract tests branch on a named capability, never on provider.Type == …. Only differences that exist between the implemented providers are modeled; everything else in `IDataSourceProvider` (connection test, schema with relations, projection, filters, null checks, limit, joins, cancellation, sanitized errors) is required of every provider."
+  },
+  {
+    "name": "DataSourceConfig",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DataSources.md#datasourceconfig",
+    "summary": "Connection parameters for the configured ERP data source. Provider-agnostic by design: `Type` says which `IDataSourceProvider` (resolved via `IDataSourceProviderResolver`) interprets the rest of these fields — a relational source (`PostgreSql`/ `MariaDb`) uses `Host`/`Port`/`Database`, an HTTP API source (`ServiceNowTableApi`/ `ServiceNowSqlApi`) uses `InstanceUrl` instead. See knowledge/architecture/data-source-configuration.md for the full design and back-compat contract."
+  },
+  {
+    "name": "DataSourceProviderResolver",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-DataSources.md#datasourceproviderresolver",
+    "summary": "Resolves every DI-registered `IDataSourceProvider` by its own `Type` — adding a provider is a DI registration in Program.cs, never a change to this resolver."
+  },
+  {
+    "name": "DataSourceQueryException",
+    "kind": "class",
+    "page": "modules/src-Connector.Core-DataSources.md#datasourcequeryexception",
+    "summary": "Provider-agnostic wrapper for a query execution failure that a caller needs to inspect, not just log or surface verbatim — e.g. to recognize a specific SQL error without referencing Npgsql.PostgresException/ SqlState directly. `ErrorCode` is the provider's own error-code string verbatim (the Postgres SQLSTATE, for PostgreSqlDataSourceProvider) — opaque to callers unless they know the specific code they're looking for."
+  },
+  {
+    "name": "DataSources:AllowUnencryptedConnections",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "DataSourceType",
+    "kind": "enum",
+    "page": "modules/src-Connector.Core-DataSources.md#datasourcetype",
+    "summary": "Identifies which backend an `IDataSourceProvider` implementation targets. Resolved to a concrete provider via `IDataSourceProviderResolver`."
+  },
+  {
+    "name": "DataSourceType",
+    "kind": "type",
+    "page": "modules/src-connector-ui-src-api.md#datasourcetype",
+    "summary": null
+  },
+  {
+    "name": "DELETE /api/export-definitions/{id:int}",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Deletes a definition. Audited."
+  },
+  {
+    "name": "DELETE /api/export-mapping/presets/{name}",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Deletes a single named preset. Returns 404 when the name does not exist."
+  },
+  {
+    "name": "DELETE /api/import-definitions/{id:int}",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Deletes a definition. Audited."
+  },
+  {
+    "name": "DELETE /api/settings/manifest-signing/peers/{instanceId}",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Remove a trusted connector instance and its signing key."
+  },
+  {
+    "name": "DELETE /api/users/{username}",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Deletes a user; their open sessions stop working on their next request. Their audit entries stay."
+  },
+  {
+    "name": "DeliverRequest",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#deliverrequest",
+    "summary": null
+  },
+  {
+    "name": "DeliverRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#deliverrequest",
+    "summary": "Body for POST …/deliver. ImportedRecordCount and Notes are optional confirmation data."
+  },
+  {
+    "name": "DeliverRunForm",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#deliverrunform",
+    "summary": "Form on a released export run's detail page for recording that the file reached the vendor, with an optional imported-record count and notes. Emits `delivered` on success."
+  },
+  {
+    "name": "DetectedExportFile",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-lib.md#detectedexportfile",
+    "summary": null
+  },
+  {
+    "name": "DevAuthSeed",
+    "kind": "class",
+    "page": "modules/src-Connector.Api.md#devauthseed",
+    "summary": "Provides hard-coded dev users and an API key so Development mode works out of the box without pre-computing BCrypt hashes or a SHA-256 key hash. Do not call in Production."
+  },
+  {
+    "name": "DictionaryRecord",
+    "kind": "record",
+    "page": "modules/src-Connector.Infrastructure-DataSources-ServiceNow.md#dictionaryrecord",
+    "summary": null
+  },
+  {
+    "name": "DuplicateExportDefinitionRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#duplicateexportdefinitionrequest",
+    "summary": "Body for POST .../duplicate. Name is optional — defaults to \"{original} (Copy)\"."
+  },
+  {
+    "name": "DuplicateImportDefinitionRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#duplicateimportdefinitionrequest",
+    "summary": "Body for POST .../duplicate. Name is optional — defaults to \"{original} (Copy)\"."
+  },
+  {
+    "name": "DynamicExportService",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#dynamicexportservice",
+    "summary": "Query/build engine behind the connector's export paths: the legacy single-mapping flat/nested-JSON pipeline (`ExportMappingConfig`, still served by /api/pipeline/* — see DynamicExportService.LegacyMapping.cs) and the `ExportNode` tree engine (Export Definitions 2.0 — see DynamicExportService.ExportNode.cs) side by side, plus the shared GDPR denylist (DynamicExportService.Gdpr.cs) and output-format writers (DynamicExportService.Output.cs) both paths use. Kept as one partial class split across files by responsibility, rather than separate classes, so every existing DynamicExportService.* call site across the API/Infrastructure/test projects keeps working unchanged. This file holds the members shared across every other part: the nesting-depth cap, the build-result shape, the connection fingerprint, and the dialect lookup both query engines build on."
+  },
+  {
+    "name": "EmptyState",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components-ui.md#emptystate",
+    "summary": "Shared \"nothing here yet\" block for lists/tables — replaces the one-off `<div class=\"text-text-secondary text-sm mt-4\">No … yet.</div>` lines duplicated across views with a consistent, slightly more prominent treatment, while staying just as easy to drop in."
+  },
+  {
+    "name": "EnableRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#enablerequest",
+    "summary": "Body for PATCH .../enable."
+  },
+  {
+    "name": "EncryptedStringConverter",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#encryptedstringconverter",
+    "summary": "Encrypts a string column at rest via ASP.NET Core Data Protection. Applied to `Value`, which stores the ERP connection config including its password, so a stolen backup or disk snapshot of the SQLite file doesn't expose it. EF Core runs the conversion on every SaveChanges/materialization, so every caller — `AppSettingsStore`'s helpers and the several call sites that read `AppSettings` directly — keeps seeing plaintext JSON; only the bytes actually persisted to disk are ciphertext."
+  },
+  {
+    "name": "ErpConnectionInfo",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#erpconnectioninfo",
+    "summary": "Server-side stored connection — password is never returned, only whether one is set. Host/port/database are set for PostgreSQL/MariaDB, instanceUrl for ServiceNow. A config stored before `type` existed comes back as PostgreSQL (0)."
+  },
+  {
+    "name": "ErpConnectionInfo",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#erpconnectioninfo",
+    "summary": "Public view of the stored connection — no password field, ever. `HasPassword` is the most any API response is allowed to say about it. Host/Port/Database are populated for a relational source (`PostgreSql`/`MariaDb`), InstanceUrl for an HTTP API source (`ServiceNowTableApi`/ `ServiceNowSqlApi`) — never both."
+  },
+  {
+    "name": "ErrorSanitizer",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#errorsanitizer",
+    "summary": "Strips credentials from error text. Several endpoints return an exception's message to the caller (a \"test connection\"/preview action is only useful if it says why it failed), but Npgsql can echo the offending connection string — including the ERP password — back inside an exception message. `Detail` is the single choke point every such call site routes through, so the diagnostic value survives but a credential can't leak through it. `ForLogging` does the same for logged exceptions, and `Scrub` for any other text such as audit details."
+  },
+  {
+    "name": "ExcelExportFormatWriter",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#excelexportformatwriter",
+    "summary": "Excel, like CSV, has no native nesting and shares the same flattening."
+  },
+  {
+    "name": "ExportBuildResult",
+    "kind": "record",
+    "page": "modules/src-Connector.Infrastructure.md#exportbuildresult",
+    "summary": "A built export file. `Metrics` says what the build read from the source."
+  },
+  {
+    "name": "ExportDefinition",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#exportdefinition",
+    "summary": null
+  },
+  {
+    "name": "ExportDefinitionBasicFields",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#exportdefinitionbasicfields",
+    "summary": "The export definition editor's basic settings: name, description, root table, output format, cron schedule, enabled flag, the provenance fields (IntegrationKey, ContractVersion, CorrelationKeySourceField) and the connector-to-connector target (TargetImportDefinition). Edits `definition` in place; cleared optional inputs are stored as null, not ''."
+  },
+  {
+    "name": "ExportDefinitionDto",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#exportdefinitiondto",
+    "summary": "Full view of a saved export definition, returned by GET/POST/PUT .../{id}."
+  },
+  {
+    "name": "ExportDefinitionEditView",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-views.md#exportdefinitioneditview",
+    "summary": "/export-definitions/:id (\"new\" to create): editor for one export job. Basic fields, the node tree built from the root table's columns, a preview panel and run history; a new job is created first, after which ExportDefinitionRunControls handles save/test/run/duplicate/delete. Without the edit permission a saved job opens read-only."
+  },
+  {
+    "name": "ExportDefinitionEndpoints",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Endpoints.md#exportdefinitionendpoints",
+    "summary": "CRUD, manual trigger, test, preview, and run history for `ExportDefinitionEntity`: the generic, named, tree-based replacement for the legacy single export mapping (see knowledge/pipeline/export-definitions-2.0.md). This is the surface an external program uses to configure a saved export once and trigger it later via a single authenticated POST — POST /api/export-definitions/{id}/run returns the built artifact bytes directly. Deliberately does not reuse `ExportRunEntity`/`FileSystemExportSink`/four-eyes release: those model the legacy CI-to-vendor staging contract (sequence numbers, physical staging folder, approval workflow), which don't apply to generic exports. A run here is synchronous request/response plus one `ExportDefinitionRunEntity` history row — no separate storage or delivery mechanism is introduced."
+  },
+  {
+    "name": "ExportDefinitionEntity",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#exportdefinitionentity",
+    "summary": "One saved, independently named and scheduled export: a name, the table it's rooted at, its `ExportNode` tree, and the output format/schedule it runs with. Replaces the single AppSetting-backed mapping + presets (`ExportMapping`/`ExportPresets`)."
+  },
+  {
+    "name": "ExportDefinitionMigrator",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#exportdefinitionmigrator",
+    "summary": "One-time startup converter: reads the legacy AppSetting-backed export_mapping/export_presets blobs and writes one `ExportDefinitionEntity` per legacy config, so the N-definitions model starts populated from whatever a deployment already had configured. Idempotent — guarded by \"any `ExportDefinitionEntity` row already exists\" so a later app restart never re-runs it or duplicates rows. Leaves the AppSettings rows in place and does not touch them again — the legacy /api/export-mapping endpoints remain fully read/write independently of this snapshot."
+  },
+  {
+    "name": "ExportDefinitionPreview",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#exportdefinitionpreview",
+    "summary": "Response of POST /api/export-definitions/{id}/preview — capped, untracked, no history row written."
+  },
+  {
+    "name": "ExportDefinitionPreviewDto",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#exportdefinitionpreviewdto",
+    "summary": "Response for POST .../preview: capped, tree-shaped rows for on-screen inspection — never written to run history (see `ExportDefinitionEndpoints`)."
+  },
+  {
+    "name": "ExportDefinitionPreviewPanel",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#exportdefinitionpreviewpanel",
+    "summary": "Runs POST /api/export-definitions/{id}/preview — the *same* query path Run Now uses, just capped and untracked. Records are arbitrary nested JSON (every ExportNode shape, regardless of the definition's own OutputFormat, since the format writer only applies at Run Now/Test time) — rendered as pretty-printed JSON rather than a flattened table, since a 3-level nested tree has no single flat column set to render as a grid."
+  },
+  {
+    "name": "ExportDefinitionRequest",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#exportdefinitionrequest",
+    "summary": null
+  },
+  {
+    "name": "ExportDefinitionRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#exportdefinitionrequest",
+    "summary": "Body for POST/PUT /api/export-definitions — everything an operator configures for one saved, independently triggerable export. RootNode must be a \"root\"-kind `ExportNode`. IntegrationKey/ContractVersion/CorrelationKeySourceField are optional and only used by the import-mapping suggestion feature (knowledge/pipeline/import-mapping-presets.md) — set together or not at all, validated at save time by `ExportDefinitionEndpoints`."
+  },
+  {
+    "name": "ExportDefinitionRun",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#exportdefinitionrun",
+    "summary": "One row of GET /api/export-definitions/{id}/runs — execution history for a definition."
+  },
+  {
+    "name": "ExportDefinitionRunControls",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#exportdefinitionruncontrols",
+    "summary": "Action bar for the export definition editor: Save (PUT, merged back into `definition`), Test against the live connection (capped test run), Run Now (downloads the built file), Duplicate and Delete (with confirm). Parents react to `duplicated` / `deleted` to navigate away. Each action shows only for a user holding its permission."
+  },
+  {
+    "name": "ExportDefinitionRunDto",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#exportdefinitionrundto",
+    "summary": "One row returned by GET .../{id}/runs."
+  },
+  {
+    "name": "ExportDefinitionRunEntity",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#exportdefinitionrunentity",
+    "summary": "One completed, failed, or in-progress run of an `ExportDefinitionEntity` — the per-definition analogue of `ExportRunEntity`, which stays scoped to the legacy single-mapping pipeline. Every run (scheduled, manual, or test) writes exactly one row here, with `Status` set to `Failed` and `ErrorMessage` populated on any failure — never a silent partial success."
+  },
+  {
+    "name": "ExportDefinitionRunner",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#exportdefinitionrunner",
+    "summary": "The one execution path behind every trigger of an `ExportDefinitionEntity` — manual run/test (ExportDefinitionEndpoints) and scheduled runs (`ExportDefinitionWorker`) all call `ExecuteAsync`, so every run — scheduled or manual — writes exactly one `ExportDefinitionRunEntity` row, with identical Failed/error-message semantics regardless of trigger."
+  },
+  {
+    "name": "ExportDefinitionRunResultDto",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#exportdefinitionrunresultdto",
+    "summary": "Result of a run/test — the tracked ExportDefinitionRunEntity row as an API-facing shape."
+  },
+  {
+    "name": "ExportDefinitionRunsTable",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#exportdefinitionrunstable",
+    "summary": "The per-definition analogue of ExportRunsTable.vue — deliberately a separate component, not a reuse of that one: ExportDefinitionRunEntity has no sequence/four-eyes fields (those model the legacy CI pipeline), but it does carry ConfigVersion/TriggeredBy/IsTestRun, which ExportRunEntity doesn't. Only scheduled runs have a staged file (hover shows its SHA-256)."
+  },
+  {
+    "name": "ExportDefinitionRunStatus",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#exportdefinitionrunstatus",
+    "summary": "Status values for `Status`. Deliberately separate from `ExportRunStatus`, which models the legacy pipeline's four-eyes release workflow — a per-definition run has no approval step, just success/failure."
+  },
+  {
+    "name": "ExportDefinitionShape",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicImport.md#exportdefinitionshape",
+    "summary": "The subset of a persisted ExportDefinitionEntity (Connector.Infrastructure) that `SuggestFrom` needs. A plain Core-level record because Connector.Core has no dependency on Connector.Infrastructure. The caller loads it from ExportLogDbContext.ExportDefinitions and deserializes RootNode via `ExportNodeJson` first — this type does no I/O of its own."
+  },
+  {
+    "name": "ExportDefinitionSummary",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#exportdefinitionsummary",
+    "summary": null
+  },
+  {
+    "name": "ExportDefinitionSummaryDto",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#exportdefinitionsummarydto",
+    "summary": "Lightweight list-view row for GET /api/export-definitions — omits RootNode, which can be arbitrarily deep and isn't needed to identify/trigger a definition."
+  },
+  {
+    "name": "ExportDefinitionsView",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-views.md#exportdefinitionsview",
+    "summary": "/export-definitions: the list of export jobs with each job's last run status, plus per-row enable/disable, test run, duplicate and delete (with confirm) — each only for a user holding its permission."
+  },
+  {
+    "name": "ExportDefinitionTestResult",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#exportdefinitiontestresult",
+    "summary": null
+  },
+  {
+    "name": "ExportDefinitionWorker",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#exportdefinitionworker",
+    "summary": "Scheduler for export definitions — a sibling of `ExportWorker`, which owns the legacy CI-to-vendor four-eyes pipeline. This one polls `ExportDefinitionEntity` rows instead, running any enabled definition whose `Schedule` cron is due this minute, via the same `ExportDefinitionRunner` path manual run/test already use — so a scheduled run and a manual \"Run Now\" are indistinguishable in `ExportDefinitionRunEntity` history except for `TriggeredBy` and the staged file: only a scheduled run writes its file and manifest to the staging folder (`FileSystemExportSink`)."
+  },
+  {
+    "name": "ExportDetail",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-views.md#exportdetail",
+    "summary": "/exports/:seqNo: one managed export run: status, a sequence-gap warning when an earlier run wasn't released, and the run details. Offers the next step for its state: four-eyes release, skip (pending or failed runs), or record delivery (released, not yet delivered) — each only with its permission."
+  },
+  {
+    "name": "ExportDetail",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#exportdetail",
+    "summary": null
+  },
+  {
+    "name": "ExportDetailDto",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#exportdetaildto",
+    "summary": "Full export run detail. SequenceGapWarning is non-null when a Pending run has a gap relative to the last released run — operators should investigate before releasing. Delivery fields are null until the physical handover is recorded via POST …/deliver."
+  },
+  {
+    "name": "ExportEndpoints",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Endpoints.md#exportendpoints",
+    "summary": null
+  },
+  {
+    "name": "ExportFormatPicker",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#exportformatpicker",
+    "summary": null
+  },
+  {
+    "name": "ExportFormatWriterFactory",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#exportformatwriterfactory",
+    "summary": "Resolves an OutputFormat string to its `IExportFormatWriter`. A plain lookup table rather than DI registration: every other piece of this codebase's format dispatch (e.g. the legacy `BuildExportAsync`'s format switch) is a static, stateless mapping too, and these writers hold no state of their own."
+  },
+  {
+    "name": "ExportJsonMetadataField",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#exportjsonmetadatafield",
+    "summary": null
+  },
+  {
+    "name": "ExportJsonMetadataField",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicExport.md#exportjsonmetadatafield",
+    "summary": "One key/value pair in the JSON export's metadata block. When `IsDynamicTimestamp` is true, `Value` is ignored and the actual export timestamp is substituted at build time."
+  },
+  {
+    "name": "ExportJsonWrapperConfig",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#exportjsonwrapperconfig",
+    "summary": null
+  },
+  {
+    "name": "ExportJsonWrapperConfig",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicExport.md#exportjsonwrapperconfig",
+    "summary": "Configures the JSON export envelope: an optional root key, the items array key, and metadata field naming. Null on `JsonWrapper` preserves the legacy flat envelope."
+  },
+  {
+    "name": "ExportLogDbContext",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#exportlogdbcontext",
+    "summary": "EF Core DbContext for the export log (SQLite). Tables: ExportRun, AppSetting (key/value config store), AuditLog. Schema is managed via EF Core migrations in Connector.Infrastructure/Migrations/. Startup calls Database.MigrateAsync() — add new changes via dotnet ef migrations add."
+  },
+  {
+    "name": "ExportLogDbContextModelSnapshot",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-Migrations.md#exportlogdbcontextmodelsnapshot",
+    "summary": null
+  },
+  {
+    "name": "ExportManifest",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-Domain.md#exportmanifest",
+    "summary": "Accompanies every export file. Lets the recipient verify integrity and detect gaps without a return channel — the sequence number exposes gaps (e.g. a jump from #41 to #43)."
+  },
+  {
+    "name": "ExportMappingConfig",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#exportmappingconfig",
+    "summary": null
+  },
+  {
+    "name": "ExportMappingConfig",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicExport.md#exportmappingconfig",
+    "summary": "The complete mapping config for one source table, including field remaps and relation flattening. `NestedGroups` and `JsonWrapper` are JSON-export-only and additive: CSV/Excel export and every pre-existing saved mapping ignore them entirely."
+  },
+  {
+    "name": "ExportMappingEndpoints",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Endpoints.md#exportmappingendpoints",
+    "summary": null
+  },
+  {
+    "name": "ExportMappingField",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicExport.md#exportmappingfield",
+    "summary": "A single column mapping with source name, target export name, and enabled flag."
+  },
+  {
+    "name": "ExportMappingJson",
+    "kind": "class",
+    "page": "modules/src-Connector.Core-DynamicExport.md#exportmappingjson",
+    "summary": "Deserializes `ExportMappingConfig` stored as AppSetting JSON, repairing configs saved before relations gained a Fields list, Delimiter, and relation-level FlattenStrategy: System.Text.Json leaves a missing property at its type default — `null` for the string and array properties here — rather than the value the old shape implied, which crashes every consumer that dereferences it. Every read of the export_mapping/export_presets AppSetting values must go through this instead of a raw `Deserialize`<T>` call."
+  },
+  {
+    "name": "ExportMappingNestedField",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicExport.md#exportmappingnestedfield",
+    "summary": "A single scalar field pulled from a nested group's related table, exported as an object key."
+  },
+  {
+    "name": "ExportMappingNestedGroup",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicExport.md#exportmappingnestedgroup",
+    "summary": "A JSON-only nested structure: either a single embedded object (Kind=\"object\", an N:1 lookup join) or an array of embedded objects (Kind=\"array\", a 1:N join). `Children` lets groups nest arbitrarily deep (e.g. item → manufacturer → addresses), each recursing within its parent's JSON expression."
+  },
+  {
+    "name": "ExportMappingRelation",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicExport.md#exportmappingrelation",
+    "summary": "A 1:N relation config for joining and flattening one or more columns of a related table into the parent row."
+  },
+  {
+    "name": "ExportMappingRelationField",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicExport.md#exportmappingrelationfield",
+    "summary": "A single value column pulled from a related table, with its own export name and enabled flag."
+  },
+  {
+    "name": "ExportNode",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#exportnode",
+    "summary": null
+  },
+  {
+    "name": "ExportNode",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicExport.md#exportnode",
+    "summary": "One node in a recursive export tree. Generalizes `ExportMappingNestedGroup` (which only covers \"object\"/\"array\" nesting for JSON output) to also represent the root and plain scalar columns, so a single tree — walked by one query builder and honored by every format writer (CSV/Excel/JSON) — replaces the old parallel Fields/Relations/NestedGroups shapes. `Children` lets root/object/array nodes nest arbitrarily deep; a scalar-field node has no children."
+  },
+  {
+    "name": "ExportNodeFieldEditor",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#exportnodefieldeditor",
+    "summary": "Self-referencing recursive component (see NestedGroupEditor.vue for the same pattern applied to the legacy mapping shape). Deliberately a flat, read-the-identifiers-and-fix-them form — not a tree builder: it edits SourceField/RelatedTable/JoinKey/SourceJoinKey and the Enabled flag on the existing tree in place, but never adds, removes, or re-kinds a node. That's enough to point a migrated definition at real production table/column names; building/restructuring the tree is ExportNodeTreeEditor.vue's job, not this recovery form's."
+  },
+  {
+    "name": "ExportNodeJson",
+    "kind": "class",
+    "page": "modules/src-Connector.Core-DynamicExport.md#exportnodejson",
+    "summary": "Deserializes an `ExportNode` tree stored as JSON (on ExportDefinitionEntity.RootNode), backfilling missing properties the same way `ExportMappingJson` does for the legacy mapping shape: System.Text.Json leaves a missing property at its type default rather than the value an older saved tree implied, which would otherwise crash every consumer that dereferences it. Every read of a persisted `ExportNode` tree must go through this instead of a raw `Deserialize`<T>` call."
+  },
+  {
+    "name": "ExportNodeKind",
+    "kind": "class",
+    "page": "modules/src-Connector.Core-DynamicExport.md#exportnodekind",
+    "summary": "Discriminator values for `Kind`. A plain string, matching this codebase's existing convention (see `Kind`) rather than a C# enum + JsonStringEnumConverter."
+  },
+  {
+    "name": "ExportNodeMappingEditor",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#exportnodemappingeditor",
+    "summary": "Inline editor for one scalar-field node's FieldMapping: rename is the node's own TargetKey input (owned by the caller), so this only covers the four FieldMapping members — transform, transform argument, null-fallback, and data-type coercion target. Mirrors Connector.Core.DynamicExport.FieldTransform/FieldDataType exactly (see ExportNode.cs) so every value this can emit is one the backend validator already accepts."
+  },
+  {
+    "name": "ExportNodeTreeEditor",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#exportnodetreeeditor",
+    "summary": "The export definition tree builder: the single recursive editor for every ExportNode kind (\"scalar-field\" | \"object\" | \"array\"), in every output format. Used as the definition editor's tree UI once a definition has real columns to build from (otherwise see ExportNodeFieldEditor.vue). Structurally mirrors NestedGroupEditor.vue (the legacy MappingNestedGroup tree editor) but is kept as its own component: the two operate on different, incompatible tree shapes (MappingNestedGroup's flat per-group `fields` list vs. ExportNode's uniform recursive `children`), and NestedGroupEditor.vue serves only the legacy `/export-schema` flow."
+  },
+  {
+    "name": "ExportPackage",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-Domain.md#exportpackage",
+    "summary": "Complete export package: data file bytes + manifest. Both parts are written atomically to the staging path — only once both are complete is the export considered ready for four-eyes release."
+  },
+  {
+    "name": "ExportProducer",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-Domain.md#exportproducer",
+    "summary": "Identity of the connector that wrote an export."
+  },
+  {
+    "name": "ExportProvenance",
+    "kind": "record",
+    "page": "modules/src-Connector.Infrastructure.md#exportprovenance",
+    "summary": "The optional provenance key `JsonExportFormatWriter` emits when `IntegrationKey` is set. Only `IntegrationKey`/`ContractVersion` are ever matched on by the import-side suggestion (ImportMappingSuggestion); `ConfigVersion` rides along purely for an operator-facing tooltip, reusing the existing per-run traceability field rather than inventing a new one. No internal database id (`Id`, any run id) is ever placed on the wire — this is an external interchange payload, and an internal primary key has no meaning outside this one connector instance."
+  },
+  {
+    "name": "ExportQueryMetrics",
+    "kind": "record",
+    "page": "modules/src-Connector.Infrastructure-DataSources.md#exportquerymetrics",
+    "summary": "What one export read from its source: how many queries it sent, how many rows came back, and how long the whole build took (queries, assembly and writing the output)."
+  },
+  {
+    "name": "ExportRecordSelection",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicExport.md#exportrecordselection",
+    "summary": "Optional, server-derived root selection: the configured correlation column and caller-supplied values. The SQL compiler binds the values as parameters and intersects them with the saved root filter."
+  },
+  {
+    "name": "ExportRunEntity",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#exportrunentity",
+    "summary": "EF Core entity for the export log table. Each row represents a completed or failed export run."
+  },
+  {
+    "name": "ExportRunsTable",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#exportrunstable",
+    "summary": null
+  },
+  {
+    "name": "ExportRunStatus",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#exportrunstatus",
+    "summary": null
+  },
+  {
+    "name": "ExportRunSummary",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#exportrunsummary",
+    "summary": null
+  },
+  {
+    "name": "ExportScheduleField",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#exportschedulefield",
+    "summary": "Schedule picker: presets (Manual/Hourly/Daily/Weekly) plus an advanced free-text cron field. modelValue is the raw ExportDefinition.Schedule (a 5-field cron string, or null for manual-only) — this never invents a second source of truth for it."
+  },
+  {
+    "name": "ExportSchema",
+    "kind": "class",
+    "page": "modules/src-Connector.Core-Schema.md#exportschema",
+    "summary": "Single source of truth for the export schema definition (the ICD contract with the vendor)."
+  },
+  {
+    "name": "ExportSink",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "ExportSink:StagingPath",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "ExportSinkException",
+    "kind": "class",
+    "page": "modules/src-Connector.Core-Domain.md#exportsinkexception",
+    "summary": "The staging path is not writable or a file operation failed."
+  },
+  {
+    "name": "ExportSinkOptions",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#exportsinkoptions",
+    "summary": null
+  },
+  {
+    "name": "ExportSummary",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#exportsummary",
+    "summary": null
+  },
+  {
+    "name": "ExportView",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-views.md#exportview",
+    "summary": "/exports (\"Managed Export\"): the CMDB pipeline's run page. Summarises the active mapping, previews its output, runs an export now in the chosen format (remembered per browser), and lists past runs with links to each run's detail page. Running needs the run permission."
+  },
+  {
+    "name": "ExportWorker",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#exportworker",
+    "summary": "Daily background service: runs the export pipeline once per day at the configured time."
+  },
+  {
+    "name": "ExportWorker",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "ExportWorker:RetentionDays",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "ExportWorker:ScheduledTimeUtc",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "ExportWorkerOptions",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#exportworkeroptions",
+    "summary": null
+  },
+  {
+    "name": "export_customer",
+    "kind": "table",
+    "page": "modules/testdb.md#export_customer",
+    "summary": "Dedicated to ExportTreeRegressionTests (nested export records assembled in C# from plain rows). Read-only for every test. Covers, in one small graph: several root rows, a 1:1 lookup (order → customer) including a shared parent (orders 100 and 101 → customer 1) and a NULL foreign key (order 102 → no customer), a 1:n relation (order → lines) including an order with none (101), a second nesting level (line → tags) including a line with none (1001), and NULL values in otherwise-populated columns."
+  },
+  {
+    "name": "export_line_tag",
+    "kind": "table",
+    "page": "modules/testdb.md#export_line_tag",
+    "summary": null
+  },
+  {
+    "name": "export_order",
+    "kind": "table",
+    "page": "modules/testdb.md#export_order",
+    "summary": null
+  },
+  {
+    "name": "export_order_line",
+    "kind": "table",
+    "page": "modules/testdb.md#export_order_line",
+    "summary": null
+  },
+  {
+    "name": "FieldDataType",
+    "kind": "class",
+    "page": "modules/src-Connector.Core-DynamicExport.md#fielddatatype",
+    "summary": "Discriminator values for `DataType`, used to coerce a scalar value at read time (e.g. a SQL ::text/::numeric cast) ahead of format-writer serialization."
+  },
+  {
+    "name": "FieldMapping",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#fieldmapping",
+    "summary": null
+  },
+  {
+    "name": "FieldMapping",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicExport.md#fieldmapping",
+    "summary": "Value-shaping for one `ExportNode` of kind `ScalarField`: an optional transform applied to the raw value, a fallback for null/missing values, and the target data type used for format-writer coercion."
+  },
+  {
+    "name": "FieldPickerTable",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#fieldpickertable",
+    "summary": "Shared by RelationCard and NestedGroupEditor — both need an identical checkbox+rename table over \"columns of a related table\", differing only in which property holds the rename (relations call it targetField, nested groups call it targetKey). `targetProp` picks that property type-safely per caller instead of forcing the two mapping shapes to match."
+  },
+  {
+    "name": "FieldShell",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components-ui.md#fieldshell",
+    "summary": "Layout shared by Input and Select: label (with a required marker), the control in the default slot, then either the error or the help text underneath. The ids let the control reference its label, help and error for accessibility."
+  },
+  {
+    "name": "FieldTransform",
+    "kind": "class",
+    "page": "modules/src-Connector.Core-DynamicExport.md#fieldtransform",
+    "summary": "Discriminator values for `Transform`."
+  },
+  {
+    "name": "FileSystemExportSink",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#filesystemexportsink",
+    "summary": "Writes an export package (data file + manifest JSON) atomically to the configured staging path."
+  },
+  {
+    "name": "FlatPreviewTable",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#flatpreviewtable",
+    "summary": "Read-only grid of flat preview rows (numbered, one column per export column, '—' for a missing value), with a note when the preview was capped."
+  },
+  {
+    "name": "FourEyesReview",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Endpoints.md#foureyesreview",
+    "summary": "The Operator/Approver-distinctness check shared by every release endpoint that commits a change under four-eyes review — export release (`ExportEndpoints`) and the import commit path (`ImportRunEndpoints`)."
+  },
+  {
+    "name": "GdprDeniedFieldsResult",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#gdprdeniedfieldsresult",
+    "summary": null
+  },
+  {
+    "name": "GdprDenylistEditor",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#gdprdenylisteditor",
+    "summary": "Settings editor for the GDPR denylist: source fields that are never exported. Add or remove field names, then save; the new list applies to the next export or preview."
+  },
+  {
+    "name": "GdprDenylistRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#gdprdenylistrequest",
+    "summary": "Body for PATCH /api/gdpr-denied-fields."
+  },
+  {
+    "name": "GET /api/audit",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Returns the most recent N audit entries (default 100) ordered newest-first."
+  },
+  {
+    "name": "GET /api/auth/me",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "The caller's identity, role and effective permissions — what the UI uses to decide which menu items, routes and buttons to show. The server checks every permission again on each request regardless."
+  },
+  {
+    "name": "GET /api/branding",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Unauthenticated: the login screen, browser tab title, and favicon all need this before sign-in."
+  },
+  {
+    "name": "GET /api/connection",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Returns the stored connection — never the password itself, only whether one is set (HasPassword). See knowledge/architecture/data-source-configuration.md."
+  },
+  {
+    "name": "GET /api/connection/status",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Whether a connection is configured, and to which system — without host, account or TLS details, which only Admins (who own the Connect page) see. The dashboard and the route guard use this for every user."
+  },
+  {
+    "name": "GET /api/export-definitions",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Lists all export definitions, ordered by name, as summaries (no node tree)."
+  },
+  {
+    "name": "GET /api/export-definitions/{id:int}",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Returns one definition including its full node tree."
+  },
+  {
+    "name": "GET /api/export-definitions/{id:int}/runs",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Returns the definition's latest 200 runs (test and real), newest first."
+  },
+  {
+    "name": "GET /api/export-mapping",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Returns the stored export mapping config, or 404 if none saved."
+  },
+  {
+    "name": "GET /api/export-mapping/presets",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Returns all saved presets as a name→config dictionary."
+  },
+  {
+    "name": "GET /api/exports",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Returns the run list with an IsStale flag so the UI can warn about long-pending runs."
+  },
+  {
+    "name": "GET /api/exports/{seqNo:int}",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Returns full detail including a gap warning when the preceding run has not been released."
+  },
+  {
+    "name": "GET /api/gdpr-denied-fields",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Returns the currently active GDPR denylist (DB value if set, else defaults)."
+  },
+  {
+    "name": "GET /api/health",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Checks the log DB connection and that the staging directory is writable; 200 \"healthy\" when both pass, otherwise 503 \"degraded\" with per-check flags."
+  },
+  {
+    "name": "GET /api/import-definitions",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Lists all import definitions, ordered by name, as summaries (no node tree)."
+  },
+  {
+    "name": "GET /api/import-definitions/{id:int}",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Returns one definition including its full node tree and writable-column allowlist."
+  },
+  {
+    "name": "GET /api/import-definitions/{id:int}/runs",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Returns the definition's latest 200 import runs, newest first, with their match/change/reject counts."
+  },
+  {
+    "name": "GET /api/import-runs/{id:int}",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "The frontend's review/diff view needs a run's full plan before an Approver can meaningfully decide anything — GET .../{id}/runs on ImportDefinitionEndpoints only returns the summary counts. This is a plain read, so unlike release/reject it's not restricted to PendingReview runs: revisiting a Released/Rejected/Failed run's plan after the fact is useful too, and costs nothing extra here."
+  },
+  {
+    "name": "GET /api/pipeline/preview",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Returns up to 50 records of what the saved export mapping would produce, nested or flat to match a JSON export, with GDPR-denied fields removed. Errors are reported in the body (status \"error\"), not as HTTP failures, so the mapping screen can show them inline."
+  },
+  {
+    "name": "GET /api/schema",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Returns the fixed ICD export column contract (column, source, type, notes) with its schema version."
+  },
+  {
+    "name": "GET /api/settings/instance",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "This connector's identity as stamped into every export manifest (Producer): application, version and instance ID. Authenticated, unlike GET /api/version — the instance ID stays out of the login screen."
+  },
+  {
+    "name": "GET /api/settings/manifest-signing",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "List manifest pairing policy and trusted instance IDs without secrets."
+  },
+  {
+    "name": "GET /api/settings/permissions",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "The grantable permissions, grouped by menu item, and the User role's current set."
+  },
+  {
+    "name": "GET /api/settings/scheduler",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Returns the effective scheduler config: DB value if saved, else appsettings defaults."
+  },
+  {
+    "name": "GET /api/source-schema",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Returns schema from the persisted Postgres connection when one is configured, falling back to the hardcoded demo schema only when no connection has been stored yet. A stored connection that fails to introspect is reported as an error rather than silently substituting the demo schema, so a mapping can't be built against demo-only tables (e.g. \"masterdata\") that don't exist in the real database."
+  },
+  {
+    "name": "GET /api/users",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Every user and their role, in username order. Password hashes never leave the server."
+  },
+  {
+    "name": "GET /api/version",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Unauthenticated — the login screen shows it so a deployment can be verified before sign-in."
+  },
+  {
+    "name": "HashRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#hashrequest",
+    "summary": null
+  },
+  {
+    "name": "HealthEndpoints",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Endpoints.md#healthendpoints",
+    "summary": null
+  },
+  {
+    "name": "HelpTooltip",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components-ui.md#helptooltip",
+    "summary": "A small \"?\" affordance for explaining a non-obvious field, section, or concept in place — click (or Enter/Space) to open a short explanation, Escape or an outside click to dismiss. Content is plain semantic markup in the default slot (p/strong/code/ul); :slotted() below gives it consistent typography so call sites don't have to repeat utility classes every time."
+  },
+  {
+    "name": "IcdActiveColumnsTable",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#icdactivecolumnstable",
+    "summary": null
+  },
+  {
+    "name": "IcdExcludedFieldsList",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#icdexcludedfieldslist",
+    "summary": null
+  },
+  {
+    "name": "IcdSchemaView",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-views.md#icdschemaview",
+    "summary": "/icd-schema: read-only reference for the negotiated ICD export contract: the active columns from GET /api/schema, plus ERP fields that are deliberately excluded and why."
+  },
+  {
+    "name": "Icon",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components-ui.md#icon",
+    "summary": null
+  },
+  {
+    "name": "IDataSourceProvider",
+    "kind": "interface",
+    "page": "modules/src-Connector.Core-DataSources.md#idatasourceprovider",
+    "summary": "Abstraction over one kind of ERP data source backend — see knowledge/architecture/data-source-abstraction.md. Implemented for PostgreSQL, MariaDB and the ServiceNow Table API (Connector.Infrastructure.DataSources.*); obtained via `IDataSourceProviderResolver`, never constructed directly outside DI registration. Where providers differ, `Capabilities` says so."
+  },
+  {
+    "name": "IDataSourceProviderResolver",
+    "kind": "interface",
+    "page": "modules/src-Connector.Core-DataSources.md#idatasourceproviderresolver",
+    "summary": "Resolves a `DataSourceType` to the `IDataSourceProvider` that implements it. The single seam a caller (e.g. Connector.Infrastructure.DynamicExportService, ConnectionEndpoints) goes through instead of constructing a concrete provider itself."
+  },
+  {
+    "name": "IExportFormatWriter",
+    "kind": "interface",
+    "page": "modules/src-Connector.Infrastructure.md#iexportformatwriter",
+    "summary": "Extension point for output formats: every implementation accepts the exact same tree-shaped records `ExecuteExportNodeQueryAsync` produces for any `ExportNode` tree (LSP — none may reject a shape another accepts), so adding a new format is a new class here, never a change to the query engine, ExportDefinitionEndpoints, or the scheduler worker."
+  },
+  {
+    "name": "ImportAllowedColumnsEditor",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#importallowedcolumnseditor",
+    "summary": "This is the primary safety boundary of the whole import feature: a saved mapping can never write outside this explicit allowlist, checked against the live schema at save time. Deliberately its own component, visibly separate from the tree, so it's never something an operator can miss while scrolling past field rows."
+  },
+  {
+    "name": "ImportChildResult",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicImport.md#importchildresult",
+    "summary": "One `Object`/`Array` child's resolution result for one parent row: whether its JoinKey resolved to an existing related row, and — for `Object` children only, where \"the related row\" is unambiguous — the field-level diff for that row. `Array` children only get the existence check: no ImportDefinition writes to a child table, and matching individual array items to individual existing rows needs a per-item identity key the data model doesn't have."
+  },
+  {
+    "name": "ImportConnection",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-DataSources.md#importconnection",
+    "summary": "The import path's handle on the ERP: an open ADO.NET connection plus the SQL dialect to render statements with, both from the configured provider — so `ImportNodeWalker` and `ImportRunReleaser` never name a database driver. Only a provider with the `Imports` capability hands one out."
+  },
+  {
+    "name": "ImportDefinition",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#importdefinition",
+    "summary": null
+  },
+  {
+    "name": "ImportDefinitionBasicFields",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#importdefinitionbasicfields",
+    "summary": null
+  },
+  {
+    "name": "ImportDefinitionDto",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#importdefinitiondto",
+    "summary": "Full view of a saved import definition, returned by GET/POST/PUT .../{id}."
+  },
+  {
+    "name": "ImportDefinitionEditView",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-views.md#importdefinitioneditview",
+    "summary": "/import-definitions/:id (\"new\" to create): editor for one import job. Basic fields, the writable-column allowlist, the node tree, a preview of the plan for a pasted sample, and run history. A new job can start from a matching export's suggestion (including a sample handed over via sessionStorage). \"Run\" stages the sample as a PendingReview run and opens the four-eyes review dialog. Without the edit permission a saved job opens read-only."
+  },
+  {
+    "name": "ImportDefinitionEndpoints",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Endpoints.md#importdefinitionendpoints",
+    "summary": "CRUD, preview, and run history for `ImportDefinitionEntity` — the API surface the frontend and any external caller use to configure an inbound mapping and inspect what it would do. The four-eyes commit/reject endpoints (POST /api/import-runs/{id}/release and .../reject) live in `ImportRunEndpoints`. This file (the route registrations) is the entry point; request validation lives in ImportDefinitionEndpoints.Validation.cs and entity/DTO mapping plus the \"create from export\" suggestion in ImportDefinitionEndpoints.Mapping.cs — split across files, kept as one `partial` class rather than separate classes so the `internal` methods each already exposes to Connector.Integration.Tests keep working unchanged. The two save-time guardrails are the primary safety boundary of the import feature: `ValidateRequestAsync` rejects a TargetColumn outside `AllowedWritableColumns`, one that doesn't exist on its table per the live introspected ERP schema, or one that's a primary key, identity/computed column, or foreign key — and rejects any node whose OnMissingChild is \"insert\" outright, since child-row creation is not supported."
+  },
+  {
+    "name": "ImportDefinitionEntity",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#importdefinitionentity",
+    "summary": "One saved import mapping: the ERP table/column an inbound record's correlation key must resolve against, its `ImportNode` tree, and the explicit allowlist of columns it may ever write. The write-side counterpart to `ExportDefinitionEntity`."
+  },
+  {
+    "name": "ImportDefinitionPreviewPanel",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#importdefinitionpreviewpanel",
+    "summary": "Preview runs POST .../preview — parses + walks + plans a sample inbound file against this saved definition with zero persistence (no ImportRunEntity, nothing written to the ERP). Run instead posts to .../runs, which stages a real ImportRunEntity at PendingReview the same way the inbound/ folder watcher would — the parent view owns that call so it can refresh run history / open the review dialog."
+  },
+  {
+    "name": "ImportDefinitionPreviewRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#importdefinitionpreviewrequest",
+    "summary": "Body for POST .../preview: the raw inbound file content — an operator pastes/uploads the vendor JSON directly to preview against a saved definition without going through the inbound/ folder. Must be a well-formed ImportEnvelope (schemaVersion + records) per ImportNodeWalker.SupportedSchemaVersion."
+  },
+  {
+    "name": "ImportDefinitionRequest",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#importdefinitionrequest",
+    "summary": null
+  },
+  {
+    "name": "ImportDefinitionRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#importdefinitionrequest",
+    "summary": "Body for POST/PUT /api/import-definitions — everything an operator configures for one saved inbound mapping. RootNode must be a \"root\"-kind `ImportNode`, and must have an enabled scalar-field child whose TargetColumn equals RootMatchColumn (see ImportNodeWalker.FindMatchField). AllowedWritableColumns is validated against the live ERP schema at save time — see `ImportDefinitionEndpoints`. IntegrationKey/ContractVersion are optional and only used by the import-mapping suggestion feature — set together or not at all, validated at save time by the same endpoints class."
+  },
+  {
+    "name": "ImportDefinitionRun",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#importdefinitionrun",
+    "summary": "One row of GET /api/import-definitions/{id}/runs — execution history for a definition."
+  },
+  {
+    "name": "ImportDefinitionRunControls",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#importdefinitionruncontrols",
+    "summary": "The import-side analogue of ExportDefinitionRunControls.vue — deliberately narrower: there's no \"Test against live connection\" here (an import definition has no query to sanity-check). Staging a real run (manual file select or the inbound/ folder watcher) and previewing a sample file both live on ImportDefinitionPreviewPanel.vue instead, since both act on the same pasted/selected JSON it already owns."
+  },
+  {
+    "name": "ImportDefinitionRunDto",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#importdefinitionrundto",
+    "summary": "One row returned by GET /api/import-definitions/{id}/runs — the full count breakdown plus the four-eyes fields, mirroring `ImportRunDto` with the run-history fields `ExportDefinitionRunDto` also carries (StartedAt/FinishedAt/TriggeredBy)."
+  },
+  {
+    "name": "ImportDefinitionRunsTable",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#importdefinitionrunstable",
+    "summary": "The import-side analogue of ExportDefinitionRunsTable.vue: same per-definition run-history shape, but carries the full count breakdown (changed/unchanged/inserted/rejected/conflicted/ invalid) instead of a bare record count, and a Review action on PendingReview rows — the entry point into ImportRunReviewDialog.vue's four-eyes commit flow."
+  },
+  {
+    "name": "ImportDefinitionStageRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#importdefinitionstagerequest",
+    "summary": "Body for POST .../runs: same inbound content as .../preview, but this one persists — an operator-selected file, staged as a real ImportRunEntity at PendingReview the same way the inbound/ folder watcher would, without needing a dropped file + manifest. SourceFileName is cosmetic (shown in run history); falls back to a placeholder when omitted."
+  },
+  {
+    "name": "ImportDefinitionSummary",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#importdefinitionsummary",
+    "summary": null
+  },
+  {
+    "name": "ImportDefinitionSummaryDto",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#importdefinitionsummarydto",
+    "summary": "Lightweight list-view row for GET /api/import-definitions — omits RootNode/AllowedWritableColumns, which aren't needed to identify or enable/disable a definition."
+  },
+  {
+    "name": "ImportDefinitionsView",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-views.md#importdefinitionsview",
+    "summary": "/import-definitions: the list of import jobs with each job's last run status, plus per-row enable/disable, duplicate and delete (with confirm) — each only for a user holding its permission."
+  },
+  {
+    "name": "ImportDiffValue",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#importdiffvalue",
+    "summary": "One old/new value cell's contents, shared by both columns of ImportPlanDiffTable.vue — split out purely to keep that table's own template under fallow's complexity gate, not because either side has behavior of its own beyond the null/empty check and which style applies."
+  },
+  {
+    "name": "ImportFieldDiff",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicImport.md#importfielddiff",
+    "summary": "One column-level change a walked row would make: the value currently stored in the ERP versus the (already `FieldMapping`-coerced) value the inbound record supplies. Only emitted when the two differ — an unchanged column contributes no entry, since \"diff\" means \"what would actually change.\" `OldValue` is not just display data: the commit-time concurrency check uses it as the conditional write's expectedOldValue — an UPDATE guarded on the target column still matching this value — so a row whose ERP state moved on since this diff was computed is caught, not silently overwritten."
+  },
+  {
+    "name": "ImportManifest",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-Domain.md#importmanifest",
+    "summary": "Accompanies every inbound vendor file — the reverse-direction counterpart to `ExportManifest`, mirroring `FileSystemExportSink`'s outbound contract. No SequenceNumber: vendor confirmations don't arrive 1:1 per export run, so gap detection doesn't apply — the SHA-256 checksum alone covers file integrity. Which saved ImportDefinition a file targets is carried inside the data file's own ImportEnvelope (its definition field), not here — the manifest's only job is integrity."
+  },
+  {
+    "name": "ImportMappingCandidateField",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicImport.md#importmappingcandidatefield",
+    "summary": "One best-effort candidate field offered alongside the deterministic root prefill — unchecked/disabled by default. The operator must explicitly enable it, and it still goes through the schema-aware AllowedWritableColumns validator before it can be saved as writable; matching a key name back to the same underlying column is a name-based heuristic, not a proven contract."
+  },
+  {
+    "name": "ImportMappingSuggestion",
+    "kind": "class",
+    "page": "modules/src-Connector.Core-DynamicImport.md#importmappingsuggestion",
+    "summary": "An authoring convenience that suggests a starting ImportDefinition from a paired, provenance-tagged ExportDefinition (see knowledge/pipeline/import-mapping-presets.md). Pure: no I/O, no side effects. Never called by Connector.Infrastructure.ImportNodeWalker/ImportWorker at processing time — a matched pair only saves the operator typing at authoring time; it is never a trust or routing mechanism."
+  },
+  {
+    "name": "ImportMappingSuggestion",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#importmappingsuggestion",
+    "summary": null
+  },
+  {
+    "name": "ImportMappingSuggestionCandidateField",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#importmappingsuggestioncandidatefield",
+    "summary": "One best-effort candidate field alongside the deterministic root prefill — unchecked by default; the operator must explicitly enable it before it can ever be saved as writable."
+  },
+  {
+    "name": "ImportMappingSuggestionCandidateFieldDto",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#importmappingsuggestioncandidatefielddto",
+    "summary": "One best-effort candidate field, projected from Connector.Core.DynamicImport.ImportMappingCandidateField verbatim for the wire."
+  },
+  {
+    "name": "ImportMappingSuggestionCheckResult",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#importmappingsuggestioncheckresult",
+    "summary": "Response of POST /api/import-definitions/suggest-from-export. Exactly one of `suggestion`/`reason` is set: a hit carries `suggestion` with `reason` null; a miss carries a null `suggestion` with an operator-facing explanation of which gate stopped it (no provenance in the pasted sample, no export tagged with that key/version, one tagged but disabled, or one tagged and enabled but missing its Correlation key field) — never a flat, unexplained \"no match.\""
+  },
+  {
+    "name": "ImportMappingSuggestionCheckResult",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#importmappingsuggestioncheckresult",
+    "summary": "Response for POST .../suggest-from-export. Exactly one of Suggestion/Reason is set: a hit carries Suggestion with Reason null, and a miss carries a null Suggestion with an operator-facing explanation of which of ImportMappingSuggestion.Evaluate's gates stopped it (no provenance in the pasted sample, no export tagged with that key/version at all, one tagged but disabled, or one tagged and enabled but missing CorrelationKeySourceField) — never a flat, unexplained \"no match,\" and never a 4xx: this is a lookup that can legitimately come up empty, not a client error."
+  },
+  {
+    "name": "ImportMappingSuggestionDto",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#importmappingsuggestiondto",
+    "summary": "RootMatchSourceKey is the matched export's own JSON key for the correlation field (its TargetKey) — not necessarily the same string as RootMatchColumn, which is a column name."
+  },
+  {
+    "name": "ImportMappingSuggestionMiss",
+    "kind": "enum",
+    "page": "modules/src-Connector.Core-DynamicImport.md#importmappingsuggestionmiss",
+    "summary": "Why `Evaluate` found nothing to suggest — every gate the lookup can silently fail on, named so the API layer (which has the entity `Name`s `Evaluate` itself never sees, per Core's no-Infrastructure-dependency rule) can turn a miss into an operator-facing explanation instead of a flat \"no match.\" Ordered by how far the sample got."
+  },
+  {
+    "name": "ImportMappingSuggestionOutcome",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicImport.md#importmappingsuggestionoutcome",
+    "summary": "Full outcome of `Evaluate`: exactly one of `Result`/`Miss` is set."
+  },
+  {
+    "name": "ImportMappingSuggestionPanel",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#importmappingsuggestionpanel",
+    "summary": "\"Create from export\": the New Import Definition flow's other starting point besides \"Start blank.\" A dedicated step rather than reusing ImportDefinitionPreviewPanel.vue's paste-a-sample affordance verbatim — that panel drives POST .../{id}/preview against an *already-saved* definition's live ERP connection, which doesn't exist yet here. This mirrors its paste-JSON UX instead, wired to the suggestion lookup rather than a plan diff."
+  },
+  {
+    "name": "ImportMappingSuggestionRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#importmappingsuggestionrequest",
+    "summary": "Body for POST /api/import-definitions/suggest-from-export — the same sample ImportEnvelope JSON the preview panel already accepts, pasted before any ImportDefinition exists yet."
+  },
+  {
+    "name": "ImportMappingSuggestionResult",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicImport.md#importmappingsuggestionresult",
+    "summary": "Result of `SuggestFrom`: the deterministic root prefill (the export's correlation key, so both sides are the same field by contract) plus the best-effort candidate list."
+  },
+  {
+    "name": "ImportNode",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#importnode",
+    "summary": null
+  },
+  {
+    "name": "ImportNode",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicImport.md#importnode",
+    "summary": "One node in a recursive import tree — the write-side mirror of `ExportNode`: same shape (root/scalar-field/object/array, arbitrarily nested via `Children`, reusing `FieldMapping` verbatim for value coercion), walked in the opposite direction. Deliberately its own type rather than merged into `ExportNode`: `SourceKey` reads from inbound JSON where ExportNode.SourceField reads from SQL, `TargetColumn` writes to SQL where ExportNode.TargetKey writes to JSON, and `OnMissingChild` is a write-only policy with no export-side analogue — forcing both into one type would mean nullable fields that are meaningless half the time."
+  },
+  {
+    "name": "ImportNodeJson",
+    "kind": "class",
+    "page": "modules/src-Connector.Core-DynamicImport.md#importnodejson",
+    "summary": "Deserializes an `ImportNode` tree stored as JSON (on ImportDefinitionEntity.RootNode), backfilling missing properties the same way `ExportNodeJson` does: a tree saved before a property existed must not crash every consumer that dereferences it. Every read of a persisted `ImportNode` tree must go through this instead of a raw `Deserialize`<T>` call."
+  },
+  {
+    "name": "ImportNodeKind",
+    "kind": "class",
+    "page": "modules/src-Connector.Core-DynamicImport.md#importnodekind",
+    "summary": "Discriminator values for `Kind` — same set as `ExportNodeKind`, kept as its own type since `ImportNode` intentionally doesn't merge into `ExportNode` (see that record's doc comment for why)."
+  },
+  {
+    "name": "ImportNodeTreeEditor",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#importnodetreeeditor",
+    "summary": "The write-side mirror of ExportNodeTreeEditor.vue: same recursive-editor idea, built against ImportNode instead of ExportNode. Two differences follow directly from the data model, not from UI taste: there's no Filter input (ImportNode has no such field — every matched row is in scope, filtering happens at the correlation-key match, not here), and OnMissingChild has no picker at all — only \"reject\" is permitted (the save-time validator rejects \"insert\" outright), so offering a choice that always fails server-side would be actively misleading."
+  },
+  {
+    "name": "ImportNodeWalker",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#importnodewalker",
+    "summary": "The write-side mirror of `DynamicExportService`'s tree walker: parses an inbound ImportEnvelope against a saved `ImportNode` tree, and produces a field-level diff per accepted row plus a rejected-row list — with zero write capability. Every method here only ever issues SQL SELECTs; the conditional UPDATE path is `ImportRunReleaser`, which commits the plan built from this same walk result (`ImportPlanBuilder`), so preview and commit can never disagree about what a row means."
+  },
+  {
+    "name": "ImportPlan",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#importplan",
+    "summary": "Response of POST /api/import-definitions/{id}/preview — the computed ImportPlan: counts plus the structured operation list for matched/changed rows, no ImportRunEntity written."
+  },
+  {
+    "name": "ImportPlan",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicImport.md#importplan",
+    "summary": "The persisted write protocol for one ImportRunEntity (Connector.Infrastructure): `Operations` is the structured, versioned list ImportRunReleaser commits from, and the only authoritative source for what a release actually writes — a UI diff or audit-log line is a read projection of this, never a second independently-computed shape. The five counts mirror ImportRunEntity's own (`MatchedCount` = `ChangedCount` + `UnchangedCount`) so the entity can be populated by copying this record's fields verbatim."
+  },
+  {
+    "name": "ImportPlanBuilder",
+    "kind": "class",
+    "page": "modules/src-Connector.Core-DynamicImport.md#importplanbuilder",
+    "summary": "Reshapes an `ImportWalkResult` (a per-row diff tree, built for preview/review) into an `ImportPlan` (a flat, structured write list plus the six ImportRunEntity (Connector.Infrastructure) statistics). Pure and DB-free: everything it needs is already in the walk result. Only root-row fields become operations.`ImportChildResult` diffs (an object-kind child like maintenancePlan) stay visible in the walk result for the review UI, but are never turned into a write here: AllowedWritableColumns covers root-entity columns only. A child-row write path would need a stable single-row key for an object child (`ImportChildResult` confirms a child matched but doesn't carry the matched row's own key value out of the walker) and a per-item key for an array child, which the data model doesn't have."
+  },
+  {
+    "name": "ImportPlanDiffTable",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#importplandifftable",
+    "summary": "Shared by ImportDefinitionPreviewPanel.vue (a sample-file preview) and ImportRunReviewDialog.vue (a staged run's four-eyes review) — both need the same \"one row's changed fields, grouped by CorrelationValue\" rendering of a plan's operations as a field-level diff. PlanJson is the write-side source of truth; this component only ever displays operations handed to it, never recomputes anything."
+  },
+  {
+    "name": "ImportPlanJson",
+    "kind": "class",
+    "page": "modules/src-Connector.Core-DynamicImport.md#importplanjson",
+    "summary": "Serializes/deserializes `ImportPlan` for ImportRunEntity.PlanJson (Connector.Infrastructure) — a thin wrapper (matching `ImportNodeJson`'s role for RootNode) so every read/write of that column goes through one place, even though, unlike `ImportNode`, `ImportPlan` has no recursive shape needing missing-property backfill."
+  },
+  {
+    "name": "ImportPlanOperation",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#importplanoperation",
+    "summary": "One Connector.Core.DynamicImport.ImportPlanOperation — a single column-level write the commit step will make, for a matched/changed row."
+  },
+  {
+    "name": "ImportPlanOperation",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicImport.md#importplanoperation",
+    "summary": "One column-level write the commit step makes: the value observed on the ERP row when the plan was built (`ExpectedOldValue`) and the value to write in its place. This is the same value `OldValue` already carries — the field is renamed here, not re-derived, to make its second job explicit: ImportRunReleaser's (Connector.Infrastructure) conditional UPDATE ... WHERE ... IS NOT DISTINCT FROM @expectedOldValue guard uses this exact value, so a row whose ERP state moved on since staging is excluded from the commit rather than silently overwritten. `CorrelationValue` is carried for audit/troubleshooting only — the commit itself addresses the row via `Table`/`KeyColumn`/`KeyValue`, which are always RootTable/RootMatchColumn/the matched root row's correlation value (see `ImportPlanBuilder` for why child-table writes aren't emitted here)."
+  },
+  {
+    "name": "ImportPlanSummaryBadges",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#importplansummarybadges",
+    "summary": "Split out of ImportDefinitionPreviewPanel.vue purely to keep that panel's own template under fallow's complexity gate. isStale means the sample textarea has been edited since `plan` was computed (Preview is an explicit, manual action — it never reruns just because the text changed), so the count badges below dim and a banner explains why they may no longer match what's on screen."
+  },
+  {
+    "name": "ImportRowResult",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicImport.md#importrowresult",
+    "summary": "One inbound record's full walk result: whether its root row was matched, the field-level diff if so, and the resolution of every object/array child under it. `CorrelationValue` is kept even for a rejected/quarantined row (null only when the record had no readable correlation value at all) so a review UI can show which vendor record failed to match, not just a bare count."
+  },
+  {
+    "name": "ImportRowStatus",
+    "kind": "enum",
+    "page": "modules/src-Connector.Core-DynamicImport.md#importrowstatus",
+    "summary": "Outcome of matching one inbound record's correlation key against RootTable/ RootMatchColumn. `Rejected` and `Quarantined` both mean \"excluded from the accepted set\" (see `UnmatchedRootPolicy`) — kept distinct here so a review UI can show which policy fired, not just that the record didn't match; `ImportPlanBuilder` folds both into ImportRunEntity.RejectedCount, since that entity has no separate quarantine counter. `Invalid` is for a record that isn't even a well-formed row to evaluate a policy against (e.g. not a JSON object) — distinct from `Rejected`, which means the row parsed fine but its correlation key didn't match anything. `Accepted` covers both \"matched/changed\" and \"matched/unchanged\" — a row whose target fields already equal the incoming values is still `Accepted` here, just with an empty `Fields` diff; `ImportPlanBuilder` is what splits that back out into ChangedCount/ UnchangedCount."
+  },
+  {
+    "name": "ImportRun",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#importrun",
+    "summary": "Response of the four-eyes release/reject endpoints — the post-action state of one run."
+  },
+  {
+    "name": "ImportRunCountSummary",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#importruncountsummary",
+    "summary": "The count breakdown for one import run — pulled out of ImportRunReviewDialog.vue purely to keep that file's already-branchy template (loading/error/pending/terminal states) from growing further; this piece itself has almost no branching of its own. `insertCount` is optional and only shown when non-zero: rows created under UnmatchedRootPolicy \"insert\" (connector-to-connector imports)."
+  },
+  {
+    "name": "ImportRunDetail",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#importrundetail",
+    "summary": "Response of GET /api/import-runs/{id} — everything the review/diff view needs before an Approver commits: the full count breakdown plus the persisted plan operations."
+  },
+  {
+    "name": "ImportRunDetailDto",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#importrundetaildto",
+    "summary": "Response for GET /api/import-runs/{id}: everything the review/diff view needs to render a PendingReview run before an Approver commits — the count breakdown plus the persisted PlanJson operations (empty once none exist, e.g. a Failed run that never produced a plan). Not returned by the release/reject endpoints themselves, which stay on the smaller `ImportRunDto` shape — this is a read, not a mutation response."
+  },
+  {
+    "name": "ImportRunDto",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#importrundto",
+    "summary": "Response for the import-run release/reject endpoints (`ImportRunEndpoints`) — the post-action state of one ImportRunEntity (Connector.Infrastructure), including the six run counts and, once released, the conflict count from the commit's optimistic-concurrency check."
+  },
+  {
+    "name": "ImportRunEndpoints",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Endpoints.md#importrunendpoints",
+    "summary": "The four-eyes commit path for a staged ImportRunEntity: read, release and reject. CRUD, preview, and run history for ImportDefinitionEntity live in ImportDefinitionEndpoints.cs; a run reaches `PendingReview` via ImportWorker or the stage endpoint. The actual commit/rollback/audit logic lives in `ImportRunReleaser`, not here, so it's testable without going through HTTP — this file only does request validation and status-code mapping."
+  },
+  {
+    "name": "ImportRunEntity",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#importrunentity",
+    "summary": "One staged, released, rejected, or failed run of an `ImportDefinitionEntity` — mirrors `ExportDefinitionRunEntity`'s per-definition run-history shape, combined with `ExportRunEntity`'s four-eyes fields (an import commits to the system of record, a materially bigger risk than reading, so it requires the same Operator/Approver review as export release)."
+  },
+  {
+    "name": "ImportRunOperationDto",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#importrunoperationdto",
+    "summary": "One `ImportPlanOperation`, projected verbatim for the review UI's field-level diff — see `ImportRunDetailDto`."
+  },
+  {
+    "name": "ImportRunOutcome",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#importrunoutcome",
+    "summary": "The read-only \"what happened\" summary for a Released/Rejected/Failed import run — the ImportRunReviewDialog.vue counterpart to its own pending-review Operator/Approver form, pulled out for the same reason as ImportRunCountSummary.vue: keeping the dialog's own template from growing another branch."
+  },
+  {
+    "name": "ImportRunReleaser",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#importrunreleaser",
+    "summary": "Commits an approved `ImportRunEntity` to the ERP under the same Operator/Approver four-eyes contract the export release flow already enforces — the write-side counterpart to `ExportDefinitionRunner`. `ReleaseAsync` and `RejectAsync` take an already-loaded `ImportRunEntity` (the caller — an API endpoint — owns fetching it and checking its `ImportRunStatus`) and finalize it; neither method opens its own DbContext scope, matching every other run-mutating helper in this codebase (`ExecuteAsync`, the inline export release handler)."
+  },
+  {
+    "name": "ImportRunReviewDialog",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#importrunreviewdialog",
+    "summary": "The import run review/diff view: reuses ReleaseDialog.vue's Operator/Approver form pattern, extended with the full count breakdown and a field-level diff of the matched/changed rows PlanJson actually carries — a run's plan is the write-side source of truth, so this dialog only ever displays it, never recomputes its own."
+  },
+  {
+    "name": "ImportRunStatus",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#importrunstatus",
+    "summary": "Status values for `Status`. Unlike `ExportDefinitionRunStatus` (no approval step), an import run requires four-eyes review before it commits — mirroring the legacy `ExportRunStatus` lifecycle instead."
+  },
+  {
+    "name": "ImportSampleShape",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicImport.md#importsampleshape",
+    "summary": "The inbound sample a suggestion is built from: the provenance pair read off the sample ImportEnvelope (null when the sample carries no provenance block, which yields no suggestion, never an error) and the top-level JSON key names of one sample record, used only for the best-effort candidate-field scan."
+  },
+  {
+    "name": "ImportSink",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "ImportSink:InboundPath",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "ImportSinkOptions",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#importsinkoptions",
+    "summary": null
+  },
+  {
+    "name": "ImportUnmappedFieldsWarning",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#importunmappedfieldswarning",
+    "summary": "Split out of ImportDefinitionPreviewPanel.vue purely to keep that panel's own template under fallow's complexity gate — see findUnmappedRootFields (lib/importPreviewHints.ts) for what this actually warns about. Renders nothing when there's nothing to warn about, so the caller can drop it in unconditionally alongside the (mutually exclusive) \"looks like an exported job file\" alert."
+  },
+  {
+    "name": "ImportValidationException",
+    "kind": "class",
+    "page": "modules/src-Connector.Core-DynamicImport.md#importvalidationexception",
+    "summary": "Thrown for a structural problem with the saved ImportDefinition itself (a TargetColumn outside AllowedWritableColumns, a missing root match field, malformed inbound JSON) — never for an individual record's data, which is reported via `ImportRowResult` instead. Distinguishing the two matters to the caller: a thrown exception means \"this run cannot proceed at all,\" while a rejected/quarantined row is a normal, expected part of a successful walk."
+  },
+  {
+    "name": "ImportWalkResult",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DynamicImport.md#importwalkresult",
+    "summary": "Full result of walking one inbound JSON file against one `ImportNode` tree: a diff-only shape for preview/review. The persisted write list (PlanJson) is built from it by `ImportPlanBuilder`."
+  },
+  {
+    "name": "ImportWorker",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#importworker",
+    "summary": "A sibling of `ExportWorker` that polls an inbound/ staging folder instead of writing to one. Every vendor-supplied file dropped there is manifest-checked, idempotency-checked against (ImportDefinitionId, Sha256Checksum), walked by `ImportNodeWalker` against the ImportEnvelope — the definition field says which saved `ImportDefinitionEntity` to use — and staged as an `ImportRunEntity` at `PendingReview`, with `ImportDefinitionEntity` frozen onto it as `DefinitionSnapshotJson`. This worker never writes to the ERP itself — that's `ImportRunReleaser`'s job, once a human approves the staged plan."
+  },
+  {
+    "name": "ImportWorker",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "ImportWorker:PollInterval",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "ImportWorkerOptions",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#importworkeroptions",
+    "summary": null
+  },
+  {
+    "name": "InitialSchema",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-Migrations.md#initialschema",
+    "summary": null
+  },
+  {
+    "name": "Input",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components-ui.md#input",
+    "summary": "Labelled text input bound with v-model (string or number), built on FieldShell. Wires aria-invalid and aria-describedby to the error or help text; the id is generated when not given."
+  },
+  {
+    "name": "InvalidSourceQueryException",
+    "kind": "class",
+    "page": "modules/src-Connector.Core-DataSources.md#invalidsourcequeryexception",
+    "summary": "Thrown by `Validate` (and so by any provider compiling a `SourceQuery`) when the query names a table or column the schema doesn't know, or is otherwise malformed. Raised before anything reaches the data source."
+  },
+  {
+    "name": "ISqlDataSourceProvider",
+    "kind": "interface",
+    "page": "modules/src-Connector.Infrastructure-DataSources.md#isqldatasourceprovider",
+    "summary": "An `IDataSourceProvider` whose backend speaks SQL, and so can run the SQL a generic builder assembles with its `Dialect`. Lives here rather than in Connector.Core because SQL dialects are an Infrastructure concern — a non-SQL provider (e.g. ServiceNow's Table API) simply doesn't implement it."
+  },
+  {
+    "name": "ISqlDialect",
+    "kind": "interface",
+    "page": "modules/src-Connector.Infrastructure-DataSources.md#isqldialect",
+    "summary": "The SQL syntax that differs between relational backends, as far as this codebase actually uses it — not a general-purpose SQL abstraction (no SQL framework, no AST, no ORM). Generic query builders (`DynamicExportService`, `ImportNodeWalker`, `ImportRunReleaser`) assemble statements from plain ANSI keywords (SELECT/FROM/WHERE/AND/AS) plus these members; everything else is a dialect's job. Implementations: `PostgreSqlDialect` and `MariaDbDialect`. See knowledge/architecture/sql-dialect.md."
+  },
+  {
+    "name": "IssuesAlert",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components-ui.md#issuesalert",
+    "summary": null
+  },
+  {
+    "name": "JobRowActions",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#jobrowactions",
+    "summary": "The per-row actions of the Export Jobs and Import Jobs lists: open (Edit, or View without the edit permission), then Test, Duplicate and Delete (with confirm), each shown only when the parent allows it."
+  },
+  {
+    "name": "JsonEnvelopeEditor",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#jsonenvelopeeditor",
+    "summary": null
+  },
+  {
+    "name": "JsonExportFormatWriter",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#jsonexportformatwriter",
+    "summary": "JSON honors the tree's nesting natively — records serialize as-is, no flattening needed."
+  },
+  {
+    "name": "JsonExportOptionsPanel",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#jsonexportoptionspanel",
+    "summary": null
+  },
+  {
+    "name": "Logging:LogLevel:Default",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "Logging:LogLevel:Microsoft.AspNetCore",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "Logging:LogLevel:Microsoft.EntityFrameworkCore",
+    "kind": "config",
+    "page": "views/deployment.md#configuration",
+    "summary": null
+  },
+  {
+    "name": "LoginRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#loginrequest",
+    "summary": null
+  },
+  {
+    "name": "LoginResponse",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#loginresponse",
+    "summary": null
+  },
+  {
+    "name": "LoginView",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-views.md#loginview",
+    "summary": "/login: username/password sign-in. On success it goes to the dashboard, whose route guard sends first-time users without a connection on to /connect."
+  },
+  {
+    "name": "maintenance_plan",
+    "kind": "table",
+    "page": "modules/testdb.md#maintenance_plan",
+    "summary": null
+  },
+  {
+    "name": "ManifestSignature",
+    "kind": "class",
+    "page": "modules/src-Connector.Core-Domain.md#manifestsignature",
+    "summary": "Versioned, deterministic HMAC-SHA256 binding a data checksum to the complete producer identity. Length-prefixed UTF-8 fields prevent concatenation ambiguities; comparisons are constant-time."
+  },
+  {
+    "name": "ManifestSigningEndpoints",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Endpoints.md#manifestsigningendpoints",
+    "summary": "Manage encrypted per-peer HMAC keys without ever returning them to API clients."
+  },
+  {
+    "name": "ManifestSigningPolicy",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#manifestsigningpolicy",
+    "summary": null
+  },
+  {
+    "name": "ManifestSigningSettings",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#manifestsigningsettings",
+    "summary": "Pairing keys live in the encrypted AppSetting.Value column, never in API responses or logs. The outbound peer selects one key for signing; inbound verification selects by Producer.InstanceId."
+  },
+  {
+    "name": "manufacturer",
+    "kind": "table",
+    "page": "modules/testdb.md#manufacturer",
+    "summary": null
+  },
+  {
+    "name": "manufacturer_address",
+    "kind": "table",
+    "page": "modules/testdb.md#manufacturer_address",
+    "summary": null
+  },
+  {
+    "name": "MappingField",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#mappingfield",
+    "summary": null
+  },
+  {
+    "name": "MappingNestedField",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#mappingnestedfield",
+    "summary": null
+  },
+  {
+    "name": "MappingNestedGroup",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#mappingnestedgroup",
+    "summary": null
+  },
+  {
+    "name": "MappingRelation",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#mappingrelation",
+    "summary": null
+  },
+  {
+    "name": "MappingRelationField",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#mappingrelationfield",
+    "summary": null
+  },
+  {
+    "name": "MariaDbConnectionFactory",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-DataSources-MariaDb.md#mariadbconnectionfactory",
+    "summary": "Builds and opens `MySqlConnection`s for a `MariaDb``DataSourceConfig`. Every field is set as a typed builder property, never interpolated into the connection-string text, so no value (e.g. a password containing ;Server=evil) can add or override a key — the same rule as PostgreSqlDataSourceProvider.BuildConnectionString."
+  },
+  {
+    "name": "MariaDbDataSourceProvider",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-DataSources-MariaDb.md#mariadbdatasourceprovider",
+    "summary": "The `IDataSourceProvider` for `MariaDb`, over MySqlConnector — the same contract as PostgreSqlDataSourceProvider: connection test and schema read (`MariaDbSchemaReader`), neutral queries (`MariaDbQueryCompiler`) and native SQL the export builders render with `MariaDbDialect`. Stateless singleton; every call opens and disposes its own connection (`MariaDbConnectionFactory`)."
+  },
+  {
+    "name": "MariaDbDialect",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-DataSources-MariaDb.md#mariadbdialect",
+    "summary": "`ISqlDialect` for MariaDB — every MariaDB-specific fragment the generic query builders emit: backtick identifier quoting, @pN parameter placeholders (MySqlConnector's named-parameter syntax), LIMIT n, CAST(… AS CHAR), <=>, GROUP_CONCAT, and how a value in `MariaDbDataSourceProvider`'s native text format maps to JSON. Stateless; use `Instance`."
+  },
+  {
+    "name": "MariaDbQueryCompiler",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-DataSources-MariaDb.md#mariadbquerycompiler",
+    "summary": "Compiles the database-neutral `SourceQuery` into MariaDB SQL — the MariaDB counterpart of PostgreSqlQueryCompiler, with the same guarantees: validated against the given `SourceSchema` first (`SourceQueryValidator`), so every emitted identifier is one the schema reported (backtick-quoted by `MariaDbDialect`); synthetic table aliases (t0, t1, …); every filter value a bound parameter; `Limit` an `Int32` rendered by the dialect."
+  },
+  {
+    "name": "MariaDbSchemaReader",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-DataSources-MariaDb.md#mariadbschemareader",
+    "summary": "Reads the tables of the connection's current database (DATABASE()) from information_schema (TABLES, COLUMNS, KEY_COLUMN_USAGE, REFERENTIAL_CONSTRAINTS) into the same `SourceTable` shape the PostgreSQL provider returns."
+  },
+  {
+    "name": "masterdata",
+    "kind": "table",
+    "page": "modules/testdb.md#masterdata",
+    "summary": null
+  },
+  {
+    "name": "MeteredDataSourceProvider",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-DataSources.md#metereddatasourceprovider",
+    "summary": "Wraps a provider for the duration of one export build and counts every query sent through it and every row it returned — the data behind `ExportQueryMetrics`. Behaves exactly like the wrapped provider otherwise, including its `Capabilities` and SQL `Dialect`. Not thread-safe: one instance per build, and the export builders run their queries one after another."
+  },
+  {
+    "name": "Modal",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components-ui.md#modal",
+    "summary": "Accessible dialog shown while v-model:open is true: traps Tab focus inside, closes on Escape (and optionally on a backdrop click), and returns focus to the previously focused element when it closes. Default slot is the body; the `footer` slot holds the actions."
+  },
+  {
+    "name": "NativeSqlQuery",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DataSources.md#nativesqlquery",
+    "summary": "Provider-native SQL text (plus optional named parameters) for `ExecuteNativeAsync`. The database-neutral counterpart is `SourceQuery`."
+  },
+  {
+    "name": "NestedGroupEditor",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#nestedgroupeditor",
+    "summary": "Self-referencing recursive component. Vue 3 SFCs can implicitly reference themselves by filename, but defineOptions makes the self-registration explicit and independent of the file staying named exactly \"NestedGroupEditor.vue\". Template complexity is intentionally left unsplit here: this component supports arbitrary nesting depth, so its \"children\" block recurses into itself — pulling that block into a separate file would just import this file right back, a circular dependency fallow itself flags as worse than the complexity it'd save. The field-row and field-picker sections are already extracted (see FieldPickerTable.vue); this is what's left after that."
+  },
+  {
+    "name": "NestedGroupsSection",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#nestedgroupssection",
+    "summary": "Pure structural preview of the JSON shape being built — target keys, object vs. array, and nesting only, no live data. Lets someone see the tree they're building without running a real export first."
+  },
+  {
+    "name": "NestedPreviewList",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#nestedpreviewlist",
+    "summary": null
+  },
+  {
+    "name": "NotFoundView",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-views.md#notfoundview",
+    "summary": null
+  },
+  {
+    "name": "OnMissingChildPolicy",
+    "kind": "class",
+    "page": "modules/src-Connector.Core-DynamicImport.md#onmissingchildpolicy",
+    "summary": "Discriminator values for `OnMissingChild`: what happens to an object/array child node whose `JoinKey` doesn't resolve to an existing row. Only meaningful for `Object`/`Array` nodes — root rows are match-only unless the definition opts into `Insert`."
+  },
+  {
+    "name": "PageHeader",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components-ui.md#pageheader",
+    "summary": "Consolidates the \"eyebrow + <h1> + trailing actions\" block repeated (with minor drift) at the top of every list/detail view, so it converges on the --text-page-title token instead of each view picking its own text-xl/arbitrary-value heading size."
+  },
+  {
+    "name": "PATCH /api/export-definitions/{id:int}/enable",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Enables or disables a definition. Enabling is refused when another enabled definition already claims the same IntegrationKey/ContractVersion pair. Audited."
+  },
+  {
+    "name": "PATCH /api/gdpr-denied-fields",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Replaces the GDPR denylist. Validates and stores as JSON in AppSetting."
+  },
+  {
+    "name": "PATCH /api/import-definitions/{id:int}/enable",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Enables or disables a definition. Enabling is refused when another enabled definition already claims the same IntegrationKey/ContractVersion pair. Audited."
+  },
+  {
+    "name": "Permission",
+    "kind": "type",
+    "page": "modules/src-connector-ui-src-lib.md#permission",
+    "summary": null
+  },
+  {
+    "name": "PermissionAuthorizationHandler",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Authorization.md#permissionauthorizationhandler",
+    "summary": "Checks a `PermissionRequirement` against the role claim that Program.cs's OnTokenValidated loads from the user table on every request."
+  },
+  {
+    "name": "PermissionEndpointExtensions",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Authorization.md#permissionendpointextensions",
+    "summary": null
+  },
+  {
+    "name": "PermissionEndpoints",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Endpoints.md#permissionendpoints",
+    "summary": "Admin-only Settings → Permissions: what the User role may see and do."
+  },
+  {
+    "name": "PermissionGroup",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#permissiongroup",
+    "summary": "The permissions of one menu item. A group's `.view` permission decides whether the item is shown, and every other permission in the group implies it."
+  },
+  {
+    "name": "PermissionGroup",
+    "kind": "record",
+    "page": "modules/src-Connector.Api-Authorization.md#permissiongroup",
+    "summary": "The permissions belonging to one menu item. When the group has a .view permission, it decides whether the menu item is shown at all, and every other permission in the group implies it."
+  },
+  {
+    "name": "PermissionInfo",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#permissioninfo",
+    "summary": null
+  },
+  {
+    "name": "PermissionInfo",
+    "kind": "record",
+    "page": "modules/src-Connector.Api-Authorization.md#permissioninfo",
+    "summary": "One grantable permission: its key (sent to and from the UI), a short label and what it allows."
+  },
+  {
+    "name": "PermissionPolicyProvider",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Authorization.md#permissionpolicyprovider",
+    "summary": "Builds a policy for every perm:a|b name on demand (see `PermissionEndpointExtensions`), so the endpoints don't need one registered policy per permission or combination of permissions."
+  },
+  {
+    "name": "PermissionRequirement",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Authorization.md#permissionrequirement",
+    "summary": "Met when the user holds at least one of `AnyOf` (Admins hold all of them)."
+  },
+  {
+    "name": "Permissions",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Authorization.md#permissions",
+    "summary": "Everything a non-Admin role can be allowed to see and do, grouped by menu item. Admins always hold every permission, plus the admin-only areas that aren't grantable at all (Connect, Users, Permissions). The keys are stored in the database (`RolePermissionStore`), so renaming one silently revokes it."
+  },
+  {
+    "name": "PermissionsSettings",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#permissionssettings",
+    "summary": "Admin-only Settings → Permissions: one card per menu item with a checkbox per permission, deciding what the User role may see and do. Ticking any permission ticks the item's \"View\" too, and unticking \"View\" clears the rest, mirroring how the server normalizes the set. Applies on the users' next click after saving."
+  },
+  {
+    "name": "PipelineEndpoints",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Endpoints.md#pipelineendpoints",
+    "summary": null
+  },
+  {
+    "name": "POST /api/auth/change-password",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Self-service password change. Requires the current password, and signs the user out everywhere afterwards (this session included), so a session opened with the old password doesn't outlive it."
+  },
+  {
+    "name": "POST /api/auth/hash",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Dev-only: returns a BCrypt hash for a plaintext password (to seed appsettings for production users)."
+  },
+  {
+    "name": "POST /api/auth/login",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Exchanges username/password for a signed JWT (HS256, Auth:JwtExpiryHours, default 8h) and audits the login. Unknown usernames still pay a BCrypt verify so timing doesn't reveal which accounts exist."
+  },
+  {
+    "name": "POST /api/auth/revoke-my-sessions",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Self-service \"log me out everywhere\" — invalidates every JWT issued to the caller (including, after this response, the very token used to call it) before its own expiry. Deliberately scoped to the caller's own sessions only; see SessionRevocationStore's doc comment for why an admin-triggered \"revoke someone else's session\" action isn't included here."
+  },
+  {
+    "name": "POST /api/connection",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Tests the connection, persists it on success, and returns the live source schema."
+  },
+  {
+    "name": "POST /api/export-definitions",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Creates a definition after validating its node tree (identifiers, filters, GDPR denylist) and the IntegrationKey/ContractVersion pair; starts at ConfigVersion 1. Audited."
+  },
+  {
+    "name": "POST /api/export-definitions/{id:int}/duplicate",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Copies a definition under a new name (default \"<name> (Copy)\"). The copy starts disabled, unscheduled, at ConfigVersion 1 and without the IntegrationKey/ContractVersion pair. Audited."
+  },
+  {
+    "name": "POST /api/export-definitions/{id:int}/preview",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Runs the definition's tree against the configured source and returns up to 50 records, GDPR-denied fields removed. Records no run history; returns an empty preview when no connection is configured."
+  },
+  {
+    "name": "POST /api/export-definitions/{id:int}/run",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Runs the definition in full and returns the built file directly, with X-Export-Run-Id, X-Record-Count and X-Config-Version headers. Records a run-history row and an audit entry, success or failure."
+  },
+  {
+    "name": "POST /api/export-definitions/{id:int}/run-selected",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Explicit ID selection is parameterized and intersects with the saved root WHERE clause."
+  },
+  {
+    "name": "POST /api/export-definitions/{id:int}/test",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Test run capped at 50 records (TestRunLimit): records a run-history row flagged IsTestRun and returns the run result, not the file. Audited."
+  },
+  {
+    "name": "POST /api/exports/{seqNo:int}/deliver",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Records that a Released run reached the vendor: who delivered it, the imported record count and optional notes (max 2,000 chars). Can only be recorded once per run."
+  },
+  {
+    "name": "POST /api/exports/{seqNo:int}/release",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Four-eyes release: a second user's credentials must approve moving a Pending run to Released. 409 if the run is not Pending or was changed concurrently; rate-limited and audited."
+  },
+  {
+    "name": "POST /api/exports/{seqNo:int}/skip",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Marks a Pending or Failed run as Skipped so it no longer blocks the sequence; the optional reason is written to the audit log."
+  },
+  {
+    "name": "POST /api/import-definitions",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Creates a definition after the save-time guardrails in ValidateRequestAsync (writable-column allowlist checked against the live ERP schema, no key/identity/computed/FK targets, no child inserts) and the IntegrationKey/ContractVersion pair check; starts at ConfigVersion 1. Audited."
+  },
+  {
+    "name": "POST /api/import-definitions/suggest-from-export",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "The \"Create from export\" suggestion the New Import Definition flow offers. Takes the same sample ImportEnvelope JSON the preview panel already accepts and looks for an ExportDefinition whose provenance pair matches it. No persistence, no ERP connection — this only ever reads ExportDefinitions. Always 200 OK — a miss is a normal lookup outcome, never a 4xx — but unlike the pure ImportMappingSuggestion.SuggestFrom, a miss here always carries a `Reason` explaining which gate stopped it (malformed/no-provenance sample, no export tagged with that key/version, one tagged but disabled, or one tagged and enabled but missing CorrelationKeySourceField) instead of a flat null, so the operator isn't left guessing why a provenance-carrying paste \"wasn't recognized.\""
+  },
+  {
+    "name": "POST /api/import-definitions/{id:int}/duplicate",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Copies a definition under a new name (default \"<name> (Copy)\"). The copy starts disabled at ConfigVersion 1 and without the IntegrationKey/ContractVersion pair. Audited."
+  },
+  {
+    "name": "POST /api/import-definitions/{id:int}/preview",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Parses + walks + plans an inbound file against a saved definition with zero persistence: no ImportRunEntity row is created and nothing is written to the ERP (mirrors ExportDefinitionEndpoints' own untracked preview). The operator supplies the file content directly."
+  },
+  {
+    "name": "POST /api/import-definitions/{id:int}/records",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Stages one or more JSON records using the same canonical import, diff and approval path as /runs."
+  },
+  {
+    "name": "POST /api/import-definitions/{id:int}/runs",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "The UI's manual \"Run\" action (import-definitions/{id} page): stages an operator-selected file as a real ImportRunEntity at PendingReview, the same way ImportWorker's inbound/ folder watcher would — same walk/plan logic as .../preview above, but persisted so it goes through the normal four-eyes release/reject flow instead of being thrown away. No manifest/checksum file needed: the checksum is computed from the posted content itself, and (definitionId, checksum) still dedupes against a re-submit of the same file."
+  },
+  {
+    "name": "POST /api/import-runs/{id:int}/reject",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Discards a PendingReview run without writing anything to the target (no second approver needed)."
+  },
+  {
+    "name": "POST /api/import-runs/{id:int}/release",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Four-eyes commit of a PendingReview run: a second user's credentials must approve, then ImportRunReleaser writes the staged plan to the target. 500 with the error if the commit fails."
+  },
+  {
+    "name": "POST /api/pipeline/run",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "\"Run Now\": builds the saved Step-3 export mapping (?format=json|csv|xlsx, default json), writes the package to the staging folder and records it as the next Pending ExportRun awaiting four-eyes release. Fails the run (400) when no mapping/connection is configured or the query returns 0 records."
+  },
+  {
+    "name": "POST /api/pipeline/run/{name}",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Runs a named Step-3 preset (Save As…) and returns the built file directly in the response — the synchronous, external-system-friendly counterpart to /api/pipeline/run above. Unlike that endpoint this does NOT create an ExportRun, does not write to the staging folder, and is not subject to Four-Eyes Release: those model the legacy CI-to-vendor delivery contract specifically (see knowledge/operations/four-eyes-release.md), which a generic API-triggered pull is out of scope for — same reasoning ExportDefinitionEndpoints' /run already applies. Every call still writes one audit log entry (success or failure), so triggering is never silent. This is a deliberate exception to four-eyes, so it must only be reachable by a dedicated machine caller, never by a logged-in human's interactive session: ApiKey-only (X-Api-Key header, see ApiKeyAuthenticationHandler) — a JWT from a normal user login does not authenticate here. The frontend never calls this route (it uses the four-eyes-gated /api/pipeline/run instead)."
+  },
+  {
+    "name": "POST /api/settings/instance/regenerate",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Gives this installation a new instance ID, for one set up from a copy of another's database (#233). The paired instance then sees a new producer ID; the old ID is kept so this installation's earlier exports are still rejected as its own."
+  },
+  {
+    "name": "POST /api/users",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Creates a user. 409 when the username (compared case-insensitively) is taken."
+  },
+  {
+    "name": "PostgreSqlDataSourceProvider",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-DataSources-PostgreSql.md#postgresqldatasourceprovider",
+    "summary": "The `IDataSourceProvider` for `PostgreSql`. Owns every piece of PostgreSQL-specific connection/schema/query logic: building an Npgsql connection string, introspecting information_schema, and executing a caller-built SQL query generically. Registered as a singleton (see Program.cs) — it holds no per-call state; every method opens and disposes its own `NpgsqlConnection`."
+  },
+  {
+    "name": "PostgreSqlDialect",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-DataSources-PostgreSql.md#postgresqldialect",
+    "summary": "`ISqlDialect` for PostgreSQL — the single home of every PostgreSQL-specific fragment the generic query builders emit: double-quote identifier quoting, @pN parameter placeholders (Npgsql's named-parameter syntax), LIMIT n, ::text casts, = ANY(@array), IS NOT DISTINCT FROM, string_agg, and how a PostgreSQL text value maps to JSON (`PostgreSqlJsonValues`). Stateless; use `Instance`."
+  },
+  {
+    "name": "PostgreSqlJsonValues",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-DataSources-PostgreSql.md#postgresqljsonvalues",
+    "summary": "Turns a PostgreSQL value in its text output format into the JSON value PostgreSQL's own to_json would produce for it — so the export tree engine can assemble JSON in C# that is identical to what the database would build with json_build_object. Follows to_json's type categories: smallint/integer/bigint/real/double precision/numeric → a JSON number with the exact same digits (NaN/Infinity stay strings, as in Postgres);boolean → true/false; json/jsonb → embedded as JSON;date → unchanged; timestamp/timestamptz → ISO 8601 with a T separator and a ±HH:MM offset;arrays → JSON arrays, element by element (nested arrays nest);everything else (text, uuid, time, interval, enums, …) → a JSON string of the text as-is. Assumes the server's default DateStyle (ISO), which is what makes date/timestamp text ISO-shaped. Composite (row) types and types with a custom cast to json aren't special-cased — they come out as strings; no exported column in this codebase uses either."
+  },
+  {
+    "name": "PostgreSqlQueryCompiler",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-DataSources-PostgreSql.md#postgresqlquerycompiler",
+    "summary": "Compiles the database-neutral `SourceQuery` into PostgreSQL — the only place that model meets a SQL dialect. Validates against the given `SourceSchema` first (`SourceQueryValidator`), so every identifier emitted is one the schema reported, double-quoted by `PostgreSqlDialect`, and table aliases are synthetic (t0, t1, …). No caller-supplied text other than those identifiers and output aliases ever becomes SQL: every filter value is a bound parameter, and `Limit` is an `Int32` rendered by the dialect."
+  },
+  {
+    "name": "PresetsToolbar",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#presetstoolbar",
+    "summary": "Named export-mapping presets for the legacy mapping screen: load the saved presets, apply one (emits `apply` with its config), save the current mapping under a name (\"Save As…\", overwriting a same-named preset), or delete the selected preset."
+  },
+  {
+    "name": "PreviewResult",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#previewresult",
+    "summary": null
+  },
+  {
+    "name": "PreviewResult",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#previewresult",
+    "summary": "Source is \"dynamic\" for a flat mapping (Columns/Records populated), \"dynamic-nested\" for a mapping with nested JSON groups (NestedRecords populated instead — arbitrary object/array shape, not a flat table), or \"error\" when nothing could be previewed."
+  },
+  {
+    "name": "PreviewTable",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#previewtable",
+    "summary": "Preview panel for the legacy export mapping: shows loading, errors, an empty state, or the first 20 records, as nested JSON or a flat table depending on the mapping. Emits `refresh` to re-run the preview."
+  },
+  {
+    "name": "Program",
+    "kind": "class",
+    "page": "modules/src-Connector.Api.md#program",
+    "summary": null
+  },
+  {
+    "name": "PUT /api/branding",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Validates and stores the app name and logo/favicon/background images as size-capped base64 data URLs. An empty value clears that asset back to the default. Audited as branding_updated."
+  },
+  {
+    "name": "PUT /api/export-definitions/{id:int}",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Replaces a definition after the same validation as create and bumps its ConfigVersion. Audited."
+  },
+  {
+    "name": "PUT /api/export-mapping",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Validates and persists a full export mapping config."
+  },
+  {
+    "name": "PUT /api/export-mapping/presets/{name}",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Creates or updates a single named preset."
+  },
+  {
+    "name": "PUT /api/import-definitions/{id:int}",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Replaces a definition after the same validation as create and bumps its ConfigVersion. Audited."
+  },
+  {
+    "name": "PUT /api/settings/manifest-signing/peers/{instanceId}",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Register or rotate a shared secret for a trusted connector instance."
+  },
+  {
+    "name": "PUT /api/settings/manifest-signing/policy",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Require authenticated connector manifests for paired imports."
+  },
+  {
+    "name": "PUT /api/settings/permissions",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Replaces the User role's permissions. Unknown keys are dropped and each permission adds its menu item's \"view\" permission (Permissions.Normalize); the stored result is returned. Applies to the next request."
+  },
+  {
+    "name": "PUT /api/settings/scheduler",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Validates and persists the scheduler config. Takes effect on the worker's next sleep cycle."
+  },
+  {
+    "name": "PUT /api/users/{username}",
+    "kind": "endpoint",
+    "page": "api.md",
+    "summary": "Changes a user's role and/or resets their password. A password reset signs that user out everywhere."
+  },
+  {
+    "name": "QueryColumn",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DataSources.md#querycolumn",
+    "summary": "One projected column of a `SourceQuery`."
+  },
+  {
+    "name": "QueryCondition",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DataSources.md#querycondition",
+    "summary": "One filter predicate of a `SourceQuery`. The operand is always a value, never an expression: `Value` for the binary operators, `Values` for `In`, and neither for `IsNull`/`IsNotNull`."
+  },
+  {
+    "name": "QueryJoin",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DataSources.md#queryjoin",
+    "summary": "An equi-join Table.Column = ParentTable.ParentColumn. Deliberately no free-form ON expression — the only thing a caller chooses is which known columns to match."
+  },
+  {
+    "name": "QueryJoinType",
+    "kind": "enum",
+    "page": "modules/src-Connector.Core-DataSources.md#queryjointype",
+    "summary": "How a `QueryJoin` treats a parent row with no matching row in the joined table."
+  },
+  {
+    "name": "QueryOperator",
+    "kind": "enum",
+    "page": "modules/src-Connector.Core-DataSources.md#queryoperator",
+    "summary": "The comparison a `QueryCondition` applies."
+  },
+  {
+    "name": "QueryResult",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DataSources.md#queryresult",
+    "summary": "Generic, provider-agnostic row set returned by `ExecuteAsync`/ `ExecuteNativeAsync`. Every value is already stringified by the provider (e.g. a Postgres date/timestamp column is coerced to ISO-8601) so callers never need provider-specific type information; a null value means the source column was NULL. Each row's `Values` lines up index-for-index with `Columns`."
+  },
+  {
+    "name": "QueryResultColumn",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DataSources.md#queryresultcolumn",
+    "summary": "One column of a `QueryResult`."
+  },
+  {
+    "name": "QueryResultRow",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DataSources.md#queryresultrow",
+    "summary": "One row of a `QueryResult`."
+  },
+  {
+    "name": "RelatedJoinsPanel",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#relatedjoinspanel",
+    "summary": null
+  },
+  {
+    "name": "RelationalConnectionRules",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-DataSources.md#relationalconnectionrules",
+    "summary": "The connection rules every relational (Host/Port/Database) provider shares, so PostgreSQL and MariaDB validate and judge a `DataSourceConfig` identically: the required fields, and one SslMode vocabulary (the Npgsql names — each provider maps them onto its own driver's modes)."
+  },
+  {
+    "name": "RelationCard",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#relationcard",
+    "summary": "Collapsible editor for one flattened relation in the legacy mapping: related table, join columns, which related fields to include, and how multiple matches are flattened (strategy and delimiter). Can be removed or converted into a nested group."
+  },
+  {
+    "name": "RelationsSection",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#relationssection",
+    "summary": null
+  },
+  {
+    "name": "ReleaseDialog",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#releasedialog",
+    "summary": "Four-eyes release for a pending export run: a button that opens a dialog where a second user enters their credentials to approve. The approver can't be the signed-in operator. Emits `released` on success."
+  },
+  {
+    "name": "ReleaseRequest",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#releaserequest",
+    "summary": null
+  },
+  {
+    "name": "ReleaseRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#releaserequest",
+    "summary": "Operator is taken from the JWT; the approver's own name and password are supplied in the body. ApproverPassword proves the named approver actually participated in the release — see `ValidateApprover` — rather than letting the operator unilaterally release by typing a colleague's username with nothing to back it."
+  },
+  {
+    "name": "ResetPasswordDialog",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#resetpassworddialog",
+    "summary": "An Admin sets a new password for `username` (open while it is non-null). The server signs that user out everywhere."
+  },
+  {
+    "name": "RolePermissions",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#rolepermissions",
+    "summary": null
+  },
+  {
+    "name": "RolePermissionsDto",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#rolepermissionsdto",
+    "summary": "GET /api/settings/permissions: the grantable permissions, grouped by menu item, and what the User role currently holds."
+  },
+  {
+    "name": "RolePermissionsRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#rolepermissionsrequest",
+    "summary": null
+  },
+  {
+    "name": "RolePermissionStore",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Authorization.md#rolepermissionstore",
+    "summary": "What each non-Admin role may do, stored as one `RolePermissions` row ({ \"User\": [\"exportJobs.view\", ...] }) and cached in memory, since it is checked on nearly every request. The cache is dropped on every save, so an Admin's change applies to the next request rather than after the affected users' tokens expire. Singleton: reads go through a fresh scope's `ExportLogDbContext`."
+  },
+  {
+    "name": "RouteAccess",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-lib.md#routeaccess",
+    "summary": "What a route needs: Admin, or at least one of `anyOf`. A route without this is open to every signed-in user."
+  },
+  {
+    "name": "RunDetailTable",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#rundetailtable",
+    "summary": "Read-only table of an export run's details: sequence, extraction time, record count, SHA-256 (copyable), file name, and release and delivery information."
+  },
+  {
+    "name": "RunHistoryFrame",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#runhistoryframe",
+    "summary": "Shared shell of the per-definition run-history tables (ExportDefinitionRunsTable.vue, ImportDefinitionRunsTable.vue): heading with Refresh, loading/error states, the empty message, and the table with its header row. Callers supply only the body rows, through the default slot."
+  },
+  {
+    "name": "RunNowResult",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#runnowresult",
+    "summary": null
+  },
+  {
+    "name": "RunNowResult",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#runnowresult",
+    "summary": null
+  },
+  {
+    "name": "SanitizingLogFormatter",
+    "kind": "class",
+    "page": "modules/src-Connector.Api.md#sanitizinglogformatter",
+    "summary": "The last stop before a log line is written. Wraps the real formatter and hands it a copy of each event with credentials scrubbed — from the exception (`ForLogging`; Npgsql can echo a connection string, password included, in an exception message) and from every string property — and any destructured property named Password dropped. One choke point for every logger in the process, so no call site has to remember it."
+  },
+  {
+    "name": "SaveStatusAlert",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components-ui.md#savestatusalert",
+    "summary": null
+  },
+  {
+    "name": "SchedulerConfig",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#schedulerconfig",
+    "summary": null
+  },
+  {
+    "name": "SchedulerConfigData",
+    "kind": "record",
+    "page": "modules/src-Connector.Infrastructure.md#schedulerconfigdata",
+    "summary": "Scheduler configuration stored in AppSettings DB, overriding the appsettings.json defaults."
+  },
+  {
+    "name": "SchedulerSettingsForm",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#schedulersettingsform",
+    "summary": "Settings form for the nightly managed export: run time (UTC), how many days staged export files are kept, and the output format. Takes effect on the next export cycle."
+  },
+  {
+    "name": "SchemaColumnDef",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#schemacolumndef",
+    "summary": null
+  },
+  {
+    "name": "SchemaColumnDto",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#schemacolumndto",
+    "summary": null
+  },
+  {
+    "name": "SchemaDefinition",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#schemadefinition",
+    "summary": null
+  },
+  {
+    "name": "SchemaDto",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#schemadto",
+    "summary": null
+  },
+  {
+    "name": "SchemaEndpoints",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Endpoints.md#schemaendpoints",
+    "summary": "Read-only reference for the originally negotiated ICD export contract. Decoupled from the live dynamic export mapping (see ExportMappingEndpoints) — this is documentation, not config."
+  },
+  {
+    "name": "SchemaView",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-views.md#schemaview",
+    "summary": "Step 3, /export-schema: the legacy single export mapping editor. Pick a source table, then map columns, flattened relations, nested JSON groups and the JSON wrapper; preview the result, load or save presets, and save the mapping that /api/pipeline/run uses. Warns before leaving with unsaved changes. Without the edit permission the mapping and its preview are shown read-only, with no presets or save."
+  },
+  {
+    "name": "SectionHeader",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components-ui.md#sectionheader",
+    "summary": "The sub-heading counterpart to PageHeader — for the <h2>-level section titles (\"Presets\", \"Allowed Writable Columns\", ...) that sit above a card or toolbar within a view, converged on the --text-section-heading token."
+  },
+  {
+    "name": "SeedUser",
+    "kind": "record",
+    "page": "modules/src-Connector.Infrastructure.md#seeduser",
+    "summary": "A user to create while the user table is still empty — from Auth:Users or the Development seed."
+  },
+  {
+    "name": "Select",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components-ui.md#select",
+    "summary": "Labelled native select bound with v-model, built on FieldShell; the options go in the default slot. Wires aria-invalid and aria-describedby like Input."
+  },
+  {
+    "name": "SelectedRecordsExportRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api-Endpoints.md#selectedrecordsexportrequest",
+    "summary": null
+  },
+  {
+    "name": "SelectedRecordsImportRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api-Endpoints.md#selectedrecordsimportrequest",
+    "summary": null
+  },
+  {
+    "name": "ServiceNowClient",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-DataSources-ServiceNow.md#servicenowclient",
+    "summary": "The only code that talks HTTP to ServiceNow: authenticated, paginated GET /api/now/table/{table} reads over HTTPS. Everything above it (`ServiceNowSchemaReader`, `ServiceNowTableApiProvider`) sees records as string dictionaries. Retries only transient failures (429/502/503) a bounded number of times; maps every other failure to a `DataSourceQueryException` whose message never contains the credentials (they only ever travel in the Authorization header)."
+  },
+  {
+    "name": "ServiceNowClientOptions",
+    "kind": "record",
+    "page": "modules/src-Connector.Infrastructure-DataSources-ServiceNow.md#servicenowclientoptions",
+    "summary": "Tuning knobs for `ServiceNowClient`; the defaults are what production uses, tests shrink the delays."
+  },
+  {
+    "name": "ServiceNowJoinStep",
+    "kind": "record",
+    "page": "modules/src-Connector.Infrastructure-DataSources-ServiceNow.md#servicenowjoinstep",
+    "summary": "A `QueryJoin` resolved in C#: `Request` reads the joined table (filtered by its own conditions, if any), and its rows are matched on Join.Column = ParentTable.ParentColumn."
+  },
+  {
+    "name": "ServiceNowOutputColumn",
+    "kind": "record",
+    "page": "modules/src-Connector.Infrastructure-DataSources-ServiceNow.md#servicenowoutputcolumn",
+    "summary": "An output column of the result: which table's field, under which name."
+  },
+  {
+    "name": "ServiceNowQueryCompiler",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-DataSources-ServiceNow.md#servicenowquerycompiler",
+    "summary": "Compiles the database-neutral `SourceQuery` into Table API reads. ServiceNow's encoded-query syntax exists only here — never in Connector.Core or stored configuration. Validates against the schema first (`SourceQueryValidator`), so every field name is one ServiceNow reported; every value is checked for the encoded-query separators (^, and , inside IN) and rejected rather than escaped, so a value can never add a condition of its own. Conditions are sent server-side as the filter of the table they belong to; the Table API can't join, so joins become a second read keyed by the parent rows' values (see `ServiceNowTableApiProvider`)."
+  },
+  {
+    "name": "ServiceNowQueryPlan",
+    "kind": "record",
+    "page": "modules/src-Connector.Infrastructure-DataSources-ServiceNow.md#servicenowqueryplan",
+    "summary": "A compiled `SourceQuery`: a root read, joins resolved in C#, the output columns, and the limit (applied to the root read directly when no inner join can drop root rows)."
+  },
+  {
+    "name": "ServiceNowSchemaReader",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-DataSources-ServiceNow.md#servicenowschemareader",
+    "summary": "Reads ServiceNow's table/field metadata through the ordinary Table API — sys_db_object (tables and their super_class inheritance) and sys_dictionary (fields) — into the same `SourceSchema` shape the SQL providers return. Needs read access to those two tables (e.g. the personalize_dictionary role), not admin; like every Table API read, the result only contains what the account's ACLs allow."
+  },
+  {
+    "name": "ServiceNowTableApiProvider",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-DataSources-ServiceNow.md#servicenowtableapiprovider",
+    "summary": "The `IDataSourceProvider` for `ServiceNowTableApi`: ServiceNow read over its REST Table API, behind the same interface as the SQL providers — callers see `SourceSchema`, `SourceQuery` and `QueryResult`, never HTTP. Not an `ISqlDataSourceProvider`: there is no SQL to run, so `ExecuteNativeAsync` and the SQL-rendering export builders refuse it with `UnsupportedDataSourceException`."
+  },
+  {
+    "name": "ServiceNowTableRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Infrastructure-DataSources-ServiceNow.md#servicenowtablerequest",
+    "summary": "One Table API read: the table, its sysparm_query (ServiceNow encoded query) and the sysparm_fields projection."
+  },
+  {
+    "name": "SessionRevocationStore",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#sessionrevocationstore",
+    "summary": "JWT revocation: stores, per username, the earliest a JWT for that user may have been issued to still be considered valid. Every token carries its own issued-at claim (see AuthEndpoints), and Program.cs's OnTokenValidated handler rejects any token issued before that cutover. Backed by the encrypted-at-rest `AppSettingEntity` key/value store rather than a dedicated table. Self-service only: a user can revoke their own sessions (POST /api/auth/revoke-my-sessions). There is no admin action to revoke another user's sessions, since there is no role model to authorize it."
+  },
+  {
+    "name": "SetManifestPeerRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api-Endpoints.md#setmanifestpeerrequest",
+    "summary": null
+  },
+  {
+    "name": "SetManifestSigningPolicyRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api-Endpoints.md#setmanifestsigningpolicyrequest",
+    "summary": null
+  },
+  {
+    "name": "SettingsEndpoints",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Endpoints.md#settingsendpoints",
+    "summary": null
+  },
+  {
+    "name": "SettingsKeys",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#settingskeys",
+    "summary": "Canonical `AppSettingEntity` keys — one constant per stored setting, so a typo is a compile error instead of a silent runtime bug."
+  },
+  {
+    "name": "SettingsView",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-views.md#settingsview",
+    "summary": "/settings: the settings forms (managed-export scheduler, GDPR denylist, branding) and this connector's instance identity — each only for a user holding its permission — plus Users and Permissions for Admins."
+  },
+  {
+    "name": "SkipRequest",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#skiprequest",
+    "summary": null
+  },
+  {
+    "name": "SkipRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#skiprequest",
+    "summary": "Body for POST /api/exports/{seqNo}/skip. Reason is stored in the audit log."
+  },
+  {
+    "name": "SkipRunForm",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#skiprunform",
+    "summary": "Form on a pending or failed export run's detail page for skipping it, with an optional reason for the audit log. Emits `skipped` on success."
+  },
+  {
+    "name": "SourceColumn",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#sourcecolumn",
+    "summary": null
+  },
+  {
+    "name": "SourceColumn",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DataSources.md#sourcecolumn",
+    "summary": "One column of a `SourceTable`, as reported by `ReadSchemaAsync`."
+  },
+  {
+    "name": "SourceColumnsTable",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#sourcecolumnstable",
+    "summary": null
+  },
+  {
+    "name": "SourceQuery",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DataSources.md#sourcequery",
+    "summary": "Database-neutral description of one read query: a root table, the columns to project, equi-joins to further tables, and AND-combined filter conditions. Carries no SQL at all — every table and column is a plain name that `SourceQueryValidator` checks against a known `SourceSchema`, and every filter value stays a value (never text spliced into a query), so a provider's compiler can always bind it as a parameter. Only providers know a dialect; the PostgreSQL one is Connector.Infrastructure.DataSources.PostgreSql.PostgreSqlQueryCompiler. See knowledge/architecture/source-query-model.md."
+  },
+  {
+    "name": "SourceQueryValidator",
+    "kind": "class",
+    "page": "modules/src-Connector.Core-DataSources.md#sourcequeryvalidator",
+    "summary": "Checks a `SourceQuery` against a known `SourceSchema` before any provider compiles it: every table and column must exist in the schema (matched exactly, case-sensitively), joins must build on the root table or an earlier join, every table appears at most once, output names are unique, and each condition's operand fits its operator. Dialect-free on purpose, so every provider's compiler shares it — a compiler may assume any query that passes is safe to turn into native syntax (every name it quotes is one the schema itself reported)."
+  },
+  {
+    "name": "SourceSchema",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#sourceschema",
+    "summary": null
+  },
+  {
+    "name": "SourceSchema",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DataSources.md#sourceschema",
+    "summary": "The live (or demo-fallback) schema of the configured data source, as returned by `ReadSchemaAsync`/`TestConnectionAsync`."
+  },
+  {
+    "name": "SourceSchemaView",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-views.md#sourceschemaview",
+    "summary": "/source-schema: browse the connected source's tables and their columns (expand one or all), as introspected from the live connection."
+  },
+  {
+    "name": "SourceTable",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#sourcetable",
+    "summary": null
+  },
+  {
+    "name": "SourceTable",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DataSources.md#sourcetable",
+    "summary": "One table of a `SourceSchema`."
+  },
+  {
+    "name": "SourceType",
+    "kind": "type",
+    "page": "modules/src-connector-ui-src-lib.md#sourcetype",
+    "summary": null
+  },
+  {
+    "name": "src/connector-ui",
+    "kind": "module",
+    "page": "modules/src-connector-ui.md",
+    "summary": null
+  },
+  {
+    "name": "src/connector-ui/src",
+    "kind": "module",
+    "page": "modules/src-connector-ui-src.md",
+    "summary": null
+  },
+  {
+    "name": "src/connector-ui/src/api",
+    "kind": "module",
+    "page": "modules/src-connector-ui-src-api.md",
+    "summary": null
+  },
+  {
+    "name": "src/connector-ui/src/components",
+    "kind": "module",
+    "page": "modules/src-connector-ui-src-components.md",
+    "summary": null
+  },
+  {
+    "name": "src/connector-ui/src/components/ui",
+    "kind": "module",
+    "page": "modules/src-connector-ui-src-components-ui.md",
+    "summary": null
+  },
+  {
+    "name": "src/connector-ui/src/composables",
+    "kind": "module",
+    "page": "modules/src-connector-ui-src-composables.md",
+    "summary": null
+  },
+  {
+    "name": "src/connector-ui/src/lib",
+    "kind": "module",
+    "page": "modules/src-connector-ui-src-lib.md",
+    "summary": null
+  },
+  {
+    "name": "src/connector-ui/src/router",
+    "kind": "module",
+    "page": "modules/src-connector-ui-src-router.md",
+    "summary": null
+  },
+  {
+    "name": "src/connector-ui/src/views",
+    "kind": "module",
+    "page": "modules/src-connector-ui-src-views.md",
+    "summary": null
+  },
+  {
+    "name": "src/Connector.Api",
+    "kind": "module",
+    "page": "modules/src-Connector.Api.md",
+    "summary": null
+  },
+  {
+    "name": "src/Connector.Api/Authorization",
+    "kind": "module",
+    "page": "modules/src-Connector.Api-Authorization.md",
+    "summary": null
+  },
+  {
+    "name": "src/Connector.Api/Endpoints",
+    "kind": "module",
+    "page": "modules/src-Connector.Api-Endpoints.md",
+    "summary": null
+  },
+  {
+    "name": "src/Connector.Core/DataSources",
+    "kind": "module",
+    "page": "modules/src-Connector.Core-DataSources.md",
+    "summary": null
+  },
+  {
+    "name": "src/Connector.Core/Domain",
+    "kind": "module",
+    "page": "modules/src-Connector.Core-Domain.md",
+    "summary": null
+  },
+  {
+    "name": "src/Connector.Core/DynamicExport",
+    "kind": "module",
+    "page": "modules/src-Connector.Core-DynamicExport.md",
+    "summary": null
+  },
+  {
+    "name": "src/Connector.Core/DynamicImport",
+    "kind": "module",
+    "page": "modules/src-Connector.Core-DynamicImport.md",
+    "summary": null
+  },
+  {
+    "name": "src/Connector.Core/Schema",
+    "kind": "module",
+    "page": "modules/src-Connector.Core-Schema.md",
+    "summary": null
+  },
+  {
+    "name": "src/Connector.Infrastructure",
+    "kind": "module",
+    "page": "modules/src-Connector.Infrastructure.md",
+    "summary": null
+  },
+  {
+    "name": "src/Connector.Infrastructure/DataSources",
+    "kind": "module",
+    "page": "modules/src-Connector.Infrastructure-DataSources.md",
+    "summary": null
+  },
+  {
+    "name": "src/Connector.Infrastructure/DataSources/MariaDb",
+    "kind": "module",
+    "page": "modules/src-Connector.Infrastructure-DataSources-MariaDb.md",
+    "summary": null
+  },
+  {
+    "name": "src/Connector.Infrastructure/DataSources/PostgreSql",
+    "kind": "module",
+    "page": "modules/src-Connector.Infrastructure-DataSources-PostgreSql.md",
+    "summary": null
+  },
+  {
+    "name": "src/Connector.Infrastructure/DataSources/ServiceNow",
+    "kind": "module",
+    "page": "modules/src-Connector.Infrastructure-DataSources-ServiceNow.md",
+    "summary": null
+  },
+  {
+    "name": "src/Connector.Infrastructure/Migrations",
+    "kind": "module",
+    "page": "modules/src-Connector.Infrastructure-Migrations.md",
+    "summary": null
+  },
+  {
+    "name": "StatusBadge",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#statusbadge",
+    "summary": "Data-driven instead of a switch/ternary chain: a status maps to one (icon, color) pair here, and every consumer — export runs, export/import definition runs, import-run four-eyes review — funnels through the same table rather than each growing its own branch."
+  },
+  {
+    "name": "SuggestedRelations",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#suggestedrelations",
+    "summary": null
+  },
+  {
+    "name": "systemconfiguration",
+    "kind": "table",
+    "page": "modules/testdb.md#systemconfiguration",
+    "summary": null
+  },
+  {
+    "name": "TableRecord",
+    "kind": "record",
+    "page": "modules/src-Connector.Infrastructure-DataSources-ServiceNow.md#tablerecord",
+    "summary": null
+  },
+  {
+    "name": "TestConnectionResult",
+    "kind": "record",
+    "page": "modules/src-Connector.Core-DataSources.md#testconnectionresult",
+    "summary": "Result of `TestConnectionAsync`: either the live `Schema` on success, or a sanitized, user-facing `Error` on failure — never both. A provider must never let a raw exception (which can echo connection-string/credential detail) reach `Error` unsanitized."
+  },
+  {
+    "name": "testdb",
+    "kind": "module",
+    "page": "modules/testdb.md",
+    "summary": null
+  },
+  {
+    "name": "TextField",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components-ui.md#textfield",
+    "summary": null
+  },
+  {
+    "name": "ThemePreference",
+    "kind": "type",
+    "page": "modules/src-connector-ui-src-composables.md#themepreference",
+    "summary": null
+  },
+  {
+    "name": "ThemeToggle",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#themetoggle",
+    "summary": "Icon-only — the text labels (\"Light\"/\"Auto\"/\"Dark\") took up nav space the top bar doesn't have to spare. Each button keeps an aria-label/title so the meaning isn't icon-only for screen readers or on hover."
+  },
+  {
+    "name": "ToastHost",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components-ui.md#toasthost",
+    "summary": null
+  },
+  {
+    "name": "TransportSecurity",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure-DataSources.md#transportsecurity",
+    "summary": "The production transport rule: POST /api/connection refuses a config its provider doesn't report as always encrypted (`IsAlwaysEncrypted`) unless DataSources:AllowUnencryptedConnections is explicitly true."
+  },
+  {
+    "name": "TreeChild",
+    "kind": "record",
+    "page": "modules/src-Connector.Infrastructure.md#treechild",
+    "summary": "A nested object/array: rows of `Node`'s table whose `JoinKey` equals the parent row's `SourceJoinKey`. An array holds every match ([] for none); an object holds the single match (null for none, `CardinalityErrorMessage` for several)."
+  },
+  {
+    "name": "TreeMember",
+    "kind": "record",
+    "page": "modules/src-Connector.Infrastructure.md#treemember",
+    "summary": null
+  },
+  {
+    "name": "TreePlan",
+    "kind": "record",
+    "page": "modules/src-Connector.Infrastructure.md#treeplan",
+    "summary": "One table of a compiled export tree: its rows become JSON objects with `Members` as keys, in order."
+  },
+  {
+    "name": "TreeRow",
+    "kind": "record",
+    "page": "modules/src-Connector.Infrastructure.md#treerow",
+    "summary": null
+  },
+  {
+    "name": "TreeScalar",
+    "kind": "record",
+    "page": "modules/src-Connector.Infrastructure.md#treescalar",
+    "summary": null
+  },
+  {
+    "name": "UnmatchedRootPolicy",
+    "kind": "class",
+    "page": "modules/src-Connector.Core-DynamicImport.md#unmatchedrootpolicy",
+    "summary": "Discriminator values for ImportDefinitionEntity.UnmatchedRootPolicy: what happens to an inbound record whose correlation key matches no root row. `Insert` creates the row, and is only accepted on a definition with an IntegrationKey (a connector-to-connector contract, never a vendor file)."
+  },
+  {
+    "name": "UnsupportedDataSourceException",
+    "kind": "class",
+    "page": "modules/src-Connector.Core-DataSources.md#unsupporteddatasourceexception",
+    "summary": "Thrown by `Resolve` when no `IDataSourceProvider` is registered for the requested `DataSourceType` (e.g. `ServiceNowTableApi`/ `ServiceNowSqlApi`, or an out-of-range value), and wherever a code path only supports some source types."
+  },
+  {
+    "name": "UpdateUserRequest",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#updateuserrequest",
+    "summary": "PUT /api/users/{username}: each field is optional; a null one is left unchanged."
+  },
+  {
+    "name": "UserAccount",
+    "kind": "interface",
+    "page": "modules/src-connector-ui-src-api.md#useraccount",
+    "summary": "One login, as listed in Settings → Users (Admin only)."
+  },
+  {
+    "name": "UserDto",
+    "kind": "record",
+    "page": "modules/src-Connector.Api.md#userdto",
+    "summary": null
+  },
+  {
+    "name": "UserEndpoints",
+    "kind": "class",
+    "page": "modules/src-Connector.Api-Endpoints.md#userendpoints",
+    "summary": "Admin-only user management (Settings → Users): list, create, change role or reset password, delete. The last Admin can be neither demoted nor deleted, and an Admin can't change their own role or delete themselves, so the UI can never lock every Admin out. Every change is audited."
+  },
+  {
+    "name": "UserEntity",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#userentity",
+    "summary": "An interactive login. Managed in the UI by Admins (Settings → Users); the table is seeded once from Auth:Users (or the Development seed) while it is still empty."
+  },
+  {
+    "name": "UserMenu",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#usermenu",
+    "summary": "Export Jobs and Import Jobs moved to top-level nav pills in App.vue — this menu now holds only the connector-configuration screens that don't need to be always-visible. Only the screens the signed-in user may open (their route's access rule, see router/index.ts)."
+  },
+  {
+    "name": "UserRoles",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#userroles",
+    "summary": "The two roles a user can have. An `Admin` can always see and do everything; what a `User` may see and do is the permission set an Admin grants that role (see Permissions and RolePermissionStore in Connector.Api)."
+  },
+  {
+    "name": "UserRowActions",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#userrowactions",
+    "summary": "The actions on one Settings → Users row. Your own row offers only the password reset: the server refuses changing your own role or deleting yourself."
+  },
+  {
+    "name": "UsersSettings",
+    "kind": "component",
+    "page": "modules/src-connector-ui-src-components.md#userssettings",
+    "summary": "Admin-only Settings → Users: every login with its role, plus adding a user, switching a role, resetting a password and deleting a user. The server refuses changes to your own role or account and to the last Admin."
+  },
+  {
+    "name": "UserStore",
+    "kind": "class",
+    "page": "modules/src-Connector.Infrastructure.md#userstore",
+    "summary": "Lookup and seeding helpers over `Users`."
+  }
+];
