@@ -390,8 +390,65 @@ static partial class ImportDefinitionEndpoints
                     AuditService audit,
                     IDataSourceProviderResolver resolver,
                     CancellationToken ct
+                ) => StageImportAsync(
+                    id, request.InboundJson, request.SourceFileName, httpContext, db, audit, resolver, ct
+                )
+            )
+            .RequirePermission(Permissions.ImportJobsRun);
+
+        // Stages one or more JSON records using the same canonical import, diff and approval path as /runs.
+        app.MapPost(
+                "/api/import-definitions/{id:int}/records",
+                async (
+                    int id,
+                    SelectedRecordsImportRequest request,
+                    HttpContext httpContext,
+                    ExportLogDbContext db,
+                    AuditService audit,
+                    IDataSourceProviderResolver resolver,
+                    CancellationToken ct
                 ) =>
                 {
+                    if (request.Records is null || request.Records.Length is < 1 or > 100)
+                        return Results.BadRequest("records must contain between 1 and 100 objects.");
+                    if (request.Records.Any(r => r.ValueKind != JsonValueKind.Object))
+                        return Results.BadRequest("Each record must be a JSON object.");
+
+                    var definition = await db.ImportDefinitions.FindAsync([id], ct);
+                    if (definition is null)
+                        return Results.NotFound();
+
+                    var inboundJson = JsonSerializer.Serialize(new
+                    {
+                        schemaVersion = ImportNodeWalker.SupportedSchemaVersion,
+                        definition = definition.Name,
+                        records = request.Records,
+                    });
+                    if (Encoding.UTF8.GetByteCount(inboundJson) > 1_048_576)
+                        return Results.BadRequest("Import payload must not exceed 1 MiB.");
+
+                    return await StageImportAsync(
+                        id, inboundJson, "api-selected-records.json", httpContext, db, audit, resolver, ct
+                    );
+                }
+            )
+            .RequirePermission(Permissions.ImportJobsRun);
+    }
+
+    internal sealed record SelectedRecordsImportRequest(JsonElement[]? Records);
+
+    // Shared by the existing file-upload API and the selected-record API: a single write-free staging path.
+    private static async Task<IResult> StageImportAsync(
+        int id,
+        string inboundJson,
+        string? sourceFileName,
+        HttpContext httpContext,
+        ExportLogDbContext db,
+        AuditService audit,
+        IDataSourceProviderResolver resolver,
+        CancellationToken ct
+    )
+    {
                     var def = await db.ImportDefinitions.FindAsync([id], ct);
                     if (def is null)
                         return Results.NotFound();
@@ -401,7 +458,7 @@ static partial class ImportDefinitionEndpoints
                         return Results.Problem(detail: "Stored import tree could not be read.", statusCode: 500);
 
                     var checksum = Convert
-                        .ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(request.InboundJson)))
+                        .ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(inboundJson)))
                         .ToLowerInvariant();
 
                     var existing = await db.ImportRuns.FirstOrDefaultAsync(
@@ -422,7 +479,7 @@ static partial class ImportDefinitionEndpoints
                     try
                     {
                         await using var conn = await ImportConnection.OpenAsync(resolver, connCfg, ct);
-                        var walkResult = await ImportNodeWalker.WalkAsync(conn, def, root, request.InboundJson, ct);
+                        var walkResult = await ImportNodeWalker.WalkAsync(conn, def, root, inboundJson, ct);
                         plan = ImportPlanBuilder.Build(walkResult, def.RootTable, def.RootMatchColumn);
                     }
                     catch (Exception ex) when (ex is ImportValidationException or UnsupportedDataSourceException)
@@ -440,9 +497,9 @@ static partial class ImportDefinitionEndpoints
                         ImportDefinitionId = def.Id,
                         ConfigVersion = def.ConfigVersion,
                         DefinitionSnapshotJson = JsonSerializer.Serialize(def),
-                        SourceFileName = string.IsNullOrWhiteSpace(request.SourceFileName)
+                        SourceFileName = string.IsNullOrWhiteSpace(sourceFileName)
                             ? "manual-upload.json"
-                            : request.SourceFileName,
+                            : sourceFileName,
                         Sha256Checksum = checksum,
                         StartedAt = DateTimeOffset.UtcNow.ToString("O"),
                         Status = ImportRunStatus.PendingReview,
@@ -502,8 +559,6 @@ static partial class ImportDefinitionEndpoints
                             run.InsertCount
                         )
                     );
-                }
-            )
-            .RequirePermission(Permissions.ImportJobsRun);
     }
+
 }
