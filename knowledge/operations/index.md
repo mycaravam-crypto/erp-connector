@@ -8,3 +8,4 @@ and monitoring.
 * [Data Retention](data-retention.md) - Daily purge of staging files and completed ExportRun records past the retention window
 * [Operational Monitoring](operational-monitoring.md) - Health check, stale-pending indicator, and sequence gap detection
 * [Connector Alignment Trial](connector-alignment-trial.md) - Checklist for a first end-to-end run of two connector instances (A → B)
+* [Definition Transfer Between Instances](definition-transfer.md) - Copy saved import/export job configurations using the existing REST API; validation, safe activation, and proposed native bundle support
