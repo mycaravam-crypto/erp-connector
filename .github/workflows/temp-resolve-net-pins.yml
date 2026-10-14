@@ -7,7 +7,6 @@ permissions:
   contents: write
 jobs:
   pin:
-    if: startsWith(github.event.head_commit.message, 'chore: resolve .NET 10.0.13 image digests')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -28,12 +27,12 @@ jobs:
           for image, tag, stage in entries:
               source = f"{image}:{tag}"
               output = subprocess.check_output(["docker", "buildx", "imagetools", "inspect", source], text=True)
-              match = re.search(r"^Digest:\\s*(sha256:[0-9a-f]{64})\\s*$", output, re.MULTILINE)
+              match = re.search(r"^Digest:\s*(sha256:[0-9a-f]{64})\s*$", output, re.MULTILINE)
               if not match:
                   raise RuntimeError(f"Could not verify manifest-list digest for {source}")
               replacement = f"FROM {source}@{match.group(1)} AS {stage}"
               dockerfile, count = re.subn(
-                  rf"^FROM {re.escape(image)}:[^\\n]+ AS {stage}$",
+                  rf"^FROM {re.escape(image)}:[^\n]+ AS {stage}$",
                   replacement, dockerfile, flags=re.MULTILINE
               )
               if count != 1:
