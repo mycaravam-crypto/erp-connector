@@ -380,6 +380,98 @@ static class ExportDefinitionEndpoints
             )
             .RequirePermission(Permissions.ExportJobsDownload);
 
+        // Explicit ID selection is parameterized and intersects with the saved root WHERE clause.
+        app.MapPost(
+                "/api/export-definitions/{id:int}/run-selected",
+                async (
+                    int id,
+                    SelectedRecordsExportRequest request,
+                    ExportLogDbContext db,
+                    IDataSourceProviderResolver resolver,
+                    HttpContext httpContext,
+                    AuditService audit,
+                    CancellationToken ct
+                ) =>
+                {
+                    var def = await db.ExportDefinitions.FindAsync([id], ct);
+                    if (def is null)
+                        return Results.NotFound();
+                    var ids = request.RecordIds;
+                    if (ids is null || ids.Length is < 1 or > 100)
+                        return Results.BadRequest("recordIds must contain between 1 and 100 IDs.");
+                    if (ids.Any(v => string.IsNullOrWhiteSpace(v) || v.Length > 256))
+                        return Results.BadRequest(
+                            "Each record ID must be a non-empty value of at most 256 characters."
+                        );
+                    if (ids.Distinct(StringComparer.Ordinal).Count() != ids.Length)
+                        return Results.BadRequest("recordIds must not contain duplicate values.");
+                    if (
+                        string.IsNullOrWhiteSpace(def.CorrelationKeySourceField)
+                        || !SqlIdentifierRegex.IsMatch(def.CorrelationKeySourceField)
+                    )
+                        return Results.BadRequest(
+                            "Configure a valid CorrelationKeySourceField on this export definition."
+                        );
+                    var rootNode = ExportNodeJson.Deserialize(def.RootNode);
+                    if (
+                        rootNode is null
+                        || !rootNode.Children.Any(n =>
+                            n.Enabled
+                            && n.Kind == ExportNodeKind.ScalarField
+                            && n.SourceField == def.CorrelationKeySourceField
+                        )
+                    )
+                        return Results.BadRequest("Correlation key must be an enabled root scalar field.");
+
+                    // Clients can compare the requested and returned root-row counts.
+                    httpContext.Response.Headers["X-Requested-Count"] = ids.Length.ToString();
+
+                    var user = httpContext.User.Identity!.Name!;
+                    var (run, built, error) = await ExportDefinitionRunner.ExecuteAsync(
+                        def,
+                        db,
+                        resolver,
+                        triggeredBy: user,
+                        isTestRun: false,
+                        limit: null,
+                        sink: null,
+                        ct,
+                        selection: new ExportRecordSelection(def.CorrelationKeySourceField, ids)
+                    );
+
+                    if (built is null)
+                    {
+                        await audit.LogAsync(user, "export_definition_run_failed", $"id={id} name={def.Name}: {error}");
+                        return Results.Problem(
+                            detail: error,
+                            statusCode: error == "Export returned 0 records." ? 404 : 500
+                        );
+                    }
+
+                    await audit.LogAsync(
+                        user,
+                        "export_definition_run",
+                        $"id={id} name={def.Name} requested_ids={ids.Length} records={built.Value.RecordCount} {MetricsDetail(built.Value.Metrics)}"
+                    );
+
+                    httpContext.Response.Headers["X-Export-Run-Id"] = run.Id.ToString();
+                    httpContext.Response.Headers["X-Record-Count"] = built.Value.RecordCount.ToString();
+                    httpContext.Response.Headers["X-Config-Version"] = run.ConfigVersion.ToString();
+
+                    var fileName = DynamicExportService.BuildNamedFileName(
+                        def.Name,
+                        DateTimeOffset.UtcNow,
+                        built.Value.Extension
+                    );
+                    return Results.File(
+                        built.Value.Bytes,
+                        DynamicExportService.ContentTypeFor(built.Value.Extension),
+                        fileName
+                    );
+                }
+            )
+            .RequirePermission(Permissions.ExportJobsDownload);
+
         // Test run capped at 50 records (TestRunLimit): records a run-history row flagged IsTestRun and returns the
         // run result, not the file. Audited.
         app.MapPost(
@@ -464,6 +556,8 @@ static class ExportDefinitionEndpoints
             )
             .RequirePermission(Permissions.ExportJobsView);
     }
+
+    internal sealed record SelectedRecordsExportRequest(string[]? RecordIds);
 
     private static ExportDefinitionDto ToDto(ExportDefinitionEntity e) =>
         new(
