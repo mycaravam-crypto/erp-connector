@@ -18,7 +18,7 @@ Content-Type: application/json
 {"recordIds":["4711","4712"]}
 ```
 
-The saved definition **must have** `CorrelationKeySourceField` pointing to an enabled root scalar field. Configure this field as a unique key in the source schema. The API accepts 1–100 distinct non-blank IDs (max 256 characters each). IDs are bound as query parameters; the predicate is joined with **AND** to the saved root filter. No caller-supplied SQL, table or column is accepted. Invalid selection: 400. No records: 404. Successful response: the same file, run-history headers and audit event as `/run`. Existing `/run`, previews and scheduled jobs remain unchanged.
+The saved definition **must have** `CorrelationKeySourceField` pointing to an enabled root scalar field. Configure this field as a unique key in the source schema. The API accepts 1–100 distinct non-blank IDs (max 256 characters each). IDs are bound as query parameters; the predicate is joined with **AND** to the saved root filter. No caller-supplied SQL, table or column is accepted. Invalid selection: 400. No records: 404. The selected-run response adds `X-Requested-Count` with the number of requested distinct IDs (including when no records match). Compare it with `X-Record-Count` on successful exports to spot missing matches; it does not identify which IDs were missing, and a non-unique correlation key can yield more rows than IDs. Successful response: the same file, run-history headers and audit event as `/run`. Existing `/run`, previews and scheduled jobs remain unchanged.
 
 ## Import
 
@@ -32,7 +32,7 @@ Content-Type: application/json
 {"records":[{"guid":"a12b34c5","status":"Active"}]}
 ```
 
-The endpoint validates 1–100 JSON objects (serialized envelope limit 1 MiB), adds `schemaVersion: "1"` and the saved import definition name, and delegates to **the same staging path** as `POST /api/import-definitions/{id}/runs`. It returns `201 Created` with the `ImportRun` summary (status `PendingReview`) and location `/api/import-runs/{runId}`. Exact repeat submissions use existing checksum deduplication (`409 Conflict`). No ERP write occurs until the separate four-eyes review endpoint approves the run. Root-match policies, writable-column allowlist, snapshot, audit and optimistic concurrency stay unchanged.
+The endpoint validates 1–100 JSON objects (serialized envelope limit 1 MiB), adds `schemaVersion: "1"` and the saved import definition name, and delegates to **the same staging path** as `POST /api/import-definitions/{id}/runs`. It returns `201 Created` with the `ImportRun` summary (status `PendingReview`) and location `/api/import-runs/{runId}`. The checksum covers the serialized JSON envelope, including record order. An identical repeat submission produces `409 Conflict`; **reordering the same records changes the checksum** and is considered a distinct payload. This preserves the existing import idempotency contract; clients that need order-insensitive deduplication should canonicalize their input before submission. No ERP write occurs until the separate four-eyes review endpoint approves the run. Root-match policies, writable-column allowlist, snapshot, audit and optimistic concurrency stay unchanged.
 
 ## Security and operations
 
