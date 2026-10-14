@@ -71,8 +71,10 @@ public sealed class ManifestSigningPolicyTests : SqliteDbContextTestBase
         Assert.Null(ManifestSigningPolicy.Verify(signed, settings, pairedDefinition: false));
 
         settings.RequireSignedConnectorFiles = true;
-        Assert.Equal("producer instance is not trusted",
-            ManifestSigningPolicy.Verify(signed, settings, pairedDefinition: false));
+        Assert.Equal(
+            "producer instance is not trusted",
+            ManifestSigningPolicy.Verify(signed, settings, pairedDefinition: false)
+        );
     }
 
     [Fact]
@@ -80,13 +82,25 @@ public sealed class ManifestSigningPolicyTests : SqliteDbContextTestBase
     {
         var settings = TrustRemote();
         settings.RequireSignedConnectorFiles = false;
-        Assert.Equal("missing manifest signature from trusted producer",
-            ManifestSigningPolicy.Verify(new ImportManifest(Checksum, Remote), settings, pairedDefinition: false));
-        Assert.Equal("invalid manifest signature",
-            ManifestSigningPolicy.Verify(new ImportManifest(Checksum, Remote, new string('0', 64)),
-                settings, pairedDefinition: false));
-        Assert.Null(ManifestSigningPolicy.Verify(new ImportManifest(Checksum, Remote,
-            ManifestSignature.Sign(Checksum, Remote, Key)), settings, pairedDefinition: false));
+        Assert.Equal(
+            "missing manifest signature from trusted producer",
+            ManifestSigningPolicy.Verify(new ImportManifest(Checksum, Remote), settings, pairedDefinition: false)
+        );
+        Assert.Equal(
+            "invalid manifest signature",
+            ManifestSigningPolicy.Verify(
+                new ImportManifest(Checksum, Remote, new string('0', 64)),
+                settings,
+                pairedDefinition: false
+            )
+        );
+        Assert.Null(
+            ManifestSigningPolicy.Verify(
+                new ImportManifest(Checksum, Remote, ManifestSignature.Sign(Checksum, Remote, Key)),
+                settings,
+                pairedDefinition: false
+            )
+        );
     }
 
     [Fact]
