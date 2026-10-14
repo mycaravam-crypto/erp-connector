@@ -65,14 +65,15 @@ public static partial class DynamicExportService
         DataSourceConfig dsConfig,
         TreePlan root,
         int? limit,
-        CancellationToken ct
+        CancellationToken ct,
+        ExportRecordSelection? selection = null
     )
     {
         if (root.Members.Count == 0)
             return [];
 
         var dialect = DialectOf(provider);
-        var rows = await FetchTreeLevelAsync(provider, dsConfig, dialect, root, null, null, limit, ct);
+        var rows = await FetchTreeLevelAsync(provider, dsConfig, dialect, root, null, null, limit, ct, selection);
         return rows.Select(r => r.Record).ToList();
     }
 
@@ -96,13 +97,14 @@ public static partial class DynamicExportService
         string? joinKeyColumn,
         IReadOnlyList<string>? parentKeys,
         int? limit,
-        CancellationToken ct
+        CancellationToken ct,
+        ExportRecordSelection? selection = null
     )
     {
         QueryResult[] results;
         if (parentKeys is null)
         {
-            results = [await RunTreeQueryAsync(provider, dsConfig, dialect, plan, null, null, limit, ct)];
+            results = [await RunTreeQueryAsync(provider, dsConfig, dialect, plan, null, null, limit, ct, selection)];
         }
         else
         {
@@ -198,7 +200,8 @@ public static partial class DynamicExportService
         string? joinKeyColumn,
         string[]? parentKeys,
         int? limit,
-        CancellationToken ct
+        CancellationToken ct,
+        ExportRecordSelection? selection = null
     )
     {
         string Column(string name) => $"{plan.Alias}.{dialect.QuoteIdentifier(name)}";
@@ -225,6 +228,8 @@ public static partial class DynamicExportService
         }
         if (!string.IsNullOrWhiteSpace(plan.Filter))
             conditions.Add($"({plan.Filter})");
+        if (selection is not null)
+            conditions.Add(dialect.BuildMatchesAny(dialect.CastToText(Column(selection.Column)), selection.RecordIds, parameters));
 
         var sql =
             $"SELECT {string.Join(", ", select.Select((expr, i) => $"{expr} AS {dialect.QuoteIdentifier($"c{i}")}"))} "
