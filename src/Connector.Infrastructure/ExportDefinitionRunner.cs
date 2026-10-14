@@ -35,7 +35,8 @@ public static class ExportDefinitionRunner
         bool isTestRun,
         int? limit,
         FileSystemExportSink? sink,
-        CancellationToken ct
+        CancellationToken ct,
+        ExportRecordSelection? selection = null
     )
     {
         var run = new ExportDefinitionRunEntity
@@ -98,7 +99,8 @@ public static class ExportDefinitionRunner
                 limit,
                 gdprDenylist,
                 provenance,
-                def.TargetImportDefinition
+                def.TargetImportDefinition,
+                selection
             );
 
             if (built.RecordCount == 0)
