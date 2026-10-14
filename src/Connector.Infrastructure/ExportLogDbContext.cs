@@ -18,6 +18,7 @@ public static class SettingsKeys
     public const string GdprDeniedFields = "gdpr_denied_fields";
     public const string Branding = "branding";
     public const string InstanceId = "instance_id";
+    public const string ManifestSigning = "manifest_signing";
 
     /// <summary>Instance ids this installation used before a regeneration (oldest first).</summary>
     public const string RetiredInstanceIds = "retired_instance_ids";
