@@ -76,6 +76,9 @@ static class ManifestSigningEndpoints
                 "/api/settings/manifest-signing/peers/{instanceId}",
                 async (string instanceId, ExportLogDbContext db, HttpContext context, AuditService audit) =>
                 {
+                    if (!Guid.TryParse(instanceId, out _))
+                        return Results.BadRequest("Instance ID must be a GUID.");
+
                     var cfg =
                         await db.GetSettingAsync<ManifestSigningSettings>(SettingsKeys.ManifestSigning)
                         ?? new ManifestSigningSettings();
