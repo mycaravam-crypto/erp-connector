@@ -400,16 +400,27 @@ static class ExportDefinitionEndpoints
                     if (ids is null || ids.Length is < 1 or > 100)
                         return Results.BadRequest("recordIds must contain between 1 and 100 IDs.");
                     if (ids.Any(v => string.IsNullOrWhiteSpace(v) || v.Length > 256))
-                        return Results.BadRequest("Each record ID must be a non-empty value of at most 256 characters.");
+                        return Results.BadRequest(
+                            "Each record ID must be a non-empty value of at most 256 characters."
+                        );
                     if (ids.Distinct(StringComparer.Ordinal).Count() != ids.Length)
                         return Results.BadRequest("recordIds must not contain duplicate values.");
-                    if (string.IsNullOrWhiteSpace(def.CorrelationKeySourceField)
-                        || !SqlIdentifierRegex.IsMatch(def.CorrelationKeySourceField))
-                        return Results.BadRequest("Configure a valid CorrelationKeySourceField on this export definition.");
+                    if (
+                        string.IsNullOrWhiteSpace(def.CorrelationKeySourceField)
+                        || !SqlIdentifierRegex.IsMatch(def.CorrelationKeySourceField)
+                    )
+                        return Results.BadRequest(
+                            "Configure a valid CorrelationKeySourceField on this export definition."
+                        );
                     var rootNode = ExportNodeJson.Deserialize(def.RootNode);
-                    if (rootNode is null || !rootNode.Children.Any(n => n.Enabled
-                        && n.Kind == ExportNodeKind.ScalarField
-                        && n.SourceField == def.CorrelationKeySourceField))
+                    if (
+                        rootNode is null
+                        || !rootNode.Children.Any(n =>
+                            n.Enabled
+                            && n.Kind == ExportNodeKind.ScalarField
+                            && n.SourceField == def.CorrelationKeySourceField
+                        )
+                    )
                         return Results.BadRequest("Correlation key must be an enabled root scalar field.");
 
                     var user = httpContext.User.Identity!.Name!;
@@ -428,7 +439,10 @@ static class ExportDefinitionEndpoints
                     if (built is null)
                     {
                         await audit.LogAsync(user, "export_definition_run_failed", $"id={id} name={def.Name}: {error}");
-                        return Results.Problem(detail: error, statusCode: error == "Export returned 0 records." ? 404 : 500);
+                        return Results.Problem(
+                            detail: error,
+                            statusCode: error == "Export returned 0 records." ? 404 : 500
+                        );
                     }
 
                     await audit.LogAsync(

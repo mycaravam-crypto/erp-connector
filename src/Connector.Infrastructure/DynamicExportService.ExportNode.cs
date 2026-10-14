@@ -347,7 +347,16 @@ public static partial class DynamicExportService
     )
     {
         var metered = new MeteredDataSourceProvider(provider);
-        var records = await ExecuteExportNodeQueryAsync(metered, dsConfig, rootTable, root, ct, limit, gdprDenylist, selection);
+        var records = await ExecuteExportNodeQueryAsync(
+            metered,
+            dsConfig,
+            rootTable,
+            root,
+            ct,
+            limit,
+            gdprDenylist,
+            selection
+        );
         if (importDefinition is not null)
         {
             var envelope = BuildImportEnvelopeBytes(records, importDefinition, extractedAt, provenance);

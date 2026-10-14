@@ -23,10 +23,31 @@ public sealed class SelectedRecordsExportPostgresTests
             null,
             [
                 new ExportNode("id", ExportNodeKind.ScalarField, "id", null, null, null, null, null, [], true),
-                new ExportNode("manufacturer", ExportNodeKind.Object, null, "manufacturer", "id", "manufacturer_id",
-                    null, null, [
-                        new ExportNode("name", ExportNodeKind.ScalarField, "name", null, null, null, null, null, [], true),
-                    ], true),
+                new ExportNode(
+                    "manufacturer",
+                    ExportNodeKind.Object,
+                    null,
+                    "manufacturer",
+                    "id",
+                    "manufacturer_id",
+                    null,
+                    null,
+                    [
+                        new ExportNode(
+                            "name",
+                            ExportNodeKind.ScalarField,
+                            "name",
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            [],
+                            true
+                        ),
+                    ],
+                    true
+                ),
             ],
             true
         );
@@ -37,7 +58,11 @@ public sealed class SelectedRecordsExportPostgresTests
         if (!await ErpTestFixture.IsAvailableAsync())
             return;
         var rows = await DynamicExportService.ExecuteExportNodeQueryAsync(
-            Provider, ErpTestFixture.Config, "masterdata", Root(), CancellationToken.None,
+            Provider,
+            ErpTestFixture.Config,
+            "masterdata",
+            Root(),
+            CancellationToken.None,
             selection: new ExportRecordSelection("id", [FirstId])
         );
         var row = Assert.Single(rows);
@@ -51,7 +76,11 @@ public sealed class SelectedRecordsExportPostgresTests
         if (!await ErpTestFixture.IsAvailableAsync())
             return;
         var rows = await DynamicExportService.ExecuteExportNodeQueryAsync(
-            Provider, ErpTestFixture.Config, "masterdata", Root($"id = '{FirstId}'"), CancellationToken.None,
+            Provider,
+            ErpTestFixture.Config,
+            "masterdata",
+            Root($"id = '{FirstId}'"),
+            CancellationToken.None,
             selection: new ExportRecordSelection("id", [FirstId, SecondId])
         );
         Assert.Equal(FirstId, Assert.Single(rows)["id"]!.GetValue<string>());
@@ -63,7 +92,11 @@ public sealed class SelectedRecordsExportPostgresTests
         if (!await ErpTestFixture.IsAvailableAsync())
             return;
         var rows = await DynamicExportService.ExecuteExportNodeQueryAsync(
-            Provider, ErpTestFixture.Config, "masterdata", Root(), CancellationToken.None,
+            Provider,
+            ErpTestFixture.Config,
+            "masterdata",
+            Root(),
+            CancellationToken.None,
             selection: new ExportRecordSelection("id", ["' OR 1=1 --"])
         );
         Assert.Empty(rows);

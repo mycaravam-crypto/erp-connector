@@ -229,7 +229,9 @@ public static partial class DynamicExportService
         if (!string.IsNullOrWhiteSpace(plan.Filter))
             conditions.Add($"({plan.Filter})");
         if (selection is not null)
-            conditions.Add(dialect.BuildMatchesAny(dialect.CastToText(Column(selection.Column)), selection.RecordIds, parameters));
+            conditions.Add(
+                dialect.BuildMatchesAny(dialect.CastToText(Column(selection.Column)), selection.RecordIds, parameters)
+            );
 
         var sql =
             $"SELECT {string.Join(", ", select.Select((expr, i) => $"{expr} AS {dialect.QuoteIdentifier($"c{i}")}"))} "
