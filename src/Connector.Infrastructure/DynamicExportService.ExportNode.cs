@@ -107,7 +107,8 @@ public static partial class DynamicExportService
         ExportNode root,
         CancellationToken ct,
         int? limit = null,
-        IReadOnlySet<string>? gdprDenylist = null
+        IReadOnlySet<string>? gdprDenylist = null,
+        ExportRecordSelection? selection = null
     )
     {
         var effectiveDenylist = gdprDenylist ?? GdprDeniedFields;
@@ -121,7 +122,7 @@ public static partial class DynamicExportService
         // "more rows exist" without a separate COUNT(*) query.
         var sqlLimit = Math.Min(limit ?? int.MaxValue, MaxExportRowsPerRun + 1);
 
-        var results = await ExecuteTreeQueryAsync(provider, dsConfig, plan, sqlLimit, ct);
+        var results = await ExecuteTreeQueryAsync(provider, dsConfig, plan, sqlLimit, ct, selection);
         foreach (var node in results)
         {
             StripGdprFieldsRecursive(node, effectiveDenylist);
@@ -341,11 +342,12 @@ public static partial class DynamicExportService
         int? limit = null,
         IReadOnlySet<string>? gdprDenylist = null,
         ExportProvenance? provenance = null,
-        string? importDefinition = null
+        string? importDefinition = null,
+        ExportRecordSelection? selection = null
     )
     {
         var metered = new MeteredDataSourceProvider(provider);
-        var records = await ExecuteExportNodeQueryAsync(metered, dsConfig, rootTable, root, ct, limit, gdprDenylist);
+        var records = await ExecuteExportNodeQueryAsync(metered, dsConfig, rootTable, root, ct, limit, gdprDenylist, selection);
         if (importDefinition is not null)
         {
             var envelope = BuildImportEnvelopeBytes(records, importDefinition, extractedAt, provenance);
