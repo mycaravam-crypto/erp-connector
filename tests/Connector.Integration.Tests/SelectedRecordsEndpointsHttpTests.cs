@@ -65,6 +65,43 @@ public sealed class SelectedRecordsEndpointsHttpTests(ApiFactory factory)
     }
 
     [Fact]
+    public async Task SelectedExport_ReturnsRequestedAndMatchedCounts()
+    {
+        if (!await ErpTestFixture.IsAvailableAsync())
+            return;
+
+        var id = await CreateExportDefinitionAsync();
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ExportLogDbContext>();
+        var original = await db.GetSettingRawAsync(SettingsKeys.ErpConnection);
+        try
+        {
+            await db.SetSettingAsync(SettingsKeys.ErpConnection, ErpTestFixture.Config);
+            using var client = await factory.CreateAuthenticatedClientAsync();
+
+            // One seeded ID and one absent ID: the caller can detect a partial match.
+            var response = await client.PostAsJsonAsync(
+                $"/api/export-definitions/{id}/run-selected",
+                new { recordIds = new[] { "44444444-4444-4444-4444-444444444444", "99999999-9999-9999-9999-999999999990" } }
+            );
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("2", Assert.Single(response.Headers.GetValues("X-Requested-Count")));
+            Assert.Equal("1", Assert.Single(response.Headers.GetValues("X-Record-Count")));
+            Assert.Contains("44444444-4444-4444-4444-444444444444",
+                await response.Content.ReadAsStringAsync());
+        }
+        finally
+        {
+            var setting = await db.AppSettings.FindAsync(SettingsKeys.ErpConnection);
+            if (original is null)
+                db.AppSettings.Remove(setting!);
+            else
+                setting!.Value = original;
+            await db.SaveChangesAsync();
+        }
+    }
+
+    [Fact]
     public async Task SelectedImport_RejectsEmptyAndNonObjectRecords()
     {
         using var client = await factory.CreateAuthenticatedClientAsync();
