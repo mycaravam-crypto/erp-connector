@@ -123,14 +123,14 @@ jobs:
           sarif_file: trivy-npm.sarif
           category: trivy-npm
 
-      # Same gate as the container scan: fixable CRITICAL fails, HIGH is reported only.
-      - name: Fail on fixable CRITICAL
+      # Stricter than the container scan, matching NuGet audit in ci.yml: fixable CRITICAL and HIGH fail.
+      - name: Fail on fixable CRITICAL or HIGH
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
           scan-ref: src/connector-ui
           scanners: vuln
-          severity: CRITICAL
+          severity: CRITICAL,HIGH
           ignore-unfixed: true
           format: table
           exit-code: "1"
