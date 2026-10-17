@@ -7,6 +7,8 @@ name: Security
 #   the only CI job that checks the Dockerfile still builds.
 # - dependency-scan: Trivy over the frontend's npm lockfile (src/connector-ui), whose packages reach
 #   the image only bundled into the UI's static files, where the container scan can't see them.
+# - dast-baseline: runs the production image and points an OWASP ZAP baseline scan at it (passive
+#   only, unauthenticated: response headers, CSP, cookies, information leaks). Report-only for now.
 # - workflow-lint: actionlint (syntax, expressions, shellcheck on run blocks) and zizmor (workflow
 #   security: permissions, credential persistence, injection, Dependabot cooldown).
 # NuGet dependency CVEs are also gated by NuGet audit on restore in ci.yml; Dependabot alerts and
@@ -133,6 +135,60 @@ jobs:
           format: table
           exit-code: "1"
           skip-setup-trivy: true
+
+  dast-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build production image
+        run: docker build -t erp-connector:scan .
+
+      # Production config from appsettings.Production.json, so this is the real middleware and header
+      # stack. The only required setting is a JWT secret; a throwaway one is generated per run. The
+      # placeholder Auth:Users hashes still seed an Admin, so startup succeeds, but nobody can log in.
+      - name: Start connector
+        run: |
+          docker run -d --name connector -p 8080:8080 \
+            -e Auth__JwtSecret="$(openssl rand -base64 48)" \
+            erp-connector:scan
+          for _ in $(seq 1 30); do
+            curl -fsS -o /dev/null http://localhost:8080/api/health && exit 0
+            sleep 2
+          done
+          docker logs connector
+          exit 1
+
+      # Docker Hub's zaproxy/zap-stable, pinned by digest (same image as ghcr.io/zaproxy/zaproxy:stable).
+      # Dependabot doesn't track images in `docker run`; update by re-resolving the tag's digest
+      # (`docker buildx imagetools inspect zaproxy/zap-stable:latest`). -j adds the AJAX spider, which
+      # the Vue SPA needs to reach routes like /login; -I keeps warnings from failing the job.
+      - name: ZAP baseline scan
+        run: |
+          mkdir -p "$RUNNER_TEMP/zap"
+          chmod 777 "$RUNNER_TEMP/zap" # the ZAP container writes as its own non-root user
+          docker run --rm --network host -v "$RUNNER_TEMP/zap:/zap/wrk:rw" \
+            zaproxy/zap-stable@sha256:5ccfff9a411743ab2615136a2edd7416bec9ce41572fa94e935df38c14adb2b6 \
+            zap-baseline.py -t http://localhost:8080 -j -I -r zap-report.html -w zap-report.md
+          cat "$RUNNER_TEMP/zap/zap-report.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: zap-baseline-report
+          path: |
+            ${{ runner.temp }}/zap/zap-report.html
+            ${{ runner.temp }}/zap/zap-report.md
+          if-no-files-found: ignore
+
+      - name: Connector logs
+        if: failure()
+        run: docker logs connector
 
   workflow-lint:
     runs-on: ubuntu-latest
