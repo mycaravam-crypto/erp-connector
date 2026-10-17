@@ -8,7 +8,7 @@ name: Security
 # - dependency-scan: Trivy over the frontend's npm lockfile (src/connector-ui), whose packages reach
 #   the image only bundled into the UI's static files, where the container scan can't see them.
 # - dast-baseline: runs the production image and points an OWASP ZAP baseline scan at it (passive
-#   only, unauthenticated: response headers, CSP, cookies, information leaks). Report-only for now.
+#   only, unauthenticated: response headers, CSP, cookies, information leaks). Fails on High-risk alerts.
 # - workflow-lint: actionlint (syntax, expressions, shellcheck on run blocks) and zizmor (workflow
 #   security: permissions, credential persistence, injection, Dependabot cooldown).
 # NuGet dependency CVEs are also gated by NuGet audit on restore in ci.yml; Dependabot alerts and
@@ -167,15 +167,28 @@ jobs:
       # Docker Hub's zaproxy/zap-stable, pinned by digest (same image as ghcr.io/zaproxy/zaproxy:stable).
       # Dependabot doesn't track images in `docker run`; update by re-resolving the tag's digest
       # (`docker buildx imagetools inspect zaproxy/zap-stable:latest`). -j adds the AJAX spider, which
-      # the Vue SPA needs to reach routes like /login; -I keeps warnings from failing the job.
+      # the Vue SPA needs to reach routes like /login; -I keeps warnings from failing the job (the
+      # gate below decides by risk instead, since ZAP's own WARN/FAIL levels are set per rule).
       - name: ZAP baseline scan
         run: |
           mkdir -p "$RUNNER_TEMP/zap"
           chmod 777 "$RUNNER_TEMP/zap" # the ZAP container writes as its own non-root user
           docker run --rm --network host -v "$RUNNER_TEMP/zap:/zap/wrk:rw" \
             zaproxy/zap-stable@sha256:5ccfff9a411743ab2615136a2edd7416bec9ce41572fa94e935df38c14adb2b6 \
-            zap-baseline.py -t http://localhost:8080 -j -I -r zap-report.html -w zap-report.md
+            zap-baseline.py -t http://localhost:8080 -j -I -r zap-report.html -w zap-report.md -J zap-report.json
           cat "$RUNNER_TEMP/zap/zap-report.md" >> "$GITHUB_STEP_SUMMARY"
+
+      # The gate: fail on any High-risk alert (riskcode 3). Medium and below show up in the report
+      # without blocking. riskdesc's "(High)" suffix is ZAP's confidence, not the risk, so match on
+      # riskcode.
+      - name: Fail on High-risk alerts
+        run: |
+          high=$(jq -r '.site[].alerts[] | select(.riskcode == "3") | "\(.pluginid) \(.alert)"' "$RUNNER_TEMP/zap/zap-report.json")
+          if [ -n "$high" ]; then
+            echo "::error::ZAP found High-risk alerts:"
+            echo "$high"
+            exit 1
+          fi
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
@@ -184,6 +197,7 @@ jobs:
           path: |
             ${{ runner.temp }}/zap/zap-report.html
             ${{ runner.temp }}/zap/zap-report.md
+            ${{ runner.temp }}/zap/zap-report.json
           if-no-files-found: ignore
 
       - name: Connector logs
