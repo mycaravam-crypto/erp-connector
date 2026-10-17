@@ -51,6 +51,20 @@ public sealed class ManifestSigningPolicyTests : SqliteDbContextTestBase
     }
 
     [Fact]
+    public void TrustedPeerConfigured_RejectsProducerlessPairedImportEvenWithoutStrictMode()
+    {
+        // Dropping the Producer block must not sidestep the trusted peer's mandatory signature.
+        var settings = TrustRemote();
+        settings.RequireSignedConnectorFiles = false;
+        Assert.Equal(
+            "unsigned file targets a paired import definition",
+            ManifestSigningPolicy.Verify(new ImportManifest(Checksum), settings, pairedDefinition: true)
+        );
+        Assert.Null(ManifestSigningPolicy.Verify(new ImportManifest(Checksum), settings, pairedDefinition: false));
+        Assert.Null(ManifestSigningPolicy.Verify(new ImportManifest(Checksum), new ManifestSigningSettings(), true));
+    }
+
+    [Fact]
     public void UnconfiguredReceiver_AllowsSignedFileFromUnknownProducer()
     {
         // Connector A sends a signed file to both paired B and unconfigured C.

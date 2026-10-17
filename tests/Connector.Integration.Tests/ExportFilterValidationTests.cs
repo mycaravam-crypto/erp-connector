@@ -125,6 +125,55 @@ public sealed class ExportFilterValidationTests
         Assert.Contains("Filter", error);
     }
 
+    [Theory]
+    // Escapes the engine's own "(filter) AND <join key / record selection>" wrapper.
+    [InlineData("1=1) OR (1=1")]
+    [InlineData("(status = 'a'")]
+    [InlineData("status = 'a")]
+    public async Task Export_UnbalancedRootFilter_Rejected(string filter)
+    {
+        await using var local = await LocalDb.NewAsync();
+        var (root, error) = await ExportDefinitionEndpoints.ValidateRequestAsync(
+            Request(Root(filter, Scalar("id", "id"))),
+            local.Db,
+            CancellationToken.None
+        );
+
+        Assert.Null(root);
+        Assert.Contains("Filter", error);
+    }
+
+    [Theory]
+    [InlineData("technician_name LIKE 'A%'")]
+    [InlineData("s.TECHNICIAN_NAME = 'x'")]
+    public async Task Export_FilterOnGdprDeniedField_Rejected(string filter)
+    {
+        await using var local = await LocalDb.NewAsync();
+        var nested = ObjectNode(filter, Scalar("name", "name"));
+        var (root, error) = await ExportDefinitionEndpoints.ValidateRequestAsync(
+            Request(Root(null, nested)),
+            local.Db,
+            CancellationToken.None
+        );
+
+        Assert.Null(root);
+        Assert.Contains("technician_name", error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Export_DeniedFieldNameInsideStringLiteral_Accepted()
+    {
+        await using var local = await LocalDb.NewAsync();
+        var (root, error) = await ExportDefinitionEndpoints.ValidateRequestAsync(
+            Request(Root("status = 'technician_name' OR status = 'it''s technician_name'", Scalar("id", "id"))),
+            local.Db,
+            CancellationToken.None
+        );
+
+        Assert.Null(error);
+        Assert.NotNull(root);
+    }
+
     [Fact]
     public async Task Export_UnsafeNestedNodeFilter_Rejected()
     {

@@ -24,10 +24,14 @@ public sealed class PostgreSqlDialect : ISqlDialect
 
     public string BuildLimit(int limit) => "LIMIT " + limit.ToString(CultureInfo.InvariantCulture);
 
-    // Standard single-quote doubling — the same escaping the export builders always used (formerly
-    // DynamicExportService.SqlLit). Relies on Postgres's default standard_conforming_strings = on, under which
-    // a backslash inside '...' is an ordinary character.
-    public string QuoteStringLiteral(string value) => "'" + value.Replace("'", "''") + "'";
+    // Single-quote doubling (formerly DynamicExportService.SqlLit). A value with a backslash becomes an E'...'
+    // escape string with the backslash doubled: a plain '...' literal is only backslash-safe while the server's
+    // standard_conforming_strings is on, and with it off a trailing backslash (e.g. a user-set export delimiter)
+    // would escape the closing quote and let the rest of the statement be read as SQL.
+    public string QuoteStringLiteral(string value) =>
+        value.Contains('\\')
+            ? "E'" + value.Replace("\\", "\\\\").Replace("'", "''") + "'"
+            : "'" + value.Replace("'", "''") + "'";
 
     public string CastToText(string expression) => expression + "::text";
 

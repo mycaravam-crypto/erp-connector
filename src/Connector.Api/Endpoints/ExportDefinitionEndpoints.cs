@@ -664,7 +664,22 @@ static class ExportDefinitionEndpoints
         && !filter.Contains("$$", StringComparison.Ordinal)
         && SafeFilterCharsRegex.IsMatch(filter)
         && !DangerousFilterKeywordRegex.IsMatch(filter)
-        && !ContainsFunctionCall(filter);
+        && !ContainsFunctionCall(filter)
+        && ExportFilterGuard.IsBalanced(filter);
+
+    // Null when the filter passes, otherwise the reason (prefixed by the caller with where it was found).
+    private static string? ValidateFilter(string? filter, IReadOnlySet<string> denylist)
+    {
+        if (string.IsNullOrWhiteSpace(filter))
+            return null;
+        if (!IsSafeFilterExpression(filter))
+            return "Filter contains characters or keywords that are not allowed.";
+        var denied = ExportFilterGuard.FindDeniedIdentifier(filter, denylist);
+        return denied is null
+            ? null
+            : $"Filter references '{denied}', which is personal data and must not be used in an export "
+                + "(GDPR Art. 5(1)(c) — data minimisation).";
+    }
 
     /// <summary>
     /// Validates a create/update request: name, root table, output format, cron schedule, the
@@ -745,10 +760,11 @@ static class ExportDefinitionEndpoints
         if (root.Kind != ExportNodeKind.Root)
             return (null, $"RootNode.Kind must be \"{ExportNodeKind.Root}\" (got \"{root.Kind}\").");
 
-        if (!string.IsNullOrWhiteSpace(root.Filter) && !IsSafeFilterExpression(root.Filter))
-            return (null, "RootNode.Filter contains characters or keywords that are not allowed.");
-
         var denylist = await DynamicExportService.GetDeniedFieldsAsync(db);
+        var rootFilterError = ValidateFilter(root.Filter, denylist);
+        if (rootFilterError is not null)
+            return (null, $"RootNode.{rootFilterError}");
+
         var topLevelKeys = new HashSet<string>(StringComparer.Ordinal);
         foreach (var child in root.Children.Where(c => c.Enabled))
         {
@@ -798,8 +814,9 @@ static class ExportDefinitionEndpoints
                     return $"Node '{path}': JoinKey is required and must be a valid identifier.";
                 if (string.IsNullOrWhiteSpace(node.SourceJoinKey) || !SqlIdentifierRegex.IsMatch(node.SourceJoinKey))
                     return $"Node '{path}': SourceJoinKey is required and must be a valid identifier.";
-                if (!string.IsNullOrWhiteSpace(node.Filter) && !IsSafeFilterExpression(node.Filter))
-                    return $"Node '{path}': Filter contains characters or keywords that are not allowed.";
+                var filterError = ValidateFilter(node.Filter, denylist);
+                if (filterError is not null)
+                    return $"Node '{path}': {filterError}";
 
                 var enabledChildren = node.Children.Where(c => c.Enabled).ToList();
                 if (enabledChildren.Count == 0)

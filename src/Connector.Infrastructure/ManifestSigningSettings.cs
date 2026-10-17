@@ -36,7 +36,10 @@ public static class ManifestSigningPolicy
     {
         if (manifest.Producer is null)
         {
-            if (settings?.RequireSignedConnectorFiles == true && pairedDefinition)
+            // Leaving out Producer must not be a way around "a trusted peer must always sign": once any peer is
+            // trusted, a paired (connector-to-connector) definition only takes signed files, strict mode or not.
+            var anyTrustedPeer = settings?.TrustedPeerSecrets.Count > 0;
+            if (pairedDefinition && (settings?.RequireSignedConnectorFiles == true || anyTrustedPeer))
                 return "unsigned file targets a paired import definition";
 
             return manifest.Signature is null ? null : "signature has no producer identity";
