@@ -260,6 +260,8 @@ app.Use(
             + "img-src 'self' data:; "
             + "font-src 'self'; "
             + "connect-src 'self'; "
+            // form-action and frame-ancestors don't fall back to default-src, so each is set explicitly.
+            + "form-action 'self'; "
             + "frame-ancestors 'none'";
         await next();
     }
