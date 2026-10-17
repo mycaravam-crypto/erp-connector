@@ -63,6 +63,12 @@ public sealed class PostgreSqlDialectTests
     [Fact]
     public void QuoteStringLiteral_DoublesSingleQuotes() => Assert.Equal("'it''s'", Dialect.QuoteStringLiteral("it's"));
 
+    // An E'' escape string reads backslashes the same whatever standard_conforming_strings is set to, so a trailing
+    // backslash can't escape the closing quote.
+    [Fact]
+    public void QuoteStringLiteral_UsesEscapeStringForBackslashes() =>
+        Assert.Equal(@"E'a\\''b\\'", Dialect.QuoteStringLiteral(@"a\'b\"));
+
     [Fact]
     public void CastToText_AppendsPostgresCast() => Assert.Equal("s.\"id\"::text", Dialect.CastToText("s.\"id\""));
 

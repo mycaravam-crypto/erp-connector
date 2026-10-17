@@ -76,6 +76,21 @@ public static partial class DynamicExportService
             );
         }
 
+        // Re-checked on every run, like the SELECT list above: a filter saved before one of its columns was
+        // denylisted, or before the balance rule existed, fails the run rather than leaking or widening it.
+        if (!string.IsNullOrWhiteSpace(node.Filter))
+        {
+            if (!ExportFilterGuard.IsBalanced(node.Filter))
+                throw new InvalidOperationException(
+                    $"Export node '{node.TargetKey}' has a filter with unbalanced parentheses or quotes."
+                );
+            var denied = ExportFilterGuard.FindDeniedIdentifier(node.Filter, denylist);
+            if (denied is not null)
+                throw new InvalidOperationException(
+                    $"Export node '{node.TargetKey}' has a filter on GDPR-denied field '{denied}'."
+                );
+        }
+
         return new TreePlan(table, alias, node.Filter, members, CastScalarsToText: true);
     }
 
